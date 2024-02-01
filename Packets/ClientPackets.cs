@@ -1,6 +1,6 @@
-﻿namespace BanchoNET.Models.Packets;
+﻿namespace BanchoNET.Packets;
 
-public enum ClientPackets
+public enum ClientPackets : short
 {
 	CHANGE_ACTION = 0,
 	SEND_PUBLIC_MESSAGE = 1,

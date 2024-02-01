@@ -1,3 +1,6 @@
+using BanchoNET.Models;
+using BanchoNET.Services;
+
 namespace BanchoNET;
 
 public class Program
@@ -10,6 +13,10 @@ public class Program
 		builder.Services.AddAuthorization();
 
 		// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+		builder.Services.AddControllers();
+		builder.Services.AddDbContext<BanchoContext>();
+		builder.Services.AddSingleton<BanchoSession>();
+		builder.Services.AddScoped<BanchoHandler>();
 		builder.Services.AddEndpointsApiExplorer();
 		builder.Services.AddSwaggerGen();
 
@@ -25,6 +32,8 @@ public class Program
 		app.UseHttpsRedirection();
 
 		app.UseAuthorization();
+
+		app.MapControllers();
 
 		app.Run();
 	}

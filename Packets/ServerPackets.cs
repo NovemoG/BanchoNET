@@ -1,6 +1,6 @@
-﻿namespace BanchoNET.Models.Packets;
+﻿namespace BanchoNET.Packets;
 
-public enum ServerPackets
+public enum ServerPackets : short
 {
 	USER_ID = 5,
 	SEND_MESSAGE = 7,
