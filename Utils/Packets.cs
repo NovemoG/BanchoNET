@@ -19,7 +19,7 @@ public static class Packets
 		return Write((short)packetId, dataArray);
 	}
 	
-	private static byte[] Write(short packetId, object[] dataArray)
+	private static byte[] Write(short packetId, object?[] dataArray)
 	{
 		var buffer = new MemoryStream();
 		using var bw = new BinaryWriter(buffer);
@@ -29,6 +29,8 @@ public static class Packets
 		for (int i = 0; i < dataArray.Length; i++)
 		{
 			var data = dataArray[i];
+			
+			if (data == null) continue;
 
 			switch (Type.GetTypeCode(data.GetType()))
 			{
@@ -73,8 +75,6 @@ public static class Packets
 					break;
 				case TypeCode.String:
 					bw.WriteString(data.ToString()!);
-					break;
-				case TypeCode.Empty:
 					break;
 				default:
 					throw new ArgumentOutOfRangeException(nameof(dataArray), "Tried to parse a not built-in object. This is not supported.");

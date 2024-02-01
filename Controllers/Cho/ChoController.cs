@@ -8,7 +8,7 @@ namespace BanchoNET.Controllers.Cho;
 public partial class ChoController(BanchoHandler bancho) : ControllerBase
 {
 	[HttpPost("/")]
-	public async Task<ActionResult> BanchoHandler()
+	public async Task<IActionResult> BanchoHandler()
 	{
 		Console.WriteLine("BanchoHandler Post");
 		
@@ -21,7 +21,7 @@ public partial class ChoController(BanchoHandler bancho) : ControllerBase
 		}
 
 		//TODO get player from session using token
-
+		
 		return Ok();
 	}
 

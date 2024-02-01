@@ -1,5 +1,7 @@
 using BanchoNET.Models;
 using BanchoNET.Services;
+using Microsoft.AspNetCore.HttpLogging;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 
 namespace BanchoNET;
 

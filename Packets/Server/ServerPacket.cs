@@ -156,10 +156,13 @@ public class ServerPacket : IDisposable
 		_memoryStream.WritePacket(ServerPackets.ACCOUNT_RESTRICTED, [null]);
 	}
 	
-	public void WriteToResponse(HttpResponse response)
+	public async Task WriteToResponse(HttpResponse response)
 	{
-		_memoryStream.WriteTo(response.Body);
-		_memoryStream.Flush();
+		await response.StartAsync();
+		await _memoryStream.CopyToAsync(response.Body);
+		await response.CompleteAsync();
+		
+		await _memoryStream.FlushAsync();
 	}
 
 	public void Dispose()

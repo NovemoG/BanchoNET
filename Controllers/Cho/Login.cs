@@ -9,7 +9,7 @@ namespace BanchoNET.Controllers.Cho;
 
 public partial class ChoController
 {
-	private async Task<ActionResult> Login()
+	private async Task<IActionResult> Login()
 	{
 		using var stream = new MemoryStream();
 		
@@ -39,6 +39,7 @@ public partial class ChoController
 		}
 		catch
 		{
+			Console.WriteLine("nie przeszło");
 			//TODO
 		}
 
@@ -58,7 +59,7 @@ public partial class ChoController
 			Latitude = 1.1f,
 			Friends = [],
 			BotClient = false,
-			Token = new Guid().ToString(),
+			Token = Guid.NewGuid().ToString(),
 		};
 
 		using var responseData = new ServerPacket();
@@ -119,13 +120,13 @@ public partial class ChoController
 		//TODO logger message
 		Console.WriteLine($"{player.Username} Logged in");
 		
-		responseData.WriteToResponse(Response);
-		
-		Console.WriteLine($"Response Body: {Response.Body.Length}");
-
 		Response.Headers["cho-token"] = player.Token;
-		return Ok();
+		Response.StatusCode = 200;
 		
+		await responseData.WriteToResponse(Response);
+		
+		return Ok();
+
 		/*if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(passwordMD5))
 		{
 			return BadRequest();
