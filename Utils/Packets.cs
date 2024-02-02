@@ -25,7 +25,8 @@ public static class Packets
 		using var bw = new BinaryWriter(buffer);
 		
 		bw.Write(packetId);
-
+		bw.Write((byte)0);
+		
 		for (int i = 0; i < dataArray.Length; i++)
 		{
 			var data = dataArray[i];
@@ -81,6 +82,14 @@ public static class Packets
 			}
 		}
 
-		return buffer.ToArray();
+		//TODO optimize it (?)
+		var returnBytes = buffer.ToArray();
+		var returnBuffer = new MemoryStream();
+		
+		returnBuffer.Write(returnBytes, 0, 3);
+		returnBuffer.Write(BitConverter.GetBytes(returnBytes.Length - 3));
+		returnBuffer.Write(returnBytes, 3, returnBytes.Length - 3);
+		
+		return returnBuffer.ToArray();
 	}
 }

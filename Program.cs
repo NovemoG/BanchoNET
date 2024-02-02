@@ -1,7 +1,6 @@
 using BanchoNET.Models;
 using BanchoNET.Services;
-using Microsoft.AspNetCore.HttpLogging;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.EntityFrameworkCore;
 
 namespace BanchoNET;
 
@@ -16,7 +15,10 @@ public class Program
 
 		// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 		builder.Services.AddControllers();
-		builder.Services.AddDbContext<BanchoContext>();
+		builder.Services.AddDbContext<BanchoContext>(options =>
+		{
+			options.UseMySQL(builder.Configuration.GetConnectionString("MySql")!);
+		});
 		builder.Services.AddSingleton<BanchoSession>();
 		builder.Services.AddScoped<BanchoHandler>();
 		builder.Services.AddEndpointsApiExplorer();
@@ -36,7 +38,7 @@ public class Program
 		app.UseAuthorization();
 
 		app.MapControllers();
-
+		
 		app.Run();
 	}
 }

@@ -155,14 +155,24 @@ public class ServerPacket : IDisposable
 	{
 		_memoryStream.WritePacket(ServerPackets.ACCOUNT_RESTRICTED, [null]);
 	}
-	
-	public async Task WriteToResponse(HttpResponse response)
+
+	public void Notification(string message)
 	{
-		await response.StartAsync();
-		await _memoryStream.CopyToAsync(response.Body);
-		await response.CompleteAsync();
-		
+		_memoryStream.WritePacket(ServerPackets.NOTIFICATION, [message]);
+	}
+
+	public async Task<MemoryStream> GetStream()
+	{
+		var resultStream = new MemoryStream(_memoryStream.ToArray());
 		await _memoryStream.FlushAsync();
+		return resultStream;
+	}
+
+	public async Task<byte[]> GetContent()
+	{
+		var returnBytes = _memoryStream.ToArray();
+		await _memoryStream.FlushAsync();
+		return returnBytes;
 	}
 
 	public void Dispose()

@@ -1,9 +1,12 @@
-﻿using System.Text;
+﻿using System.Net;
+using System.Text;
 using BanchoNET.Models;
 using BanchoNET.Objects.Other;
 using BanchoNET.Objects.Privileges;
 using BanchoNET.Packets.Server;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Net.Http.Headers;
+using MediaTypeHeaderValue = System.Net.Http.Headers.MediaTypeHeaderValue;
 
 namespace BanchoNET.Controllers.Cho;
 
@@ -34,8 +37,6 @@ public partial class ChoController
 			var adaptersMD5 = clientHashes[2];
 			var uninstallMD5 = clientHashes[3];
 			var diskSignatureMD5 = clientHashes[4];
-			
-			Console.WriteLine($"Username: {username}");
 		}
 		catch
 		{
@@ -47,7 +48,7 @@ public partial class ChoController
 		{
 			Id = 3,
 			Username = "Cossin",
-			PasswordHash = "",
+			PasswordHash = "TestPw",
 			TimeZone = 1,
 			Country = "Poland",
 			LastConnectionTime = DateTime.Now,
@@ -121,11 +122,8 @@ public partial class ChoController
 		Console.WriteLine($"{player.Username} Logged in");
 		
 		Response.Headers["cho-token"] = player.Token;
-		Response.StatusCode = 200;
 		
-		await responseData.WriteToResponse(Response);
-		
-		return Ok();
+		return new FileContentResult(await responseData.GetContent(), "application/octet-stream; charset=UTF-8");
 
 		/*if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(passwordMD5))
 		{
