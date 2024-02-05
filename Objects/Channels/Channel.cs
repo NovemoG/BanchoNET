@@ -1,4 +1,6 @@
-﻿namespace BanchoNET.Objects.Channels;
+﻿using BanchoNET.Objects.Players;
+
+namespace BanchoNET.Objects.Channels;
 
 public class Channel
 {
@@ -10,5 +12,5 @@ public class Channel
 
 	public string Name { get; set; }
 	public string Description { get; set; }
-	public List<Models.Player> Players { get; set; }
+	public List<Player> Players { get; set; } = [];
 }

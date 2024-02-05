@@ -2,7 +2,7 @@
 
 namespace BanchoNET.Utils;
 
-public static class Beatmaps
+public static class BeatmapExtensions
 {
 	public static string FullName(this Beatmap beatmap)
 	{

@@ -1,4 +1,4 @@
-﻿namespace BanchoNET.Objects.Other;
+﻿namespace BanchoNET.Objects.Channels;
 
 public class Message
 {

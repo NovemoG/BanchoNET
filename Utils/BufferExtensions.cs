@@ -1,9 +1,8 @@
 ﻿using System.Text;
-using BanchoNET.Packets;
 
 namespace BanchoNET.Utils;
 
-public static class Buffers
+public static class BufferExtensions
 {
 	public static string ReadString(this BinaryReader br)
 	{
@@ -81,15 +80,5 @@ public static class Buffers
 			
 			bw.Write(Encoding.UTF8.GetBytes(data));
 		}
-	}
-	
-	public static void WritePacket(this MemoryStream ms, ServerPackets packetId, object[] data)
-	{
-		ms.Write(Packets.Write(packetId, data));
-	}
-	
-	public static void WritePacket(this MemoryStream ms, ClientPackets packetId, object[] data)
-	{
-		ms.Write(Packets.Write(packetId, data));
 	}
 }

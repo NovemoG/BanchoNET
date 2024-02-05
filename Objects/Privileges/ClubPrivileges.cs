@@ -1,5 +1,6 @@
 ﻿namespace BanchoNET.Objects.Privileges;
 
+[Flags]
 public enum ClubPrivileges
 {
 	MEMBER = 1,

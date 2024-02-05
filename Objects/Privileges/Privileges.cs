@@ -1,5 +1,6 @@
 ﻿namespace BanchoNET.Objects.Privileges;
 
+[Flags]
 public enum Privileges
 {
 	// 0 means that player is restricted

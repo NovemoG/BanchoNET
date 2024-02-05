@@ -1,6 +1,6 @@
 ﻿namespace BanchoNET.Utils;
 
-public static class Responses
+public static class ResponseExtensions
 {
 	public static void ApplyHeaders(this HttpResponse response)
 	{

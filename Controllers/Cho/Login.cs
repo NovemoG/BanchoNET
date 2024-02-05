@@ -1,17 +1,19 @@
-﻿using System.Net;
-using System.Text;
-using BanchoNET.Models;
-using BanchoNET.Objects.Other;
+﻿using System.Text;
+using BanchoNET.Objects;
+using BanchoNET.Objects.Channels;
+using BanchoNET.Objects.Players;
 using BanchoNET.Objects.Privileges;
-using BanchoNET.Packets.Server;
+using BanchoNET.Packets;
+using BanchoNET.Utils;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Net.Http.Headers;
-using MediaTypeHeaderValue = System.Net.Http.Headers.MediaTypeHeaderValue;
+using Newtonsoft.Json.Linq;
 
 namespace BanchoNET.Controllers.Cho;
 
 public partial class ChoController
 {
+	private const string OsuApiV2ChangelogUrl = "https://osu.ppy.sh/api/v2/changelog";
+	
 	private async Task<IActionResult> Login()
 	{
 		using var stream = new MemoryStream();
@@ -19,82 +21,182 @@ public partial class ChoController
 		await Request.Body.CopyToAsync(stream);
 		var rawBody = stream.ToArray();
 
+		LoginData? loginData;
 		try
 		{
 			var bodyString = Encoding.UTF8.GetString(rawBody).Split("\n", 3);
-			var username = bodyString[0];
-			var passwordMD5 = bodyString[1];
-			var remainder = bodyString[2].Split('|', 5);
+			
+			loginData = ParseLoginData(bodyString);
 
-			var osuVersion = remainder[0];
-			var utcOffset = remainder[1];
-			var displayCity = remainder[2];
-			var clientHashes = remainder[3].Split(':', 5);
-			var pmPrivate = remainder[4];
-
-			var osuPathMD5 = clientHashes[0];
-			var adaptersString = clientHashes[1];
-			var adaptersMD5 = clientHashes[2];
-			var uninstallMD5 = clientHashes[3];
-			var diskSignatureMD5 = clientHashes[4];
+			if (loginData == null)
+			{
+				Response.Headers["cho-token"] = "invalid-request";
+				return BadRequest();
+			}
 		}
 		catch
 		{
-			Console.WriteLine("nie przeszło");
-			//TODO
+			Response.Headers["cho-token"] = "invalid-request";
+
+			using var responseData = new ServerPackets();
+			responseData.Notification("Error occurred");
+			responseData.UserId(-5);
+			return responseData.GetContentResult();
 		}
 
-		var player = new Player
+		if (_config.DisallowOldClients)
 		{
-			Id = 3,
-			Username = "Cossin",
-			PasswordHash = "TestPw",
-			TimeZone = 1,
-			Country = "Poland",
-			LastConnectionTime = DateTime.Now,
-			Privileges = 0,
-			Restricted = false,
-			RemainingSilence = 0,
-			Rank = 1,
-			Longitude = 1.1f,
-			Latitude = 1.1f,
-			Friends = [],
-			BotClient = false,
-			Token = Guid.NewGuid().ToString(),
+			var clientStream = loginData.OsuVersion.Stream;
+			if (clientStream is "stable" or "beta") clientStream += "40";
+
+			//TODO cache latest major version once every day
+			//TODO this changelog doesnt provide version info for tourney/dev client
+			
+			var response = await _httpClient.GetAsync($"{OsuApiV2ChangelogUrl}?stream={clientStream}");
+			response.EnsureSuccessStatusCode();
+
+			dynamic changelog = JObject.Parse(await response.Content.ReadAsStringAsync());
+
+			var latestMajorVersion = loginData.OsuVersion.Date;
+			foreach (var build in changelog.builds)
+			{
+				Console.WriteLine(build.version);
+				
+				latestMajorVersion = DateTime.ParseExact(build.version.ToString().Substring(0, 8), "yyyyMMdd", null);
+
+				if (((IEnumerable<dynamic>)build.changelog_entries).Any(entry => (bool)entry.major)) break;
+			}
+
+			if (loginData.OsuVersion.Date < latestMajorVersion)
+			{
+				Response.Headers["cho-token"] = "client-too-old";
+                
+                using var responseData = new ServerPackets();
+                responseData.VersionUpdate();
+                responseData.UserId(-2);
+                return responseData.GetContentResult();
+			}
+		}
+
+		var runningUnderWine = loginData.AdaptersString == "runningunderwine";
+		var adapters = loginData.AdaptersString[..^1].Split('.');
+		
+		if (!(runningUnderWine || adapters.Length != 0))
+		{
+			Response.Headers["cho-token"] = "empty-adapters";
+                
+			using var responseData = new ServerPackets();
+			responseData.UserId(-1);
+			responseData.Notification("Please restart your osu! client and try again.");
+			return responseData.GetContentResult();
+		}
+
+		var loginTime = DateTime.UtcNow;
+
+		var player = _bancho.GetPlayerSession(username: loginData.Username);
+		if (player != null && loginData.OsuVersion.Stream != "tourney")
+		{
+			if (loginTime - player.LastActivityTime < TimeSpan.FromSeconds(15))
+			{
+				Response.Headers["cho-token"] = "user-already-logged-in";
+                
+				using var responseData = new ServerPackets();
+				responseData.UserId(-1);
+				responseData.Notification("User already logged in.");
+				return responseData.GetContentResult();
+			}
+
+			await _bancho.PlayerLogout(player);
+		}
+		await _bancho.FetchPlayerInfo(username: "sex");
+		
+		var userInfo = await _bancho.FetchPlayerInfo(username: loginData.Username);
+		if (userInfo == null)
+		{
+			Response.Headers["cho-token"] = "unknown-username";
+                
+			using var responseData = new ServerPackets();
+			responseData.Notification("Unknown username.");
+			responseData.UserId(-1);
+			return responseData.GetContentResult();
+		}
+		
+		var privileges = (Privileges)userInfo.Privileges;
+		if (loginData.OsuVersion.Stream == "tourney" &&
+		    !privileges.HasPrivilege(Privileges.SUPPORTER) &&
+		    privileges.HasPrivilege(Privileges.UNRESTRICTED))
+		{
+			Response.Headers["cho-token"] = "no";
+                
+			using var responseData = new ServerPackets();
+			responseData.UserId(-1);
+			return responseData.GetContentResult();
+		}
+		
+		//TODO cache hashes
+		if (!BCrypt.Net.BCrypt.Verify(loginData.PasswordMD5, userInfo.PasswordHash))
+		{
+			Response.Headers["cho-token"] = "incorrect-password";
+				
+			using var responseData = new ServerPackets();
+			responseData.Notification("Incorrect password.");
+			responseData.UserId(-1);
+			return responseData.GetContentResult();
+		}
+		else
+		{
+			//TODO add to hash collection
+		}
+		
+		//TODO add login data and client hashes to database
+		//TODO hw matches
+		
+		player = new Player(userInfo, "", loginTime, 1)
+		{
+			Geoloc = new Geoloc
+			{
+				Country = new Country
+				{
+					Acronym = "pl",
+					Numeric = 10,
+				},
+				Longitude = 6.9f,
+				Latitude = 7.27f
+			}
 		};
 
-		using var responseData = new ServerPacket();
+		using var loginPackets = new ServerPackets();
 
-		responseData.ProtocolVersion(19);
-		responseData.UserId(player.Id);
-		responseData.BanchoPrivileges(player.Privileges);
-		responseData.WelcomeMessage(Utils.Packets.WelcomeMessage);
-		responseData.ChannelInfo(bancho.GetAutoJoinChannels(player));
-		responseData.ChannelInfoEnd();
+		loginPackets.ProtocolVersion(19);
+		loginPackets.UserId(player.Id);
+		loginPackets.BanchoPrivileges(player.Privileges);
+		loginPackets.Notification(_config.WelcomeMessage);
+		loginPackets.ChannelInfo(_bancho.GetAutoJoinChannels(player));
+		loginPackets.ChannelInfoEnd();
+		loginPackets.MainMenuIcon(_config.MenuIconUrl, _config.MenuOnclickUrl);
 		
-		//TODO Fetch player stats
-		//TODO Fetch player friends
-		
-		responseData.MainMenuIcon(Utils.Packets.MenuIconUrl, Utils.Packets.MenuOnclickUrl);
-		responseData.FriendsList(player.Friends);
-		responseData.SilenceEnd(player.RemainingSilence);
-		responseData.UserPresence(player);
-		responseData.UserStats(player);
+		await _bancho.FetchPlayerStats(player);
+		await _bancho.FetchPlayerRelationships(player);
+
+		loginPackets.FriendsList(player.Friends);
+		loginPackets.SilenceEnd(player.RemainingSilence);
+		loginPackets.UserPresence(player);
+		loginPackets.UserStats(player);
 
 		if (!player.Restricted)
 		{
 			//TODO send information to other players that this player just logged on and get info about other players
 			
 			//TODO check for offline messages
-
+			
 			if ((player.Privileges & (int)Privileges.VERIFIED) == 0)
 			{
 				//TODO add privileges
-				
-				responseData.SendMessage(new Message
+
+				loginPackets.SendMessage(new Message
 				{
 					Sender = "Bancho", //TODO get bancho bot name
-					Content = Utils.Packets.WelcomeMessage, //TODO load from config
+					Content = _config.WelcomeMessage, //TODO load from config
 					Destination = player.Username,
 					SenderId = 1 //TODO get bancho bot id
 				});
@@ -104,42 +206,62 @@ public partial class ChoController
 		{
 			//TODO get info about other players
 			
-			responseData.AccountRestricted();
-			responseData.SendMessage(new Message
+			loginPackets.AccountRestricted();
+			loginPackets.SendMessage(new Message
 			{
 				Sender = "Bancho", //TODO get bancho bot name
-				Content = Utils.Packets.RestrictedMessage, //TODO load from config
+				Content = _config.RestrictedMessage, //TODO load from config
 				Destination = player.Username,
 				SenderId = 1 //TODO get bancho bot id
 			});
 		}
 		
-		bancho.AppendPlayerSession(player);
+		_bancho.AppendPlayerSession(player);
 		
 		//TODO note some statistics maybe?
 		
 		//TODO logger message
 		Console.WriteLine($"{player.Username} Logged in");
 		
-		Response.Headers["cho-token"] = player.Token;
+		Response.Headers["cho-token"] = player.Token.ToString();
 		
-		return new FileContentResult(await responseData.GetContent(), "application/octet-stream; charset=UTF-8");
+		return loginPackets.GetContentResult();
+	}
 
-		/*if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(passwordMD5))
+	private LoginData? ParseLoginData(IReadOnlyList<string> bodyString)
+	{
+		var remainder = bodyString[2].Split('|', 5);
+		
+		var versionMatch = Regexes.OsuVersion().Match(remainder[0]);
+
+		if (!versionMatch.Success) return null;
+			
+		var osuVersion = new OsuVersion
 		{
-			return BadRequest();
-		}
-
-		var player = services.GetPlayerSession(username);
-
-		if (player == null)
+			Date = DateTime.ParseExact(versionMatch.Groups["date"].Value, "yyyyMMdd", null),
+			Revision = versionMatch.Groups["revision"].Success
+				? int.Parse(versionMatch.Groups["revision"].Value) 
+				: 0,
+			Stream = versionMatch.Groups["stream"].Success
+				? versionMatch.Groups["stream"].Value
+				: "stable"
+		};
+		
+		var clientHashes = remainder[3][..^1].Split(':', 5);
+		
+		return new LoginData
 		{
-			return BadRequest();
-		}
-
-		if (!player.CheckPassword(passwordMD5))
-		{
-			return Unauthorized();
-		}*/
+			Username = bodyString[0],
+			PasswordMD5 = bodyString[1],
+			OsuVersion = osuVersion,
+			TimeZone = byte.Parse(remainder[1]),
+			DisplayCity = remainder[2] == "1",
+			PmPrivate = remainder[4] == "1",
+			OsuPathMD5 = clientHashes[0],
+			AdaptersString = clientHashes[1],
+			AdaptersMD5 = clientHashes[2],
+			UninstallMD5 = clientHashes[3],
+			DiskSignatureMD5 = clientHashes[4]
+		};
 	}
 }

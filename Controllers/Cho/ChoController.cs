@@ -1,40 +1,52 @@
-﻿using System.Buffers;
-using System.Net;
-using BanchoNET.Packets.Server;
+﻿using BanchoNET.Models;
+using BanchoNET.Packets;
 using BanchoNET.Services;
 using BanchoNET.Utils;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR.Protocol;
+using Microsoft.Extensions.Options;
 
 namespace BanchoNET.Controllers.Cho;
 
 [ApiController]
-public partial class ChoController(BanchoHandler bancho) : ControllerBase
+public partial class ChoController : ControllerBase
 {
+	private readonly BanchoHandler _bancho;
+	private readonly ServerConfig _config;
+	private readonly HttpClient _httpClient;
+	
+	public ChoController(BanchoHandler bancho, IOptions<ServerConfig> serverConstants, HttpClient httpClient)
+	{
+		_bancho = bancho;
+		_config = serverConstants.Value;
+		_httpClient = httpClient;
+	}
+	
 	[HttpPost("/")]
 	public async Task<IActionResult> BanchoHandler()
 	{
-		Console.WriteLine("BanchoHandler Post");
-		
-		Response.ApplyHeaders();
-
-		var osuToken = Request.Headers["cho-token"];
+		var osuToken = Request.Headers["osu-token"];
 		if (string.IsNullOrEmpty(osuToken))
 		{
 			return await Login();
 		}
 
-		/*Response.Headers["cho-token"] = "incorrect-password";
-
-		using var responseData = new ServerPacket();
-		responseData.Notification("Incorrect password");
-		responseData.UserId(-1);
-
-		return new FileContentResult(await responseData.GetContent(), "application/octet-stream; charset=UTF-8");*/
+		var player = _bancho.GetPlayerSession(token: new Guid(osuToken!));
+		if (player == null)
+		{
+			var restartData = new ServerPackets();
+			
+			restartData.Notification("Server has restarted.");
+			restartData.RestartServer(0);
+			
+			return restartData.GetContentResult();
+		}
 		
-		//TODO get player from session using token
+		using var clientData = await new ClientPackets().CopyStream(Request.Body);
+		clientData.ReadPackets(player);
+		
+		player.LastActivityTime = DateTime.Now;
 
-		return Ok();
+		return new FileContentResult(player.Dequeue(), "application/octet-stream; charset=UTF-8");
 	}
 
 	[HttpGet("/")]
@@ -46,8 +58,7 @@ public partial class ChoController(BanchoHandler bancho) : ControllerBase
 		{
 			ContentType = "text/html",
 			StatusCode = 200,
-			Content =
-				$"<!DOCTYPE html><body style=\"font-family: monospace; white-space: pre-wrap;\">Running bancho.py v{19} <a href=\"online\">{1} online players</a><a href=\"matches\">{0} matches</a><b>packets handled ({0})</b>{0}<a href=\"https://github.com/osuAkatsuki/bancho.py\">Source code</a></body></html>"
+			Content = "<!DOCTYPE html><body style=\"font-family: monospace; white-space: pre-wrap;\">Test</a></body></html>"
 		};
 	}
 

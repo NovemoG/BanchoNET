@@ -1,11 +1,19 @@
-﻿using BanchoNET.Models;
+﻿using BanchoNET.Models.Dtos;
 using BanchoNET.Objects.Channels;
+using BanchoNET.Objects.Players;
 using BanchoNET.Objects.Privileges;
 
 namespace BanchoNET.Services;
 
 public class BanchoSession
 {
+	public readonly List<Channel> Channels;
+
+	public readonly Dictionary<int, Player> Players;
+	//public readonly List<Player> Players;
+	public readonly List<Player> Restricted;
+	public readonly List<Player> Bots;
+	
 	public BanchoSession()
 	{
 		Channels = new List<Channel>
@@ -34,20 +42,34 @@ public class BanchoSession
 			}
 		};
 
-		Players = new List<Player>
+		Players = [];
+		Restricted = [];
+
+		Bots = new List<Player>
 		{
-			//TODO bancho bot
-			new()
+			new(new PlayerDto{Id = 1}, "")
 			{
-				Id = 1,
 				Username = "Bancho",
-				LastConnectionTime = DateTime.MaxValue,
+				LastActivityTime = DateTime.MaxValue,
 				Privileges = (int)Privileges.UNRESTRICTED,
-				BotClient = true
 			}
 		};
+		/*new PlayerDto
+		{
+			Id = 1,
+			Username = "Bancho",
+			TimeZone = 1,
+			Country = "Satellite",
+			Privileges = 31,
+			BotClient = true,
+			Longitude = 1234,
+			Latitude = 1234,
+			Rank = 0,
+		})*/
 	}
-	
-	public readonly List<Channel> Channels;
-	public readonly List<Player> Players; //TODO maybe Players class with bots, players, restricted collections
+
+	public void EnqueueToPlayers()
+	{
+		
+	}
 }
