@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BanchoNET.Models.Dtos;
 
-[PrimaryKey("PlayerId", "Mode")]
+[PrimaryKey(nameof(PlayerId), nameof(Mode))]
 public class StatsDto
 {
 	[Key, ForeignKey("Player")]
@@ -13,7 +13,7 @@ public class StatsDto
 	
 	public long TotalScore { get; set; }
 	public long RankedScore { get; set; }
-	public short PP { get; set; }
+	public ushort PP { get; set; }
 	
 	[Column(TypeName = "FLOAT(6,3)")]
 	public float Accuracy { get; set; }
@@ -25,7 +25,7 @@ public class StatsDto
 	public int Total300s { get; set; }
 	public int Total100s { get; set; }
 	public int Total50s { get; set; }
-	public int ReplayViews { get; set; }
+	public int ReplaysViews { get; set; }
 	public int XHCount { get; set; }
 	public int XCount { get; set; }
 	public int SHCount { get; set; }

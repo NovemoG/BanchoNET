@@ -4,50 +4,54 @@ namespace BanchoNET.Packets;
 
 public partial class ServerPackets
 {
-	private void WritePacketData(ServerPacketId packetId, IReadOnlyList<object?> dataArray)
+	private readonly Dictionary<TypeCode, Action<BinaryWriter, object>> _writeActionsMap = new()
+	{
+		{ TypeCode.Boolean, (bw, data) => bw.Write((bool)data) },
+		{ TypeCode.Byte, (bw, data) => bw.Write((byte)data) },
+		{ TypeCode.SByte, (bw, data) => bw.Write((sbyte)data) },
+		{ TypeCode.Char, (bw, data) => bw.Write((char)data) },
+		{ TypeCode.Int16, (bw, data) => bw.Write((short)data) },
+		{ TypeCode.Int32, (bw, data) => bw.Write((int)data) },
+		{ TypeCode.Int64, (bw, data) => bw.Write((long)data) },
+		{ TypeCode.UInt16, (bw, data) => bw.Write((ushort)data) },
+		{ TypeCode.UInt32, (bw, data) => bw.Write((uint)data) },
+		{ TypeCode.UInt64, (bw, data) => bw.Write((ulong)data) },
+		{ TypeCode.Single, (bw, data) => bw.Write((float)data) },
+		{ TypeCode.Double, (bw, data) => bw.Write((double)data) },
+		{ TypeCode.String, (bw, data) => bw.WriteOsuString(data.ToString()!) }
+	};
+	
+	private void WritePacketData(ServerPacketId packetId, params object[]? dataArray)
 	{
 		var buffer = new MemoryStream();
-		var bw = new BinaryWriter(buffer);
+		using var bw = new BinaryWriter(buffer);
 		
 		bw.Write((short)packetId);
 		bw.Write((byte)0);
-
-		var writeActions = new Dictionary<TypeCode, Action<object>>
+		if (dataArray == null)
 		{
-			{ TypeCode.Boolean, data => bw.Write((bool)data) },
-			{ TypeCode.Byte, data => bw.Write((byte)data) },
-			{ TypeCode.SByte, data => bw.Write((sbyte)data) },
-			{ TypeCode.Char, data => bw.Write((char)data) },
-			{ TypeCode.Int16, data => bw.Write((short)data) },
-			{ TypeCode.Int32, data => bw.Write((int)data) },
-			{ TypeCode.Int64, data => bw.Write((long)data) },
-			{ TypeCode.UInt16, data => bw.Write((ushort)data) },
-			{ TypeCode.UInt32, data => bw.Write((uint)data) },
-			{ TypeCode.UInt64, data => bw.Write((ulong)data) },
-			{ TypeCode.Single, data => bw.Write((float)data) },
-			{ TypeCode.Double, data => bw.Write((double)data) },
-			{ TypeCode.String, data => bw.WriteString(data.ToString()!) }
-		};
+			bw.Write((int)0);
+			_binaryWriter.Write(buffer.ToArray());
+			return;
+		}
 		
-		for (int i = 0; i < dataArray.Count; i++)
+		for (int i = 0; i < dataArray.Length; i++)
 		{
 			var data = dataArray[i];
-			if (data == null) continue;
-
 			var typeCode = Type.GetTypeCode(data.GetType());
 			
-			if (writeActions.TryGetValue(typeCode, out var action))
-				action(data);
+			if (_writeActionsMap.TryGetValue(typeCode, out var action))
+				action(bw, data);
 		}
-
-		//TODO optimize it (?)
+		
 		var dataBytes = buffer.ToArray();
 		var returnStream = new MemoryStream();
 		
+		//Writes length of the packet data inside the stream
 		returnStream.Write(dataBytes, 0, 3);
 		returnStream.Write(BitConverter.GetBytes(dataBytes.Length - 3));
 		returnStream.Write(dataBytes, 3, dataBytes.Length - 3);
 		
-		BinaryWriter.Write(returnStream.ToArray());
+		_binaryWriter.Write(returnStream.ToArray());
 	}
 }

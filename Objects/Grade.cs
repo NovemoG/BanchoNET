@@ -1,6 +1,6 @@
 ﻿namespace BanchoNET.Objects;
 
-public enum Grades
+public enum Grade : byte
 {
 	XH, // SSH
 	X,  // SS

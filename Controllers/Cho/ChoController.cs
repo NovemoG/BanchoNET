@@ -1,7 +1,6 @@
 ﻿using BanchoNET.Models;
 using BanchoNET.Packets;
 using BanchoNET.Services;
-using BanchoNET.Utils;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
@@ -11,12 +10,14 @@ namespace BanchoNET.Controllers.Cho;
 public partial class ChoController : ControllerBase
 {
 	private readonly BanchoHandler _bancho;
+	private readonly BanchoSession _session;
 	private readonly ServerConfig _config;
 	private readonly HttpClient _httpClient;
 	
 	public ChoController(BanchoHandler bancho, IOptions<ServerConfig> serverConstants, HttpClient httpClient)
 	{
 		_bancho = bancho;
+		_session = BanchoSession.Instance;
 		_config = serverConstants.Value;
 		_httpClient = httpClient;
 	}
@@ -26,18 +27,14 @@ public partial class ChoController : ControllerBase
 	{
 		var osuToken = Request.Headers["osu-token"];
 		if (string.IsNullOrEmpty(osuToken))
-		{
 			return await Login();
-		}
 
-		var player = _bancho.GetPlayerSession(token: new Guid(osuToken!));
+		var player = _session.GetPlayer(token: new Guid(osuToken!));
 		if (player == null)
 		{
-			var restartData = new ServerPackets();
-			
+			using var restartData = new ServerPackets();
 			restartData.Notification("Server has restarted.");
 			restartData.RestartServer(0);
-			
 			return restartData.GetContentResult();
 		}
 		

@@ -18,4 +18,14 @@ public static class EnumExtensions
 	{
 		return (value & privilege) == privilege;
 	}
+	
+	public static bool HasPrivileges(this ClientPrivileges value, params ClientPrivileges[] checkFlags)
+	{
+		return checkFlags.All(flag => (value & flag) == flag);
+	}
+
+	public static bool HasPrivilege(this ClientPrivileges value, ClientPrivileges privilege)
+	{
+		return (value & privilege) == privilege;
+	}
 }

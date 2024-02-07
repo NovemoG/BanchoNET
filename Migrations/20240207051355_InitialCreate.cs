@@ -19,17 +19,17 @@ namespace BanchoNET.Migrations
                 name: "Beatmaps",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
+                    MapId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
                     SetId = table.Column<int>(type: "int", nullable: false),
                     Private = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     Mode = table.Column<byte>(type: "tinyint unsigned", nullable: false),
-                    Status = table.Column<byte>(type: "tinyint unsigned", nullable: false),
+                    Status = table.Column<sbyte>(type: "tinyint", nullable: false),
                     MD5 = table.Column<string>(type: "CHAR(32)", unicode: false, nullable: false),
-                    Filename = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: false),
-                    Artist = table.Column<string>(type: "longtext", nullable: false),
-                    Title = table.Column<string>(type: "longtext", nullable: false),
-                    Name = table.Column<string>(type: "longtext", nullable: false),
+                    Filename = table.Column<string>(type: "varchar(512)", unicode: false, maxLength: 512, nullable: false),
+                    Artist = table.Column<string>(type: "varchar(128)", unicode: false, maxLength: 128, nullable: false),
+                    Title = table.Column<string>(type: "varchar(128)", unicode: false, maxLength: 128, nullable: false),
+                    Name = table.Column<string>(type: "varchar(128)", unicode: false, maxLength: 128, nullable: false),
                     Creator = table.Column<string>(type: "varchar(16)", unicode: false, maxLength: 16, nullable: false),
                     LastUpdate = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     TotalLength = table.Column<int>(type: "int", nullable: false),
@@ -46,7 +46,7 @@ namespace BanchoNET.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Beatmaps", x => x.Id);
+                    table.PrimaryKey("PK_Beatmaps", x => x.MapId);
                 })
                 .Annotation("MySQL:Charset", "utf8mb4");
 
@@ -65,12 +65,12 @@ namespace BanchoNET.Migrations
                     Privileges = table.Column<int>(type: "int", nullable: false),
                     RemainingSilence = table.Column<int>(type: "int", nullable: false),
                     RemainingSupporter = table.Column<int>(type: "int", nullable: false),
-                    CreationTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    LastActivityTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    PreferredMode = table.Column<byte>(type: "tinyint unsigned", nullable: false),
+                    CreationTime = table.Column<DateTime>(type: "DATETIME", nullable: false),
+                    LastActivityTime = table.Column<DateTime>(type: "DATETIME", nullable: false),
+                    PreferredMode = table.Column<sbyte>(type: "TINYINT(2)", nullable: false),
                     PlayStyle = table.Column<byte>(type: "tinyint unsigned", nullable: false),
                     UserPageContent = table.Column<string>(type: "varchar(4096)", maxLength: 4096, nullable: true),
-                    ApiKey = table.Column<string>(type: "varchar(255)", unicode: false, nullable: false)
+                    ApiKey = table.Column<string>(type: "CHAR(36)", unicode: false, maxLength: 36, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -82,13 +82,13 @@ namespace BanchoNET.Migrations
                 name: "Relationships",
                 columns: table => new
                 {
-                    UserId = table.Column<int>(type: "int", nullable: false),
+                    PlayerId = table.Column<int>(type: "int", nullable: false),
                     TargetId = table.Column<int>(type: "int", nullable: false),
-                    Type = table.Column<byte>(type: "tinyint unsigned", nullable: false)
+                    Relation = table.Column<byte>(type: "tinyint unsigned", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Relationships", x => new { x.UserId, x.TargetId });
+                    table.PrimaryKey("PK_Relationships", x => x.PlayerId);
                 })
                 .Annotation("MySQL:Charset", "utf8mb4");
 
@@ -100,7 +100,7 @@ namespace BanchoNET.Migrations
                     Mode = table.Column<byte>(type: "tinyint unsigned", nullable: false),
                     TotalScore = table.Column<long>(type: "bigint", nullable: false),
                     RankedScore = table.Column<long>(type: "bigint", nullable: false),
-                    PP = table.Column<short>(type: "smallint", nullable: false),
+                    PP = table.Column<ushort>(type: "smallint unsigned", nullable: false),
                     Accuracy = table.Column<float>(type: "FLOAT(6,3)", nullable: false),
                     PlayCount = table.Column<int>(type: "int", nullable: false),
                     PlayTime = table.Column<int>(type: "int", nullable: false),
@@ -109,7 +109,7 @@ namespace BanchoNET.Migrations
                     Total300s = table.Column<int>(type: "int", nullable: false),
                     Total100s = table.Column<int>(type: "int", nullable: false),
                     Total50s = table.Column<int>(type: "int", nullable: false),
-                    ReplayViews = table.Column<int>(type: "int", nullable: false),
+                    ReplaysViews = table.Column<int>(type: "int", nullable: false),
                     XHCount = table.Column<int>(type: "int", nullable: false),
                     XCount = table.Column<int>(type: "int", nullable: false),
                     SHCount = table.Column<int>(type: "int", nullable: false),

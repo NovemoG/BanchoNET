@@ -4,10 +4,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BanchoNET.Models.Dtos;
 
-[PrimaryKey("UserId", "TargetId")]
+[PrimaryKey(nameof(PlayerId))]
 public class RelationshipDto
 {
-	[Key, ForeignKey("Player")] public int UserId { get; set; }
-	[Key, ForeignKey("Player")] public int TargetId { get; set; }
-	public byte Type { get; set; }
+	[Key, ForeignKey("Player"), DatabaseGenerated(DatabaseGeneratedOption.None)] 
+	public int PlayerId { get; set; }
+	public int TargetId { get; set; }
+	public byte Relation { get; set; }
 }

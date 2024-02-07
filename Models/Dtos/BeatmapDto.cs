@@ -5,25 +5,28 @@ using Microsoft.EntityFrameworkCore;
 namespace BanchoNET.Models.Dtos;
 
 [Index(nameof(MD5), IsUnique = true)]
+[PrimaryKey(nameof(MapId))]
 public class BeatmapDto
 {
 	[Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)] 
-	public int Id { get; set; }
+	public int MapId { get; set; }
 	public int SetId { get; set; }
 	public bool Private { get; set; }
+	
 	public byte Mode { get; set; }
-	public byte Status { get; set; }
+	public sbyte Status { get; set; }
 	
 	[Column(TypeName = "CHAR(32)"), Unicode(false)]
 	public string MD5 { get; set; }
 	
-	[MaxLength(256)]
+	[MaxLength(512), Unicode(false)]
 	public string Filename { get; set; }
-	
+	[MaxLength(128), Unicode(false)]
 	public string Artist { get; set; }
+	[MaxLength(128), Unicode(false)]
 	public string Title { get; set; }
+	[MaxLength(128), Unicode(false)]
 	public string Name { get; set; }
-	
 	[MaxLength(16), Unicode(false)]
 	public string Creator { get; set; }
 	

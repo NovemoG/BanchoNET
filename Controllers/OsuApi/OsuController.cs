@@ -1,16 +1,22 @@
-﻿using System.Text;
-using BanchoNET.Objects;
+﻿using BanchoNET.Objects;
 using BanchoNET.Services;
 using BanchoNET.Utils;
 using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace BanchoNET.Controllers.OsuApi;
 
 [ApiController]
-public partial class OsuController(BanchoHandler bancho) : ControllerBase
+public partial class OsuController : ControllerBase
 {
+	private readonly BanchoHandler _bancho;
+	private readonly BanchoSession _session;
+
+	public OsuController(BanchoHandler bancho)
+	{
+		_bancho = bancho;
+		_session = BanchoSession.Instance;
+	}
+	
 	[HttpPost("/web/osu-error.php")]
 	public async Task OsuError()
 	{
@@ -60,7 +66,11 @@ public partial class OsuController(BanchoHandler bancho) : ControllerBase
 	}
 
 	[HttpPost("/users")]
-	public async Task<IActionResult> RegisterAccount([FromForm(Name = "user[username]")] string username, [FromForm(Name = "user[user_email]")] string email, [FromForm(Name = "user[password]")] string password, [FromForm(Name = "Check")] int check)
+	public async Task<IActionResult> RegisterAccount(
+		[FromForm(Name = "user[username]")] string username, 
+		[FromForm(Name = "user[user_email]")] string email, 
+		[FromForm(Name = "user[password]")] string password, 
+		[FromForm(Name = "Check")] int check)
 	{
 		if (string.IsNullOrEmpty(username) || 
 		    string.IsNullOrEmpty(email) ||
@@ -69,56 +79,60 @@ public partial class OsuController(BanchoHandler bancho) : ControllerBase
 			return BadRequest("Missing required params");
 		}
 
-		var errors = new Dictionary<string, List<string>>
-		{
-			{ "username", [] },
-			{ "password", [] },
-			{ "user_email", [] }
-		};
-		
-		if (!Regexes.Username().Match(username).Success) errors["username"].Add("Must be 2-15 characters long");
-		if (Regexes.SingleCharacterType().Match(username).Success) errors["username"].Add("Cannot contain spaces and underscores");
-		//TODO check for disallowed names
-		if (await bancho.UsernameTaken(username)) errors["username"].Add("Username already taken by other player");
-		
-		if (!Regexes.Email().Match(email).Success) errors["user_email"].Add("Invalid email syntax");
-		if (await bancho.EmailTaken(email)) errors["user_email"].Add("Email already taken by other player");
-		
-		if (password.Length is <= 8 or > 32) errors["password"].Add("Password must be 8-32 characters long");
-		
-		if (errors.Any(e => e.Value.Count > 0))
-		{
-			//TODO refactor this shit???
-			var jsonSb = new StringBuilder("{\"form_error\":{\"user\":{");
+		var errors = new List<ErrorDetails>();
 
-			foreach (var error in errors.Where(error => error.Value.Count != 0))
+		if (!Regexes.Username().Match(username).Success) errors.Add(new ErrorDetails { Field = "username",
+			Messages = ["Must be 2-15 characters long."]
+		});
+		if (Regexes.SingleCharacterType().Match(username).Success) errors.Add(new ErrorDetails { Field = "username",
+			Messages = ["Cannot contain spaces and underscores."]
+		});
+		if (await _bancho.UsernameTaken(username)) errors.Add(new ErrorDetails { Field = "username",
+			Messages = ["Username already taken by other player."]
+		});
+
+		if (!Regexes.Email().Match(email).Success) errors.Add(new ErrorDetails { Field = "user_email",
+			Messages = ["Invalid email syntax."]
+		});
+		if (await _bancho.EmailTaken(email)) errors.Add(new ErrorDetails { Field = "user_email",
+			Messages = ["Email already taken by someone else."]
+		});
+
+		if (password.Length is <= 8 or > 32) errors.Add(new ErrorDetails { Field = "password",
+			Messages = ["Password must be 8-32 characters long."]
+		});
+
+		Console.WriteLine($"Check: {check}");
+		if (errors.Count != 0)
+		{
+			return BadRequest(new
 			{
-				jsonSb.Append($"\"{error.Key}\":[\"{string.Join('\n', error.Value)}\"],");
-			}
-
-			jsonSb.Length--;
-			jsonSb.Append("}}}");
-			
-			return new ContentResult
-			{
-				Content = jsonSb.ToString(),
-				ContentType = "application/json",
-				StatusCode = 400
-			};
+				form_error = new
+				{
+					user = errors.GroupBy(e => e.Field)
+					             .ToDictionary(group => group.Key, group => group
+						         .Select(e => string.Join('\n', e.Messages)))
+				}
+			});
 		}
+		
+		if (check != 0) return Ok("ok"); //if there are no errors but it is a check request
+		
+		var pwdMD5 = password.CreateMD5();
+		var pwdBcrypt = BCrypt.Net.BCrypt.HashPassword(pwdMD5);
+		
+		_session.InsertPasswordHash(pwdBcrypt, pwdMD5);
+		
+        //TODO get geoloc from ip header
 
-		if (check == 0)
-		{
-			var pwdMD5 = password.CreateMD5();
-			var pwdBcrypt = BCrypt.Net.BCrypt.HashPassword(pwdMD5);
-			
-			//TODO cache password hashes
-			
-			//TODO geoloc from ip header
-
-			await bancho.CreatePlayer(username, email, pwdBcrypt, "pl");
-		}
+		await _bancho.CreatePlayer(username, email, pwdBcrypt, "pl");
 
 		return Ok("ok");
+	}
+	
+	private class ErrorDetails
+	{
+		public string Field { get; set; }
+		public List<string> Messages { get; set; }
 	}
 }

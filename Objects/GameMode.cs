@@ -1,6 +1,6 @@
 ﻿namespace BanchoNET.Objects;
 
-public enum GameMode
+public enum GameMode : byte
 {
 	VanillaStd = 0,
 	VanillaTaiko = 1,

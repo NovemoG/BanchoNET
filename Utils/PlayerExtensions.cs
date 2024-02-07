@@ -1,26 +1,40 @@
-﻿using BanchoNET.Objects.Channels;
+﻿using BanchoNET.Models;
+using BanchoNET.Objects.Channels;
 using BanchoNET.Objects.Players;
 using BanchoNET.Objects.Privileges;
 using BanchoNET.Packets;
+using BanchoNET.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace BanchoNET.Utils;
 
 public static class PlayerExtensions
 {
+	private static readonly DbContextOptions<BanchoDbContext> DbOptions = new DbContextOptionsBuilder<BanchoDbContext>().UseMySQL("server=127.0.0.1;database=utopia;user=root;password=;").Options;
+	
+	private static readonly Dictionary<Privileges, ClientPrivileges> ClientPrivilegesMap = new()
+	{
+		{ Privileges.Unrestricted, ClientPrivileges.Player },
+		{ Privileges.Supporter, ClientPrivileges.Supporter },
+		{ Privileges.Moderator, ClientPrivileges.Moderator },
+		{ Privileges.Administrator, ClientPrivileges.Developer },
+		{ Privileges.Developer, ClientPrivileges.Owner },
+	};
+
 	public static string MakeSafe(this string name)
 	{
-		return name.Replace(" ", "_");
+		return name.Replace(" ", "_").ToLower();
 	}
 	
 	public static ClientPrivileges ToBanchoPrivileges(this Player player)
 	{
-		var priv = player.Privileges;
-
 		var retPriv = 0;
-		foreach (var clientPriv in EnumExtensions.GetValues<ClientPrivileges>())
+		var privs = (int)player.Privileges;
+		
+		foreach (var priv in EnumExtensions.GetValues<Privileges>())
 		{
-			if ((priv & (int)clientPriv) == (int)clientPriv) 
-				retPriv |= (int)clientPriv;
+			if ((privs & (int)priv) == (int)priv && ClientPrivilegesMap.TryGetValue(priv, out var value)) 
+				retPriv |= (int)value;
 		}
 
 		return (ClientPrivileges)retPriv;
@@ -35,134 +49,66 @@ public static class PlayerExtensions
 	{
 		
 	}
+
+	public static bool BlockedByPlayer(this Player player, int targetId)
+	{
+		return player.Blocked.Contains(targetId);
+	}
+
+	public static bool JoinChannel(this Player player, Channel channel)
+	{
+		if (channel.PlayerInChannel(player) ||
+		    !channel.CanPlayerRead(player) ||
+		    (channel.Name == "#lobby" && !player.InLobby))
+		{
+			return false;
+		}
+
+		player.AddToChannel(channel);
+
+		using var channelJoinPacket = new ServerPackets();
+		channelJoinPacket.ChannelJoin(channel.Name);
+		player.Enqueue(channelJoinPacket.GetContent());
+
+		var channelInfoPacket = new ServerPackets();
+		channelInfoPacket.ChannelInfo(channel);
+
+		if (channel.Instance)
+			foreach (var user in channel.Players)
+				user.Enqueue(channelInfoPacket.GetContent());
+		else
+			foreach (var user in BanchoSession.Instance.Players.Where(channel.CanPlayerRead))
+				user.Enqueue(channelInfoPacket.GetContent());
+
+		return true;
+	}
+
+	public static void AddToChannel(this Player player, Channel channel)
+	{
+		channel.Players.Add(player);
+		player.Channels.Add(channel);
+	}
+
+	public static void RemoveFromChannel(this Player player, Channel channel)
+	{
+		//TODO search by id
+		channel.Players.Remove(player);
+		player.Channels.Remove(channel);
+	}
 	
 	public static void LeaveChannel(this Player player, Channel channel)
 	{
 		
 	}
-
-	public static void Enqueue(this Player player, ClientPacketId packetId)
-	{
-		player.Queue ??= new ServerPackets();
-		
-		switch (packetId)
-		{
-			case ClientPacketId.ChangeAction:
-				break;
-			case ClientPacketId.SendPublicMessage:
-				break;
-			case ClientPacketId.Logout:
-				player.Queue.Logout(player.Id);
-				break;
-			case ClientPacketId.RequestStatusUpdate:
-				player.Queue.UserStats(player);
-				break;
-			case ClientPacketId.Ping:
-				return;
-			case ClientPacketId.StartSpectating:
-				break;
-			case ClientPacketId.StopSpectating:
-				break;
-			case ClientPacketId.SpectateFrames:
-				break;
-			case ClientPacketId.ErrorReport:
-				break;
-			case ClientPacketId.CantSpectate:
-				break;
-			case ClientPacketId.SendPrivateMessage:
-				break;
-			case ClientPacketId.PartLobby:
-				break;
-			case ClientPacketId.JoinLobby:
-				break;
-			case ClientPacketId.CreateMatch:
-				break;
-			case ClientPacketId.JoinMatch:
-				break;
-			case ClientPacketId.PartMatch:
-				break;
-			case ClientPacketId.MatchChangeSlot:
-				break;
-			case ClientPacketId.MatchReady:
-				break;
-			case ClientPacketId.MatchLock:
-				break;
-			case ClientPacketId.MatchChangeSettings:
-				break;
-			case ClientPacketId.MatchStart:
-				break;
-			case ClientPacketId.MatchScoreUpdate:
-				break;
-			case ClientPacketId.MatchComplete:
-				break;
-			case ClientPacketId.MatchChangeMods:
-				break;
-			case ClientPacketId.MatchLoadComplete:
-				break;
-			case ClientPacketId.MatchNoBeatmap:
-				break;
-			case ClientPacketId.MatchNotReady:
-				break;
-			case ClientPacketId.MatchFailed:
-				break;
-			case ClientPacketId.MatchHasBeatmap:
-				break;
-			case ClientPacketId.MatchSkipRequest:
-				break;
-			case ClientPacketId.ChannelJoin:
-				break;
-			case ClientPacketId.BeatmapInfoRequest:
-				break;
-			case ClientPacketId.MatchTransferHost:
-				break;
-			case ClientPacketId.FriendAdd:
-				break;
-			case ClientPacketId.FriendRemove:
-				break;
-			case ClientPacketId.MatchChangeTeam:
-				break;
-			case ClientPacketId.ChannelPart:
-				break;
-			case ClientPacketId.ReceiveUpdates:
-				break;
-			case ClientPacketId.SetAwayMessage:
-				break;
-			case ClientPacketId.IrcOnly:
-				break;
-			case ClientPacketId.UserStatsRequest:
-				player.Queue.UserStats(player);
-				break;
-			case ClientPacketId.MatchInvite:
-				break;
-			case ClientPacketId.MatchChangePassword:
-				break;
-			case ClientPacketId.TournamentMatchInfoRequest:
-				break;
-			case ClientPacketId.UserPresenceRequest:
-				player.Queue.UserPresence(player);
-				break;
-			case ClientPacketId.UserPresenceRequestAll:
-				break;
-			case ClientPacketId.ToggleBlockNonFriendDms:
-				break;
-			case ClientPacketId.TournamentJoinMatchChannel:
-				break;
-			case ClientPacketId.TournamentLeaveMatchChannel:
-				break;
-			default:
-				throw new ArgumentOutOfRangeException(nameof(packetId), "Unknown packet id was passed and couldn't be processed.");
-		}
-	}
 	
-	public static byte[] Dequeue(this Player player)
+	public static void UpdateLatestActivity(this Player player)
 	{
-		if (player.Queue == null) return [];
-		
-		var returnBytes = player.Queue.GetContent();
-		
-		player.Queue.Dispose();
-		player.Queue = null;
+		using var db = new BanchoDbContext(DbOptions);
+		db.Players.Where(p => p.Id == player.Id).ExecuteUpdate(p => p.SetProperty(u => u.LastActivityTime, DateTime.UtcNow));
+	}
 
-		return returnBytes;
+	public static void Enqueue(this Player player, byte[] dataBytes)
+	{
+		player.Queue.WriteBytes(dataBytes);
 	}
 }

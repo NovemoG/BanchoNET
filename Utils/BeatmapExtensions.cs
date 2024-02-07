@@ -6,6 +6,6 @@ public static class BeatmapExtensions
 {
 	public static string FullName(this Beatmap beatmap)
 	{
-		return $"{beatmap.Artist} - {beatmap.Title} [{beatmap.DiffName}]";
+		return $"{beatmap.Artist} - {beatmap.Title} [{beatmap.Name}]";
 	}
 }

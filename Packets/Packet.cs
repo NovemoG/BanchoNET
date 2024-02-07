@@ -4,12 +4,11 @@ namespace BanchoNET.Packets;
 
 public class Packet : IDisposable
 {
-	protected readonly BinaryWriter BinaryWriter;
-	protected readonly MemoryStream DataBuffer = new();
+	protected readonly MemoryStream DataBuffer;
 
-	public Packet()
+	protected Packet()
 	{
-		BinaryWriter = new BinaryWriter(DataBuffer);
+		DataBuffer = new MemoryStream();
 	}
 	
 	public byte[] GetContent()
@@ -24,8 +23,13 @@ public class Packet : IDisposable
 	
 	public void Dispose()
 	{
-		DataBuffer.Dispose();
-		BinaryWriter.Dispose();
+		Dispose(true);
 		GC.SuppressFinalize(this);
+	}
+
+	protected virtual void Dispose(bool disposing)
+	{
+		if (disposing)
+			DataBuffer.Dispose();
 	}
 }

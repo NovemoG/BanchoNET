@@ -3,10 +3,10 @@
 [Flags]
 public enum ClientPrivileges
 {
-	PLAYER = 1 << 0,
-	MODERATOR = 1 << 1,
-	SUPPORTER = 1 << 2,
-	OWNER = 1 << 3,
-	DEVELOPER = 1 << 4,
-	TOURNAMENT = 1 << 5
+	Player = 1 << 0,
+	Moderator = 1 << 1,
+	Supporter = 1 << 2,
+	Owner = 1 << 3,
+	Developer = 1 << 4,
+	Tournament = 1 << 5
 }

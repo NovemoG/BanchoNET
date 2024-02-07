@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BanchoNET.Migrations
 {
     [DbContext(typeof(BanchoDbContext))]
-    [Migration("20240205043638_InitialCreate")]
+    [Migration("20240207051355_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -24,7 +24,7 @@ namespace BanchoNET.Migrations
 
             modelBuilder.Entity("BanchoNET.Models.Dtos.BeatmapDto", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<int>("MapId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
@@ -33,7 +33,9 @@ namespace BanchoNET.Migrations
 
                     b.Property<string>("Artist")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(128)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(128)");
 
                     b.Property<float>("Bpm")
                         .HasColumnType("FLOAT(15,3)");
@@ -49,8 +51,9 @@ namespace BanchoNET.Migrations
 
                     b.Property<string>("Filename")
                         .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("varchar(256)");
+                        .HasMaxLength(512)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(512)");
 
                     b.Property<bool>("Frozen")
                         .HasColumnType("tinyint(1)");
@@ -74,7 +77,9 @@ namespace BanchoNET.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(128)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(128)");
 
                     b.Property<float>("Od")
                         .HasColumnType("FLOAT(4,2)");
@@ -94,17 +99,19 @@ namespace BanchoNET.Migrations
                     b.Property<float>("StarRating")
                         .HasColumnType("FLOAT(9,3)");
 
-                    b.Property<byte>("Status")
-                        .HasColumnType("tinyint unsigned");
+                    b.Property<sbyte>("Status")
+                        .HasColumnType("tinyint");
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(128)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(128)");
 
                     b.Property<int>("TotalLength")
                         .HasColumnType("int");
 
-                    b.HasKey("Id");
+                    b.HasKey("MapId");
 
                     b.HasIndex("MD5")
                         .IsUnique();
@@ -119,9 +126,9 @@ namespace BanchoNET.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("ApiKey")
-                        .IsRequired()
+                        .HasMaxLength(36)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(255)");
+                        .HasColumnType("CHAR");
 
                     b.Property<string>("Country")
                         .IsRequired()
@@ -129,7 +136,7 @@ namespace BanchoNET.Migrations
                         .HasColumnType("CHAR(2)");
 
                     b.Property<DateTime>("CreationTime")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("DATETIME");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -138,7 +145,7 @@ namespace BanchoNET.Migrations
                         .HasColumnType("varchar(160)");
 
                     b.Property<DateTime>("LastActivityTime")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("DATETIME");
 
                     b.Property<string>("LoginName")
                         .IsRequired()
@@ -154,8 +161,8 @@ namespace BanchoNET.Migrations
                     b.Property<byte>("PlayStyle")
                         .HasColumnType("tinyint unsigned");
 
-                    b.Property<byte>("PreferredMode")
-                        .HasColumnType("tinyint unsigned");
+                    b.Property<sbyte>("PreferredMode")
+                        .HasColumnType("TINYINT(2)");
 
                     b.Property<int>("Privileges")
                         .HasColumnType("int");
@@ -204,16 +211,16 @@ namespace BanchoNET.Migrations
 
             modelBuilder.Entity("BanchoNET.Models.Dtos.RelationshipDto", b =>
                 {
-                    b.Property<int>("UserId")
+                    b.Property<int>("PlayerId")
                         .HasColumnType("int");
+
+                    b.Property<byte>("Relation")
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<int>("TargetId")
                         .HasColumnType("int");
 
-                    b.Property<byte>("Type")
-                        .HasColumnType("tinyint unsigned");
-
-                    b.HasKey("UserId", "TargetId");
+                    b.HasKey("PlayerId");
 
                     b.ToTable("Relationships");
                 });
@@ -235,8 +242,8 @@ namespace BanchoNET.Migrations
                     b.Property<int>("MaxCombo")
                         .HasColumnType("int");
 
-                    b.Property<short>("PP")
-                        .HasColumnType("smallint");
+                    b.Property<ushort>("PP")
+                        .HasColumnType("smallint unsigned");
 
                     b.Property<int>("PlayCount")
                         .HasColumnType("int");
@@ -247,7 +254,7 @@ namespace BanchoNET.Migrations
                     b.Property<long>("RankedScore")
                         .HasColumnType("bigint");
 
-                    b.Property<int>("ReplayViews")
+                    b.Property<int>("ReplaysViews")
                         .HasColumnType("int");
 
                     b.Property<int>("SCount")

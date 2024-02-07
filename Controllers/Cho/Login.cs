@@ -40,7 +40,7 @@ public partial class ChoController
 
 			using var responseData = new ServerPackets();
 			responseData.Notification("Error occurred");
-			responseData.UserId(-5);
+			responseData.PlayerId(-5);
 			return responseData.GetContentResult();
 		}
 
@@ -60,8 +60,6 @@ public partial class ChoController
 			var latestMajorVersion = loginData.OsuVersion.Date;
 			foreach (var build in changelog.builds)
 			{
-				Console.WriteLine(build.version);
-				
 				latestMajorVersion = DateTime.ParseExact(build.version.ToString().Substring(0, 8), "yyyyMMdd", null);
 
 				if (((IEnumerable<dynamic>)build.changelog_entries).Any(entry => (bool)entry.major)) break;
@@ -73,7 +71,7 @@ public partial class ChoController
                 
                 using var responseData = new ServerPackets();
                 responseData.VersionUpdate();
-                responseData.UserId(-2);
+                responseData.PlayerId(-2);
                 return responseData.GetContentResult();
 			}
 		}
@@ -86,14 +84,14 @@ public partial class ChoController
 			Response.Headers["cho-token"] = "empty-adapters";
                 
 			using var responseData = new ServerPackets();
-			responseData.UserId(-1);
+			responseData.PlayerId(-1);
 			responseData.Notification("Please restart your osu! client and try again.");
 			return responseData.GetContentResult();
 		}
 
 		var loginTime = DateTime.UtcNow;
 
-		var player = _bancho.GetPlayerSession(username: loginData.Username);
+		var player = _session.GetPlayer(username: loginData.Username);
 		if (player != null && loginData.OsuVersion.Stream != "tourney")
 		{
 			if (loginTime - player.LastActivityTime < TimeSpan.FromSeconds(15))
@@ -101,14 +99,13 @@ public partial class ChoController
 				Response.Headers["cho-token"] = "user-already-logged-in";
                 
 				using var responseData = new ServerPackets();
-				responseData.UserId(-1);
+				responseData.PlayerId(-1);
 				responseData.Notification("User already logged in.");
 				return responseData.GetContentResult();
 			}
 
-			await _bancho.PlayerLogout(player);
+			_session.LogoutPlayer(player);
 		}
-		await _bancho.FetchPlayerInfo(username: "sex");
 		
 		var userInfo = await _bancho.FetchPlayerInfo(username: loginData.Username);
 		if (userInfo == null)
@@ -117,40 +114,35 @@ public partial class ChoController
                 
 			using var responseData = new ServerPackets();
 			responseData.Notification("Unknown username.");
-			responseData.UserId(-1);
+			responseData.PlayerId(-1);
 			return responseData.GetContentResult();
 		}
 		
 		var privileges = (Privileges)userInfo.Privileges;
 		if (loginData.OsuVersion.Stream == "tourney" &&
-		    !privileges.HasPrivilege(Privileges.SUPPORTER) &&
-		    privileges.HasPrivilege(Privileges.UNRESTRICTED))
+		    !privileges.HasPrivilege(Privileges.Supporter) &&
+		    privileges.HasPrivilege(Privileges.Unrestricted))
 		{
 			Response.Headers["cho-token"] = "no";
                 
 			using var responseData = new ServerPackets();
-			responseData.UserId(-1);
+			responseData.PlayerId(-1);
 			return responseData.GetContentResult();
 		}
 		
-		//TODO cache hashes
-		if (!BCrypt.Net.BCrypt.Verify(loginData.PasswordMD5, userInfo.PasswordHash))
+		if (!_session.CheckHashes(loginData.PasswordMD5, userInfo.PasswordHash))
 		{
 			Response.Headers["cho-token"] = "incorrect-password";
 				
 			using var responseData = new ServerPackets();
 			responseData.Notification("Incorrect password.");
-			responseData.UserId(-1);
+			responseData.PlayerId(-1);
 			return responseData.GetContentResult();
-		}
-		else
-		{
-			//TODO add to hash collection
 		}
 		
 		//TODO add login data and client hashes to database
 		//TODO hw matches
-		
+		//TODO geoloc
 		player = new Player(userInfo, "", loginTime, 1)
 		{
 			Geoloc = new Geoloc
@@ -168,10 +160,10 @@ public partial class ChoController
 		using var loginPackets = new ServerPackets();
 
 		loginPackets.ProtocolVersion(19);
-		loginPackets.UserId(player.Id);
-		loginPackets.BanchoPrivileges(player.Privileges);
+		loginPackets.PlayerId(player.Id);
+		loginPackets.BanchoPrivileges((int)player.ToBanchoPrivileges());
 		loginPackets.Notification(_config.WelcomeMessage);
-		loginPackets.ChannelInfo(_bancho.GetAutoJoinChannels(player));
+		loginPackets.ChannelInfo(_session.GetAutoJoinChannels(player));
 		loginPackets.ChannelInfoEnd();
 		loginPackets.MainMenuIcon(_config.MenuIconUrl, _config.MenuOnclickUrl);
 		
@@ -183,40 +175,41 @@ public partial class ChoController
 		loginPackets.UserPresence(player);
 		loginPackets.UserStats(player);
 
+		var banchoBot = _session.BanchoBot;
 		if (!player.Restricted)
 		{
-			//TODO send information to other players that this player just logged on and get info about other players
+			//_session.EnqueuePlayerLogin(loginPackets, player);
+			loginPackets.OtherPlayers(player);
 			
 			//TODO check for offline messages
 			
-			if ((player.Privileges & (int)Privileges.VERIFIED) == 0)
+			if (!player.Privileges.HasPrivilege(Privileges.Verified))
 			{
-				//TODO add privileges
+				await _bancho.AddPlayerPrivileges(player, Privileges.Verified);
 
 				loginPackets.SendMessage(new Message
 				{
-					Sender = "Bancho", //TODO get bancho bot name
-					Content = _config.WelcomeMessage, //TODO load from config
+					Sender = banchoBot.Username,
+					Content = _config.WelcomeMessage,
 					Destination = player.Username,
-					SenderId = 1 //TODO get bancho bot id
+					SenderId = banchoBot.Id
 				});
 			}
 		}
 		else
 		{
-			//TODO get info about other players
-			
+			loginPackets.OtherPlayers();
 			loginPackets.AccountRestricted();
 			loginPackets.SendMessage(new Message
 			{
-				Sender = "Bancho", //TODO get bancho bot name
-				Content = _config.RestrictedMessage, //TODO load from config
+				Sender = banchoBot.Username,
+				Content = _config.RestrictedMessage,
 				Destination = player.Username,
-				SenderId = 1 //TODO get bancho bot id
+				SenderId = banchoBot.Id
 			});
 		}
 		
-		_bancho.AppendPlayerSession(player);
+		_session.AppendPlayer(player);
 		
 		//TODO note some statistics maybe?
 		

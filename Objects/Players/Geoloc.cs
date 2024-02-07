@@ -1,4 +1,4 @@
-﻿namespace BanchoNET.Objects;
+﻿namespace BanchoNET.Objects.Players;
 
 public readonly record struct Country(string Acronym, int Numeric);
 
