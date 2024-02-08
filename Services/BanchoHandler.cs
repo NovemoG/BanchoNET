@@ -18,10 +18,9 @@ public partial class BanchoHandler(BanchoDbContext dbContext)
 
 		if (username != "")
 			return await dbContext.Players.SingleOrDefaultAsync(p => p.SafeName == username.MakeSafe());
-
-		//TODO login name can only contain alphanumeric characters
+		
 		if (loginName != "")
-			return await dbContext.Players.SingleOrDefaultAsync(p => p.LoginName == loginName);;
+			return await dbContext.Players.SingleOrDefaultAsync(p => p.LoginName == loginName);
 
 		return null;
 	}
@@ -91,7 +90,7 @@ public partial class BanchoHandler(BanchoDbContext dbContext)
 		var playerDto = new PlayerDto
 		{
 			Username = name,
-			LoginName = name,
+			LoginName = name.ToLogin(),
 			SafeName = name.MakeSafe(),
 			Email = email,
 			PasswordHash = pwdHash,

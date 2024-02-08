@@ -18,6 +18,7 @@ public partial class ClientPackets
 		}
 		Console.Write('\n');
 
+		//TODO optimize this
 		foreach (var bot in Session.Bots)
 		{
 			if (!ids.Contains(bot.Id)) continue;

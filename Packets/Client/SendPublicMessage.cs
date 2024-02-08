@@ -6,7 +6,7 @@ namespace BanchoNET.Packets;
 
 public partial class ClientPackets
 {
-	public static void SendPublicMessage(Player player, BinaryReader br)
+	private static void SendPublicMessage(Player player, BinaryReader br)
 	{
 		var message = br.ReadOsuMessage();
 
@@ -57,11 +57,11 @@ public partial class ClientPackets
 
 		if (txt.StartsWith('!')) //Load from config
 		{
-			//TODO command
+			//TODO command hadnling
 		}
 		else
 		{
-			var npMatch = Regexes.NowPlaying().Match(txt);
+			var npMatch = Regexes.NowPlaying.Value.Match(txt);
 
 			if (npMatch.Success)
 			{

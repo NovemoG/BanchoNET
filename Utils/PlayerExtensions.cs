@@ -39,6 +39,19 @@ public static class PlayerExtensions
 
 		return (ClientPrivileges)retPriv;
 	}
+
+	public static void SendMessage(this Player player, string message, Player source, Channel? channel = null)
+	{
+		using var messagePacket = new ServerPackets();
+		messagePacket.SendMessage(new Message
+		{
+			Sender = source.Username,
+			Content = message,
+			Destination = channel != null ? channel.Name : player.Username,
+			SenderId = source.Id
+		});
+		player.Enqueue(messagePacket.GetContent());
+	}
 	
 	public static void LeaveMatch(this Player player)
 	{
@@ -82,19 +95,6 @@ public static class PlayerExtensions
 
 		return true;
 	}
-
-	public static void AddToChannel(this Player player, Channel channel)
-	{
-		channel.Players.Add(player);
-		player.Channels.Add(channel);
-	}
-
-	public static void RemoveFromChannel(this Player player, Channel channel)
-	{
-		//TODO search by id
-		channel.Players.Remove(player);
-		player.Channels.Remove(channel);
-	}
 	
 	public static void LeaveChannel(this Player player, Channel channel)
 	{
@@ -103,8 +103,20 @@ public static class PlayerExtensions
 	
 	public static void UpdateLatestActivity(this Player player)
 	{
-		using var db = new BanchoDbContext(DbOptions);
-		db.Players.Where(p => p.Id == player.Id).ExecuteUpdate(p => p.SetProperty(u => u.LastActivityTime, DateTime.UtcNow));
+		using var dbContext = new BanchoDbContext(DbOptions);
+		dbContext.Players.Where(p => p.Id == player.Id).ExecuteUpdate(p => p.SetProperty(u => u.LastActivityTime, DateTime.UtcNow));
+	}
+
+	private static void AddToChannel(this Player player, Channel channel)
+	{
+		channel.Players.Add(player);
+		player.Channels.Add(channel);
+	}
+
+	private static void RemoveFromChannel(this Player player, Channel channel)
+	{
+		channel.Players.Remove(player);
+		player.Channels.Remove(channel);
 	}
 
 	public static void Enqueue(this Player player, byte[] dataBytes)

@@ -5,8 +5,6 @@ namespace BanchoNET.Packets;
 
 public partial class ClientPackets
 {
-	private static readonly string[] IgnoredChannels = ["#highlight", "#userlog"];
-	
 	private static void ChannelJoin(Player player, BinaryReader br)
 	{
 		var name = br.ReadOsuString();

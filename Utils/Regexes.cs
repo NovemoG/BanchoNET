@@ -16,7 +16,8 @@ public static partial class Regexes
 	[GeneratedRegex(@"(\s+.*_+.*|_+.*\s+.*)", RegexOptions.Compiled)]
 	public static partial Regex SingleCharacterType();
 	
-	//TODO load domain from config (?)
-	[GeneratedRegex(@"^\x01ACTION is (?:playing|editing|watching|listening to) \[https://osu\.(?:novemo\.net|ppy\.sh)/beatmapsets/(P<sid>\d{1,10})#/?(?:osu|taiko|fruits|mania)?/(P<bid>\d{1,10})/? .+\](P<mods>(?: (?:-|\+|~|\|)\w+(?:~|\|)?)+)?\x01$", RegexOptions.Compiled)]
-	public static partial Regex NowPlaying();
+	[GeneratedRegex(@"\s+", RegexOptions.Compiled)]
+	public static partial Regex Whitespace();
+	
+	public static Lazy<Regex> NowPlaying = null!;
 }

@@ -6,6 +6,7 @@ namespace BanchoNET.Packets;
 public partial class ClientPackets : Packet
 {
 	private static readonly BanchoSession Session = BanchoSession.Instance;
+	private static readonly string[] IgnoredChannels = ["#highlight", "#userlog"];
 	
 	public async Task<ClientPackets> CopyStream(Stream stream)
 	{
@@ -42,7 +43,7 @@ public partial class ClientPackets : Packet
 
 			DataBuffer.Position -= bytesRead;
 
-			_packetHandlersMap[packetId](player, br);
+			_packetHandlersMap[packetId](player, br); //TODO sending a message with weird signs makes server unresponsive
 		} while (br.BaseStream.Position < br.BaseStream.Length - 7);
 		
 		Console.WriteLine($"Final buffer position: {br.BaseStream.Position}, length: {br.BaseStream.Length}");
@@ -63,7 +64,7 @@ public partial class ClientPackets : Packet
 		{ ClientPacketId.SpectateFrames, (player, br) => { } },
 		{ ClientPacketId.ErrorReport, (player, br) => { } },
 		{ ClientPacketId.CantSpectate, (player, br) => { } },
-		{ ClientPacketId.SendPrivateMessage, (player, br) => { } },
+		{ ClientPacketId.SendPrivateMessage, SendPrivateMessage },
 		{ ClientPacketId.PartLobby, (player, br) => { } },
 		{ ClientPacketId.JoinLobby, (player, br) => { } },
 		{ ClientPacketId.CreateMatch, (player, br) => { } },

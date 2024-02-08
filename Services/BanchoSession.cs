@@ -133,22 +133,40 @@ public sealed class BanchoSession
 	
 	public Player? GetPlayer(int id = 1, string username = "", Guid token = new())
 	{
-		if (id > 1 && _players.TryGetValue(id, out var value)) 
-			return value;
-
-		if (username != "")
+		if (id > 1)
 		{
-			foreach (var player in _players.Where(p => p.Value.Username == username))
-				return player.Value;
+			var sessionPlayer = Players.FirstOrDefault(p => p.Id == id);
+			if (sessionPlayer != null) return sessionPlayer;
+			sessionPlayer = Restricted.FirstOrDefault(r => r.Id == id);
+			return sessionPlayer ?? Bots.FirstOrDefault(b => b.Id == id);
+		}
+
+		if (username != string.Empty)
+		{
+			var sessionPlayer = Players.FirstOrDefault(p => p.Username == username);
+			if (sessionPlayer != null) return sessionPlayer;
+			sessionPlayer = Restricted.FirstOrDefault(r => r.Username == username);
+			return sessionPlayer ?? Bots.FirstOrDefault(b => b.Username == username);
 		}
 
 		if (token != Guid.Empty)
 		{
-			foreach (var player in _players.Where(p => p.Value.Token == token))
-				return player.Value;
+			var sessionPlayer = Players.FirstOrDefault(p => p.Token == token);
+			return sessionPlayer ?? Restricted.FirstOrDefault(r => r.Token == token);
 		}
 
 		return null;
+	}
+
+	public Player? GetPlayerOrOffline(string username)
+	{
+		var sessionPlayer = GetPlayer(username: username);
+		if (sessionPlayer != null) return sessionPlayer;
+
+		using var dbContext = new BanchoDbContext(_dbOptions);
+		var dbPlayer = dbContext.Players.FirstOrDefault(p => p.Username == username);
+
+		return dbPlayer == null ? null : new Player(dbPlayer);
 	}
 	
 	public bool CheckHashes(string passwordMD5, string passwordHash)
@@ -166,12 +184,12 @@ public sealed class BanchoSession
 	public List<Channel> GetAutoJoinChannels(Player player)
 	{
 		var joinChannels = new List<Channel>();
-		//var playerPrivs = player.Privileges;
+		var playerPrivs = player.ToBanchoPrivileges();
 
 		foreach (var channel in Instance._channels)
 		{
 			if (!channel.AutoJoin || 
-			    !player.ToBanchoPrivileges().HasPrivilege(channel.ReadPrivileges) ||
+			    !playerPrivs.HasPrivilege(channel.ReadPrivileges) ||
 			    channel.Name == "#lobby")
 			{
 				continue;
@@ -195,32 +213,6 @@ public sealed class BanchoSession
 			_ => null
 		};
 	}
-
-	/*public void EnqueuePlayerLogin(ServerPackets loginPackets, Player playerToLogIn)
-	{
-		using var playerLogin = new ServerPackets();
-		playerLogin.UserPresence(playerToLogIn);
-		playerLogin.UserStats(playerToLogIn);
-		var loginData = playerLogin.GetContent();
-		
-		foreach (var bot in Bots)
-		{
-			loginPackets.BotPresence(bot);
-			loginPackets.BotStats(bot);
-		}
-		
-		foreach (var player in Players)
-		{
-			player.Enqueue(loginData);
-			loginPackets.UserPresence(player);
-			loginPackets.UserStats(player);
-		}
-		
-		foreach (var restrictedPlayer in Restricted)
-		{
-			restrictedPlayer.Enqueue(loginData);
-		}
-	}*/
 
 	public void EnqueueToPlayers(byte[] data)
 	{

@@ -8,7 +8,7 @@ public static class ChannelExtensions
 {
 	public static bool PlayerInChannel(this Channel channel, Player player)
 	{
-		return channel.Players.Any(user => user.Id == player.Id);
+		return channel.Players.Any(p => p.Id == player.Id);
 	}
 	
 	public static bool CanPlayerRead(this Channel channel, Player player)
