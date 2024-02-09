@@ -24,7 +24,7 @@ Go to the [Projects](https://github.com/orgs/NovemoG/projects/1) section to see 
 - Scoreboards
 - Spectator mode
 - Clubs (clans)
-- 
+- osu!Direct
 
 ## Building
 
@@ -143,5 +143,3 @@ Bancho.NET is licensed under the Apache License 2.0. Please see the [LICENSE](LI
 # Acknowledgments
 
 - Heavily inspired by [bancho.py](https://github.com/osuAkatsuki/bancho.py/)
-
-```
