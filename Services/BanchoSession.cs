@@ -1,11 +1,9 @@
-﻿using BanchoNET.Models;
+﻿using System.Collections.Concurrent;
 using BanchoNET.Models.Dtos;
-using BanchoNET.Objects.Channels;
 using BanchoNET.Objects.Players;
 using BanchoNET.Objects.Privileges;
 using BanchoNET.Packets;
 using BanchoNET.Utils;
-using Microsoft.EntityFrameworkCore;
 using Channel = BanchoNET.Objects.Channels.Channel;
 
 namespace BanchoNET.Services;
@@ -14,44 +12,35 @@ public sealed class BanchoSession
 {
 	private static readonly Lazy<BanchoSession> Lazy = new(() => new BanchoSession());
 	public static BanchoSession Instance => Lazy.Value;
-
-	private readonly DbContextOptions<BanchoDbContext> _dbOptions;
 	
 	private BanchoSession()
 	{
-		_dbOptions = new DbContextOptionsBuilder<BanchoDbContext>().UseMySQL("server=127.0.0.1;database=utopia;user=root;password=;").Options;
-		BanchoBot = _bots[1];
+		BanchoBot = Bots[1];
 	}
 	
 	#region PlayersCollections
 	
-	private readonly Dictionary<int, Player> _players = [];
-	private readonly Dictionary<int, Player> _restricted = [];
-	private readonly Dictionary<int, Player> _bots = new()
+	public readonly ConcurrentDictionary<int, Player> Players = [];
+	public readonly ConcurrentDictionary<int, Player> Restricted = [];
+	public readonly ConcurrentDictionary<int, Player> Bots = new()
 	{
+		[1] = new Player(new PlayerDto { Id = 1 })
 		{
-			1, new Player(new PlayerDto { Id = 1 })
-			{
-				Username = "Nyzrum Bot", //TODO laod from config/db
-				LastActivityTime = DateTime.MaxValue,
-				Privileges = Privileges.Staff,
-			}
+			Username = "Nyzrum Bot", //TODO laod from config/db
+			LastActivityTime = DateTime.MaxValue,
+			Privileges = Privileges.Verified | Privileges.Staff,
 		}
 	};
 	
 	public Player BanchoBot { get; }
-	public Dictionary<int,Player>.ValueCollection Players => _players.Values;
-	public Dictionary<int,Player>.ValueCollection Restricted => _restricted.Values;
-	public Dictionary<int,Player>.ValueCollection Bots => _bots.Values;
 
 	#endregion
 
-	private readonly Dictionary<string, string> _passwordHashes = [];
+	private readonly ConcurrentDictionary<string, string> _passwordHashes = [];
 
 	#region Channels
 
 	private readonly List<Channel> _spectatorChannels = [];
-	private readonly List<Channel> _multiplayerChannels = [];
 	private readonly List<Channel> _channels =
 	[
 		new Channel
@@ -97,76 +86,9 @@ public sealed class BanchoSession
 
 	#endregion
 
-	public void InsertPasswordHash(string passwordHash, string passwordMD5)
+	public void InsertPasswordHash(string passwordMD5, string passwordHash)
 	{
-		_passwordHashes[passwordHash] = passwordMD5;
-	}
-	
-	public void AppendPlayer(Player player)
-	{
-		if (player.Restricted) _restricted[player.Id] = player;
-		else _players[player.Id] = player;
-	}
-
-	public void LogoutPlayer(Player player)
-	{
-		if (DateTime.UtcNow - player.LoginTime < TimeSpan.FromSeconds(1)) return;
-		
-		if (player.Lobby != null) player.LeaveMatch();
-
-		player.Spectating?.RemoveSpectator();
-
-		while (player.Channels.Count != 0)
-			player.LeaveChannel(player.Channels[0]);
-
-		_players.Remove(player.Id);
-
-		if (!player.Restricted)
-		{
-			using var logoutPacket = new ServerPackets();
-			logoutPacket.Logout(player.Id);
-			EnqueueToPlayers(logoutPacket.GetContent());
-		}
-		
-		player.UpdateLatestActivity();
-	}
-	
-	public Player? GetPlayer(int id = 1, string username = "", Guid token = new())
-	{
-		if (id > 1)
-		{
-			var sessionPlayer = Players.FirstOrDefault(p => p.Id == id);
-			if (sessionPlayer != null) return sessionPlayer;
-			sessionPlayer = Restricted.FirstOrDefault(r => r.Id == id);
-			return sessionPlayer ?? Bots.FirstOrDefault(b => b.Id == id);
-		}
-
-		if (username != string.Empty)
-		{
-			var sessionPlayer = Players.FirstOrDefault(p => p.Username == username);
-			if (sessionPlayer != null) return sessionPlayer;
-			sessionPlayer = Restricted.FirstOrDefault(r => r.Username == username);
-			return sessionPlayer ?? Bots.FirstOrDefault(b => b.Username == username);
-		}
-
-		if (token != Guid.Empty)
-		{
-			var sessionPlayer = Players.FirstOrDefault(p => p.Token == token);
-			return sessionPlayer ?? Restricted.FirstOrDefault(r => r.Token == token);
-		}
-
-		return null;
-	}
-
-	public Player? GetPlayerOrOffline(string username)
-	{
-		var sessionPlayer = GetPlayer(username: username);
-		if (sessionPlayer != null) return sessionPlayer;
-
-		using var dbContext = new BanchoDbContext(_dbOptions);
-		var dbPlayer = dbContext.Players.FirstOrDefault(p => p.Username == username);
-
-		return dbPlayer == null ? null : new Player(dbPlayer);
+		_passwordHashes.TryAdd(passwordHash, passwordMD5);
 	}
 	
 	public bool CheckHashes(string passwordMD5, string passwordHash)
@@ -177,19 +99,92 @@ public sealed class BanchoSession
 		if (!BCrypt.Net.BCrypt.Verify(passwordMD5, passwordHash)) 
 			return false;
 		
-		_passwordHashes[passwordHash] = passwordMD5;
+		_passwordHashes.TryAdd(passwordHash, passwordMD5);
 		return true;
+	}
+	
+	public void AppendPlayer(Player player)
+	{
+		if (player.Restricted) Restricted.TryAdd(player.Id, player);
+		else Players.TryAdd(player.Id, player);
+	}
+
+	public bool LogoutPlayer(Player player)
+	{
+		Console.WriteLine($"[{GetType().Name}] Logout time difference: {DateTime.UtcNow - player.LoginTime}");
+		if (DateTime.UtcNow - player.LoginTime < TimeSpan.FromSeconds(1)) return false;
+		
+		if (player.Lobby != null) player.LeaveMatch();
+
+		player.Spectating?.RemoveSpectator();
+
+		while (player.Channels.Count != 0)
+			player.LeaveChannel(player.Channels[0], false);
+
+		if (!player.Restricted)
+		{
+			using var logoutPacket = new ServerPackets();
+			logoutPacket.Logout(player.Id);
+			EnqueueToPlayers(logoutPacket.GetContent());
+		}
+		
+		if (!Players.TryRemove(player.Id, out _))
+			Console.WriteLine($"[{GetType().Name}] Failed to remove {player.Id} from session");
+
+		Console.Write($"\n[{GetType().Name}] Players left: {Players.Count}, names: ");
+		foreach (var user in Players)
+		{
+			Console.Write($"{user.Value.Username}, ");
+		}
+
+		return true;
+	}
+	
+	public Player? GetPlayer(int id = 1, string username = "", Guid token = new())
+	{
+		Player? sessionPlayer;
+		
+		if (id > 1)
+		{
+			Bots.TryGetValue(id, out sessionPlayer);
+			if (sessionPlayer != null) return sessionPlayer;
+			Players.TryGetValue(id, out sessionPlayer);
+			if (sessionPlayer != null) return sessionPlayer;
+			Restricted.TryGetValue(id, out sessionPlayer);
+			return sessionPlayer;
+		}
+
+		if (username != string.Empty)
+		{
+			sessionPlayer = Bots.FirstOrDefault(p => p.Value.Username == username).Value;
+			if (sessionPlayer != null) return sessionPlayer;
+			sessionPlayer = Players.FirstOrDefault(r => r.Value.Username == username).Value;
+			return sessionPlayer ?? Restricted.FirstOrDefault(b => b.Value.Username == username).Value;
+		}
+
+		if (token != Guid.Empty)
+		{
+			sessionPlayer = Players.FirstOrDefault(p => p.Value.Token == token).Value;
+			return sessionPlayer ?? Restricted.FirstOrDefault(r => r.Value.Token == token).Value;
+		}
+
+		return null;
+	}
+	
+	public Channel? GetChannel(string name, bool spectator = false)
+	{
+		return spectator ? _spectatorChannels.FirstOrDefault(c => c.Name == name) 
+			: _channels.FirstOrDefault(c => c.Name == name);
 	}
 	
 	public List<Channel> GetAutoJoinChannels(Player player)
 	{
 		var joinChannels = new List<Channel>();
-		var playerPrivs = player.ToBanchoPrivileges();
 
-		foreach (var channel in Instance._channels)
+		foreach (var channel in _channels)
 		{
 			if (!channel.AutoJoin || 
-			    !playerPrivs.HasPrivilege(channel.ReadPrivileges) ||
+			    !channel.CanPlayerRead(player) ||
 			    channel.Name == "#lobby")
 			{
 				continue;
@@ -203,23 +198,12 @@ public sealed class BanchoSession
 		return joinChannels;
 	}
 
-	public Channel? GetChannel(string name, ChannelType type = ChannelType.Normal)
-	{
-		return type switch
-		{
-			ChannelType.Normal => _channels.FirstOrDefault(c => c.Name == name),
-			ChannelType.Spectator => _spectatorChannels.FirstOrDefault(c => c.Name == name),
-			ChannelType.Multiplayer => _multiplayerChannels.FirstOrDefault(c => c.Name == name),
-			_ => null
-		};
-	}
-
 	public void EnqueueToPlayers(byte[] data)
 	{
-		foreach (var player in _players.Values)
+		foreach (var player in Players.Values)
 			player.Enqueue(data);
 
-		foreach (var player in _restricted.Values)
+		foreach (var player in Restricted.Values)
 			player.Enqueue(data);
 	}
 }

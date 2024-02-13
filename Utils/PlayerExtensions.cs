@@ -1,17 +1,14 @@
-﻿using BanchoNET.Models;
-using BanchoNET.Objects.Channels;
+﻿using BanchoNET.Objects.Channels;
 using BanchoNET.Objects.Players;
 using BanchoNET.Objects.Privileges;
 using BanchoNET.Packets;
 using BanchoNET.Services;
-using Microsoft.EntityFrameworkCore;
 
 namespace BanchoNET.Utils;
 
 public static class PlayerExtensions
-{
-	private static readonly DbContextOptions<BanchoDbContext> DbOptions = new DbContextOptionsBuilder<BanchoDbContext>().UseMySQL("server=127.0.0.1;database=utopia;user=root;password=;").Options;
-	
+{ 
+	private static readonly BanchoSession Session = BanchoSession.Instance;
 	private static readonly Dictionary<Privileges, ClientPrivileges> ClientPrivilegesMap = new()
 	{
 		{ Privileges.Unrestricted, ClientPrivileges.Player },
@@ -20,18 +17,13 @@ public static class PlayerExtensions
 		{ Privileges.Administrator, ClientPrivileges.Developer },
 		{ Privileges.Developer, ClientPrivileges.Owner },
 	};
-
-	public static string MakeSafe(this string name)
-	{
-		return name.Replace(" ", "_").ToLower();
-	}
 	
 	public static ClientPrivileges ToBanchoPrivileges(this Player player)
 	{
 		var retPriv = 0;
 		var privs = (int)player.Privileges;
 		
-		foreach (var priv in EnumExtensions.GetValues<Privileges>())
+		foreach (var priv in Enum.GetValues<Privileges>())
 		{
 			if ((privs & (int)priv) == (int)priv && ClientPrivilegesMap.TryGetValue(priv, out var value)) 
 				retPriv |= (int)value;
@@ -40,6 +32,12 @@ public static class PlayerExtensions
 		return (ClientPrivileges)retPriv;
 	}
 
+	/// <summary>
+	/// Sends message directly to this player. If channel is provided, it will be sent to that channel instead.
+	/// </summary>
+	/// <param name="message">Message content</param>
+	/// <param name="source">Player that sent message</param>
+	/// <param name="channel">(optional) channel that this message should be sent to instead of player</param>
 	public static void SendMessage(this Player player, string message, Player source, Channel? channel = null)
 	{
 		using var messagePacket = new ServerPackets();
@@ -83,28 +81,43 @@ public static class PlayerExtensions
 		channelJoinPacket.ChannelJoin(channel.Name);
 		player.Enqueue(channelJoinPacket.GetContent());
 
-		var channelInfoPacket = new ServerPackets();
+		using var channelInfoPacket = new ServerPackets();
 		channelInfoPacket.ChannelInfo(channel);
 
 		if (channel.Instance)
 			foreach (var user in channel.Players)
 				user.Enqueue(channelInfoPacket.GetContent());
 		else
-			foreach (var user in BanchoSession.Instance.Players.Where(channel.CanPlayerRead))
-				user.Enqueue(channelInfoPacket.GetContent());
-
+			foreach (var user in Session.Players.Where(p => channel.CanPlayerRead(p.Value)))
+				user.Value.Enqueue(channelInfoPacket.GetContent());
+		
 		return true;
 	}
 	
-	public static void LeaveChannel(this Player player, Channel channel)
+	public static void LeaveChannel(this Player player, Channel channel, bool kick = true)
 	{
+		if (!channel.PlayerInChannel(player)) return;
 		
-	}
-	
-	public static void UpdateLatestActivity(this Player player)
-	{
-		using var dbContext = new BanchoDbContext(DbOptions);
-		dbContext.Players.Where(p => p.Id == player.Id).ExecuteUpdate(p => p.SetProperty(u => u.LastActivityTime, DateTime.UtcNow));
+		player.RemoveFromChannel(channel);
+
+		if (kick)
+		{
+			using var kickPacket = new ServerPackets();
+			kickPacket.ChannelKick(channel.Name);
+			player.Enqueue(kickPacket.GetContent());
+		}
+		
+		using var channelInfoPacket = new ServerPackets();
+		channelInfoPacket.ChannelInfo(channel);
+
+		if (channel.Instance)
+			foreach (var user in channel.Players)
+				user.Enqueue(channelInfoPacket.GetContent());
+		else
+			foreach (var user in Session.Players.Where(p => channel.CanPlayerRead(p.Value)))
+				user.Value.Enqueue(channelInfoPacket.GetContent());
+		
+		Console.WriteLine($"[PlayerExtensions] {player.Username} left {channel.Name}");
 	}
 
 	private static void AddToChannel(this Player player, Channel channel)
@@ -117,10 +130,5 @@ public static class PlayerExtensions
 	{
 		channel.Players.Remove(player);
 		player.Channels.Remove(channel);
-	}
-
-	public static void Enqueue(this Player player, byte[] dataBytes)
-	{
-		player.Queue.WriteBytes(dataBytes);
 	}
 }

@@ -1,21 +1,22 @@
 ﻿using BanchoNET.Objects.Channels;
 using BanchoNET.Objects.Players;
+using BanchoNET.Packets;
 using BanchoNET.Utils;
 
-namespace BanchoNET.Packets;
+namespace BanchoNET.Services;
 
-public partial class ClientPackets
+public partial class BanchoHandler
 {
-	private static void SendPublicMessage(Player player, BinaryReader br)
+	private Task SendPublicMessage(Player player, BinaryReader br)
 	{
 		var message = br.ReadOsuMessage();
 
-		if (player.Silenced) return;
+		if (player.Silenced) return Task.CompletedTask;
 
 		var txt = message.Content.Trim();
-		if (txt == string.Empty) return;
+		if (txt == string.Empty) return Task.CompletedTask;
 		
-		if (IgnoredChannels.Contains(message.Destination)) return;
+		if (_ignoredChannels.Contains(message.Destination)) return Task.CompletedTask;
 
 		Channel? channel;
 		if (message.Destination == "#spectator")
@@ -24,27 +25,27 @@ public partial class ClientPackets
 
 			if (player.IsSpectating) spectatorId = player.Spectating!.Id;
 			else if (player.HasSpectators) spectatorId = player.Id;
-			else return;
+			else return Task.CompletedTask;
 			
-			channel = Session.GetChannel($"#s_{spectatorId}", ChannelType.Spectator)!;
+			channel = _session.GetChannel($"#s_{spectatorId}", true)!;
 		}
 		else if (message.Destination == "#multiplayer")
 		{
-			if (player.Lobby == null) return;
+			if (player.Lobby == null) return Task.CompletedTask;
 
 			channel = player.Lobby.Chat;
 		}
 		else
-			channel = Session.GetChannel(message.Destination);
+			channel = _session.GetChannel(message.Destination);
 
 		if (channel == null) //TODO log
-			return;
+			return Task.CompletedTask;
 
 		if (!channel.PlayerInChannel(player))
-			return;
+			return Task.CompletedTask;
 
 		if (!channel.CanPlayerWrite(player))
-			return;
+			return Task.CompletedTask;
 
 		if (txt.Length > 2000)
 		{
@@ -55,13 +56,13 @@ public partial class ClientPackets
 			player.Enqueue(msgPacket.GetContent());
 		}
 
-		if (txt.StartsWith('!')) //Load from config
+		if (txt.StartsWith(_config.CommandPrefix))
 		{
 			//TODO command hadnling
 		}
 		else
 		{
-			var npMatch = Regexes.NowPlaying.Value.Match(txt);
+			var npMatch = Regexes.NowPlaying.Match(txt);
 
 			if (npMatch.Success)
 			{
@@ -79,6 +80,7 @@ public partial class ClientPackets
 			});
 		}
 		
-		player.UpdateLatestActivity();
+		player.LastActivityTime = DateTime.UtcNow;
+		return Task.CompletedTask;
 	}
 }

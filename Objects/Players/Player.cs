@@ -10,13 +10,6 @@ namespace BanchoNET.Objects.Players;
 public class Player
 {
 	private ServerPackets? _queue;
-	public ServerPackets Queue
-	{
-		get
-		{
-			return _queue ??= new ServerPackets();
-		}
-	}
 	
 	public readonly int Id;
 	public readonly Guid Token;
@@ -35,7 +28,7 @@ public class Player
 	public int RemainingSupporter { get; set; }
 	public DateTime LoginTime { get; set; }
 	public DateTime LastActivityTime { get; set; }
-	public string AwayMessage { get; set; }
+	public string? AwayMessage { get; set; }
 	public bool Stealth { get; set; }
 	
 	public PresenceFilter PresenceFilter { get; set; }
@@ -59,12 +52,11 @@ public class Player
 	
 	public string? ApiKey { get; set; }
 	
-	public Player(PlayerDto playerData, string token = "", DateTime? loginTime = null, byte timeZone = 0)
+	public Player(PlayerDto playerData, Guid token = new(), DateTime? loginTime = null, byte timeZone = 0)
 	{
 		Id = playerData.Id;
 		
-		var isValid = Guid.TryParse(token, out var tokenOut);
-		Token = isValid ? tokenOut : Guid.NewGuid();
+		Token = token != Guid.Empty ? token : Guid.Empty;
 		
 		LoginTime = loginTime ?? DateTime.UtcNow;
 		
@@ -76,7 +68,8 @@ public class Player
 		TimeZone = timeZone;
 		RemainingSilence = playerData.RemainingSilence;
 		RemainingSupporter = playerData.RemainingSupporter;
-		AwayMessage = "";
+		AwayMessage = playerData.AwayMessage;
+		ApiKey = playerData.ApiKey;
 
 		Status = new PlayerStatus
 		{
@@ -93,6 +86,12 @@ public class Player
 		Blocked = [];
 		Channels = [];
 		Spectators = [];
+	}
+	
+	public void Enqueue(byte[] dataBytes)
+	{
+		_queue ??= new ServerPackets();
+		_queue.WriteBytes(dataBytes);
 	}
 
 	public byte[] Dequeue()

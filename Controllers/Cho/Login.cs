@@ -89,12 +89,11 @@ public partial class ChoController
 			return responseData.GetContentResult();
 		}
 
-		var loginTime = DateTime.UtcNow;
-
 		var player = _session.GetPlayer(username: loginData.Username);
 		if (player != null && loginData.OsuVersion.Stream != "tourney")
 		{
-			if (loginTime - player.LastActivityTime < TimeSpan.FromSeconds(15))
+			Console.WriteLine($"[{GetType().Name}] Login time difference: {DateTime.UtcNow - player.LastActivityTime}");
+			if (DateTime.UtcNow - player.LastActivityTime < TimeSpan.FromSeconds(15))
 			{
 				Response.Headers["cho-token"] = "user-already-logged-in";
                 
@@ -107,7 +106,7 @@ public partial class ChoController
 			_session.LogoutPlayer(player);
 		}
 		
-		var userInfo = await _bancho.FetchPlayerInfo(username: loginData.Username);
+		var userInfo = await _bancho.FetchPlayerInfo(loginName: loginData.Username);
 		if (userInfo == null)
 		{
 			Response.Headers["cho-token"] = "unknown-username";
@@ -143,7 +142,7 @@ public partial class ChoController
 		//TODO add login data and client hashes to database
 		//TODO hw matches
 		//TODO geoloc
-		player = new Player(userInfo, "", loginTime, 1)
+		player = new Player(userInfo, Guid.NewGuid(), DateTime.UtcNow, 1)
 		{
 			Geoloc = new Geoloc
 			{
@@ -178,7 +177,6 @@ public partial class ChoController
 		var banchoBot = _session.BanchoBot;
 		if (!player.Restricted)
 		{
-			//_session.EnqueuePlayerLogin(loginPackets, player);
 			loginPackets.OtherPlayers(player);
 			
 			//TODO check for offline messages
@@ -214,7 +212,7 @@ public partial class ChoController
 		//TODO note some statistics maybe?
 		
 		//TODO logger message
-		Console.WriteLine($"{player.Username} Logged in");
+		Console.WriteLine($"[Login] {player.Username} Logged in");
 		
 		Response.Headers["cho-token"] = player.Token.ToString();
 		
@@ -225,7 +223,7 @@ public partial class ChoController
 	{
 		var remainder = bodyString[2].Split('|', 5);
 		
-		var versionMatch = Regexes.OsuVersion().Match(remainder[0]);
+		var versionMatch = Regexes.OsuVersion.Match(remainder[0]);
 
 		if (!versionMatch.Success) return null;
 			

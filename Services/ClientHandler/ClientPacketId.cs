@@ -1,4 +1,4 @@
-﻿namespace BanchoNET.Packets;
+﻿namespace BanchoNET.Services;
 
 public enum ClientPacketId : short
 {

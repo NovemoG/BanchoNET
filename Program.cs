@@ -1,10 +1,10 @@
-using System.Text.RegularExpressions;
 using BanchoNET.Models;
 using BanchoNET.Services;
 using BanchoNET.Utils;
 using Hangfire;
 using Hangfire.MySql;
 using Microsoft.EntityFrameworkCore;
+using static System.Data.IsolationLevel;
 using IsolationLevel = System.Transactions.IsolationLevel;
 
 namespace BanchoNET;
@@ -14,19 +14,18 @@ public class Program
 	public static void Main(string[] args)
 	{
 		var builder = WebApplication.CreateBuilder(args);
-		var serverConfigSection = builder.Configuration.GetSection("ServerConfig");
 
-		var domain = serverConfigSection["Domain"];
+		var configSection = builder.Configuration.GetSection("ServerConfig");
 		var mySqlConnectionString = builder.Configuration.GetConnectionString("MySql")!;
 		var hangfireConnectionString = builder.Configuration.GetConnectionString("Hangfire")!;
-
-		Regexes.NowPlaying = new Lazy<Regex>(() => new Regex(@$"^\x01ACTION is (?:playing|editing|watching|listening to) \[https://osu\.(?:{domain}|ppy\.sh)/beatmapsets/(?<sid>\d{{1,10}})#/?(?:osu|taiko|fruits|mania)?/(?<bid>\d{{1,10}})/? .+\](?<mods>(?: (?:-|\+|~|\|)\w+(?:~|\|)?)+)?\x01$", RegexOptions.Compiled));
+		
+		Regexes.InitNowPlayingRegex(configSection["Domain"]!);
 		
 		builder.Services.AddHangfire(config =>
 		{
 			config.UseStorage(new MySqlStorage(hangfireConnectionString, new MySqlStorageOptions
 			{
-				TransactionIsolationLevel = (IsolationLevel?)System.Data.IsolationLevel.ReadCommitted,
+				TransactionIsolationLevel = (IsolationLevel?)ReadCommitted,
 				QueuePollInterval = TimeSpan.FromSeconds(15),
 				JobExpirationCheckInterval = TimeSpan.FromHours(1),
 				CountersAggregateInterval = TimeSpan.FromMinutes(5),
@@ -39,7 +38,7 @@ public class Program
 		builder.Services.AddAuthorization();
 		builder.Services.AddControllers();
 
-		builder.Services.Configure<ServerConfig>(serverConfigSection);
+		builder.Services.Configure<ServerConfig>(configSection);
 		builder.Services.AddDbContext<BanchoDbContext>(options =>
 		{
 			options.UseMySQL(mySqlConnectionString);

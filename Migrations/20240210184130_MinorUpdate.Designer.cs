@@ -3,6 +3,7 @@ using System;
 using BanchoNET.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BanchoNET.Migrations
 {
     [DbContext(typeof(BanchoDbContext))]
-    partial class BanchoDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240210184130_MinorUpdate")]
+    partial class MinorUpdate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

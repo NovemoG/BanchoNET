@@ -1,11 +1,12 @@
 ﻿using BanchoNET.Objects.Players;
+using BanchoNET.Packets;
 using BanchoNET.Utils;
 
-namespace BanchoNET.Packets;
+namespace BanchoNET.Services;
 
-public partial class ClientPackets
+public partial class BanchoHandler
 {
-	private static void SendPrivateMessage(Player player, BinaryReader br)
+	private async Task SendPrivateMessage(Player player, BinaryReader br)
 	{
 		var message = br.ReadOsuMessage();
 
@@ -14,7 +15,7 @@ public partial class ClientPackets
 		var txt = message.Content.Trim();
 		if (txt == string.Empty) return;
 
-		var target = Session.GetPlayerOrOffline(message.Destination);
+		var target = await GetPlayerOrOffline(message.Destination);
 		if (target == null) return;
 		if (player.BlockedByPlayer(target.Id))
 		{
@@ -34,9 +35,9 @@ public partial class ClientPackets
 
 		if (target.Silenced)
 		{
-			using var dmBlockedPacket = new ServerPackets();
-			dmBlockedPacket.TargetSilenced(target.Username);
-			player.Enqueue(dmBlockedPacket.GetContent());
+			using var silencedPacket = new ServerPackets();
+			silencedPacket.TargetSilenced(target.Username);
+			player.Enqueue(silencedPacket.GetContent());
 			return;
 		}
 		
@@ -49,10 +50,10 @@ public partial class ClientPackets
 			player.Enqueue(msgPacket.GetContent());
 		}
 
-		if (target.Status.Activity == Activity.Afk && target.AwayMessage != string.Empty)
+		if (target.Status.Activity == Activity.Afk && !string.IsNullOrEmpty(target.AwayMessage))
 			player.SendMessage(target.AwayMessage, target);
 
-		if (Session.Bots.FirstOrDefault(b => b.Username == target.Username) == null)
+		if (_session.Bots.FirstOrDefault(b => b.Value.Username == target.Username).Value == null)
 		{
 			if (target.Online)
 				target.SendMessage(txt, player);
@@ -67,9 +68,16 @@ public partial class ClientPackets
 		}
 		else
 		{
-			//TODO command handling
+			if (txt.StartsWith(_config.CommandPrefix))
+			{
+				//TODO command handling
+			}
+			else
+			{
+				//TODO np handling
+			}
 		}
 		
-		player.UpdateLatestActivity();
+		player.LastActivityTime = DateTime.UtcNow;
 	}
 }

@@ -1,18 +1,29 @@
-﻿using BanchoNET.Objects;
-using BanchoNET.Objects.Channels;
+﻿using BanchoNET.Objects.Channels;
 using BanchoNET.Objects.Players;
 using BanchoNET.Services;
-using BanchoNET.Utils;
+using Microsoft.AspNetCore.Mvc;
 
 namespace BanchoNET.Packets;
 
-public partial class ServerPackets : Packet
+public partial class ServerPackets : IDisposable
 {
+	private readonly MemoryStream _dataBuffer;
 	private readonly BinaryWriter _binaryWriter;
 	
 	public ServerPackets()
 	{
-		_binaryWriter = new BinaryWriter(DataBuffer);
+		_dataBuffer = new MemoryStream();
+		_binaryWriter = new BinaryWriter(_dataBuffer);
+	}
+	
+	public byte[] GetContent()
+	{
+		return _dataBuffer.ToArray();
+	}
+
+	public FileContentResult GetContentResult()
+	{
+		return new FileContentResult(_dataBuffer.ToArray(), "application/octet-stream; charset=UTF-8");
 	}
 	
 	public void WriteBytes(byte[] data)
@@ -25,7 +36,7 @@ public partial class ServerPackets : Packet
 	/// </summary>
 	public void PlayerId(int playerId)
 	{
-		WritePacketData(ServerPacketId.UserId, playerId);
+		WritePacketData(ServerPacketId.UserId, new PacketData(playerId, DataType.Int));
 	}
 
 	/// <summary>
@@ -33,12 +44,7 @@ public partial class ServerPackets : Packet
 	/// </summary>
 	public void SendMessage(Message message)
 	{
-		WritePacketData(ServerPacketId.SendMessage, 
-			message.Sender,
-			message.Content,
-			message.Destination,
-			message.SenderId
-		);
+		WritePacketData(ServerPacketId.SendMessage, new PacketData(message, DataType.Message));
 	}
 
 	/// <summary>
@@ -55,7 +61,7 @@ public partial class ServerPackets : Packet
 	[Obsolete("No longer used by osu! client.")]
 	public void ChangeUsername(string oldName, string newName)
 	{
-		WritePacketData(ServerPacketId.HandleIrcChangeUsername, $"{oldName}>>>>{newName}");
+		WritePacketData(ServerPacketId.HandleIrcChangeUsername, new PacketData($"{oldName}>>>>{newName}", DataType.String));
 	}
 	
 	/// <summary>
@@ -63,71 +69,15 @@ public partial class ServerPackets : Packet
 	/// </summary>
 	public void UserStats(Player player)
 	{
-		var modeStats = player.Stats[player.Status.Mode];
-		var modeRankedScore = modeStats.RankedScore;
-		var modePP = modeStats.PP;
-
-		if (modeStats.PP > short.MaxValue)
-		{
-			modeRankedScore = modePP;
-			modePP = 0;
-		}
-		
-		WritePacketData(ServerPacketId.UserStats, 
-			player.Id,
-			(byte)player.Status.Activity,
-			player.Status.ActivityDescription,
-			player.Status.BeatmapMD5,
-			player.Status.CurrentMods,
-			(byte)player.Status.Mode.AsVanilla(),
-			player.Status.BeatmapId,
-			modeRankedScore,
-			modeStats.Accuracy,
-			modeStats.PlayCount,
-			modeStats.TotalScore,
-			modeStats.Rank,
-			modePP
-		);
+		WritePacketData(ServerPacketId.UserStats, new PacketData(player, DataType.Stats));
 	}
-	
-	//TODO make it modifiable by user
-	private static readonly List<(Activity Activity, string Description)> BotStatuses =
-	[
-		(Activity.Afk, "looking for source.."),
-		(Activity.Editing, "the source code.."),
-		(Activity.Editing, "server's website.."),
-		(Activity.Modding, "your requests.."),
-		(Activity.Watching, "over all of you.."),
-		(Activity.Watching, "over the server.."),
-		(Activity.Testing, "my will to live.."),
-		(Activity.Testing, "your patience.."),
-		(Activity.Submitting, "scores to database.."),
-		(Activity.Submitting, "a pull request.."),
-		(Activity.OsuDirect, "updating maps..")
-	];
 	
 	/// <summary>
 	/// Packet id 11
 	/// </summary>
 	public void BotStats(Player player)
 	{
-		var status = BotStatuses[Random.Shared.Next(0, BotStatuses.Count)];
-		
-		WritePacketData(ServerPacketId.UserStats, 
-			player.Id,
-			(byte)status.Activity,
-			status.Description,
-			"",
-			(int)0,
-			(byte)0,
-			(int)0,
-			(long)0,
-			0.0f,
-			(int)0,
-			(long)0,
-			(int)0,
-			(short)0
-		);
+		WritePacketData(ServerPacketId.UserStats, new PacketData(player, DataType.BotStats));
 	}
 	
 	/// <summary>
@@ -135,7 +85,7 @@ public partial class ServerPackets : Packet
 	/// </summary>
 	public void Logout(int playerId)
 	{
-		WritePacketData(ServerPacketId.UserLogout, playerId, (byte)0);
+		WritePacketData(ServerPacketId.UserLogout, new PacketData(playerId, DataType.Int), new PacketData((byte)0, DataType.Byte));
 	}
 
 	/// <summary>
@@ -143,7 +93,7 @@ public partial class ServerPackets : Packet
 	/// </summary>
 	public void SpectatorJoined(int playerId)
 	{
-		WritePacketData(ServerPacketId.SpectatorJoined, playerId);
+		WritePacketData(ServerPacketId.SpectatorJoined, new PacketData(playerId, DataType.Int));
 	}
 
 	/// <summary>
@@ -151,7 +101,7 @@ public partial class ServerPackets : Packet
 	/// </summary>
 	public void FellowSpectatorJoined(int playerId)
 	{
-		WritePacketData(ServerPacketId.FellowSpectatorJoined, playerId);
+		WritePacketData(ServerPacketId.FellowSpectatorJoined, new PacketData(playerId, DataType.Int));
 	}
 
 	/// <summary>
@@ -159,7 +109,7 @@ public partial class ServerPackets : Packet
 	/// </summary>
 	public void SpectatorLeft(int playerId)
 	{
-		WritePacketData(ServerPacketId.SpectatorLeft, playerId);
+		WritePacketData(ServerPacketId.SpectatorLeft, new PacketData(playerId, DataType.Int));
 	}
 	
 	/// <summary>
@@ -167,7 +117,7 @@ public partial class ServerPackets : Packet
 	/// </summary>
 	public void FellowSpectatorLeft(int playerId)
 	{
-		WritePacketData(ServerPacketId.FellowSpectatorLeft, playerId);
+		WritePacketData(ServerPacketId.FellowSpectatorLeft, new PacketData(playerId, DataType.Int));
 	}
 
 	/// <summary>
@@ -184,7 +134,7 @@ public partial class ServerPackets : Packet
 	/// </summary>
 	public void SpectatorCantSpectate(int playerId)
 	{
-		WritePacketData(ServerPacketId.SpectatorCantSpectate, playerId);
+		WritePacketData(ServerPacketId.SpectatorCantSpectate, new PacketData(playerId, DataType.Int));
 	}
 	
 	/// <summary>
@@ -208,7 +158,7 @@ public partial class ServerPackets : Packet
 	/// </summary>
 	public void Notification(string message)
 	{
-		WritePacketData(ServerPacketId.Notification, message);
+		WritePacketData(ServerPacketId.Notification, new PacketData(message, DataType.String));
 	}
 
 	/// <summary>
@@ -295,7 +245,7 @@ public partial class ServerPackets : Packet
 	/// </summary>
 	public void MatchPlayerFailed(int slotId)
 	{
-		WritePacketData(ServerPacketId.MatchPlayerFailed, slotId);
+		WritePacketData(ServerPacketId.MatchPlayerFailed, new PacketData(slotId, DataType.Int));
 	}
 
 	/// <summary>
@@ -319,7 +269,7 @@ public partial class ServerPackets : Packet
 	/// </summary>
 	public void MatchPlayerSkipped(int playerId)
 	{
-		WritePacketData(ServerPacketId.MatchPlayerSkipped, playerId);
+		WritePacketData(ServerPacketId.MatchPlayerSkipped, new PacketData(playerId, DataType.Int));
 	}
 
 	/// <summary>
@@ -336,7 +286,7 @@ public partial class ServerPackets : Packet
 	/// </summary>
 	public void MatchChangePassword(string newPwd)
 	{
-		WritePacketData(ServerPacketId.MatchChangePassword, newPwd);
+		WritePacketData(ServerPacketId.MatchChangePassword, new PacketData(newPwd, DataType.String));
 	}
 
 	/// <summary>
@@ -360,7 +310,7 @@ public partial class ServerPackets : Packet
 	/// </summary>
 	public void ChannelJoin(string name)
 	{
-		WritePacketData(ServerPacketId.ChannelJoinSuccess, name);
+		WritePacketData(ServerPacketId.ChannelJoinSuccess, new PacketData(name, DataType.String));
 	}
 
 	/// <summary>
@@ -368,11 +318,7 @@ public partial class ServerPackets : Packet
 	/// </summary>
 	public void ChannelInfo(Channel channel)
 	{
-		WritePacketData(ServerPacketId.ChannelInfo,
-			channel.Name,
-			channel.Description,
-			channel.Players.Count
-		);
+		WritePacketData(ServerPacketId.ChannelInfo, new PacketData(channel, DataType.Channel));
 	}
 	
 	/// <summary>
@@ -380,16 +326,8 @@ public partial class ServerPackets : Packet
 	/// </summary>
 	public void ChannelInfo(List<Channel> channels)
 	{
-		var channelData = new List<object>();
-		
 		foreach (var channel in channels)
-		{
-			channelData.Add(channel.Name);
-			channelData.Add(channel.Description);
-			channelData.Add(channel.Players.Count);
-		}
-		
-		WritePacketData(ServerPacketId.ChannelInfo, channelData.ToArray());
+			ChannelInfo(channel);
 	}
 	
 	/// <summary>
@@ -405,7 +343,7 @@ public partial class ServerPackets : Packet
 	/// </summary>
 	public void ChannelKick(string name)
 	{
-		WritePacketData(ServerPacketId.ChannelKick, name);
+		WritePacketData(ServerPacketId.ChannelKick, new PacketData(name, DataType.String));
 	}
 
 	/// <summary>
@@ -413,11 +351,7 @@ public partial class ServerPackets : Packet
 	/// </summary>
 	public void ChannelAutoJoin(Channel channel)
 	{
-		WritePacketData(ServerPacketId.ChannelAutoJoin,
-			channel.Name,
-			channel.Description,
-			channel.Players.Count
-		);
+		WritePacketData(ServerPacketId.ChannelAutoJoin, new PacketData(channel, DataType.Channel));
 	}
 
 	/// <summary>
@@ -434,7 +368,7 @@ public partial class ServerPackets : Packet
 	/// </summary>
 	public void BanchoPrivileges(int privileges)
 	{
-		WritePacketData(ServerPacketId.Privileges, privileges);
+		WritePacketData(ServerPacketId.Privileges, new PacketData(privileges, DataType.Int));
 	}
 
 	/// <summary>
@@ -442,11 +376,7 @@ public partial class ServerPackets : Packet
 	/// </summary>
 	public void FriendsList(List<int> friends)
 	{
-		var friendsData = new List<object> { friends.Count };
-		
-		friendsData.AddRange(friends.Cast<object>());
-
-		WritePacketData(ServerPacketId.FriendsList, friendsData.ToArray());
+		WritePacketData(ServerPacketId.FriendsList, new PacketData(friends, DataType.IntList));
 	}
 	
 	/// <summary>
@@ -454,7 +384,7 @@ public partial class ServerPackets : Packet
 	/// </summary>
 	public void ProtocolVersion(int version)
 	{
-		WritePacketData(ServerPacketId.ProtocolVersion, version);
+		WritePacketData(ServerPacketId.ProtocolVersion, new PacketData(version, DataType.Int));
 	}
 	
 	/// <summary>
@@ -462,7 +392,7 @@ public partial class ServerPackets : Packet
 	/// </summary>
 	public void MainMenuIcon(string iconUrl, string onclickUrl)
 	{
-		WritePacketData(ServerPacketId.MainMenuIcon, $"{iconUrl}|{onclickUrl}");
+		WritePacketData(ServerPacketId.MainMenuIcon, new PacketData($"{iconUrl}|{onclickUrl}", DataType.String));
 	}
 
 	/// <summary>
@@ -479,16 +409,7 @@ public partial class ServerPackets : Packet
 	/// </summary>
 	public void BotPresence(Player player)
 	{
-		WritePacketData(ServerPacketId.UserPresence, 
-			player.Id,
-			player.Username,
-			(byte)1,
-			(byte)245,
-			(byte)31,
-			69.420f,
-			727.27f,
-			(int)0
-		);
+		WritePacketData(ServerPacketId.UserPresence, new PacketData(player, DataType.BotPresence));
 	}
 	
 	/// <summary>
@@ -496,16 +417,7 @@ public partial class ServerPackets : Packet
 	/// </summary>
 	public void UserPresence(Player player)
 	{
-		WritePacketData(ServerPacketId.UserPresence, 
-			player.Id,
-			player.Username,
-			player.TimeZone,
-			(byte)player.Geoloc.Country.Numeric,
-			(byte)((int)player.ToBanchoPrivileges() | ((int)player.Status.Mode.AsVanilla() << 5)),
-			player.Geoloc.Longitude,
-			player.Geoloc.Latitude,
-			player.Stats[player.Status.Mode].Rank
-		);
+		WritePacketData(ServerPacketId.UserPresence, new PacketData(player, DataType.Presence));
 	}
 	
 	/// <summary>
@@ -513,7 +425,7 @@ public partial class ServerPackets : Packet
 	/// </summary>
 	public void RestartServer(int msToReconnect)
 	{
-		WritePacketData(ServerPacketId.Restart, msToReconnect);
+		WritePacketData(ServerPacketId.Restart, new PacketData(msToReconnect, DataType.Int));
 	}
 	
 	/// <summary>
@@ -521,7 +433,7 @@ public partial class ServerPackets : Packet
 	/// </summary>
 	public void SilenceEnd(int delta)
 	{
-		WritePacketData(ServerPacketId.UserSilenced, delta);
+		WritePacketData(ServerPacketId.UserSilenced, new PacketData(delta, DataType.Int));
 	}
 
 	/// <summary>
@@ -529,7 +441,7 @@ public partial class ServerPackets : Packet
 	/// </summary>
 	public void UserSilenced(int playerId)
 	{
-		WritePacketData(ServerPacketId.UserSilenced, playerId);
+		WritePacketData(ServerPacketId.UserSilenced, new PacketData(playerId, DataType.Int));
 	}
 
 	/// <summary>
@@ -538,16 +450,16 @@ public partial class ServerPackets : Packet
 	[Obsolete("No longer used by osu! client.")]
 	public void UserPresenceSingle(int playerId)
 	{
-		WritePacketData(ServerPacketId.UserPresenceSingle, playerId);
+		WritePacketData(ServerPacketId.UserPresenceSingle, new PacketData(playerId, DataType.Int));
 	}
 	
 	/// <summary>
 	/// Packet id 96
 	/// </summary>
 	[Obsolete("No longer used by osu! client.")]
-	public void UserPresenceBundle(IEnumerable<int> playerIds)
+	public void UserPresenceBundle(List<int> playerIds)
 	{
-		WritePacketData(ServerPacketId.UserPresenceBundle, playerIds.Cast<object>().ToArray());
+		WritePacketData(ServerPacketId.UserPresenceBundle, new PacketData(playerIds, DataType.IntList));
 	}
 
 	/// <summary>
@@ -555,13 +467,16 @@ public partial class ServerPackets : Packet
 	/// </summary>
 	public void UserDmBlocked(string target)
 	{
-		// Basically a message to the user that they can't send a message to the target
 		WritePacketData(ServerPacketId.UserDmBlocked,
-			"",
-			"",
-			target,
-			0
-		);
+			new PacketData(
+				new Message
+				{
+					Sender = "", 
+					Content = "", 
+					Destination = target, 
+					SenderId = 0
+				},
+				DataType.Message));
 	}
 
 	/// <summary>
@@ -569,12 +484,16 @@ public partial class ServerPackets : Packet
 	/// </summary>
 	public void TargetSilenced(string target)
 	{
-		WritePacketData(ServerPacketId.TargetIsSilenced, 
-			"",
-			"",
-			target,
-			0
-		);
+		WritePacketData(ServerPacketId.TargetIsSilenced,
+			new PacketData(
+				new Message
+				{
+					Sender = "", 
+					Content = "", 
+					Destination = target, 
+					SenderId = 0
+				},
+				DataType.Message));
 	}
 
 	/// <summary>
@@ -590,7 +509,7 @@ public partial class ServerPackets : Packet
 	/// </summary>
 	public void SwitchServer(int time)
 	{
-		WritePacketData(ServerPacketId.SwitchServer, time);
+		WritePacketData(ServerPacketId.SwitchServer, new PacketData(time, DataType.String));
 	}
 
 	/// <summary>
@@ -598,7 +517,7 @@ public partial class ServerPackets : Packet
 	/// </summary>
 	public void SwitchTournamentServer(string ip)
 	{
-		WritePacketData(ServerPacketId.SwitchTournamentServer, ip);
+		WritePacketData(ServerPacketId.SwitchTournamentServer, new PacketData(ip, DataType.String));
 	}
 	
 	/// <summary>
@@ -615,7 +534,7 @@ public partial class ServerPackets : Packet
 	[Obsolete("Shouldn't be sent to osu! client.")]
 	public void RTX(string message)
 	{
-		WritePacketData(ServerPacketId.Rtx, message);
+		WritePacketData(ServerPacketId.Rtx, new PacketData(message, DataType.String));
 	}
 
 	/// <summary>
@@ -637,28 +556,68 @@ public partial class ServerPackets : Packet
 		
 		foreach (var bot in session.Bots)
 		{
-			BotPresence(bot);
-			BotStats(bot);
+			BotPresence(bot.Value);
+			BotStats(bot.Value);
 		}
 		
 		foreach (var user in session.Players)
 		{
-			if (toOthers) user.Enqueue(loginData);
-			UserPresence(user);
-			UserStats(user);
+			if (toOthers) user.Value.Enqueue(loginData);
+			UserPresence(user.Value);
+			UserStats(user.Value);
 		}
 
 		if (!toOthers) return;
 		
-		foreach (var restrictedPlayer in session.Restricted)
-			restrictedPlayer.Enqueue(loginData);
+		foreach (var restricted in session.Restricted)
+			restricted.Value.Enqueue(loginData);
 	}
 
-	protected override void Dispose(bool disposing)
+	public void Dispose()
 	{
-		if (disposing)
-			_binaryWriter.Dispose();
+		Dispose(true);
+		GC.SuppressFinalize(this);
+	}
+
+	private void Dispose(bool disposing)
+	{
+		if (!disposing) return;
 		
-		base.Dispose(disposing);
+		_dataBuffer.Dispose();
+		_binaryWriter.Dispose();
+	}
+
+	private struct PacketData(object? data, DataType type)
+	{
+		public readonly object? Data = data;
+		public readonly DataType Type = type;
+	}
+
+	private enum DataType
+	{
+		SByte,
+		Byte,
+		Short,
+		UShort,
+		Int,
+		UInt,
+		Long,
+		ULong,
+		Float,
+		Double,
+		Message,
+		Channel,
+		Match,
+		Stats,
+		BotStats,
+		Presence,
+		BotPresence,
+		ScoreFrame,
+		MapInfoRequest,
+		MapInfoReply,
+		ReplayFrameBundle,
+		IntList,
+		String,
+		Raw
 	}
 }

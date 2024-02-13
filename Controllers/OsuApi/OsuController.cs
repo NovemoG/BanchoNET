@@ -18,9 +18,10 @@ public partial class OsuController : ControllerBase
 	}
 	
 	[HttpPost("/web/osu-error.php")]
-	public async Task OsuError()
+	public async Task<IActionResult> OsuError()
 	{
 		Console.WriteLine("OsuError");
+		return Ok("");
 	}
 
 	[HttpGet("/web/bancho_connect.php")]
@@ -31,9 +32,10 @@ public partial class OsuController : ControllerBase
 	}
 
 	[HttpGet("/web/check-updates.php")]
-	public async Task CheckUpdates()
+	public async Task<IActionResult> CheckUpdates()
 	{
-		
+		Console.WriteLine("CheckUpdates");
+		return Ok();
 	}
 
 	[HttpGet("/web/lastfm.php")]
@@ -81,17 +83,17 @@ public partial class OsuController : ControllerBase
 
 		var errors = new List<ErrorDetails>();
 
-		if (!Regexes.Username().Match(username).Success) errors.Add(new ErrorDetails { Field = "username",
+		if (!Regexes.Username.Match(username).Success) errors.Add(new ErrorDetails { Field = "username",
 			Messages = ["Must be 2-15 characters long."]
 		});
-		if (Regexes.SingleCharacterType().Match(username).Success) errors.Add(new ErrorDetails { Field = "username",
+		if (Regexes.SingleCharacterType.Match(username).Success) errors.Add(new ErrorDetails { Field = "username",
 			Messages = ["Cannot contain spaces and underscores."]
 		});
 		if (await _bancho.UsernameTaken(username)) errors.Add(new ErrorDetails { Field = "username",
 			Messages = ["Username already taken by other player."]
 		});
 
-		if (!Regexes.Email().Match(email).Success) errors.Add(new ErrorDetails { Field = "user_email",
+		if (!Regexes.Email.Match(email).Success) errors.Add(new ErrorDetails { Field = "user_email",
 			Messages = ["Invalid email syntax."]
 		});
 		if (await _bancho.EmailTaken(email)) errors.Add(new ErrorDetails { Field = "user_email",
@@ -121,7 +123,7 @@ public partial class OsuController : ControllerBase
 		var pwdMD5 = password.CreateMD5();
 		var pwdBcrypt = BCrypt.Net.BCrypt.HashPassword(pwdMD5);
 		
-		_session.InsertPasswordHash(pwdBcrypt, pwdMD5);
+		_session.InsertPasswordHash(pwdMD5, pwdBcrypt);
 		
         //TODO get geoloc from ip header
 

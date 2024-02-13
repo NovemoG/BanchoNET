@@ -6,28 +6,68 @@ using BanchoNET.Objects.Privileges;
 using BanchoNET.Packets;
 using BanchoNET.Utils;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace BanchoNET.Services;
 
-public partial class BanchoHandler(BanchoDbContext dbContext)
+public partial class BanchoHandler
 {
+	private readonly BanchoSession _session = BanchoSession.Instance;
+	private readonly BanchoDbContext _dbContext;
+	private readonly ServerConfig _config;
+	
+	private readonly string[] _ignoredChannels = ["#highlight", "#userlog"];
+
+	public BanchoHandler(BanchoDbContext dbContext, IOptions<ServerConfig> config)
+	{
+		_dbContext = dbContext;
+		_config = config.Value;
+	}
+
+	public async Task<Player?> GetPlayerOrOffline(string username)
+	{
+		var sessionPlayer = _session.GetPlayer(username: username);
+		if (sessionPlayer != null) return sessionPlayer;
+
+		username = username.MakeSafe();
+		var dbPlayer = await _dbContext.Players.FirstOrDefaultAsync(p => p.SafeName == username);
+
+		return dbPlayer == null ? null : new Player(dbPlayer);
+	}
+	
+	public async Task UpdateLatestActivity(Player player)
+	{
+		player.LastActivityTime = DateTime.UtcNow;
+		
+		await _dbContext.Players
+		               .Where(p => p.Id == player.Id)
+		               .ExecuteUpdateAsync(p => 
+			               p.SetProperty(u => u.LastActivityTime, player.LastActivityTime));
+	}
+	
 	public async Task<PlayerDto?> FetchPlayerInfo(int id = 1, string username = "", string loginName = "")
 	{
 		if (id > 1)
-			return await dbContext.Players.FindAsync(id);
+			return await _dbContext.Players.FindAsync(id);
 
 		if (username != "")
-			return await dbContext.Players.SingleOrDefaultAsync(p => p.SafeName == username.MakeSafe());
+		{
+			username = username.MakeSafe();
+			return await _dbContext.Players.SingleOrDefaultAsync(p => p.SafeName == username);
+		}
 		
 		if (loginName != "")
-			return await dbContext.Players.SingleOrDefaultAsync(p => p.LoginName == loginName);
+		{
+			loginName = loginName.ToLogin();
+			return await _dbContext.Players.SingleOrDefaultAsync(p => p.LoginName == loginName);
+		}
 
 		return null;
 	}
 	
 	public async Task FetchPlayerStats(Player player)
 	{
-		var stats = await dbContext.Stats.Where(s => s.PlayerId == player.Id).ToListAsync();
+		var stats = await _dbContext.Stats.Where(s => s.PlayerId == player.Id).ToListAsync();
 		
 		foreach (var stat in stats)
 		{
@@ -53,7 +93,7 @@ public partial class BanchoHandler(BanchoDbContext dbContext)
 	
 	public async Task FetchPlayerRelationships(Player player)
 	{
-		var relationships = await dbContext.Relationships.Where(p => p.PlayerId == player.Id).ToListAsync();
+		var relationships = await _dbContext.Relationships.Where(p => p.PlayerId == player.Id).ToListAsync();
 		
 		foreach (var relationship in relationships)
 		{
@@ -73,7 +113,7 @@ public partial class BanchoHandler(BanchoDbContext dbContext)
 	{
 		player.Privileges |= privileges;
 		
-		await dbContext.Players.Where(p => p.Id == player.Id)
+		await _dbContext.Players.Where(p => p.Id == player.Id)
 		               .ExecuteUpdateAsync(p => 
 			               p.SetProperty(u => u.Privileges, (int)player.Privileges));
 
@@ -100,8 +140,8 @@ public partial class BanchoHandler(BanchoDbContext dbContext)
 			LastActivityTime = DateTime.UtcNow
 		};
 		
-		var player = await dbContext.Players.AddAsync(playerDto);
-		await dbContext.SaveChangesAsync();
+		var player = await _dbContext.Players.AddAsync(playerDto);
+		await _dbContext.SaveChangesAsync();
 
 		var playerId = player.Entity.Id;
 		
@@ -115,17 +155,17 @@ public partial class BanchoHandler(BanchoDbContext dbContext)
 			};
 		}
 
-		await dbContext.Stats.AddRangeAsync(scoreDtos);
-		await dbContext.SaveChangesAsync();
+		await _dbContext.Stats.AddRangeAsync(scoreDtos);
+		await _dbContext.SaveChangesAsync();
 	}
 	
 	public async Task<bool> EmailTaken(string email)
 	{
-		return await dbContext.Players.AnyAsync(p => p.Email == email);
+		return await _dbContext.Players.AnyAsync(p => p.Email == email);
 	}
 	
 	public async Task<bool> UsernameTaken(string username)
 	{
-		return await dbContext.Players.AnyAsync(p => p.SafeName == username.MakeSafe());
+		return await _dbContext.Players.AnyAsync(p => p.SafeName == username.MakeSafe());
 	}
 }

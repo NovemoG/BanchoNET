@@ -41,9 +41,12 @@ public class PlayerDto
 	public byte PreferredMode { get; set; }
 	public byte PlayStyle { get; set; }
 	
-	[MaxLength(4096)]
+	[MaxLength(128)]
+	public string? AwayMessage { get; set; }
+
+	[MaxLength(4096)] 
 	public string? UserPageContent { get; set; }
-	
+
 	[Column(TypeName = "CHAR"), StringLength(36), Unicode(false)]
 	public string? ApiKey { get; set; }
 }

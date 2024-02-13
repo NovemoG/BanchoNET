@@ -2,8 +2,8 @@
 
 public class Message
 {
-	public string Sender { get; set; }
-	public string Content { get; set; }
-	public string Destination { get; set; }
-	public int SenderId { get; set; }
+	public string Sender { get; init; }
+	public string Content { get; init; }
+	public string Destination { get; init; }
+	public int SenderId { get; init; }
 }

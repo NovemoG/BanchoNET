@@ -1,5 +1,8 @@
 ﻿using System.Text;
+using BanchoNET.Objects;
 using BanchoNET.Objects.Channels;
+using BanchoNET.Objects.Multiplayer;
+using BanchoNET.Objects.Players;
 
 namespace BanchoNET.Utils;
 
@@ -11,37 +14,11 @@ public static class BufferExtensions
 		if (stringExists == 0) return string.Empty;
 		if (stringExists != 11)
 		{
-			//TODO
+			Console.WriteLine("[BufferExtensions] Invalid byte value while trying to read osu string");
 			return string.Empty;
 		}
 		
-		var total = 0;
-		var shift = 0;
-		var _byte = br.ReadByte();
-
-		if ((_byte & 0x80) == 0)
-		{
-			total |= (_byte & 0x7F) << shift;
-		}
-		else
-		{
-			var end = false;
-
-			do
-			{
-				if (shift > 0) 
-					_byte = br.ReadByte();
-
-				total |= (_byte & 0x7F) << shift;
-
-				if ((_byte & 0x80) == 0) 
-					end = true;
-
-				shift += 7;
-			} while (!end);
-		}
-		
-		return Encoding.UTF8.GetString(br.ReadBytes(total));
+		return Encoding.UTF8.GetString(br.ReadBytes(br.ReadULEB128()));
 	}
 
 	public static Message ReadOsuMessage(this BinaryReader br)
@@ -56,14 +33,13 @@ public static class BufferExtensions
 	}
 	
 	/// <summary>
-	/// Reads osu! list of 32 bit integers with length encoded as 16 or 32 bit integer
+	/// Reads osu! list of 32 bit integers with length encoded as 16 bit integer
 	/// </summary>
-	/// <param name="length16bEncoded">Whether list's length is encoded as 16 bit integer, default is 16.</param>
 	/// <returns>List of integer values</returns>
-	public static IEnumerable<int> ReadOsuList16(this BinaryReader br, bool length16bEncoded = true)
+	public static List<int> ReadOsuList32(this BinaryReader br)
 	{
 		var returnList = new List<int>();
-		var length = length16bEncoded ? br.ReadInt16() : br.ReadInt32();
+		var length = br.ReadUInt16();
 
 		while (length > 0)
 		{
@@ -74,34 +50,131 @@ public static class BufferExtensions
 		return returnList;
 	}
 
-	public static void WriteOsuString(this BinaryWriter bw, string data)
+	public static void WriteOsuList32(this BinaryWriter bw, List<int> list)
 	{
-		if (string.IsNullOrEmpty(data))
+		bw.Write((ushort)list.Count);
+		
+		foreach (var id in list)
+			bw.Write(id);
+	}
+	
+	public static void WriteUserStats(this BinaryWriter bw, Player player)
+	{
+		var modeStats = player.Stats[player.Status.Mode];
+		var modeRankedScore = modeStats.RankedScore;
+		var modePP = modeStats.PP;
+
+		if (modeStats.PP > short.MaxValue)
 		{
-			bw.Write((byte)0);
+			modeRankedScore = modePP;
+			modePP = 0;
 		}
+		
+		bw.Write(player.Id);
+		bw.Write((byte)player.Status.Activity);
+		bw.WriteOsuString(player.Status.ActivityDescription);
+		bw.WriteOsuString(player.Status.BeatmapMD5);
+		bw.Write((int)player.Status.CurrentMods);
+		bw.Write((byte)player.Status.Mode.AsVanilla());
+		bw.Write(player.Status.BeatmapId);
+		bw.Write(modeRankedScore);
+		bw.Write(modeStats.Accuracy);
+		bw.Write(modeStats.PlayCount);
+		bw.Write(modeStats.TotalScore);
+		bw.Write(modeStats.Rank);
+		bw.Write(modePP);
+	}
+	
+	//TODO make it modifiable by user(?)
+	private static readonly List<(Activity Activity, string Description)> BotStatuses =
+	[
+		(Activity.Afk, "looking for source.."),
+		(Activity.Editing, "the source code.."),
+		(Activity.Editing, "server's website.."),
+		(Activity.Modding, "your requests.."),
+		(Activity.Watching, "over all of you.."),
+		(Activity.Watching, "over the server.."),
+		(Activity.Testing, "my will to live.."),
+		(Activity.Testing, "your patience.."),
+		(Activity.Submitting, "scores to database.."),
+		(Activity.Submitting, "a pull request.."),
+		(Activity.OsuDirect, "updating maps..")
+	];
+
+	public static void WriteBotStats(this BinaryWriter bw, Player player)
+	{
+		var status = BotStatuses[Random.Shared.Next(0, BotStatuses.Count)];
+		
+		bw.Write(player.Id);
+		bw.Write((byte)status.Activity);
+		bw.WriteOsuString(status.Description);
+		bw.WriteOsuString("");
+		bw.Write((int)0);
+		bw.Write((byte)0);
+		bw.Write((int)0);
+		bw.Write((long)0);
+		bw.Write(0.0f);
+		bw.Write((int)0);
+		bw.Write((long)0);
+		bw.Write((int)0);
+		bw.Write((short)0);
+	}
+	
+	public static void WriteUserPresence(this BinaryWriter bw, Player player)
+	{
+		bw.Write(player.Id);
+		bw.WriteOsuString(player.Username);
+		bw.Write(player.TimeZone);
+		bw.Write((byte)player.Geoloc.Country.Numeric);
+		bw.Write((byte)((int)player.ToBanchoPrivileges() | ((int)player.Status.Mode.AsVanilla() << 5)));
+		bw.Write(player.Geoloc.Longitude);
+		bw.Write(player.Geoloc.Latitude);
+		bw.Write(player.Stats[player.Status.Mode].Rank);
+	}
+
+	public static void WriteBotPresence(this BinaryWriter bw, Player player)
+	{
+		bw.Write(player.Id);
+		bw.WriteOsuString(player.Username);
+		bw.Write((byte)1);
+		bw.Write((byte)245);
+		bw.Write((byte)31);
+		bw.Write(6669.420f);
+		bw.Write(727.27f);
+		bw.Write((int)0);
+	}
+
+	public static void WriteOsuString(this BinaryWriter bw, string? data)
+	{
+		if (data == null)
+			bw.Write((byte)0);
 		else
 		{
 			bw.Write((byte)11);
 
-			var index = 0;
-			var bytes = new List<byte>();
-			long length = data.Length;
-
-			do
-			{
-				bytes.Add((byte)(length & 0x7F));
-
-				if ((length >>= 7) != 0)
-					bytes[index] |= 0x80;
-
-				index++;
-			} while (length > 0);
-
-			foreach (var b in bytes) 
-				bw.Write(b);
-			
-			bw.Write(Encoding.UTF8.GetBytes(data));
+			var stringBytes = Encoding.UTF8.GetBytes(data);
+			bw.WriteULEB128(stringBytes.Length);
+			bw.Write(stringBytes);
 		}
+	}
+
+	public static void WriteOsuMessage(this BinaryWriter bw, Message message)
+	{
+		bw.WriteOsuString(message.Sender);
+		bw.WriteOsuString(message.Content);
+		bw.WriteOsuString(message.Destination);
+		bw.Write(message.SenderId);
+	}
+	
+	public static void WriteOsuChannel(this BinaryWriter bw, Channel channel)
+	{
+		bw.WriteOsuString(channel.Name);
+		bw.WriteOsuString(channel.Description);
+		bw.Write((ushort)channel.Players.Count);
+	}
+
+	public static void WriteOsuMatch(this BinaryWriter bw, MultiplayerLobby lobby)
+	{
+		//TODO
 	}
 }

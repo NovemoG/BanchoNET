@@ -5,8 +5,6 @@ namespace BanchoNET.Objects.Channels;
 
 public class Channel
 {
-	public ChannelType Type { get; } = ChannelType.Normal;
-	
 	public int Id { get; set; }
 	public bool AutoJoin { get; set; }
 	public bool Hidden { get; set; }

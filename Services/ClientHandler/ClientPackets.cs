@@ -1,0 +1,45 @@
+﻿using BanchoNET.Objects.Players;
+using BanchoNET.Utils;
+
+namespace BanchoNET.Services;
+
+public partial class BanchoHandler
+{
+	public async Task ReadPackets(Stream stream, Player player)
+	{
+		using var ms = new MemoryStream();
+		await stream.CopyToAsync(ms);
+		ms.Position = 0;
+		
+		using var br = new BinaryReader(ms);
+		
+		do
+		{
+			var packetId = (ClientPacketId)br.ReadInt16();
+			br.ReadByte();
+			var packetSize = br.ReadInt32();
+			
+			if (packetId == ClientPacketId.Ping) continue;
+
+			var dataBuffer = new byte[packetSize];
+			var bytesRead = br.Read(dataBuffer, 0, packetSize);
+			
+			Console.WriteLine($"[ClientPackets] Packet: {packetId}, Length: {dataBuffer.Length}, Read: {bytesRead}, To read: {packetSize}");
+			
+			if (bytesRead != packetSize)
+				throw new Exception("Packet size mismatch");
+
+			ms.Position -= bytesRead;
+			
+			PacketHandlerMap.PacketMethodsMap.TryGetValue(packetId, out var method);
+			if (method != null)
+			{
+				await (Task)method.Invoke(this, [player, br])!;
+			}
+			else
+			{
+				Console.WriteLine("[ClientPackets] Handler of this packet is not (yet) implemented");
+			}
+		} while (br.BaseStream.Position < br.BaseStream.Length - 7);
+	}
+}

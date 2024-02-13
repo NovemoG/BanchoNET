@@ -1,12 +1,13 @@
 ﻿using BanchoNET.Objects;
 using BanchoNET.Objects.Players;
+using BanchoNET.Packets;
 using BanchoNET.Utils;
 
-namespace BanchoNET.Packets;
+namespace BanchoNET.Services;
 
-public partial class ClientPackets
+public partial class BanchoHandler
 {
-	private static void ChangeAction(Player player, BinaryReader br)
+	private Task ChangeAction(Player player, BinaryReader br)
 	{
 		var status = player.Status;
 
@@ -20,8 +21,12 @@ public partial class ClientPackets
 		
 		status.BeatmapId = br.ReadInt32();
 		
+		player.LastActivityTime = DateTime.UtcNow;
+		
 		using var packet = new ServerPackets();
 		packet.UserStats(player);
-		Session.EnqueueToPlayers(packet.GetContent());
+		_session.EnqueueToPlayers(packet.GetContent());
+
+		return Task.CompletedTask;
 	}
 }

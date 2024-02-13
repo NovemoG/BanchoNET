@@ -14,11 +14,11 @@ public partial class ChoController : ControllerBase
 	private readonly ServerConfig _config;
 	private readonly HttpClient _httpClient;
 	
-	public ChoController(BanchoHandler bancho, IOptions<ServerConfig> serverConstants, HttpClient httpClient)
+	public ChoController(BanchoHandler bancho, IOptions<ServerConfig> config, HttpClient httpClient)
 	{
 		_bancho = bancho;
 		_session = BanchoSession.Instance;
-		_config = serverConstants.Value;
+		_config = config.Value;
 		_httpClient = httpClient;
 	}
 	
@@ -38,11 +38,8 @@ public partial class ChoController : ControllerBase
 			return restartData.GetContentResult();
 		}
 		
-		using var clientData = await new ClientPackets().CopyStream(Request.Body);
-		clientData.ReadPackets(player);
+		await _bancho.ReadPackets(Request.Body, player);
 		
-		player.LastActivityTime = DateTime.Now;
-
 		return new FileContentResult(player.Dequeue(), "application/octet-stream; charset=UTF-8");
 	}
 
