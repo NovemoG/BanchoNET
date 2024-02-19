@@ -43,6 +43,7 @@ public class Program
 		{
 			options.UseMySQL(mySqlConnectionString);
 		});
+		builder.Services.AddScoped<GeolocService>();
 		builder.Services.AddScoped<BanchoHandler>();
 		builder.Services.AddHttpClient();
 

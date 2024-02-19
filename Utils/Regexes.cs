@@ -14,15 +14,11 @@ public static class Regexes
 	static Regexes()
 	{
 		Username = new Regex(
-			@"^[\w \[\]-]{{2,15}}$",
+			@"^[\w \[\]-]{2,15}$",
 			RegexOptions.Compiled);
 		
 		Email = new Regex(
 			@"^[^@\s]{1,100}@[^@\s\.]{1,45}(?:\.[^@\.\s]{2,15})+$",
-			RegexOptions.Compiled);
-		
-		SingleCharacterType = new Regex(
-			@"(\s+.*_+.*|_+.*\s+.*)",
 			RegexOptions.Compiled);
 		
 		Whitespace = new Regex(
@@ -36,7 +32,6 @@ public static class Regexes
 
 	public static readonly Regex Username;
 	public static readonly Regex Email;
-	public static readonly Regex SingleCharacterType;
 	public static readonly Regex Whitespace;
 	public static readonly Regex OsuVersion;
 	public static Regex NowPlaying { get; private set; } = null!;

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Net;
 using BanchoNET.Models.Dtos;
 using BanchoNET.Objects.Players;
 using BanchoNET.Objects.Privileges;
@@ -31,13 +32,14 @@ public sealed class BanchoSession
 			Privileges = Privileges.Verified | Privileges.Staff,
 		}
 	};
-	
-	public Player BanchoBot { get; }
+
+	public readonly Player BanchoBot;
 
 	#endregion
-
+	
 	private readonly ConcurrentDictionary<string, string> _passwordHashes = [];
-
+	private readonly ConcurrentDictionary<string, IPAddress> _ipCache = [];
+	
 	#region Channels
 
 	private readonly List<Channel> _spectatorChannels = [];
@@ -102,6 +104,19 @@ public sealed class BanchoSession
 		_passwordHashes.TryAdd(passwordHash, passwordMD5);
 		return true;
 	}
+
+	public IPAddress? GetCachedIp(string ipString)
+	{
+		_ipCache.TryGetValue(ipString, out var ip);
+		return ip;
+	}
+
+	public IPAddress CacheIp(string ipString)
+	{
+		var ip = IPAddress.Parse(ipString);
+		_ipCache.TryAdd(ipString, ip);
+		return ip;
+	}
 	
 	public void AppendPlayer(Player player)
 	{
@@ -131,11 +146,12 @@ public sealed class BanchoSession
 		if (!Players.TryRemove(player.Id, out _))
 			Console.WriteLine($"[{GetType().Name}] Failed to remove {player.Id} from session");
 
-		Console.Write($"\n[{GetType().Name}] Players left: {Players.Count}, names: ");
+		Console.Write($"[{GetType().Name}] Players left: {Players.Count}, names: ");
 		foreach (var user in Players)
 		{
 			Console.Write($"{user.Value.Username}, ");
 		}
+		Console.Write('\n');
 
 		return true;
 	}
