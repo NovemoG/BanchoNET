@@ -9,11 +9,13 @@ namespace BanchoNET.Controllers.OsuApi;
 public partial class OsuController : ControllerBase
 {
 	private readonly BanchoHandler _bancho;
+	private readonly GeolocService _geoloc;
 	private readonly BanchoSession _session;
 
-	public OsuController(BanchoHandler bancho)
+	public OsuController(BanchoHandler bancho, GeolocService geoloc)
 	{
 		_bancho = bancho;
+		_geoloc = geoloc;
 		_session = BanchoSession.Instance;
 	}
 	
@@ -83,24 +85,36 @@ public partial class OsuController : ControllerBase
 
 		var errors = new List<ErrorDetails>();
 
-		if (!Regexes.Username.Match(username).Success) errors.Add(new ErrorDetails { Field = "username",
+		if (!Regexes.Username.Match(username).Success) errors.Add(new ErrorDetails
+		{
+			Field = "username",
 			Messages = ["Must be 2-15 characters long."]
 		});
-		if (Regexes.SingleCharacterType.Match(username).Success) errors.Add(new ErrorDetails { Field = "username",
+		if (username.Contains(' ') && username.Contains('_')) errors.Add(new ErrorDetails
+		{
+			Field = "username",
 			Messages = ["Cannot contain spaces and underscores."]
 		});
-		if (await _bancho.UsernameTaken(username)) errors.Add(new ErrorDetails { Field = "username",
+		if (await _bancho.UsernameTaken(username)) errors.Add(new ErrorDetails
+		{
+			Field = "username",
 			Messages = ["Username already taken by other player."]
 		});
-
-		if (!Regexes.Email.Match(email).Success) errors.Add(new ErrorDetails { Field = "user_email",
+		
+		if (!Regexes.Email.Match(email).Success) errors.Add(new ErrorDetails
+		{
+			Field = "user_email",
 			Messages = ["Invalid email syntax."]
 		});
-		if (await _bancho.EmailTaken(email)) errors.Add(new ErrorDetails { Field = "user_email",
+		if (await _bancho.EmailTaken(email)) errors.Add(new ErrorDetails
+		{
+			Field = "user_email",
 			Messages = ["Email already taken by someone else."]
 		});
 
-		if (password.Length is <= 8 or > 32) errors.Add(new ErrorDetails { Field = "password",
+		if (password.Length is <= 8 or > 32) errors.Add(new ErrorDetails
+		{
+			Field = "password",
 			Messages = ["Password must be 8-32 characters long."]
 		});
 
@@ -125,16 +139,11 @@ public partial class OsuController : ControllerBase
 		
 		_session.InsertPasswordHash(pwdMD5, pwdBcrypt);
 		
-        //TODO get geoloc from ip header
-
-		await _bancho.CreatePlayer(username, email, pwdBcrypt, "pl");
+		var geoloc = await _geoloc.GetGeoloc(Request.Headers);
+		await _bancho.CreatePlayer(username, email, pwdBcrypt, geoloc == null ? "xx" : geoloc.Value.Country.Acronym);
 
 		return Ok("ok");
 	}
-	
-	private class ErrorDetails
-	{
-		public string Field { get; set; }
-		public List<string> Messages { get; set; }
-	}
+
+	private readonly record struct ErrorDetails(string Field, List<string> Messages);
 }

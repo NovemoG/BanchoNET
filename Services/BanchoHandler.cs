@@ -45,6 +45,14 @@ public partial class BanchoHandler
 			               p.SetProperty(u => u.LastActivityTime, player.LastActivityTime));
 	}
 	
+	public async Task UpdatePlayerCountry(Player player, string country)
+	{
+		await _dbContext.Players
+		               .Where(p => p.Id == player.Id)
+		               .ExecuteUpdateAsync(p => 
+			               p.SetProperty(u => u.Country, country));
+	}
+	
 	public async Task<PlayerDto?> FetchPlayerInfo(int id = 1, string username = "", string loginName = "")
 	{
 		if (id > 1)

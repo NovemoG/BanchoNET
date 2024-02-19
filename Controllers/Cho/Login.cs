@@ -141,27 +141,32 @@ public partial class ChoController
 		
 		//TODO add login data and client hashes to database
 		//TODO hw matches
-		//TODO geoloc
+		
+		var geoloc = await _geoloc.GetGeoloc(Request.Headers);
+		if (geoloc == null)
+		{
+			Response.Headers["cho-token"] = "login-failed";
+			
+			using var responseData = new ServerPackets();
+			responseData.Notification("Login failed. Please contact an admin.");
+			responseData.PlayerId(-1);
+			return responseData.GetContentResult();
+		}
+		
 		player = new Player(userInfo, Guid.NewGuid(), DateTime.UtcNow, 1)
 		{
-			Geoloc = new Geoloc
-			{
-				Country = new Country
-				{
-					Acronym = "pl",
-					Numeric = 10,
-				},
-				Longitude = 6.9f,
-				Latitude = 7.27f
-			}
+			Geoloc = geoloc.Value,
 		};
 
+		if (userInfo.Country == "xx")
+			await _bancho.UpdatePlayerCountry(player, geoloc.Value.Country.Acronym);
+		
 		using var loginPackets = new ServerPackets();
 
 		loginPackets.ProtocolVersion(19);
 		loginPackets.PlayerId(player.Id);
 		loginPackets.BanchoPrivileges((int)player.ToBanchoPrivileges());
-		loginPackets.Notification(_config.WelcomeMessage);
+		loginPackets.Notification(_config.WelcomeMessage + _config.BanchoNETVersion);
 		loginPackets.ChannelInfo(_session.GetAutoJoinChannels(player));
 		loginPackets.ChannelInfoEnd();
 		loginPackets.MainMenuIcon(_config.MenuIconUrl, _config.MenuOnclickUrl);
@@ -188,7 +193,7 @@ public partial class ChoController
 				loginPackets.SendMessage(new Message
 				{
 					Sender = banchoBot.Username,
-					Content = _config.WelcomeMessage,
+					Content = _config.FirstLoginMessage,
 					Destination = player.Username,
 					SenderId = banchoBot.Id
 				});
