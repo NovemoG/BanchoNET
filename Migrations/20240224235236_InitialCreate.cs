@@ -51,6 +51,43 @@ namespace BanchoNET.Migrations
                 .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
+                name: "ClientHashes",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                    PlayerId = table.Column<int>(type: "int", nullable: false),
+                    OsuPath = table.Column<string>(type: "CHAR(32)", unicode: false, maxLength: 32, nullable: false),
+                    Adapters = table.Column<string>(type: "CHAR(32)", unicode: false, maxLength: 32, nullable: false),
+                    Uninstall = table.Column<string>(type: "CHAR(32)", unicode: false, maxLength: 32, nullable: false),
+                    DiskSerial = table.Column<string>(type: "CHAR(32)", unicode: false, maxLength: 32, nullable: false),
+                    LatestTime = table.Column<DateTime>(type: "DATETIME", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ClientHashes", x => x.Id);
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "PlayerLogins",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                    PlayerId = table.Column<int>(type: "int", nullable: false),
+                    Ip = table.Column<string>(type: "varchar(45)", unicode: false, maxLength: 45, nullable: false),
+                    OsuVersion = table.Column<DateTime>(type: "DATETIME", nullable: false),
+                    ReleaseStream = table.Column<string>(type: "varchar(11)", unicode: false, maxLength: 11, nullable: false),
+                    LoginTime = table.Column<DateTime>(type: "DATETIME", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PlayerLogins", x => x.Id);
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
+
+            migrationBuilder.CreateTable(
                 name: "Players",
                 columns: table => new
                 {
@@ -69,6 +106,7 @@ namespace BanchoNET.Migrations
                     LastActivityTime = table.Column<DateTime>(type: "DATETIME", nullable: false),
                     PreferredMode = table.Column<sbyte>(type: "TINYINT(2)", nullable: false),
                     PlayStyle = table.Column<byte>(type: "tinyint unsigned", nullable: false),
+                    AwayMessage = table.Column<string>(type: "varchar(128)", maxLength: 128, nullable: true),
                     UserPageContent = table.Column<string>(type: "varchar(4096)", maxLength: 4096, nullable: true),
                     ApiKey = table.Column<string>(type: "CHAR(36)", unicode: false, maxLength: 36, nullable: true)
                 },
@@ -93,6 +131,40 @@ namespace BanchoNET.Migrations
                 .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
+                name: "Scores",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                    PlayerId = table.Column<int>(type: "int", nullable: false),
+                    BeatmapMD5 = table.Column<string>(type: "CHAR(32)", unicode: false, nullable: false),
+                    PP = table.Column<float>(type: "FLOAT(7,3)", nullable: false),
+                    Acc = table.Column<float>(type: "FLOAT(6,3)", nullable: false),
+                    Score = table.Column<int>(type: "int", nullable: false),
+                    MaxCombo = table.Column<int>(type: "int", nullable: false),
+                    Mods = table.Column<int>(type: "int", nullable: false),
+                    Count300 = table.Column<int>(type: "int", nullable: false),
+                    Count100 = table.Column<int>(type: "int", nullable: false),
+                    Count50 = table.Column<int>(type: "int", nullable: false),
+                    Misses = table.Column<int>(type: "int", nullable: false),
+                    Gekis = table.Column<int>(type: "int", nullable: false),
+                    Katus = table.Column<int>(type: "int", nullable: false),
+                    Grade = table.Column<sbyte>(type: "TINYINT(2)", nullable: false),
+                    Status = table.Column<sbyte>(type: "TINYINT(2)", nullable: false),
+                    Mode = table.Column<sbyte>(type: "TINYINT(2)", nullable: false),
+                    PlayTime = table.Column<DateTime>(type: "DATETIME", nullable: false),
+                    TimeElapsed = table.Column<int>(type: "int", nullable: false),
+                    ClientFlags = table.Column<int>(type: "int", nullable: false),
+                    Perfect = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    OnlineChecksum = table.Column<string>(type: "CHAR(32)", unicode: false, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Scores", x => new { x.Id, x.PlayerId });
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
+
+            migrationBuilder.CreateTable(
                 name: "Stats",
                 columns: table => new
                 {
@@ -105,7 +177,8 @@ namespace BanchoNET.Migrations
                     PlayCount = table.Column<int>(type: "int", nullable: false),
                     PlayTime = table.Column<int>(type: "int", nullable: false),
                     MaxCombo = table.Column<int>(type: "int", nullable: false),
-                    TotalHits = table.Column<int>(type: "int", nullable: false),
+                    TotalGekis = table.Column<int>(type: "int", nullable: false),
+                    TotalKatus = table.Column<int>(type: "int", nullable: false),
                     Total300s = table.Column<int>(type: "int", nullable: false),
                     Total100s = table.Column<int>(type: "int", nullable: false),
                     Total50s = table.Column<int>(type: "int", nullable: false),
@@ -166,10 +239,19 @@ namespace BanchoNET.Migrations
                 name: "Beatmaps");
 
             migrationBuilder.DropTable(
+                name: "ClientHashes");
+
+            migrationBuilder.DropTable(
+                name: "PlayerLogins");
+
+            migrationBuilder.DropTable(
                 name: "Players");
 
             migrationBuilder.DropTable(
                 name: "Relationships");
+
+            migrationBuilder.DropTable(
+                name: "Scores");
 
             migrationBuilder.DropTable(
                 name: "Stats");

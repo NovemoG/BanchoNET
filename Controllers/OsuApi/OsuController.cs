@@ -1,7 +1,9 @@
-﻿using BanchoNET.Objects;
+﻿using BanchoNET.Models;
+using BanchoNET.Objects;
 using BanchoNET.Services;
 using BanchoNET.Utils;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 namespace BanchoNET.Controllers.OsuApi;
 
@@ -11,12 +13,14 @@ public partial class OsuController : ControllerBase
 	private readonly BanchoHandler _bancho;
 	private readonly GeolocService _geoloc;
 	private readonly BanchoSession _session;
+	private readonly ServerConfig _config;
 
-	public OsuController(BanchoHandler bancho, GeolocService geoloc)
+	public OsuController(BanchoHandler bancho, GeolocService geoloc, IOptions<ServerConfig> config)
 	{
 		_bancho = bancho;
 		_geoloc = geoloc;
 		_session = BanchoSession.Instance;
+		_config = config.Value;
 	}
 	
 	[HttpPost("/web/osu-error.php")]
@@ -50,9 +54,9 @@ public partial class OsuController : ControllerBase
 	{
 		if (beatmapId[0] != 'a') return Ok("-3");
 
-		var flags = (LastFMFLags)int.Parse(beatmapId[1..]);
+		var flags = (LastFmfLags)int.Parse(beatmapId[1..]);
 
-		if ((flags & (LastFMFLags.HQ_ASSEMBLY | LastFMFLags.HQ_FILE)) != 0)
+		if ((flags & (LastFmfLags.HqAssembly | LastFmfLags.HqFile)) != 0)
 		{
 			//TODO restrict player
 			
@@ -61,7 +65,7 @@ public partial class OsuController : ControllerBase
 			return Ok("-3");
 		}
 
-		if ((flags & LastFMFLags.REGISTRY_EDITS) != 0)
+		if ((flags & LastFmfLags.RegistryEdits) != 0)
 		{
 			//TODO
 		}

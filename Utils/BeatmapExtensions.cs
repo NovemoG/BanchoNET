@@ -8,4 +8,14 @@ public static class BeatmapExtensions
 	{
 		return $"{beatmap.Artist} - {beatmap.Title} [{beatmap.Name}]";
 	}
+
+	public static bool HasLeaderboard(this Beatmap beatmap)
+	{
+		return beatmap.Status is BeatmapStatus.Approved or BeatmapStatus.Ranked or BeatmapStatus.Loved;
+	}
+
+	public static bool AwardsPP(this Beatmap beatmap)
+	{
+		return beatmap.Status is BeatmapStatus.Approved or BeatmapStatus.Ranked;
+	}
 }

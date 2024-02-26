@@ -138,9 +138,36 @@ public partial class ChoController
 			responseData.PlayerId(-1);
 			return responseData.GetContentResult();
 		}
-		
-		//TODO add login data and client hashes to database
-		//TODO hw matches
+
+		await _bancho.InsertLoginData(
+			userInfo.Id,
+			_geoloc.GetIp(Request.Headers),
+			loginData.OsuVersion.Date,
+			loginData.OsuVersion.Stream);
+
+		var bannedUsersHashes = await _bancho.TryInsertClientHashes(userInfo.Id,
+			loginData.OsuPathMD5,
+			loginData.AdaptersMD5,
+			loginData.UninstallMD5,
+			loginData.DiskSignatureMD5,
+			runningUnderWine);
+
+		var sendHashWarning = false;
+		if (bannedUsersHashes)
+		{
+			if (((Privileges)userInfo.Privileges).HasPrivilege(Privileges.Verified))
+				sendHashWarning = true;
+			else
+			{
+				Response.Headers["cho-token"] = "contact-staff";
+			
+				using var responseData = new ServerPackets();
+				responseData.Notification("Please contact staff directly to create an account.");
+				responseData.PlayerId(-1);
+				return responseData.GetContentResult();
+			}
+		}
+		//TODO assign club
 		
 		var geoloc = await _geoloc.GetGeoloc(Request.Headers);
 		if (geoloc == null)
@@ -207,6 +234,17 @@ public partial class ChoController
 			{
 				Sender = banchoBot.Username,
 				Content = _config.RestrictedMessage,
+				Destination = player.Username,
+				SenderId = banchoBot.Id
+			});
+		}
+
+		if (sendHashWarning)
+		{
+			loginPackets.SendMessage(new Message
+			{
+				Sender = banchoBot.Username,
+				Content = "Your client hashes are associated with another account. Please be careful as it may lead to a ban.",
 				Destination = player.Username,
 				SenderId = banchoBot.Id
 			});

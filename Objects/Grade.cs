@@ -2,9 +2,14 @@
 
 public enum Grade : byte
 {
-	XH, // SSH
-	X,  // SS
-	SH,
+	N,
+	F,
+	D,
+	C,
+	B,
+	A,
 	S,
-	A
+	SH,
+	X, //SS
+	XH //SSH
 }
