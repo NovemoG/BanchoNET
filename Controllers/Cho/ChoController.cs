@@ -12,14 +12,16 @@ public partial class ChoController : ControllerBase
 	private readonly BanchoHandler _bancho;
 	private readonly BanchoSession _session;
 	private readonly GeolocService _geoloc;
+	private readonly OsuVersionService _version;
 	private readonly ServerConfig _config;
 	private readonly HttpClient _httpClient;
 	
-	public ChoController(BanchoHandler bancho, GeolocService geoloc, IOptions<ServerConfig> config, HttpClient httpClient)
+	public ChoController(BanchoHandler bancho, GeolocService geoloc, OsuVersionService version, IOptions<ServerConfig> config, HttpClient httpClient)
 	{
 		_bancho = bancho;
 		_session = BanchoSession.Instance;
 		_geoloc = geoloc;
+		_version = version;
 		_config = config.Value;
 		_httpClient = httpClient;
 	}
