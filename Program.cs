@@ -44,6 +44,7 @@ public class Program
 			options.UseMySQL(mySqlConnectionString);
 		});
 		builder.Services.AddScoped<GeolocService>();
+		builder.Services.AddSingleton<OsuVersionService>();
 		builder.Services.AddScoped<BanchoHandler>();
 		builder.Services.AddHttpClient();
 

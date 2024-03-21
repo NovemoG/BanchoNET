@@ -138,7 +138,7 @@ We are planning on adding docker support.
 
 # License
 
-Bancho.NET is licensed under the Apache License 2.0. Please see the [LICENSE](LICENSE) file for more information.
+Bancho.NET is licensed under the MIT License. Please see the [LICENSE](LICENSE) file for more information.
 
 # Acknowledgments
 

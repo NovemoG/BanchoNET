@@ -6,7 +6,6 @@ using BanchoNET.Objects.Privileges;
 using BanchoNET.Packets;
 using BanchoNET.Utils;
 using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json.Linq;
 
 namespace BanchoNET.Controllers.Cho;
 
@@ -48,24 +47,10 @@ public partial class ChoController
 		{
 			var clientStream = loginData.OsuVersion.Stream;
 			if (clientStream is "stable" or "beta") clientStream += "40";
-
-			//TODO cache latest major version once every day
+			
 			//TODO this changelog doesnt provide version info for tourney/dev client
 			
-			var response = await _httpClient.GetAsync($"{OsuApiV2ChangelogUrl}?stream={clientStream}");
-			response.EnsureSuccessStatusCode();
-
-			dynamic changelog = JObject.Parse(await response.Content.ReadAsStringAsync());
-
-			var latestMajorVersion = loginData.OsuVersion.Date;
-			foreach (var build in changelog.builds)
-			{
-				latestMajorVersion = DateTime.ParseExact(build.version.ToString().Substring(0, 8), "yyyyMMdd", null);
-
-				if (((IEnumerable<dynamic>)build.changelog_entries).Any(entry => (bool)entry.major)) break;
-			}
-
-			if (loginData.OsuVersion.Date < latestMajorVersion)
+			if (loginData.OsuVersion > _version.Streams[clientStream])
 			{
 				Response.Headers["cho-token"] = "client-too-old";
                 
