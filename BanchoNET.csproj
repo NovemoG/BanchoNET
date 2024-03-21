@@ -30,4 +30,12 @@
       <Folder Include="Migrations\" />
     </ItemGroup>
 
+	<Target Name="CopyPpDll" AfterTargets="AfterBuild">
+		<Copy SourceFiles="$(ProjectDir)Dependencies\akatsuki_pp_cs.dll" DestinationFolder="$(OutDir)" />
+	</Target>
+	
+	<Target Name="CopyPpDllPublish" AfterTargets="Publish">
+		<Copy SourceFiles="$(ProjectDir)Dependencies\akatsuki_pp_cs.dll" DestinationFolder="$(PublishDir)" />
+	</Target>
+
 </Project>

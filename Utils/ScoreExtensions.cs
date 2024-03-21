@@ -1,4 +1,5 @@
-﻿using BanchoNET.Objects;
+﻿using AkatsukiPp;
+using BanchoNET.Objects;
 using BanchoNET.Services;
 
 namespace BanchoNET.Utils;
@@ -97,6 +98,25 @@ public static class ScoreExtensions
 			default:
 				throw new ArgumentOutOfRangeException(nameof(score), $"Invalid mode {score.Mode}");
 		}
+	}
+
+	public static void CalculatePerformance(this Score score, string osuFilePath)
+	{
+		score.PP = MathF.Round((float)AkatsukiPpMethods.ComputePp(
+			osuFilePath,
+			(byte)score.Mode.AsVanilla(),
+			(uint)score.Mods,
+			new UIntPtr((uint)score.MaxCombo),
+			score.Acc,
+			new UIntPtr((uint)score.Count300),
+			new UIntPtr((uint)score.Gekis),
+			new UIntPtr((uint)score.Count100),
+			new UIntPtr((uint)score.Katus),
+			new UIntPtr((uint)score.Count50),
+			new UIntPtr((uint)score.Misses)
+		), 3);
+		
+		Console.WriteLine($"[Score Extensions] Submitted score pp: {score.PP}");
 	}
 	
 	public static void ComputeSubmissionStatus(this Score score, Score? currentBest, bool submitByPP = true)

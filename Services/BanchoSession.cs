@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Net;
 using BanchoNET.Models.Dtos;
+using BanchoNET.Objects.Beatmaps;
 using BanchoNET.Objects.Players;
 using BanchoNET.Objects.Privileges;
 using BanchoNET.Packets;
@@ -40,6 +41,9 @@ public sealed class BanchoSession
 	private readonly ConcurrentDictionary<string, string> _passwordHashes = [];
 	private readonly ConcurrentDictionary<string, IPAddress> _ipCache = [];
 	
+	private readonly ConcurrentDictionary<string, Beatmap> _beatmapMD5Cache = [];
+	private readonly ConcurrentDictionary<int, Beatmap> _beatmapIdCache = [];
+	
 	#region Channels
 
 	private readonly List<Channel> _spectatorChannels = [];
@@ -74,6 +78,19 @@ public sealed class BanchoSession
 		new Channel
 		{
 			Id = 2,
+			Name = "#announce",
+			Description = "Multiplayer chatroom",
+			AutoJoin = false,
+			Hidden = false,
+			ReadOnly = false,
+			Instance = false,
+			ReadPrivileges = ClientPrivileges.Player,
+			WritePrivileges = ClientPrivileges.Player,
+			Players = []
+		},
+		new Channel
+		{
+			Id = 3,
 			Name = "#staff",
 			Description = "osu! staff chatroom",
 			AutoJoin = false,
@@ -212,6 +229,23 @@ public sealed class BanchoSession
 		}
 
 		return joinChannels;
+	}
+
+	public Beatmap? GetBeatmap(string beatmapMD5 = "", int id = -1)
+	{
+		if (!string.IsNullOrEmpty(beatmapMD5))
+		{
+			if (_beatmapMD5Cache.TryGetValue(beatmapMD5, out var cachedBeatmap))
+				return cachedBeatmap;
+		}
+		
+		if (id > -1)
+		{
+			if (_beatmapIdCache.TryGetValue(id, out var cachedBeatmap))
+				return cachedBeatmap;
+		}
+
+		return null;
 	}
 
 	public void EnqueueToPlayers(byte[] data)

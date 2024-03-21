@@ -16,4 +16,5 @@ public class ServerConfig
 	public string MenuIconUrl { get; set; } = null!;
 	public string MenuOnclickUrl { get; set; } = null!;
 	public string CommandPrefix { get; set; } = null!;
+	public string OsuApiKey { get; set; } = null!;
 }

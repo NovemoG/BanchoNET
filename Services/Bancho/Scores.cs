@@ -1,5 +1,6 @@
 ﻿using BanchoNET.Models.Dtos;
 using BanchoNET.Objects;
+using BanchoNET.Objects.Beatmaps;
 using BanchoNET.Objects.Players;
 using Microsoft.EntityFrameworkCore;
 
@@ -57,5 +58,10 @@ public partial class BanchoHandler
             .FirstOrDefaultAsync();
 
 		return score == null ? null : new Score(score);
+	}
+
+	public async Task SetScoreLeaderboardPosition(Beatmap beatmap, Score score)
+	{
+		//TODO
 	}
 }

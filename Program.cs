@@ -60,7 +60,7 @@ public class Program
 			
 			await next(context);
 		});
-		
+
 		app.Run();
 	}
 }

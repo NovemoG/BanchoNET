@@ -29,7 +29,7 @@ public class Player
 	public DateTime LoginTime { get; set; }
 	public DateTime LastActivityTime { get; set; }
 	public string? AwayMessage { get; set; }
-	public bool Stealth { get; set; }
+	public bool Stealth { get; set; } //TODO
 	
 	public ClientDetails ClientDetails { get; set; }
 	public PresenceFilter PresenceFilter { get; set; }

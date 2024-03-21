@@ -103,15 +103,33 @@ public partial class OsuController
 
 		if (await _bancho.GetScore(checksum: score.ClientChecksum) != null)
 		{
-			//Duplicated score
+			Console.WriteLine($"{player.Username} tried to submit a duplicate score.");
 			return Ok("error: no");
 		}
 		
 		score.CalculateAccuracy();
 
-		//TODO score pp
-		score.ComputeSubmissionStatus(await _bancho.GetPlayerBestScore(player, beatmapMD5, score.Mode), _config.SubmitByPP);
-		//TODO place on leaderboard
+		if (await _bancho.EnsureLocalBeatmapFile(beatmap.MapId, beatmapMD5))
+		{
+			score.CalculatePerformance(Path.Combine(Storage.BeatmapsPath, $"{beatmap.MapId}.osu"));
+
+			if (score.Passed)
+			{
+				var prevBest = await _bancho.GetPlayerBestScore(player, beatmapMD5, score.Mode);
+				
+				score.ComputeSubmissionStatus(prevBest, _config.SubmitByPP);
+
+				if (beatmap.Status != BeatmapStatus.LatestPending)
+					await _bancho.SetScoreLeaderboardPosition(beatmap, score);
+			}
+			else
+				score.Status = SubmissionStatus.Failed;
+		}
+		else
+		{
+			score.PP = 0;
+			score.Status = score.Passed ? SubmissionStatus.Submitted : SubmissionStatus.Failed;
+		}
 
 		score.TimeElapsed = score.Passed ? scoreTime : failTime;
 		
@@ -137,6 +155,12 @@ public partial class OsuController
 				player.Enqueue(notification.GetContent());
 				
 				//TODO if 1st on lb announce
+				if (score.LeaderboardPosition == 1 && !player.Restricted)
+				{
+					var announceChannel = _session.GetChannel("#announce");
+
+					//var announcement = $@"\x01ACTION achieved #1 on {beatmap.Embed} with {score.Acc:2F}% and {score.PP}pp.";
+				}
 			}
 			
 			//TODO update previous personal best to be submitted
