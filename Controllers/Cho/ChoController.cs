@@ -14,8 +14,7 @@ public partial class ChoController : ControllerBase
 	private readonly GeolocService _geoloc;
 	private readonly OsuVersionService _version;
 	private readonly ServerConfig _config;
-	private readonly HttpClient _httpClient;
-	
+
 	public ChoController(BanchoHandler bancho, GeolocService geoloc, OsuVersionService version, IOptions<ServerConfig> config, HttpClient httpClient)
 	{
 		_bancho = bancho;
@@ -23,7 +22,6 @@ public partial class ChoController : ControllerBase
 		_geoloc = geoloc;
 		_version = version;
 		_config = config.Value;
-		_httpClient = httpClient;
 	}
 	
 	[HttpPost("/")]

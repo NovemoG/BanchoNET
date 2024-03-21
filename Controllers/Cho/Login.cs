@@ -11,8 +11,6 @@ namespace BanchoNET.Controllers.Cho;
 
 public partial class ChoController
 {
-	private const string OsuApiV2ChangelogUrl = "https://osu.ppy.sh/api/v2/changelog";
-	
 	private async Task<IActionResult> Login()
 	{
 		using var stream = new MemoryStream();

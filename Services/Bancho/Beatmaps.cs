@@ -1,52 +1,20 @@
-﻿using BanchoNET.Objects.Beatmaps;
+﻿using BanchoNET.Models;
+using BanchoNET.Objects.Beatmaps;
 using BanchoNET.Utils;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 
 namespace BanchoNET.Services;
 
 public partial class BanchoHandler
 {
-	public async Task<Beatmap?> GetBeatmap(int id = -1, int setId = -1, string beatmapMD5 = "")
+	public async Task<Beatmap?> GetBeatmap(int mapId = -1, int setId = -1, string beatmapMD5 = "")
 	{
-		//Beatmap? beatmap = null;
-
 		if (!string.IsNullOrEmpty(beatmapMD5))
-		{
-			var beatmap = _session.GetBeatmap(beatmapMD5: beatmapMD5);
-
-			if (beatmap == null)
-			{
-				if (setId <= 0)
-				{
-					var map = await _dbContext.Beatmaps.FirstOrDefaultAsync(b => b.MD5 == beatmapMD5);
-
-					if (map != null)
-						setId = map.SetId;
-					else
-					{
-						var apiMap = 
-					}
-				}
-
-				var beatmapSet = await GetBeatmapSet(setId);
-
-				if (beatmapSet != null)
-					return beatmapSet.Beatmaps.First(b => b.MD5 == beatmapMD5);
-			}
-
-			if (beatmap != null)
-			{
-				//TODO cache as expired
-			}
-		}
-		else if (id > 0)
-		{
-			var beatmap = _session.GetBeatmap(id: id);
-		}
-
-		//if (beatmap == null) return null;
+			return await GetBeatmapWithMD5(beatmapMD5, setId);
 		
-		
+		if (mapId > 0)
+			return await GetBeatmapWithId(mapId);
 		
 		return null;
 	}
@@ -74,6 +42,44 @@ public partial class BanchoHandler
 		return true;
 	}
 
+	private async Task<Beatmap?> GetBeatmapWithMD5(string beatmapMD5, int setId)
+	{
+		var beatmap = _session.GetBeatmap(beatmapMD5: beatmapMD5);
+
+		if (beatmap == null)
+		{
+			if (setId <= 0)
+			{
+				var map = await _dbContext.Beatmaps.FirstOrDefaultAsync(b => b.MD5 == beatmapMD5);
+
+				if (map != null)
+					setId = map.SetId;
+				else
+				{
+					var apiMap = await GetBeatmapFromApi(beatmapMD5: beatmapMD5);
+					if (apiMap == null) return null;
+
+					setId = apiMap.SetId;
+				}
+			}
+
+			var beatmapSet = await GetBeatmapSet(setId);
+
+			if (beatmapSet != null)
+				return beatmapSet.Beatmaps.First(b => b.MD5 == beatmapMD5);
+		}
+
+		if (beatmap != null)
+		{
+			//TODO cache as expired
+		}
+	}
+
+	private async Task<Beatmap?> GetBeatmapWithId(int mapId)
+	{
+		var beatmap = _session.GetBeatmap(mapId: mapId);
+	}
+	
 	private async Task<Beatmap?> GetBeatmapFromApi(string beatmapMD5 = "", int mapId = -1, int setId = -1)
 	{
 		var osuApiKeyProvided = !string.IsNullOrEmpty(_config.OsuApiKey);
@@ -92,5 +98,11 @@ public partial class BanchoHandler
 			url += $"{paramsSign}s={beatmapMD5}";
 
 		var response = await _httpClient.GetAsync(url);
+		var content = await response.Content.ReadAsStringAsync();
+		
+		if (response.IsSuccessStatusCode && !string.IsNullOrEmpty(content))
+			return new Beatmap(JsonConvert.DeserializeObject<ApiBeatmap>(content)!);
+
+		return null;
 	}
 }

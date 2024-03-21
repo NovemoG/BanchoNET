@@ -231,7 +231,7 @@ public sealed class BanchoSession
 		return joinChannels;
 	}
 
-	public Beatmap? GetBeatmap(string beatmapMD5 = "", int id = -1)
+	public Beatmap? GetBeatmap(string beatmapMD5 = "", int mapId = -1)
 	{
 		if (!string.IsNullOrEmpty(beatmapMD5))
 		{
@@ -239,9 +239,9 @@ public sealed class BanchoSession
 				return cachedBeatmap;
 		}
 		
-		if (id > -1)
+		if (mapId > -1)
 		{
-			if (_beatmapIdCache.TryGetValue(id, out var cachedBeatmap))
+			if (_beatmapIdCache.TryGetValue(mapId, out var cachedBeatmap))
 				return cachedBeatmap;
 		}
 

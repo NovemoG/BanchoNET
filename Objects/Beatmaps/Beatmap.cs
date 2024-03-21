@@ -1,4 +1,6 @@
-﻿namespace BanchoNET.Objects.Beatmaps;
+﻿using BanchoNET.Models;
+
+namespace BanchoNET.Objects.Beatmaps;
 
 public class Beatmap
 {
@@ -29,4 +31,9 @@ public class Beatmap
 	public float Od { get; set; }
 	public float Hp { get; set; }
 	public float StarRating { get; set; }
+
+	public Beatmap(ApiBeatmap apiBeatmap)
+	{
+		
+	}
 }

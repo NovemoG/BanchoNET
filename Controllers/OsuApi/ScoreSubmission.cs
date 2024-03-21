@@ -59,8 +59,10 @@ public partial class OsuController
 
 		try
 		{
-			//if (osuVersion != player.ClientDetails.OsuVersion)
-			//	throw new Exception("ovu! version mismatch");
+			var versionDate = DateTime.ParseExact(osuVersion[..8], "yyyyMMdd", null);
+			
+			if (versionDate != player.ClientDetails.OsuVersion.Date)
+				throw new Exception("ovu! version mismatch");
 			
 			if (clientHash != player.ClientDetails.ClientHash)
 				throw new Exception("Client hash mismatch");
