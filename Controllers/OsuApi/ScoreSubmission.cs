@@ -3,6 +3,7 @@ using Org.BouncyCastle.Crypto.Modes;
 using Org.BouncyCastle.Crypto.Paddings;
 using Org.BouncyCastle.Crypto.Parameters;
 using System.Text;
+using AkatsukiPp;
 using BanchoNET.Objects;
 using BanchoNET.Objects.Beatmaps;
 using BanchoNET.Objects.Players;
@@ -82,7 +83,7 @@ public partial class OsuController
 		}
 		catch (Exception e)
 		{
-			Console.Write($"[ScoreSubmission] {e.Message}");
+			Console.WriteLine($"[ScoreSubmission] {e.Message}");
 			
 			//TODO restrict
 			return Ok("error: ban");
@@ -105,7 +106,7 @@ public partial class OsuController
 
 		if (await _bancho.GetScore(checksum: score.ClientChecksum) != null)
 		{
-			Console.WriteLine($"{player.Username} tried to submit a duplicate score.");
+			Console.WriteLine($"[ScoreSubmission] {player.Username} tried to submit a duplicate score.");
 			return Ok("error: no");
 		}
 		
@@ -113,7 +114,7 @@ public partial class OsuController
 
 		if (await _bancho.EnsureLocalBeatmapFile(beatmap.MapId, beatmapMD5))
 		{
-			score.CalculatePerformance(Path.Combine(Storage.BeatmapsPath, $"{beatmap.MapId}.osu"));
+			score.CalculatePerformance(beatmap.MapId);
 
 			if (score.Passed)
 			{
@@ -152,27 +153,53 @@ public partial class OsuController
 				if (_config.DisplayMissesOnLeaderboard)
 					scoreNotification += $"\n({score.Misses} misses)";
 
+				//Subject to change
+				if (score.Misses > 0 || beatmap.MaxCombo - score.MaxCombo > 15)
+				{
+					var fcPP = AkatsukiPpMethods.ComputeNoMissesScorePp(
+						Storage.GetBeatmapPath(beatmap.MapId),
+						score,
+						beatmap.MaxCombo);
+					
+					scoreNotification += $"\n({fcPP}pp if FC)";
+				}
+				
+				Console.WriteLine($"[ScoreSubmission] Sending: {scoreNotification}");
+				
 				using var notification = new ServerPackets();
 				notification.Notification(scoreNotification);
 				player.Enqueue(notification.GetContent());
 				
-				//TODO if 1st on lb announce
 				if (score.LeaderboardPosition == 1 && !player.Restricted)
 				{
 					var announceChannel = _session.GetChannel("#announce");
 
-					//var announcement = $@"\x01ACTION achieved #1 on {beatmap.Embed} with {score.Acc:2F}% and {score.PP}pp.";
+					var announcement = $@"\x01ACTION achieved #1 on {beatmap.Embed} with {score.Acc:2F}% and {score.PP}pp.";
+					
+					//TODO if 1st on lb announce
 				}
 			}
-			
-			//TODO update previous personal best to be submitted
+
+			await _bancho.UpdatePlayerBestScoreOnMap(beatmap, score);
 		}
 
 		await _bancho.InsertScore(score);
 
 		if (score.Passed)
 		{
-			//TODO parse replay file data
+			if (replayFile.Length >= 24)
+				await replayFile.CopyToAsync(new FileStream(Storage.GetReplayPath(score.Id!.Value), FileMode.Create));
+			else
+			{
+				Console.WriteLine($"[ScoreSubmission] {player.Username} submitted a replay file with invalid length.");
+
+				if (player is { Restricted: false, Online: true })
+				{
+					//TODO restrict
+					
+					_session.LogoutPlayer(player);
+				}
+			}
 		}
 
 		var stats = player.Stats[player.Status.Mode];
@@ -183,8 +210,9 @@ public partial class OsuController
 		stats.TotalScore += score.TotalScore;
 		stats.UpdateHits(score);
 		
+		//TODO check if this works with mods
 		var previousScore = score.PreviousBest;
-		if (score.Passed && beatmap.HasLeaderboard())
+		if (score.Passed && beatmap.HasLeaderboard() && beatmap.Status != BeatmapStatus.Qualified)
 		{
 			if (score.MaxCombo > stats.MaxCombo)
 				stats.MaxCombo = score.MaxCombo;
@@ -206,12 +234,11 @@ public partial class OsuController
 					}
 				}
 				else
-				{
 					if (score.Grade >= Grade.A)
 						stats.Grades[score.Grade] += 1;
-				}
 
 				stats.RankedScore += additionalRankedScore;
+				
 				
 				//TODO Fetch top 100 scores, update pp and acc
 				//TODO fetch best scores count to update bonus pp
@@ -271,11 +298,14 @@ public partial class OsuController
 	private static Score ParseScoreData(string[] scoreData, Beatmap beatmap, Player player)
 	{
 		var mods = (Mods)int.Parse(scoreData[11]);
+		Enum.TryParse(scoreData[10], out Grade grade);
 		
 		return new Score
 		{
 			Beatmap = beatmap,
+			BeatmapMD5 = beatmap.MD5,
 			Player = player,
+			PlayerId = player.Id,
 			
 			ClientChecksum = scoreData[0],
 			Count300 = int.Parse(scoreData[1]),
@@ -287,11 +317,11 @@ public partial class OsuController
 			TotalScore = int.Parse(scoreData[7]),
 			MaxCombo = int.Parse(scoreData[8]),
 			Perfect = scoreData[9] == "True",
-			Grade = (Grade)int.Parse(scoreData[10]),
+			Grade = grade,
 			Mods = mods,
 			Passed = scoreData[12] == "True",
 			Mode = ((GameMode)int.Parse(scoreData[13])).FromMods(mods),
-			ClientTime = DateTime.ParseExact(scoreData[14], "yyyyMMddHHmmss", null),
+			ClientTime = DateTime.ParseExact(scoreData[14], "yyMMddHHmmss", null),
 			ClientFlags = (ClientFlags)int.Parse(scoreData[15]),
 			ServerTime = DateTime.UtcNow
 		};
@@ -315,20 +345,6 @@ public partial class OsuController
 		var keyParam = new KeyParameter(key);
 		var keyParamWithIv = new ParametersWithIV(keyParam, iv, 0, 32);
 		
-		/*cipher.Init(false, keyParamWithIv);
-		var comparisonBytes = new byte[cipher.GetOutputSize(scoreB64.Length)];
-		var length = cipher.ProcessBytes(scoreB64, comparisonBytes, 0);
-		cipher.DoFinal(comparisonBytes, length);
-
-		var scoreData = Encoding.UTF8.GetString(comparisonBytes).Split(':');*/
-		
-		/*cipher.Init(false, keyParamWithIv);
-		comparisonBytes = new byte[cipher.GetOutputSize(clientHashB64.Length)];
-		length = cipher.ProcessBytes(clientHashB64, comparisonBytes, 0);
-		cipher.DoFinal(comparisonBytes, length);
-		
-		var clientHash = Encoding.UTF8.GetString(comparisonBytes);*/
-		
 		return (
 			DecipherBytes(cipher, keyParamWithIv, scoreB64).Split(':'),
 			DecipherBytes(cipher, keyParamWithIv, clientHashB64));
@@ -344,6 +360,6 @@ public partial class OsuController
 		var length = cipher.ProcessBytes(bytesToDecipher, comparisonBytes, 0);
 		cipher.DoFinal(comparisonBytes, length);
 
-		return Encoding.UTF8.GetString(comparisonBytes);
+		return Encoding.UTF8.GetString(comparisonBytes).TrimEnd('\0');
 	}
 }

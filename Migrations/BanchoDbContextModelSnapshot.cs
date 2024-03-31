@@ -46,17 +46,14 @@ namespace BanchoNET.Migrations
                     b.Property<float>("Cs")
                         .HasColumnType("FLOAT(4,2)");
 
-                    b.Property<string>("Filename")
-                        .IsRequired()
-                        .HasMaxLength(512)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(512)");
-
                     b.Property<bool>("Frozen")
                         .HasColumnType("tinyint(1)");
 
                     b.Property<float>("Hp")
                         .HasColumnType("FLOAT(4,2)");
+
+                    b.Property<bool>("IsRankedOfficially")
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<DateTime>("LastUpdate")
                         .HasColumnType("datetime(6)");
@@ -78,14 +75,17 @@ namespace BanchoNET.Migrations
                         .IsUnicode(false)
                         .HasColumnType("varchar(128)");
 
+                    b.Property<int>("NotesCount")
+                        .HasColumnType("int");
+
                     b.Property<float>("Od")
                         .HasColumnType("FLOAT(4,2)");
 
-                    b.Property<int>("Passes")
-                        .HasColumnType("int");
+                    b.Property<long>("Passes")
+                        .HasColumnType("bigint");
 
-                    b.Property<int>("Plays")
-                        .HasColumnType("int");
+                    b.Property<long>("Plays")
+                        .HasColumnType("bigint");
 
                     b.Property<bool>("Private")
                         .HasColumnType("tinyint(1)");
@@ -93,11 +93,20 @@ namespace BanchoNET.Migrations
                     b.Property<int>("SetId")
                         .HasColumnType("int");
 
+                    b.Property<int>("SlidersCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SpinnersCount")
+                        .HasColumnType("int");
+
                     b.Property<float>("StarRating")
                         .HasColumnType("FLOAT(9,3)");
 
                     b.Property<sbyte>("Status")
                         .HasColumnType("tinyint");
+
+                    b.Property<DateTime>("SubmitDate")
+                        .HasColumnType("datetime(6)");
 
                     b.Property<string>("Title")
                         .IsRequired()

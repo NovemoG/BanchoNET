@@ -41,6 +41,7 @@ public sealed class BanchoSession
 	private readonly ConcurrentDictionary<string, string> _passwordHashes = [];
 	private readonly ConcurrentDictionary<string, IPAddress> _ipCache = [];
 	
+	private readonly ConcurrentDictionary<int, BeatmapSet> _beatmapSetsCache = [];
 	private readonly ConcurrentDictionary<string, Beatmap> _beatmapMD5Cache = [];
 	private readonly ConcurrentDictionary<int, Beatmap> _beatmapIdCache = [];
 	
@@ -246,6 +247,30 @@ public sealed class BanchoSession
 		}
 
 		return null;
+	}
+	
+	public BeatmapSet? GetBeatmapSet(int setId)
+	{
+		return _beatmapSetsCache.TryGetValue(setId, out var beatmapSet) ? beatmapSet : null;
+	}
+
+	public void CacheBeatmapSet(BeatmapSet set)
+	{
+		Console.WriteLine("[BanchoSession] Caching beatmap set");
+		
+		_beatmapSetsCache.TryGetValue(set.Id, out var currentSet);
+
+		if (currentSet != null)
+			foreach (var beatmap in currentSet.Beatmaps)
+            	_beatmapMD5Cache.TryRemove(beatmap.MD5, out _);
+		
+		_beatmapSetsCache.AddOrUpdate(set.Id, set, (_, _) => set);
+
+		foreach (var beatmap in set.Beatmaps)
+		{
+			_beatmapMD5Cache.TryAdd(beatmap.MD5, beatmap);
+			_beatmapIdCache.AddOrUpdate(beatmap.MapId, beatmap, (_, _) => beatmap);
+		}
 	}
 
 	public void EnqueueToPlayers(byte[] data)

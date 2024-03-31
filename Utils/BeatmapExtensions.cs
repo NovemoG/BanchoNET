@@ -5,14 +5,35 @@ namespace BanchoNET.Utils;
 
 public static class BeatmapExtensions
 {
+	private static string _url = null!;
+	
+	public static void InitBaseUrlValue(string domain)
+	{
+		_url = $"https://osu.{domain}/b";
+	}
+	
 	public static string FullName(this Beatmap beatmap)
 	{
 		return $"{beatmap.Artist} - {beatmap.Title} [{beatmap.Name}]";
 	}
 
+	public static string Url(this Beatmap beatmap)
+	{
+		return $"{_url}/{beatmap.MapId}";
+	}
+
+	public static string Embed(this Beatmap beatmap)
+	{
+		return $"[{beatmap.Url} {beatmap.FullName}]";
+	}
+
 	public static bool HasLeaderboard(this Beatmap beatmap)
 	{
-		return beatmap.Status is BeatmapStatus.Approved or BeatmapStatus.Ranked or BeatmapStatus.Loved;
+		return beatmap.Status is
+			BeatmapStatus.Approved or
+			BeatmapStatus.Ranked or
+			BeatmapStatus.Loved or
+			BeatmapStatus.Qualified;
 	}
 
 	public static bool AwardsPP(this Beatmap beatmap)
@@ -27,8 +48,6 @@ public static class BeatmapExtensions
 		
 		var hash = md5.ComputeHash(stream);
 		var md5String = Convert.ToHexString(hash).ToLower();
-		
-		Console.WriteLine($"[BeatmapExtensions] {md5String}, {beatmapMD5}");
 
 		return md5String == beatmapMD5;
 	}

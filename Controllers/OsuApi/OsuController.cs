@@ -104,6 +104,7 @@ public partial class OsuController : ControllerBase
 			Field = "username",
 			Messages = ["Username already taken by other player."]
 		});
+		//TODO disallowed usernames
 		
 		if (!Regexes.Email.Match(email).Success) errors.Add(new ErrorDetails
 		{

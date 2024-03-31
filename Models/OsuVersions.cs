@@ -4,7 +4,7 @@ namespace BanchoNET.Models;
 
 public class ClientBuildVersions
 {
-    [JsonProperty("build")]
+    [JsonProperty("builds")]
     public required Builds[] Builds { get; set; }
 }
 

@@ -48,7 +48,8 @@ public partial class ChoController
 			
 			//TODO this changelog doesnt provide version info for tourney/dev client
 			
-			if (loginData.OsuVersion > _version.Streams[clientStream])
+			Console.WriteLine($"[Login] Login osu version: {loginData.OsuVersion.Date}, server osu version: {_version.GetLatestVersion(clientStream).Date}");
+			if (loginData.OsuVersion > _version.GetLatestVersion(clientStream))
 			{
 				Response.Headers["cho-token"] = "client-too-old";
                 
@@ -166,6 +167,16 @@ public partial class ChoController
 		player = new Player(userInfo, Guid.NewGuid(), DateTime.UtcNow, 1)
 		{
 			Geoloc = geoloc.Value,
+			ClientDetails = new ClientDetails
+			{
+				OsuVersion = loginData.OsuVersion,
+				OsuPathMD5 = loginData.OsuPathMD5,
+				AdaptersMD5 = loginData.AdaptersMD5,
+				UninstallMD5 = loginData.UninstallMD5,
+				DiskSignatureMD5 = loginData.DiskSignatureMD5,
+				Adapters = loginData.AdaptersString.Split('.')[..^1].ToList(),
+				IpAddress = _geoloc.GetIp(Request.Headers)
+			}
 		};
 
 		if (userInfo.Country == "xx")

@@ -98,6 +98,13 @@ public partial class BanchoHandler
 			};
 		}
 	}
+
+	public async Task UpdatePlayerStats(Player player)
+	{
+		var stats = await _dbContext.Stats.Where(s => s.PlayerId == player.Id).ToListAsync();
+		
+		
+	}
 	
 	public async Task FetchPlayerRelationships(Player player)
 	{
@@ -131,6 +138,16 @@ public partial class BanchoHandler
 			privPacket.BanchoPrivileges((int)player.ToBanchoPrivileges());
 			player.Enqueue(privPacket.GetContent());
 		}
+	}
+
+	public async Task RecalculatePlayerTopScores()
+	{
+		
+	}
+
+	public async Task RecalculatePlayerBonusPp()
+	{
+		
 	}
 	
 	public async Task CreatePlayer(string name, string email, string pwdHash, string country)

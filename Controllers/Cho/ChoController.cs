@@ -15,7 +15,7 @@ public partial class ChoController : ControllerBase
 	private readonly OsuVersionService _version;
 	private readonly ServerConfig _config;
 
-	public ChoController(BanchoHandler bancho, GeolocService geoloc, OsuVersionService version, IOptions<ServerConfig> config, HttpClient httpClient)
+	public ChoController(BanchoHandler bancho, GeolocService geoloc, OsuVersionService version, IOptions<ServerConfig> config)
 	{
 		_bancho = bancho;
 		_session = BanchoSession.Instance;

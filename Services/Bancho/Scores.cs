@@ -10,7 +10,7 @@ public partial class BanchoHandler
 {
 	public async Task InsertScore(Score score)
 	{
-		await _dbContext.Scores.AddAsync(new ScoreDto
+		var dbScore = await _dbContext.Scores.AddAsync(new ScoreDto
 		{
 			BeatmapMD5 = score.BeatmapMD5,
 			PP = score.PP,
@@ -35,6 +35,8 @@ public partial class BanchoHandler
 			OnlineChecksum = score.ClientChecksum
 		});
 		await _dbContext.SaveChangesAsync();
+
+		score.Id = dbScore.Entity.Id;
 	}
 
 	public async Task<Score?> GetScore(string checksum = "")
@@ -60,8 +62,42 @@ public partial class BanchoHandler
 		return score == null ? null : new Score(score);
 	}
 
-	public async Task SetScoreLeaderboardPosition(Beatmap beatmap, Score score)
+	public async Task UpdatePlayerBestScoreOnMap(Beatmap beatmap, Score score)
 	{
-		//TODO
+		await _dbContext.Scores.Where(s => s.PlayerId == score.PlayerId && 
+		                                   s.BeatmapMD5 == beatmap.MD5 &&
+		                                   s.Mode == (byte)beatmap.Mode &&
+		                                   s.Status == (byte)SubmissionStatus.Best)
+		                       .ExecuteUpdateAsync(s => 
+			                       s.SetProperty(u => u.Status, (byte)SubmissionStatus.Submitted));
+	}
+
+	public async Task SetScoreLeaderboardPosition(Beatmap beatmap, Score score, bool leaderboardByPP = false)
+	{
+		score.LeaderboardPosition = score.Mode >= GameMode.RelaxStd
+			? await LeaderboardPositionPp(beatmap, score)
+			: leaderboardByPP
+				? await LeaderboardPositionPp(beatmap, score)
+				: await LeaderboardPositionScore(beatmap, score);
+	}
+	
+	private async Task<int> LeaderboardPositionPp(Beatmap beatmap, Score score)
+	{
+		return await _dbContext.Scores.Join(_dbContext.Players, u => u.PlayerId, s => s.Id, (s, u) => new { u, s })
+		                       .CountAsync(j => j.s.BeatmapMD5 == beatmap.MD5 &&
+		                                        beatmap.Mode == score.Mode &&
+		                                        score.PP > j.s.PP &&
+		                                        score.Status == SubmissionStatus.Best &&
+		                                        (j.u.Privileges & 1) == 1) + 1;
+	}
+
+	private async Task<int> LeaderboardPositionScore(Beatmap beatmap, Score score)
+	{
+		return await _dbContext.Scores.Join(_dbContext.Players, u => u.PlayerId, s => s.Id, (s, u) => new { u, s })
+		                       .CountAsync(j => j.s.BeatmapMD5 == beatmap.MD5 &&
+		                                        beatmap.Mode == score.Mode &&
+		                                        score.TotalScore > j.s.Score &&
+		                                        score.Status == SubmissionStatus.Best &&
+		                                        (j.u.Privileges & 1) == 1) + 1;
 	}
 }
