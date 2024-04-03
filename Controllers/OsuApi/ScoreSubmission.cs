@@ -143,13 +143,13 @@ public partial class OsuController
 		{
 			if (beatmap.HasLeaderboard())
 			{
-				var scoreNotification = $"You achieved #{score.LeaderboardPosition}!";
+				var scoreNotification = $"You achieved #{score.LeaderboardPosition} on a leaderboard!\n";
 				
 				if (_config.DisplayPPOnLeaderboard)
-					scoreNotification += $" ({score.PP:F2}pp)";
+					scoreNotification += $"({score.PP:F2}pp)";
 
 				if (_config.DisplayScoreOnLeaderboard)
-					scoreNotification += $"\n({score.TotalScore.SplitNumber()} score)";
+					scoreNotification += $" ({score.TotalScore.SplitNumber()} score)";
 
 				//Subject to change
 				if (score.Misses > 0 || beatmap.MaxCombo - score.MaxCombo > 15)
@@ -270,7 +270,7 @@ public partial class OsuController
 				$"approvedDate:{beatmap.LastUpdate:yyyy-MM-dd HH:mm:ss}",
 				"\n",
 				"chartId:beatmap",
-				$"chartUrl:{beatmap.Set.Url}",
+				$"chartUrl:{beatmap.Set?.Url()}",
 				"chartName:Beatmap Ranking",
 				ChartEntry("rank", previousBest?.LeaderboardPosition, score.LeaderboardPosition),
 				ChartEntry("rankedScore", previousBest?.TotalScore, score.TotalScore),
@@ -280,6 +280,7 @@ public partial class OsuController
 					previousBest == null ? null : MathF.Round(previousBest.Acc, 2), 
 					MathF.Round(score.Acc, 2)),
 				ChartEntry("pp", previousBest?.PP, score.PP),
+				$"onlineScoreId:{score.Id}",
 				"\n",
 				"chartId:overall",
 				$"chartUrl:https://{_config.Domain}/u/{player.Id}",
@@ -304,10 +305,9 @@ public partial class OsuController
 			}
 			
 			response = string.Join("|", submissionCharts);
-			Console.WriteLine(response);
 		}
 		
-		return Ok(Encoding.UTF8.GetBytes(response));
+		return new FileContentResult(Encoding.UTF8.GetBytes(response), "application/octet-stream; charset=UTF-8");
 	}
 
 	private static Score ParseScoreData(string[] scoreData, Beatmap beatmap, Player player)

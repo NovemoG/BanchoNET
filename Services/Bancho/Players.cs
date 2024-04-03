@@ -166,7 +166,8 @@ public partial class BanchoHandler
 
 	public async Task RecalculatePlayerTopScores(Player player, GameMode mode)
 	{
-		var bestScores = await _dbContext.Scores.Where(s => s.PlayerId == player.Id)
+		var bestScores = await _dbContext.Scores.Where(s => s.PlayerId == player.Id &&
+		                                                    s.Status == (byte)SubmissionStatus.Best)
 		                                 .OrderByDescending(s => s.PP)
 		                                 .Take(100)
 		                                 .ToListAsync();

@@ -29,7 +29,7 @@ public static class BeatmapExtensions
 
 	public static string Embed(this Beatmap beatmap)
 	{
-		return $"[{beatmap.Url} {beatmap.FullName}]";
+		return $"[{beatmap.Url()} {beatmap.FullName}]";
 	}
 
 	public static bool HasLeaderboard(this Beatmap beatmap)

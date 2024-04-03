@@ -78,7 +78,7 @@ public static class BufferExtensions
 		bw.Write((byte)player.Status.Mode.AsVanilla());
 		bw.Write(player.Status.BeatmapId);
 		bw.Write(modeRankedScore);
-		bw.Write(modeStats.Accuracy);
+		bw.Write(modeStats.Accuracy / 100);
 		bw.Write(modeStats.PlayCount);
 		bw.Write(modeStats.TotalScore);
 		bw.Write(modeStats.Rank);
