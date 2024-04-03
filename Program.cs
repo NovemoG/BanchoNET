@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using BanchoNET.Models;
 using BanchoNET.Services;
 using BanchoNET.Utils;
@@ -18,10 +19,6 @@ public class Program
 		var configSection = builder.Configuration.GetSection("ServerConfig");
 		var mySqlConnectionString = builder.Configuration.GetConnectionString("MySql")!;
 		var hangfireConnectionString = builder.Configuration.GetConnectionString("Hangfire")!;
-		
-		var domain = configSection["Domain"]!;
-		Regexes.InitNowPlayingRegex(domain);
-		BeatmapExtensions.InitBaseUrlValue(domain);
 		
 		builder.Services.AddHangfire(config =>
 		{
@@ -63,9 +60,16 @@ public class Program
 			
 			await next(context);
 		});
+
+		#region Initialization
+
+		var domain = configSection["Domain"]!;
+		Regexes.InitNowPlayingRegex(domain);
+		BeatmapExtensions.InitBaseUrlValue(domain);
 		
-		//Initialization
 		app.Services.GetRequiredService<OsuVersionService>().FetchOsuVersion().Wait();
+
+		#endregion
 		
 		app.Run();
 	}

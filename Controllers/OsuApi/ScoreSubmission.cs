@@ -3,6 +3,7 @@ using Org.BouncyCastle.Crypto.Modes;
 using Org.BouncyCastle.Crypto.Paddings;
 using Org.BouncyCastle.Crypto.Parameters;
 using System.Text;
+using System.Text.RegularExpressions;
 using AkatsukiPp;
 using BanchoNET.Objects;
 using BanchoNET.Objects.Beatmaps;
@@ -111,7 +112,7 @@ public partial class OsuController
 		}
 		
 		score.CalculateAccuracy();
-
+		
 		if (await _bancho.EnsureLocalBeatmapFile(beatmap.MapId, beatmapMD5))
 		{
 			score.CalculatePerformance(beatmap.MapId);
@@ -143,15 +144,12 @@ public partial class OsuController
 			if (beatmap.HasLeaderboard())
 			{
 				var scoreNotification = $"You achieved #{score.LeaderboardPosition}!";
-
+				
 				if (_config.DisplayPPOnLeaderboard)
-					scoreNotification += $" ({score.PP}pp)";
+					scoreNotification += $" ({score.PP:F2}pp)";
 
 				if (_config.DisplayScoreOnLeaderboard)
-					scoreNotification += $"\n({score.TotalScore} score)";
-				
-				if (_config.DisplayMissesOnLeaderboard)
-					scoreNotification += $"\n({score.Misses} misses)";
+					scoreNotification += $"\n({score.TotalScore.SplitNumber()} score)";
 
 				//Subject to change
 				if (score.Misses > 0 || beatmap.MaxCombo - score.MaxCombo > 15)
@@ -161,10 +159,8 @@ public partial class OsuController
 						score,
 						beatmap.MaxCombo);
 					
-					scoreNotification += $"\n({fcPP}pp if FC)";
+					scoreNotification += $"\n({fcPP:F2}pp if FC)";
 				}
-				
-				Console.WriteLine($"[ScoreSubmission] Sending: {scoreNotification}");
 				
 				using var notification = new ServerPackets();
 				notification.Notification(scoreNotification);
@@ -174,7 +170,7 @@ public partial class OsuController
 				{
 					var announceChannel = _session.GetChannel("#announce");
 
-					var announcement = $@"\x01ACTION achieved #1 on {beatmap.Embed} with {score.Acc:2F}% and {score.PP}pp.";
+					var announcement = $@"\x01ACTION achieved #1 on {beatmap.Embed} with {score.Acc:F2}% and {score.PP}pp.";
 					
 					//TODO if 1st on lb announce
 				}
@@ -202,7 +198,7 @@ public partial class OsuController
 			}
 		}
 
-		var stats = player.Stats[player.Status.Mode];
+		var stats = player.Stats[score.Mode];
 		var prevStats = stats.Copy();
 
 		stats.PlayTime += (int)MathF.Floor(score.TimeElapsed / 1000f);
@@ -210,8 +206,8 @@ public partial class OsuController
 		stats.TotalScore += score.TotalScore;
 		stats.UpdateHits(score);
 		
-		//TODO check if this works with mods
-		var previousScore = score.PreviousBest;
+		//TODO fix so it works with mods
+		var previousBest = score.PreviousBest;
 		if (score.Passed && beatmap.HasLeaderboard() && beatmap.Status != BeatmapStatus.Qualified)
 		{
 			if (score.MaxCombo > stats.MaxCombo)
@@ -220,16 +216,16 @@ public partial class OsuController
 			if (beatmap.AwardsPP() && score.Status == SubmissionStatus.Best)
 			{
 				var additionalRankedScore = score.TotalScore;
-				if (previousScore != null)
+				if (previousBest != null)
 				{
-					additionalRankedScore -= previousScore.TotalScore;
+					additionalRankedScore -= previousBest.TotalScore;
 
-					if (score.Grade != previousScore.Grade)
+					if (score.Grade != previousBest.Grade)
 					{
 						if (score.Grade >= Grade.A)
 							stats.Grades[score.Grade] += 1;
 
-						if (previousScore.Grade >= Grade.A)
+						if (previousBest.Grade >= Grade.A)
 							stats.Grades[score.Grade] -= 1;
 					}
 				}
@@ -239,14 +235,12 @@ public partial class OsuController
 
 				stats.RankedScore += additionalRankedScore;
 				
-				
-				//TODO Fetch top 100 scores, update pp and acc
-				//TODO fetch best scores count to update bonus pp
-				//TODO update player rank
+				await _bancho.RecalculatePlayerTopScores(player, score.Mode);
+				await _bancho.UpdatePlayerRank(player, score.Mode);
 			}
 		}
-		
-		//TODO update stats in database
+
+		await _bancho.UpdatePlayerStats(player, score.Mode);
 
 		if (!player.Restricted)
 		{
@@ -258,18 +252,49 @@ public partial class OsuController
 			if (score.Passed)
 				beatmap.Passes += 1;
 			
-			//TODO update beatmap stats in database
+			await _bancho.UpdateBeatmapStats(beatmap);
 		}
 		
-		//TODO update recent player score
-		
-		var response = "";
+		string response;
 		var achievements = "";
 		
 		if (!score.Passed || (int)score.Mode > 3 || (int)score.Mode < 0)
 			response = "error: no";
 		else
 		{
+			List<string> submissionCharts = [
+				$"beatmapId:{beatmap.MapId}",
+				$"beatmapSetId:{beatmap.SetId}",
+				$"beatmapPlaycount:{(int)beatmap.Plays}",
+				$"beatmapPasscount:{(int)beatmap.Passes}",
+				$"approvedDate:{beatmap.LastUpdate:yyyy-MM-dd HH:mm:ss}",
+				"\n",
+				"chartId:beatmap",
+				$"chartUrl:{beatmap.Set.Url}",
+				"chartName:Beatmap Ranking",
+				ChartEntry("rank", previousBest?.LeaderboardPosition, score.LeaderboardPosition),
+				ChartEntry("rankedScore", previousBest?.TotalScore, score.TotalScore),
+				ChartEntry("totalScore", previousBest?.TotalScore, score.TotalScore),
+				ChartEntry("maxCombo", previousBest?.MaxCombo, score.MaxCombo),
+				ChartEntry("accuracy", 
+					previousBest == null ? null : MathF.Round(previousBest.Acc, 2), 
+					MathF.Round(score.Acc, 2)),
+				ChartEntry("pp", previousBest?.PP, score.PP),
+				"\n",
+				"chartId:overall",
+				$"chartUrl:https://{_config.Domain}/u/{player.Id}",
+				"chartName:Overall Ranking",
+				ChartEntry("rank", prevStats.Rank, stats.Rank),
+				ChartEntry("rankedScore", prevStats.RankedScore, stats.RankedScore),
+				ChartEntry("totalScore", prevStats.TotalScore, stats.TotalScore),
+				ChartEntry("maxCombo", prevStats.MaxCombo, stats.MaxCombo),
+				ChartEntry("accuracy", 
+					MathF.Round(prevStats.Accuracy, 2), 
+					MathF.Round(stats.Accuracy, 2)),
+				ChartEntry("pp", prevStats.PP, stats.PP),
+				$"achievements-new:{achievements}",
+			];
+			
 			if (beatmap.AwardsPP() && !player.Restricted)
 			{
 				//var unlockedAchievements = new List<Achievement>();
@@ -277,22 +302,12 @@ public partial class OsuController
 				//TODO fetch player achievements
 				//TODO achievements string
 			}
-
-			if (previousScore != null)
-			{
-				//TODO beatmaprankikngcharts
-			}
-			else
-			{
-				//TODO beatmaprankikngcharts
-			}
 			
-			//TODO overallrankingcharts
-			
-			//TODO write response
+			response = string.Join("|", submissionCharts);
+			Console.WriteLine(response);
 		}
 		
-		return Ok(response);
+		return Ok(Encoding.UTF8.GetBytes(response));
 	}
 
 	private static Score ParseScoreData(string[] scoreData, Beatmap beatmap, Player player)
@@ -361,5 +376,10 @@ public partial class OsuController
 		cipher.DoFinal(comparisonBytes, length);
 
 		return Encoding.UTF8.GetString(comparisonBytes).TrimEnd('\0');
+	}
+
+	private static string ChartEntry(string name, float? before, float? after)
+	{
+		return $"{name}Before:{before.ToString() ?? ""}|{name}After:{after.ToString() ?? ""}";
 	}
 }

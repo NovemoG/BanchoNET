@@ -26,6 +26,14 @@ public partial class BanchoHandler
 		
 		return true;
 	}
+
+	public async Task UpdateBeatmapStats(Beatmap beatmap)
+	{
+		await _dbContext.Beatmaps.Where(b => b.MapId == beatmap.MapId)
+		                .ExecuteUpdateAsync(p => 
+			                p.SetProperty(b => b.Plays, beatmap.Plays)
+			                 .SetProperty(b => b.Passes, beatmap.Passes));
+	}
 	
 	public async Task<Beatmap?> GetBeatmap(int mapId = -1, int setId = -1, string beatmapMD5 = "")
 	{

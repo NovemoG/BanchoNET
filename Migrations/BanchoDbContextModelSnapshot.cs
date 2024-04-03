@@ -3,6 +3,7 @@ using System;
 using BanchoNET.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -16,7 +17,7 @@ namespace BanchoNET.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.1")
+                .HasAnnotation("ProductVersion", "8.0.3")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
             modelBuilder.Entity("BanchoNET.Models.Dtos.BeatmapDto", b =>
@@ -202,7 +203,10 @@ namespace BanchoNET.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("int")
+                        .HasAnnotation("SqlServer:IdentityIncrement", 1)
+                        .HasAnnotation("SqlServer:IdentitySeed", 3L)
+                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
 
                     b.Property<string>("ApiKey")
                         .HasMaxLength(36)
@@ -415,7 +419,7 @@ namespace BanchoNET.Migrations
                     b.Property<long>("RankedScore")
                         .HasColumnType("bigint");
 
-                    b.Property<int>("ReplaysViews")
+                    b.Property<int>("ReplayViews")
                         .HasColumnType("int");
 
                     b.Property<int>("SCount")

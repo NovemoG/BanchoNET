@@ -82,7 +82,7 @@ public partial class BanchoHandler
 				PlayCount = stat.PlayCount,
 				PlayTime = stat.PlayTime,
 				MaxCombo = stat.MaxCombo,
-				ReplayViews = stat.ReplaysViews,
+				ReplayViews = stat.ReplayViews,
 				Grades = { 
 					{Grade.XH, stat.XHCount},
 					{Grade.X, stat.XCount},
@@ -99,11 +99,35 @@ public partial class BanchoHandler
 		}
 	}
 
-	public async Task UpdatePlayerStats(Player player)
+	public async Task UpdatePlayerStats(Player player, GameMode mode)
 	{
-		var stats = await _dbContext.Stats.Where(s => s.PlayerId == player.Id).ToListAsync();
+		var stats = player.Stats[mode];
 		
-		
+		var dbStats = new StatsDto
+		{
+			PlayerId = player.Id,
+			Mode = (byte)mode,
+			TotalScore = stats.TotalScore,
+			RankedScore = stats.RankedScore,
+			PP = stats.PP,
+			Accuracy = stats.Accuracy,
+			PlayCount = stats.PlayCount,
+			PlayTime = stats.PlayTime,
+			MaxCombo = stats.MaxCombo,
+			ReplayViews = stats.ReplayViews,
+			XHCount = stats.Grades[Grade.XH],
+			XCount = stats.Grades[Grade.X],
+			SHCount = stats.Grades[Grade.SH],
+			SCount = stats.Grades[Grade.S],
+			ACount = stats.Grades[Grade.A],
+			TotalGekis = stats.TotalGekis,
+			TotalKatus = stats.TotalKatus,
+			Total300s = stats.Total300s,
+			Total100s = stats.Total100s,
+			Total50s = stats.Total50s
+		};
+		_dbContext.Update(dbStats);
+		await _dbContext.SaveChangesAsync();
 	}
 	
 	public async Task FetchPlayerRelationships(Player player)
@@ -140,14 +164,36 @@ public partial class BanchoHandler
 		}
 	}
 
-	public async Task RecalculatePlayerTopScores()
+	public async Task RecalculatePlayerTopScores(Player player, GameMode mode)
 	{
+		var bestScores = await _dbContext.Scores.Where(s => s.PlayerId == player.Id)
+		                                 .OrderByDescending(s => s.PP)
+		                                 .Take(100)
+		                                 .ToListAsync();
+
+		var weightedAcc = 0.0f;
+		var weightedPp = 0.0f;
+
+		for (var i = 0; i < bestScores.Count; i++)
+		{
+			var score = bestScores[i];
+			var weight = MathF.Pow(0.95f, i);
+
+			weightedAcc += score.Acc * weight;
+			weightedPp += score.PP * weight;
+		}
+
+		var accWeight = 100f / (20 * (1 - MathF.Pow(0.95f, bestScores.Count)));
+		var bonusPp = (417 - (float)1/3) * (1 - MathF.Pow(0.995f, MathF.Min(1000, bestScores.Count)));
 		
+		var stats = player.Stats[mode];
+		stats.Accuracy = weightedAcc * accWeight / 100;
+		stats.PP = (ushort)MathF.Round(weightedPp + bonusPp);
 	}
 
-	public async Task RecalculatePlayerBonusPp()
+	public async Task UpdatePlayerRank(Player player, GameMode mode)
 	{
-		
+		//TODO
 	}
 	
 	public async Task CreatePlayer(string name, string email, string pwdHash, string country)

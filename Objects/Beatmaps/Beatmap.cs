@@ -1,5 +1,6 @@
 ﻿using BanchoNET.Models.Beatmaps;
 using BanchoNET.Models.Dtos;
+using BanchoNET.Utils;
 
 namespace BanchoNET.Objects.Beatmaps;
 
@@ -53,7 +54,7 @@ public class Beatmap
 		SetId = apiBeatmap.BeatmapsetId;
 		Private = apiBeatmap.DownloadUnavailable;
 		Mode = (GameMode)apiBeatmap.Mode;
-		Status = (BeatmapStatus)apiBeatmap.Approved;
+		Status = apiBeatmap.Approved.StatusFromDirectApi(StatusFrozen, Status);
 		MD5 = apiBeatmap.FileMd5;
 		Artist = apiBeatmap.Artist;
 		Title = apiBeatmap.Title;
@@ -62,8 +63,6 @@ public class Beatmap
 		LastUpdate = DateTime.Parse(apiBeatmap.LastUpdate);
 		TotalLength = apiBeatmap.TotalLength;
 		MaxCombo = apiBeatmap.MaxCombo;
-		Plays = apiBeatmap.Playcount;
-		Passes = apiBeatmap.Passcount;
 		Bpm = apiBeatmap.Bpm;
 		Cs = apiBeatmap.DiffSize;
 		Ar = apiBeatmap.DiffApproach;
@@ -81,7 +80,7 @@ public class Beatmap
 		SetId = int.Parse(apiBeatmap.BeatmapsetId);
 		Private = apiBeatmap.DownloadUnavailable == "1";
 		Mode = (GameMode)int.Parse(apiBeatmap.Mode);
-		Status = (BeatmapStatus)int.Parse(apiBeatmap.Approved);
+		Status = int.Parse(apiBeatmap.Approved).StatusFromOsuApi(StatusFrozen, Status);
 		MD5 = apiBeatmap.FileMd5;
 		Artist = apiBeatmap.Artist;
 		Title = apiBeatmap.Title;
@@ -100,8 +99,6 @@ public class Beatmap
 		NotesCount = int.Parse(apiBeatmap.CountNormal);
 		SlidersCount = int.Parse(apiBeatmap.CountSlider);
 		SpinnersCount = int.Parse(apiBeatmap.CountSpinner);
-		Plays = long.Parse(apiBeatmap.Playcount);
-		Passes = long.Parse(apiBeatmap.Passcount);
 
 		LastApiCheck = DateTime.UtcNow;
 		IsRankedOfficially = Status is BeatmapStatus.Ranked or BeatmapStatus.Approved;

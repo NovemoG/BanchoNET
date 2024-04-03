@@ -26,7 +26,7 @@ public class StatsDto
 	public int Total300s { get; set; }
 	public int Total100s { get; set; }
 	public int Total50s { get; set; }
-	public int ReplaysViews { get; set; }
+	public int ReplayViews { get; set; }
 	public int XHCount { get; set; }
 	public int XCount { get; set; }
 	public int SHCount { get; set; }

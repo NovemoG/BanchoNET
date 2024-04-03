@@ -9,7 +9,7 @@ public static class BeatmapExtensions
 	
 	public static void InitBaseUrlValue(string domain)
 	{
-		_url = $"https://osu.{domain}/b";
+		_url = $"https://osu.{domain}";
 	}
 	
 	public static string FullName(this Beatmap beatmap)
@@ -19,7 +19,12 @@ public static class BeatmapExtensions
 
 	public static string Url(this Beatmap beatmap)
 	{
-		return $"{_url}/{beatmap.MapId}";
+		return $"{_url}/b/{beatmap.MapId}";
+	}
+
+	public static string Url(this BeatmapSet set)
+	{
+		return $"{_url}/s/{set.Id}";
 	}
 
 	public static string Embed(this Beatmap beatmap)
@@ -50,5 +55,41 @@ public static class BeatmapExtensions
 		var md5String = Convert.ToHexString(hash).ToLower();
 
 		return md5String == beatmapMD5;
+	}
+
+	public static BeatmapStatus StatusFromDirectApi(
+		this int status,
+		bool frozen,
+		BeatmapStatus prevStatus)
+	{
+		if (frozen) return prevStatus;
+		
+		return status switch
+		{
+			1 => BeatmapStatus.Ranked,
+			2 => BeatmapStatus.Approved,
+			3 => BeatmapStatus.Qualified,
+			4 => BeatmapStatus.Loved,
+			_ => BeatmapStatus.LatestPending
+		};
+	}
+	
+	public static BeatmapStatus StatusFromOsuApi(
+		this int status,
+		bool frozen,
+		BeatmapStatus prevStatus)
+	{
+		if (frozen) return prevStatus;
+		
+		return status switch
+		{
+			0 => BeatmapStatus.Ranked,
+			2 => BeatmapStatus.LatestPending,
+			3 => BeatmapStatus.Qualified,
+			5 => BeatmapStatus.LatestPending,
+			7 => BeatmapStatus.Ranked,
+			8 => BeatmapStatus.Loved,
+			_ => BeatmapStatus.LatestPending
+		};
 	}
 }

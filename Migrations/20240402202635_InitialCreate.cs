@@ -186,7 +186,7 @@ namespace BanchoNET.Migrations
                     Total300s = table.Column<int>(type: "int", nullable: false),
                     Total100s = table.Column<int>(type: "int", nullable: false),
                     Total50s = table.Column<int>(type: "int", nullable: false),
-                    ReplaysViews = table.Column<int>(type: "int", nullable: false),
+                    ReplayViews = table.Column<int>(type: "int", nullable: false),
                     XHCount = table.Column<int>(type: "int", nullable: false),
                     XCount = table.Column<int>(type: "int", nullable: false),
                     SHCount = table.Column<int>(type: "int", nullable: false),
