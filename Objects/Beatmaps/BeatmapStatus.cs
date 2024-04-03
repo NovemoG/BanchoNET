@@ -9,5 +9,5 @@ public enum BeatmapStatus
 	Ranked = 2,
 	Approved = 3,
 	Qualified = 4,
-	Loved = 5,
+	Loved = 5
 }

@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using BanchoNET.Models;
 using BanchoNET.Services;
 using BanchoNET.Utils;
@@ -19,8 +20,6 @@ public class Program
 		var mySqlConnectionString = builder.Configuration.GetConnectionString("MySql")!;
 		var hangfireConnectionString = builder.Configuration.GetConnectionString("Hangfire")!;
 		
-		Regexes.InitNowPlayingRegex(configSection["Domain"]!);
-		
 		builder.Services.AddHangfire(config =>
 		{
 			config.UseStorage(new MySqlStorage(hangfireConnectionString, new MySqlStorageOptions
@@ -39,12 +38,12 @@ public class Program
 		builder.Services.AddControllers();
 
 		builder.Services.Configure<ServerConfig>(configSection);
+		builder.Services.AddSingleton<OsuVersionService>();
 		builder.Services.AddDbContext<BanchoDbContext>(options =>
 		{
 			options.UseMySQL(mySqlConnectionString);
 		});
 		builder.Services.AddScoped<GeolocService>();
-		builder.Services.AddSingleton<OsuVersionService>();
 		builder.Services.AddScoped<BanchoHandler>();
 		builder.Services.AddHttpClient();
 
@@ -62,6 +61,15 @@ public class Program
 			await next(context);
 		});
 
+		#region Initialization
+
+		var domain = configSection["Domain"]!;
+		Regexes.InitNowPlayingRegex(domain);
+		BeatmapExtensions.InitBaseUrlValue(domain);
+		
+		app.Services.GetRequiredService<OsuVersionService>().FetchOsuVersion().Wait();
+
+		#endregion
 		
 		app.Run();
 	}

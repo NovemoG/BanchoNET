@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using BanchoNET.Objects.Beatmaps;
 using Microsoft.EntityFrameworkCore;
 
 namespace BanchoNET.Models.Dtos;
@@ -13,14 +14,14 @@ public class BeatmapDto
 	public int SetId { get; set; }
 	public bool Private { get; set; }
 	
+	public bool IsRankedOfficially { get; set; }
+	
 	public byte Mode { get; set; }
 	public sbyte Status { get; set; }
 	
 	[Column(TypeName = "CHAR(32)"), Unicode(false)]
 	public string MD5 { get; set; }
 	
-	[MaxLength(512), Unicode(false)]
-	public string Filename { get; set; }
 	[MaxLength(128), Unicode(false)]
 	public string Artist { get; set; }
 	[MaxLength(128), Unicode(false)]
@@ -30,12 +31,13 @@ public class BeatmapDto
 	[MaxLength(16), Unicode(false)]
 	public string Creator { get; set; }
 	
+	public DateTime SubmitDate { get; set; }
 	public DateTime LastUpdate { get; set; }
 	public int TotalLength { get; set; }
 	public int MaxCombo { get; set; }
 	public bool Frozen { get; set; }
-	public int Plays { get; set; }
-	public int Passes { get; set; }
+	public long Plays { get; set; }
+	public long Passes { get; set; }
 	
 	[Column(TypeName = "FLOAT(15,3)")] public float Bpm { get; set; }
 	[Column(TypeName = "FLOAT(4,2)")] public float Cs { get; set; }
@@ -43,4 +45,8 @@ public class BeatmapDto
 	[Column(TypeName = "FLOAT(4,2)")] public float Od { get; set; }
 	[Column(TypeName = "FLOAT(4,2)")] public float Hp { get; set; }
 	[Column(TypeName = "FLOAT(9,3)")] public float StarRating { get; set; }
+	
+	public int NotesCount { get; set; }
+	public int SlidersCount { get; set; }
+	public int SpinnersCount { get; set; }
 }

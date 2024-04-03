@@ -28,11 +28,16 @@ public static class Regexes
 		OsuVersion = new Regex(
 			@"^b(?<date>\d{8})(?:\.(?<revision>\d))?(?<stream>beta|cuttingedge|tourney|dev)?$",
 			RegexOptions.Compiled);
+
+		NumSeparator = new Regex(
+			".{3}",
+			RegexOptions.RightToLeft | RegexOptions.Compiled);
 	}
 
 	public static readonly Regex Username;
 	public static readonly Regex Email;
 	public static readonly Regex Whitespace;
 	public static readonly Regex OsuVersion;
+	public static readonly Regex NumSeparator;
 	public static Regex NowPlaying { get; private set; } = null!;
 }

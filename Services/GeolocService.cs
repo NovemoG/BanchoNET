@@ -20,6 +20,25 @@ public class GeolocService(HttpClient httpClient)
 		
 		return await FromIp(GetIp(headers));
 	}
+	
+	public IPAddress GetIp(IHeaderDictionary headers)
+	{
+		var ipString = "";
+		if (headers.TryGetValue("CF-Connecting-IP", out var cfIp))
+			ipString = cfIp.ToString();
+		else if (headers.TryGetValue("X-Forwarded-For", out var xff))
+		{
+			var forwarded = xff.ToString().Split(", ");
+			
+			if (forwarded.Length > 1)
+				ipString = forwarded[0];
+		}
+		else
+			ipString = headers["X-Real-IP"].ToString();
+		
+		var ip = _session.GetCachedIp(ipString);
+		return ip ?? _session.CacheIp(ipString);
+	}
 
 	private Geoloc? FromCloudflare(IHeaderDictionary headers)
 	{
@@ -88,24 +107,5 @@ public class GeolocService(HttpClient httpClient)
 			Longitude = model.Longitude,
 			Latitude = model.Latitude
 		};
-	}
-
-	private IPAddress GetIp(IHeaderDictionary headers)
-	{
-		var ipString = "";
-		if (headers.TryGetValue("CF-Connecting-IP", out var cfIp))
-			ipString = cfIp.ToString();
-		else if (headers.TryGetValue("X-Forwarded-For", out var xff))
-		{
-			var forwarded = xff.ToString().Split(", ");
-			
-			if (forwarded.Length > 1)
-				ipString = forwarded[0];
-		}
-		else
-			ipString = headers["X-Real-IP"].ToString();
-		
-		var ip = _session.GetCachedIp(ipString);
-		return ip ?? _session.CacheIp(ipString);
 	}
 }

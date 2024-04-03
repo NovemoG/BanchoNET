@@ -11,8 +11,6 @@ namespace BanchoNET.Controllers.Cho;
 
 public partial class ChoController
 {
-	private const string OsuApiV2ChangelogUrl = "https://osu.ppy.sh/api/v2/changelog";
-	
 	private async Task<IActionResult> Login()
 	{
 		using var stream = new MemoryStream();
@@ -50,7 +48,8 @@ public partial class ChoController
 			
 			//TODO this changelog doesnt provide version info for tourney/dev client
 			
-			if (loginData.OsuVersion > _version.Streams[clientStream])
+			Console.WriteLine($"[Login] Login osu version: {loginData.OsuVersion.Date}, server osu version: {_version.GetLatestVersion(clientStream).Date}");
+			if (loginData.OsuVersion > _version.GetLatestVersion(clientStream))
 			{
 				Response.Headers["cho-token"] = "client-too-old";
                 
@@ -123,9 +122,36 @@ public partial class ChoController
 			responseData.PlayerId(-1);
 			return responseData.GetContentResult();
 		}
-		
-		//TODO add login data and client hashes to database
-		//TODO hw matches
+
+		await _bancho.InsertLoginData(
+			userInfo.Id,
+			_geoloc.GetIp(Request.Headers),
+			loginData.OsuVersion.Date,
+			loginData.OsuVersion.Stream);
+
+		var bannedUsersHashes = await _bancho.TryInsertClientHashes(userInfo.Id,
+			loginData.OsuPathMD5,
+			loginData.AdaptersMD5,
+			loginData.UninstallMD5,
+			loginData.DiskSignatureMD5,
+			runningUnderWine);
+
+		var sendHashWarning = false;
+		if (bannedUsersHashes)
+		{
+			if (((Privileges)userInfo.Privileges).HasPrivilege(Privileges.Verified))
+				sendHashWarning = true;
+			else
+			{
+				Response.Headers["cho-token"] = "contact-staff";
+			
+				using var responseData = new ServerPackets();
+				responseData.Notification("Please contact staff directly to create an account.");
+				responseData.PlayerId(-1);
+				return responseData.GetContentResult();
+			}
+		}
+		//TODO assign club
 		
 		var geoloc = await _geoloc.GetGeoloc(Request.Headers);
 		if (geoloc == null)
@@ -141,6 +167,16 @@ public partial class ChoController
 		player = new Player(userInfo, Guid.NewGuid(), DateTime.UtcNow, 1)
 		{
 			Geoloc = geoloc.Value,
+			ClientDetails = new ClientDetails
+			{
+				OsuVersion = loginData.OsuVersion,
+				OsuPathMD5 = loginData.OsuPathMD5,
+				AdaptersMD5 = loginData.AdaptersMD5,
+				UninstallMD5 = loginData.UninstallMD5,
+				DiskSignatureMD5 = loginData.DiskSignatureMD5,
+				Adapters = loginData.AdaptersString.Split('.')[..^1].ToList(),
+				IpAddress = _geoloc.GetIp(Request.Headers)
+			}
 		};
 
 		if (userInfo.Country == "xx")
@@ -192,6 +228,17 @@ public partial class ChoController
 			{
 				Sender = banchoBot.Username,
 				Content = _config.RestrictedMessage,
+				Destination = player.Username,
+				SenderId = banchoBot.Id
+			});
+		}
+
+		if (sendHashWarning)
+		{
+			loginPackets.SendMessage(new Message
+			{
+				Sender = banchoBot.Username,
+				Content = "Your client hashes are associated with another account. Please be careful as it may lead to a ban.",
 				Destination = player.Username,
 				SenderId = banchoBot.Id
 			});

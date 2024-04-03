@@ -17,7 +17,7 @@ public enum Mods
 	FlashLight = 2 << 9,
 	Autoplay = 2 << 10,
 	SpunOut = 2 << 11,
-	Relax2 = 2 << 12, // Autopilot
+	Autopilot = 2 << 12,
 	Perfect = 2 << 13,
 	Key4 = 2 << 14,
 	Key5 = 2 << 15,

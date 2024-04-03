@@ -3,6 +3,7 @@ using System;
 using BanchoNET.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -16,7 +17,7 @@ namespace BanchoNET.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.1")
+                .HasAnnotation("ProductVersion", "8.0.3")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
             modelBuilder.Entity("BanchoNET.Models.Dtos.BeatmapDto", b =>
@@ -46,17 +47,14 @@ namespace BanchoNET.Migrations
                     b.Property<float>("Cs")
                         .HasColumnType("FLOAT(4,2)");
 
-                    b.Property<string>("Filename")
-                        .IsRequired()
-                        .HasMaxLength(512)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(512)");
-
                     b.Property<bool>("Frozen")
                         .HasColumnType("tinyint(1)");
 
                     b.Property<float>("Hp")
                         .HasColumnType("FLOAT(4,2)");
+
+                    b.Property<bool>("IsRankedOfficially")
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<DateTime>("LastUpdate")
                         .HasColumnType("datetime(6)");
@@ -78,14 +76,17 @@ namespace BanchoNET.Migrations
                         .IsUnicode(false)
                         .HasColumnType("varchar(128)");
 
+                    b.Property<int>("NotesCount")
+                        .HasColumnType("int");
+
                     b.Property<float>("Od")
                         .HasColumnType("FLOAT(4,2)");
 
-                    b.Property<int>("Passes")
-                        .HasColumnType("int");
+                    b.Property<long>("Passes")
+                        .HasColumnType("bigint");
 
-                    b.Property<int>("Plays")
-                        .HasColumnType("int");
+                    b.Property<long>("Plays")
+                        .HasColumnType("bigint");
 
                     b.Property<bool>("Private")
                         .HasColumnType("tinyint(1)");
@@ -93,11 +94,20 @@ namespace BanchoNET.Migrations
                     b.Property<int>("SetId")
                         .HasColumnType("int");
 
+                    b.Property<int>("SlidersCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SpinnersCount")
+                        .HasColumnType("int");
+
                     b.Property<float>("StarRating")
                         .HasColumnType("FLOAT(9,3)");
 
                     b.Property<sbyte>("Status")
                         .HasColumnType("tinyint");
+
+                    b.Property<DateTime>("SubmitDate")
+                        .HasColumnType("datetime(6)");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -116,11 +126,87 @@ namespace BanchoNET.Migrations
                     b.ToTable("Beatmaps");
                 });
 
-            modelBuilder.Entity("BanchoNET.Models.Dtos.PlayerDto", b =>
+            modelBuilder.Entity("BanchoNET.Models.Dtos.ClientHashesDto", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
+
+                    b.Property<string>("Adapters")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .IsUnicode(false)
+                        .HasColumnType("CHAR");
+
+                    b.Property<string>("DiskSerial")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .IsUnicode(false)
+                        .HasColumnType("CHAR");
+
+                    b.Property<DateTime>("LatestTime")
+                        .HasColumnType("DATETIME");
+
+                    b.Property<string>("OsuPath")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .IsUnicode(false)
+                        .HasColumnType("CHAR");
+
+                    b.Property<int>("PlayerId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Uninstall")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .IsUnicode(false)
+                        .HasColumnType("CHAR");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ClientHashes");
+                });
+
+            modelBuilder.Entity("BanchoNET.Models.Dtos.LoginDto", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("Ip")
+                        .IsRequired()
+                        .HasMaxLength(45)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(45)");
+
+                    b.Property<DateTime>("LoginTime")
+                        .HasColumnType("DATETIME");
+
+                    b.Property<DateTime>("OsuVersion")
+                        .HasColumnType("DATETIME");
+
+                    b.Property<int>("PlayerId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReleaseStream")
+                        .IsRequired()
+                        .HasMaxLength(11)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(11)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PlayerLogins");
+                });
+
+            modelBuilder.Entity("BanchoNET.Models.Dtos.PlayerDto", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasAnnotation("SqlServer:IdentityIncrement", 1)
+                        .HasAnnotation("SqlServer:IdentitySeed", 3L)
+                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
 
                     b.Property<string>("ApiKey")
                         .HasMaxLength(36)
@@ -226,6 +312,84 @@ namespace BanchoNET.Migrations
                     b.ToTable("Relationships");
                 });
 
+            modelBuilder.Entity("BanchoNET.Models.Dtos.ScoreDto", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("PlayerId")
+                        .HasColumnType("int");
+
+                    b.Property<float>("Acc")
+                        .HasColumnType("FLOAT(6,3)");
+
+                    b.Property<string>("BeatmapMD5")
+                        .IsRequired()
+                        .IsUnicode(false)
+                        .HasColumnType("CHAR(32)");
+
+                    b.Property<int>("ClientFlags")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Count100")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Count300")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Count50")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Gekis")
+                        .HasColumnType("int");
+
+                    b.Property<sbyte>("Grade")
+                        .HasColumnType("TINYINT(2)");
+
+                    b.Property<int>("Katus")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MaxCombo")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Misses")
+                        .HasColumnType("int");
+
+                    b.Property<sbyte>("Mode")
+                        .HasColumnType("TINYINT(2)");
+
+                    b.Property<int>("Mods")
+                        .HasColumnType("int");
+
+                    b.Property<string>("OnlineChecksum")
+                        .IsRequired()
+                        .IsUnicode(false)
+                        .HasColumnType("CHAR(32)");
+
+                    b.Property<float>("PP")
+                        .HasColumnType("FLOAT(7,3)");
+
+                    b.Property<bool>("Perfect")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime>("PlayTime")
+                        .HasColumnType("DATETIME");
+
+                    b.Property<int>("Score")
+                        .HasColumnType("int");
+
+                    b.Property<sbyte>("Status")
+                        .HasColumnType("TINYINT(2)");
+
+                    b.Property<int>("TimeElapsed")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id", "PlayerId");
+
+                    b.ToTable("Scores");
+                });
+
             modelBuilder.Entity("BanchoNET.Models.Dtos.StatsDto", b =>
                 {
                     b.Property<int>("PlayerId")
@@ -255,7 +419,7 @@ namespace BanchoNET.Migrations
                     b.Property<long>("RankedScore")
                         .HasColumnType("bigint");
 
-                    b.Property<int>("ReplaysViews")
+                    b.Property<int>("ReplayViews")
                         .HasColumnType("int");
 
                     b.Property<int>("SCount")
@@ -273,7 +437,10 @@ namespace BanchoNET.Migrations
                     b.Property<int>("Total50s")
                         .HasColumnType("int");
 
-                    b.Property<int>("TotalHits")
+                    b.Property<int>("TotalGekis")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TotalKatus")
                         .HasColumnType("int");
 
                     b.Property<long>("TotalScore")

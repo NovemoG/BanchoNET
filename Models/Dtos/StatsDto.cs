@@ -21,11 +21,12 @@ public class StatsDto
 	public int PlayCount { get; set; }
 	public int PlayTime { get; set; }
 	public int MaxCombo { get; set; }
-	public int TotalHits { get; set; }
+	public int TotalGekis { get; set; }
+	public int TotalKatus { get; set; }
 	public int Total300s { get; set; }
 	public int Total100s { get; set; }
 	public int Total50s { get; set; }
-	public int ReplaysViews { get; set; }
+	public int ReplayViews { get; set; }
 	public int XHCount { get; set; }
 	public int XCount { get; set; }
 	public int SHCount { get; set; }
