@@ -56,7 +56,7 @@ public partial class BanchoHandler
 			player.Enqueue(msgPacket.GetContent());
 		}
 
-		if (txt.StartsWith(_config.CommandPrefix))
+		if (txt.StartsWith(AppSettings.CommandPrefix))
 		{
 			//TODO command hadnling
 		}

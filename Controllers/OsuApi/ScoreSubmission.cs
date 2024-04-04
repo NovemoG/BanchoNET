@@ -121,7 +121,7 @@ public partial class OsuController
 			{
 				var prevBest = await _bancho.GetPlayerBestScore(player, beatmapMD5, score.Mode);
 				
-				score.ComputeSubmissionStatus(prevBest, _config.SubmitByPP);
+				score.ComputeSubmissionStatus(prevBest, AppSettings.SubmitByPP);
 
 				if (beatmap.Status != BeatmapStatus.LatestPending)
 					await _bancho.SetScoreLeaderboardPosition(beatmap, score);
@@ -145,10 +145,10 @@ public partial class OsuController
 			{
 				var scoreNotification = $"You achieved #{score.LeaderboardPosition} on a leaderboard!\n";
 				
-				if (_config.DisplayPPOnLeaderboard)
+				if (AppSettings.DisplayPPOnLeaderboard)
 					scoreNotification += $"({score.PP:F2}pp)";
 
-				if (_config.DisplayScoreOnLeaderboard)
+				if (AppSettings.DisplayScoreOnLeaderboard)
 					scoreNotification += $" ({score.TotalScore.SplitNumber()} score)";
 
 				//Subject to change
@@ -283,7 +283,7 @@ public partial class OsuController
 				$"onlineScoreId:{score.Id}",
 				"\n",
 				"chartId:overall",
-				$"chartUrl:https://{_config.Domain}/u/{player.Id}",
+				$"chartUrl:https://{AppSettings.CommandPrefix}/u/{player.Id}",
 				"chartName:Overall Ranking",
 				ChartEntry("rank", prevStats.Rank, stats.Rank),
 				ChartEntry("rankedScore", prevStats.RankedScore, stats.RankedScore),
