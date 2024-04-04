@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using BanchoNET.Models;
 using BanchoNET.Services;
 using BanchoNET.Utils;
@@ -133,7 +132,6 @@ public class Program
 		app.Services.GetRequiredService<OsuVersionService>().FetchOsuVersion().Wait();
 
 		#endregion
-		
 		
 		
 		app.Run();
