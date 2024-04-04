@@ -13,14 +13,12 @@ public partial class OsuController : ControllerBase
 	private readonly BanchoHandler _bancho;
 	private readonly GeolocService _geoloc;
 	private readonly BanchoSession _session;
-	private readonly ServerConfig _config;
 
-	public OsuController(BanchoHandler bancho, GeolocService geoloc, IOptions<ServerConfig> config)
+	public OsuController(BanchoHandler bancho, GeolocService geoloc)
 	{
 		_bancho = bancho;
 		_geoloc = geoloc;
 		_session = BanchoSession.Instance;
-		_config = config.Value;
 	}
 	
 	[HttpPost("/web/osu-error.php")]

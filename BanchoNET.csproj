@@ -10,6 +10,7 @@
 
     <ItemGroup>
         <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+        <PackageReference Include="dotenv.net" Version="3.1.3" />
         <PackageReference Include="Hangfire" Version="1.8.11" />
         <PackageReference Include="Hangfire.AspNetCore" Version="1.8.11" />
         <PackageReference Include="Hangfire.Core" Version="1.8.11" />
@@ -31,7 +32,11 @@
     <ItemGroup>
       <Folder Include="Cache\" />
       <Folder Include="Logger\" />
-      <Folder Include="Migrations\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove=".env" />
+      <Content Include=".env" />
     </ItemGroup>
 
 	<Target Name="CopyPpDll" AfterTargets="AfterBuild">

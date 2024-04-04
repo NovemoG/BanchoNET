@@ -68,7 +68,7 @@ public partial class BanchoHandler
 		}
 		else
 		{
-			if (txt.StartsWith(_config.CommandPrefix))
+			if (txt.StartsWith(AppSettings.CommandPrefix))
 			{
 				//TODO command handling
 			}

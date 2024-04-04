@@ -41,7 +41,7 @@ public partial class ChoController
 			return responseData.GetContentResult();
 		}
 
-		if (_config.DisallowOldClients)
+		if (AppSettings.DisallowOldClients)
 		{
 			var clientStream = loginData.OsuVersion.Stream;
 			if (clientStream is "stable" or "beta") clientStream += "40";
@@ -187,10 +187,10 @@ public partial class ChoController
 		loginPackets.ProtocolVersion(19);
 		loginPackets.PlayerId(player.Id);
 		loginPackets.BanchoPrivileges((int)player.ToBanchoPrivileges());
-		loginPackets.Notification(_config.WelcomeMessage + _config.BanchoNETVersion);
+		loginPackets.Notification(_messages.WelcomeMessage + AppSettings.BanchoNETVersion);
 		loginPackets.ChannelInfo(_session.GetAutoJoinChannels(player));
 		loginPackets.ChannelInfoEnd();
-		loginPackets.MainMenuIcon(_config.MenuIconUrl, _config.MenuOnclickUrl);
+		loginPackets.MainMenuIcon(AppSettings.MenuIconUrl, AppSettings.MenuOnclickUrl);
 		
 		await _bancho.FetchPlayerStats(player);
 		await _bancho.FetchPlayerRelationships(player);
@@ -214,7 +214,7 @@ public partial class ChoController
 				loginPackets.SendMessage(new Message
 				{
 					Sender = banchoBot.Username,
-					Content = _config.FirstLoginMessage,
+					Content = _messages.FirstLoginMessage,
 					Destination = player.Username,
 					SenderId = banchoBot.Id
 				});
@@ -227,7 +227,7 @@ public partial class ChoController
 			loginPackets.SendMessage(new Message
 			{
 				Sender = banchoBot.Username,
-				Content = _config.RestrictedMessage,
+				Content = _messages.RestrictedMessage,
 				Destination = player.Username,
 				SenderId = banchoBot.Id
 			});

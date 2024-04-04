@@ -148,10 +148,10 @@ public partial class BanchoHandler
 	
 	private async Task<Beatmap?> GetBeatmapFromApi(string beatmapMD5 = "", int mapId = -1)
 	{
-		var osuApiKeyProvided = !string.IsNullOrEmpty(_config.OsuApiKey);
+		var osuApiKeyProvided = !string.IsNullOrEmpty(AppSettings.OsuApiKey);
 		
 		var url = osuApiKeyProvided ?
-			$"https://osu.ppy.sh/api/get_beatmaps?k={_config.OsuApiKey}" :
+			$"https://osu.ppy.sh/api/get_beatmaps?k={AppSettings.OsuApiKey}" :
 			"https://osu.direct/api/get_beatmaps";
 		
 		var paramsSign = osuApiKeyProvided ? "&" : "?";
@@ -178,10 +178,10 @@ public partial class BanchoHandler
 	{
 		if (setId <= 0) return null;
 		
-		var osuApiKeyProvided = !string.IsNullOrEmpty(_config.OsuApiKey);
+		var osuApiKeyProvided = !string.IsNullOrEmpty(AppSettings.OsuApiKey);
 		
 		var url = osuApiKeyProvided ?
-			$"https://osu.ppy.sh/api/get_beatmaps?k={_config.OsuApiKey}&s={setId}" :
+			$"https://osu.ppy.sh/api/get_beatmaps?k={AppSettings.OsuApiKey}&s={setId}" :
 			$"https://osu.direct/api/get_beatmaps?s={setId}";
 		
 		var response = await _httpClient.GetAsync(url);
