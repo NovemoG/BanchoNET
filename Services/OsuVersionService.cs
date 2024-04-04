@@ -1,6 +1,7 @@
 ﻿using BanchoNET.Models;
 using BanchoNET.Objects;
 using Hangfire;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 
 namespace BanchoNET.Services;
@@ -16,12 +17,12 @@ public class OsuVersionService
         {"cuttingedge", new OsuVersion()},
     };
 
-    public OsuVersionService()
+    public OsuVersionService(IOptions<ServerConfig> config)
     {
         RecurringJob.AddOrUpdate(
             "fetchOsuVersion",
             () => FetchOsuVersion(),
-            Cron.Hourly);
+            Cron.Hourly(config.Value.VersionFetchHoursDelay));
     }
 
     public async Task FetchOsuVersion()

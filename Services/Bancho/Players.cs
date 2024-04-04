@@ -194,7 +194,15 @@ public partial class BanchoHandler
 
 	public async Task UpdatePlayerRank(Player player, GameMode mode)
 	{
-		//TODO
+		var country = player.Geoloc.Country.Acronym;
+		var starts = player.Stats[mode];
+
+		if (!player.Restricted)
+		{
+			
+		}
+
+		
 	}
 	
 	public async Task CreatePlayer(string name, string email, string pwdHash, string country)

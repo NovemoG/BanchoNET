@@ -1,5 +1,4 @@
 ﻿using System.Text;
-using BanchoNET.Objects;
 using BanchoNET.Objects.Channels;
 using BanchoNET.Objects.Multiplayer;
 using BanchoNET.Objects.Players;

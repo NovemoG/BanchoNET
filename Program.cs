@@ -5,6 +5,7 @@ using BanchoNET.Utils;
 using Hangfire;
 using Hangfire.MySql;
 using Microsoft.EntityFrameworkCore;
+using StackExchange.Redis;
 using static System.Data.IsolationLevel;
 using IsolationLevel = System.Transactions.IsolationLevel;
 
@@ -38,6 +39,7 @@ public class Program
 		builder.Services.AddControllers();
 
 		builder.Services.Configure<ServerConfig>(configSection);
+		//TODO redis
 		builder.Services.AddSingleton<OsuVersionService>();
 		builder.Services.AddDbContext<BanchoDbContext>(options =>
 		{
@@ -70,8 +72,6 @@ public class Program
 		app.Services.GetRequiredService<OsuVersionService>().FetchOsuVersion().Wait();
 
 		#endregion
-		
-		
 		
 		app.Run();
 	}

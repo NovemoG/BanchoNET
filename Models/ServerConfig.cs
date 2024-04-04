@@ -7,6 +7,7 @@ public class ServerConfig
 	public string WelcomeMessage { get; set; } = null!;
 	public string FirstLoginMessage { get; set; } = null!;
 	public string RestrictedMessage { get; set; } = null!;
+	public int VersionFetchHoursDelay { get; set; }
 	public bool DisallowOldClients { get; set; }
 	public bool SortLeaderboardByPP { get; set; }
 	public bool DisplayPPOnLeaderboard { get; set; }
