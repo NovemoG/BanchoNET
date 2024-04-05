@@ -308,19 +308,16 @@ public partial class OsuController
 		if (score.LeaderboardPosition == 1 && !player.Restricted)
 		{
 			var announceChannel = _session.GetChannel("#announce");
-			var currentBest = await _bancho.GetBestBeatmapScore(beatmap, score.Mode, AppSettings.SortLeaderboardByPP);
 			var announcement = $@"\x01ACTION achieved #1 on {beatmap.Embed} with {score.Acc:F2}% and {score.PP}pp.";
+			
+			var currentBest = await _bancho.GetBestBeatmapScore(beatmap, score.Mode, AppSettings.SortLeaderboardByPP);
 					
 			if (score.Mods > 0)
 				announcement = announcement.Insert(0, $"+{score.Mods}");
 
 			if (currentBest.Score != null)
-			{
 				if (currentBest.Score.PlayerId != score.PlayerId)
-				{
 					announcement += $"(Previous #1: [https://{AppSettings.Domain}/u/{currentBest.Score.PlayerId} {currentBest.Username}])";
-				}
-			}
 					
 			announceChannel?.SendMessage(new Message
 			{
