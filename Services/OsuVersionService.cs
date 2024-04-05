@@ -1,5 +1,6 @@
 ﻿using BanchoNET.Models;
 using BanchoNET.Objects;
+using BanchoNET.Utils;
 using Hangfire;
 using Newtonsoft.Json;
 
@@ -21,7 +22,7 @@ public class OsuVersionService
         RecurringJob.AddOrUpdate(
             "fetchOsuVersion",
             () => FetchOsuVersion(),
-            Cron.Hourly);
+            Cron.Hourly(AppSettings.VersionFetchHoursDelay));
     }
 
     public async Task FetchOsuVersion()

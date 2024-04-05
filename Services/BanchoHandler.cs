@@ -1,7 +1,7 @@
 ﻿using BanchoNET.Models;
 using BanchoNET.Utils;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
+using StackExchange.Redis;
 
 namespace BanchoNET.Services;
 
@@ -10,13 +10,15 @@ public partial class BanchoHandler
 	private readonly BanchoSession _session = BanchoSession.Instance;
 	private readonly BanchoDbContext _dbContext;
 	private readonly HttpClient _httpClient;
+	private readonly IDatabase _redis;
 	
 	private readonly string[] _ignoredChannels = ["#highlight", "#userlog"];
 
-	public BanchoHandler(BanchoDbContext dbContext, HttpClient httpClient)
+	public BanchoHandler(BanchoDbContext dbContext, HttpClient httpClient, IConnectionMultiplexer redis)
 	{
 		_dbContext = dbContext;
 		_httpClient = httpClient;
+		_redis = redis.GetDatabase();
 	}
 	
 	public async Task<bool> EmailTaken(string email)

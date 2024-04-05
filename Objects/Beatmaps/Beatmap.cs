@@ -54,7 +54,7 @@ public class Beatmap
 		SetId = apiBeatmap.BeatmapsetId;
 		Private = apiBeatmap.DownloadUnavailable;
 		Mode = (GameMode)apiBeatmap.Mode;
-		Status = apiBeatmap.Approved.StatusFromDirectApi(StatusFrozen, Status);
+		Status = apiBeatmap.Approved.StatusFromApi(StatusFrozen, Status);
 		MD5 = apiBeatmap.FileMd5;
 		Artist = apiBeatmap.Artist;
 		Title = apiBeatmap.Title;
@@ -80,7 +80,7 @@ public class Beatmap
 		SetId = int.Parse(apiBeatmap.BeatmapsetId);
 		Private = apiBeatmap.DownloadUnavailable == "1";
 		Mode = (GameMode)int.Parse(apiBeatmap.Mode);
-		Status = int.Parse(apiBeatmap.Approved).StatusFromOsuApi(StatusFrozen, Status);
+		Status = int.Parse(apiBeatmap.Approved).StatusFromApi(StatusFrozen, Status);
 		MD5 = apiBeatmap.FileMd5;
 		Artist = apiBeatmap.Artist;
 		Title = apiBeatmap.Title;
@@ -121,6 +121,7 @@ public class Beatmap
 		LastUpdate = beatmapDto.LastUpdate;
 		TotalLength = beatmapDto.TotalLength;
 		MaxCombo = beatmapDto.MaxCombo;
+		StatusFrozen = beatmapDto.Frozen;
 		Plays = beatmapDto.Plays;
 		Passes = beatmapDto.Passes;
 		Bpm = beatmapDto.Bpm;

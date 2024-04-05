@@ -3,10 +3,10 @@ using Org.BouncyCastle.Crypto.Modes;
 using Org.BouncyCastle.Crypto.Paddings;
 using Org.BouncyCastle.Crypto.Parameters;
 using System.Text;
-using System.Text.RegularExpressions;
 using AkatsukiPp;
 using BanchoNET.Objects;
 using BanchoNET.Objects.Beatmaps;
+using BanchoNET.Objects.Channels;
 using BanchoNET.Objects.Players;
 using BanchoNET.Packets;
 using BanchoNET.Utils;
@@ -105,7 +105,7 @@ public partial class OsuController
 			}
 		}
 
-		if (await _bancho.GetScore(checksum: score.ClientChecksum) != null)
+		if (await _bancho.GetScore(score.ClientChecksum) != null)
 		{
 			Console.WriteLine($"[ScoreSubmission] {player.Username} tried to submit a duplicate score.");
 			return Ok("error: no");
@@ -124,7 +124,7 @@ public partial class OsuController
 				score.ComputeSubmissionStatus(prevBest, AppSettings.SubmitByPP);
 
 				if (beatmap.Status != BeatmapStatus.LatestPending)
-					await _bancho.SetScoreLeaderboardPosition(beatmap, score);
+					await _bancho.SetScoreLeaderboardPosition(beatmap, score, AppSettings.SortLeaderboardByPP);
 			}
 			else
 				score.Status = SubmissionStatus.Failed;
@@ -145,10 +145,10 @@ public partial class OsuController
 			{
 				var scoreNotification = $"You achieved #{score.LeaderboardPosition} on a leaderboard!\n";
 				
-				if (AppSettings.DisplayPPOnLeaderboard)
+				if (AppSettings.DisplayPPInNotification)
 					scoreNotification += $"({score.PP:F2}pp)";
 
-				if (AppSettings.DisplayScoreOnLeaderboard)
+				if (AppSettings.DisplayScoreInNotification)
 					scoreNotification += $" ({score.TotalScore.SplitNumber()} score)";
 
 				//Subject to change
@@ -159,21 +159,14 @@ public partial class OsuController
 						score,
 						beatmap.MaxCombo);
 					
-					scoreNotification += $"\n({fcPP:F2}pp if FC)";
+					scoreNotification += $"\n[{fcPP:F2}pp if FC]";
 				}
 				
 				using var notification = new ServerPackets();
 				notification.Notification(scoreNotification);
 				player.Enqueue(notification.GetContent());
-				
-				if (score.LeaderboardPosition == 1 && !player.Restricted)
-				{
-					var announceChannel = _session.GetChannel("#announce");
 
-					var announcement = $@"\x01ACTION achieved #1 on {beatmap.Embed} with {score.Acc:F2}% and {score.PP}pp.";
-					
-					//TODO if 1st on lb announce
-				}
+				await AnnounceNewFirstScore(score, player, beatmap);
 			}
 
 			await _bancho.UpdatePlayerBestScoreOnMap(beatmap, score);
@@ -308,6 +301,35 @@ public partial class OsuController
 		}
 		
 		return new FileContentResult(Encoding.UTF8.GetBytes(response), "application/octet-stream; charset=UTF-8");
+	}
+
+	private async Task AnnounceNewFirstScore(Score score, Player player, Beatmap beatmap)
+	{
+		if (score.LeaderboardPosition == 1 && !player.Restricted)
+		{
+			var announceChannel = _session.GetChannel("#announce");
+			var currentBest = await _bancho.GetBestBeatmapScore(beatmap, score.Mode, AppSettings.SortLeaderboardByPP);
+			var announcement = $@"\x01ACTION achieved #1 on {beatmap.Embed} with {score.Acc:F2}% and {score.PP}pp.";
+					
+			if (score.Mods > 0)
+				announcement = announcement.Insert(0, $"+{score.Mods}");
+
+			if (currentBest.Score != null)
+			{
+				if (currentBest.Score.PlayerId != score.PlayerId)
+				{
+					announcement += $"(Previous #1: [https://{AppSettings.Domain}/u/{currentBest.Score.PlayerId} {currentBest.Username}])";
+				}
+			}
+					
+			announceChannel?.SendMessage(new Message
+			{
+				Sender = player.Username,
+				Content = announcement,
+				Destination = "",
+				SenderId = player.Id
+			});
+		}
 	}
 
 	private static Score ParseScoreData(string[] scoreData, Beatmap beatmap, Player player)

@@ -1,9 +1,7 @@
-﻿using BanchoNET.Models;
-using BanchoNET.Objects;
+﻿using BanchoNET.Objects;
 using BanchoNET.Services;
 using BanchoNET.Utils;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 
 namespace BanchoNET.Controllers.OsuApi;
 
@@ -120,8 +118,7 @@ public partial class OsuController : ControllerBase
 			Field = "password",
 			Messages = ["Password must be 8-32 characters long."]
 		});
-
-		Console.WriteLine($"Check: {check}");
+		
 		if (errors.Count != 0)
 		{
 			return BadRequest(new
