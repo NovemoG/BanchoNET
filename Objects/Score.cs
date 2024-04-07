@@ -32,7 +32,6 @@ public class Score
 	public string ClientChecksum { get; set; }
 	public ClientFlags ClientFlags { get; set; }
 	public DateTime ClientTime { get; set; }
-	public DateTime ServerTime { get; set; }
 	public int TimeElapsed { get; set; }
 	
 	public int LeaderboardPosition { get; set; }
@@ -64,6 +63,6 @@ public class Score
 		ClientChecksum = scoreDto.OnlineChecksum;
 		ClientFlags = (ClientFlags)scoreDto.ClientFlags;
 		TimeElapsed = scoreDto.TimeElapsed;
-		ServerTime = scoreDto.PlayTime;
+		ClientTime = scoreDto.PlayTime;
 	}
 }

@@ -1,4 +1,5 @@
-﻿using BanchoNET.Models.Beatmaps;
+﻿using System.Web;
+using BanchoNET.Models.Beatmaps;
 using BanchoNET.Models.Dtos;
 using BanchoNET.Objects.Beatmaps;
 using BanchoNET.Utils;
@@ -9,6 +10,13 @@ namespace BanchoNET.Services;
 
 public partial class BanchoHandler
 {
+	
+	public async Task<bool> CheckIfMapExistsOnBanchoByFilename(string filename)
+	{
+		var response = await _httpClient.GetAsync($"https://osu.ppy.sh/web/maps/{filename}");
+		return response.Content.Headers.ContentLength > 0;
+	}
+	
 	public async Task<bool> EnsureLocalBeatmapFile(int beatmapId, string beatmapMD5)
 	{
 		//TODO fix saving beatmap file
@@ -18,11 +26,13 @@ public partial class BanchoHandler
 		    !beatmapPath.CheckLocalBeatmapMD5(beatmapMD5))
 		{
 			var response = await _httpClient.GetAsync($"https://old.ppy.sh/osu/{beatmapId}");
-
-			if (!response.IsSuccessStatusCode)
+			if (response.Content.Headers.ContentLength == 0)
 				return false;
-			
-			await response.Content.CopyToAsync(new FileStream(beatmapPath, FileMode.Create));
+
+			await using var fileStream = new FileStream(beatmapPath, FileMode.Create, FileAccess.ReadWrite);
+			await response.Content.CopyToAsync(fileStream);
+
+			// await response.Content.CopyToAsync(new FileStream(beatmapPath, FileMode.Create));
 		}
 		
 		return true;
@@ -39,11 +49,22 @@ public partial class BanchoHandler
 	public async Task<Beatmap?> GetBeatmap(int mapId = -1, int setId = -1, string beatmapMD5 = "")
 	{
 		if (!string.IsNullOrEmpty(beatmapMD5))
-			return await GetBeatmapWithMD5(beatmapMD5, setId);
-		
+		{
+			var map = await GetBeatmapWithMD5(beatmapMD5, setId);
+			if (map != null) return map;
+			return null;
+
+
+			// return await GetBeatmapWithMD5(beatmapMD5, setId);
+		}
+
 		if (mapId > 0)
-			return await GetBeatmapWithId(mapId);
-		
+		{
+			var map = await GetBeatmapWithId(mapId);
+			if (map != null) return map;
+			return null;
+		}
+
 		return null;
 	}
 
@@ -75,8 +96,8 @@ public partial class BanchoHandler
 
 		var beatmapSet = await GetBeatmapSet(setId, mapId);
 
-		if (beatmapSet != null)
-			return beatmapSet.Beatmaps.First(b => b.MD5 == beatmapMD5);
+		//TODO: When user needs update
+		if (beatmapSet != null) return beatmapSet.Beatmaps.FirstOrDefault(b => b.MD5 == beatmapMD5);
 
 		return beatmap;
 	}
@@ -102,7 +123,7 @@ public partial class BanchoHandler
 		var beatmapSet = await GetBeatmapSet(setId, mapId);
 
 		if (beatmapSet != null)
-			return beatmapSet.Beatmaps.First(b => b.MapId == mapId);
+			return beatmapSet.Beatmaps.FirstOrDefault(b => b.MapId == mapId);
 
 		return beatmap;
 	}

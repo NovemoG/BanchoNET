@@ -34,6 +34,12 @@ public partial class OsuController
 		if (player == null)
 			return Unauthorized("auth fail");
 
+		if (_session.IsBeatmapNeedsUpdate(mapMD5))
+		{
+			return Responses.BytesContentResult("1|false");
+
+		}
+		
 		if (_session.IsBeatmapNotSubmitted(mapMD5))
 			return Responses.BytesContentResult("-1|false");
 
@@ -70,6 +76,11 @@ public partial class OsuController
 		var beatmap = await _bancho.GetBeatmap(beatmapMD5: mapMD5, setId: setId);
 		if (beatmap == null)
 		{
+			if (await _bancho.CheckIfMapExistsOnBanchoByFilename(mapFilename))
+			{
+				_session.CacheNeedUpdateBeatmap(mapMD5);
+				return Ok("1|false");
+			}
 			_session.CacheNotSubmittedBeatmap(mapMD5);
 			return Ok("-1|false");
 		}
@@ -131,14 +142,17 @@ public partial class OsuController
 	private static string FormatScore(ScoreDto dto, int position)
 	{
 		var scoreAsPp = dto.Mode >= (byte)GameMode.RelaxStd || AppSettings.SortLeaderboardByPP;
-		
-		return $"{(int)dto.Id}|{dto.Username}|{(int)(scoreAsPp ? dto.PP : dto.Score)}|{dto.MaxCombo}|{dto.Count50}|{dto.Count100}|{dto.Count300}|{dto.Misses}|{dto.Katus}|{dto.Gekis}|{dto.Perfect}|{dto.Mods}|{dto.PlayerId}|{position}|{dto.PlayTime:yyyy-MM-dd HH:mm:ss}|1";	//TODO this tells client whether score has a saved replay
+		return $"{(int)dto.Id}|{dto.Username}|{(int)(scoreAsPp ? dto.PP : dto.Score)}|{dto.MaxCombo}|{dto.Count50}|{dto.Count100}|{dto.Count300}|{dto.Misses}|{dto.Katus}|{dto.Gekis}|{dto.Perfect}|{dto.Mods}|{dto.PlayerId}|{position}|{DateTimeToUnix(dto.PlayTime)}|1";	//TODO this tells client whether score has a saved replay
 	}
 
 	private static string FormatBestScore(Score score, Player player)
 	{
 		var scoreAsPp = score.Mode >= GameMode.RelaxStd || AppSettings.SortLeaderboardByPP;
+		return $"{(int)score.Id}|{player.Username}|{(int)(scoreAsPp ? score.PP : score.TotalScore)}|{score.MaxCombo}|{score.Count50}|{score.Count100}|{score.Count300}|{score.Misses}|{score.Katus}|{score.Gekis}|{score.Perfect}|{(int)score.Mods}|{player.Id}|{score.LeaderboardPosition}|{DateTimeToUnix(score.ClientTime)}|1"; //TODO this tells client whether score has a saved replay
+	}
 
-		return $"{(int)score.Id}|{player.Username}|{(int)(scoreAsPp ? score.PP : score.TotalScore)}|{score.MaxCombo}|{score.Count50}|{score.Count100}|{score.Count300}|{score.Misses}|{score.Katus}|{score.Gekis}|{score.Perfect}|{(int)score.Mods}|{player.Id}|{score.LeaderboardPosition}|{score.ServerTime:yyyy-MM-dd HH:mm:ss}|1"; //TODO this tells client whether score has a saved replay
+	private static long DateTimeToUnix(DateTime dateTime)
+	{
+		return new DateTimeOffset(dateTime.ToUniversalTime()).ToUnixTimeSeconds();
 	}
 }

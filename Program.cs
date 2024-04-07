@@ -134,7 +134,7 @@ public class Program
 			
 			stopwatch.Stop();
 			//TODO some fancy coloring
-			Console.WriteLine($"[{context.Request.Method} {context.Response.StatusCode}]\t{context.Request.Host}{context.Request.Path} | Request took: {stopwatch.Elapsed.Microseconds}μs");
+			Console.WriteLine($"[{context.Request.Method} {context.Response.StatusCode}]\t{context.Request.Host}{context.Request.Path} | Request took: {stopwatch.Elapsed.Milliseconds}ms {stopwatch.Elapsed.Microseconds}μs");
 		});
 
 		#region Initialization

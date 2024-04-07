@@ -33,7 +33,6 @@
     <ItemGroup>
       <Folder Include="Cache\" />
       <Folder Include="Logger\" />
-      <Folder Include="Migrations\" />
     </ItemGroup>
 
     <ItemGroup>

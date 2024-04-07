@@ -35,7 +35,6 @@ public static class ULEB128
 	{
 		if (number == 0)
 		{
-			Console.WriteLine();
 			bw.Write((byte)0);
 			return;
 		}

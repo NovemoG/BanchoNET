@@ -47,6 +47,7 @@ public sealed class BanchoSession
 	private readonly ConcurrentDictionary<string, Beatmap> _beatmapMD5Cache = [];
 	private readonly ConcurrentDictionary<int, Beatmap> _beatmapIdCache = [];
 	private readonly List<string> _notSubmittedBeatmaps = [];
+	private readonly List<string> _needUpdateBeatmaps = [];
 
 	#endregion
 	
@@ -288,6 +289,18 @@ public sealed class BanchoSession
 		Console.WriteLine("[BanchoSession] Checking not submitted beatmaps for matching MD5");
 		
 		_notSubmittedBeatmaps.Add(beatmapMD5);
+	}
+	
+	public bool IsBeatmapNeedsUpdate(string beatmapMD5)
+	{
+		return _needUpdateBeatmaps.Contains(beatmapMD5);
+	}
+	
+	public void CacheNeedUpdateBeatmap(string beatmapMD5)
+	{
+		Console.WriteLine("[BanchoSession] Checking beatmaps which need update for matching MD5");
+		
+		_needUpdateBeatmaps.Add(beatmapMD5);
 	}
 
 	public void EnqueueToPlayers(byte[] data)

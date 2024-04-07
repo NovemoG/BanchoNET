@@ -30,7 +30,7 @@ public partial class BanchoHandler
 			Grade = (byte)score.Grade,
 			Status = (byte)score.Status,
 			Mode = (byte)score.Mode,
-			PlayTime = score.ServerTime,
+			PlayTime = score.ClientTime,
 			TimeElapsed = score.TimeElapsed,
 			ClientFlags = (int)score.ClientFlags,
 			PlayerId = score.PlayerId,
@@ -131,16 +131,25 @@ public partial class BanchoHandler
 		bool withMods,
 		Mods mods = Mods.None)
 	{
-		score.LeaderboardPosition =
-			await _dbContext.Scores.Join(_dbContext.Players, u => u.PlayerId, s => s.Id, (s, u) => new { u, s })
-			                .CountAsync(j => j.s.BeatmapMD5 == beatmap.MD5 &&
-			                                 beatmap.Mode == score.Mode &&
-			                                 (OrderByPp(score.Mode)
-				                                 ? score.PP < j.s.PP
-				                                 : score.TotalScore < j.s.Score) &&
-			                                 score.Status == SubmissionStatus.Best &&
-			                                 (j.u.Privileges & 1) == 1 &&
-			                                 (!withMods || j.s.Mods == (int)mods)) + 1;
+		score.LeaderboardPosition = await _dbContext.Scores
+			.Join(_dbContext.Players,
+				s => s.PlayerId,
+				u => u.Id,
+				(s, u) => new { s, u })
+			.Where(j => j.s.BeatmapMD5 == beatmap.MD5 &&
+			            j.s.Mode == (byte)score.Mode &&
+			            (withMods 
+				            ? j.s.Status > 0
+				            : j.s.Status == (byte)SubmissionStatus.Best) &&
+			            (j.u.Privileges & 1) == 1 &&
+			            (!withMods || j.s.Mods == (int)mods) &&
+			            (OrderByPp(score.Mode)
+				            ? score.PP < j.s.PP
+				            : score.TotalScore < j.s.Score))
+			.GroupBy(j=> j.s.PlayerId)
+			.Select(g => g.First())
+			.CountAsync() + 1;
+
 	}
 	
 	public async Task<List<ScoreDto>> GetBeatmapLeaderboard(
@@ -157,81 +166,19 @@ public partial class BanchoHandler
 		
 		var withFriendsList = type == LeaderboardType.Friends;
 		var friendIds = withFriendsList ? player.Friends.ToHashSet() : [];
-		
-		return await _dbContext.Scores.Join(_dbContext.Players, u => u.PlayerId, s => s.Id, (s, u) => new { u, s })
-		                       .Where(j => j.s.BeatmapMD5 == beatmapMD5 &&
-		                                   j.s.Mode == (byte)mode &&
-		                                   (withMods ?
-			                                   j.s.Status > 0 :
-			                                   j.s.Status == (byte)SubmissionStatus.Best) &&
-		                                   (j.u.Privileges & 1) == 1 &&
-		                                   (!withMods || j.s.Mods == (int)mods) &&
-		                                   (!isCountry || j.u.Country == countryCode) &&
-		                                   (!withFriendsList || friendIds.Contains(j.s.PlayerId)))
-		                       .OrderByDescending(j => OrderByPp(mode) ? j.s.PP : j.s.Score)
-		                       .Take(AppSettings.ScoresOnLeaderboard)
-		                       .Select(j => j.s)
-		                       .ToListAsync();
-	}
-	
-	private async Task<List<ScoreDto>> GetBeatmapTopLeaderboard(string beatmapMD5, GameMode mode)
-	{
-		return await _dbContext.Scores.Join(_dbContext.Players, u => u.PlayerId, s => s.Id, (s, u) => new { u, s })
-		                       .Where(j => j.s.BeatmapMD5 == beatmapMD5 &&
-		                                   j.s.Mode == (byte)mode &&
-		                                   j.s.Status == (byte)SubmissionStatus.Best &&
-		                                   (j.u.Privileges & 1) == 1)
-		                       .OrderByDescending(j => OrderByPp(mode) ? j.s.PP : j.s.Score)
-		                       .Take(AppSettings.ScoresOnLeaderboard)
-		                       .Select(j => j.s)
-		                       .ToListAsync();
-	}
-	
-	private async Task<List<ScoreDto>> GetBeatmapCountryLeaderboard(string beatmapMD5, GameMode mode, Player player)
-	{
-		var countryCode = player.Geoloc.Country.Acronym;
-		
-		return await _dbContext.Scores.Join(_dbContext.Players, u => u.PlayerId, s => s.Id, (s, u) => new { u, s })
-		                       .Where(j => j.s.BeatmapMD5 == beatmapMD5 &&
-		                                   j.s.Mode == (byte)mode &&
-		                                   j.s.Status == (byte)SubmissionStatus.Best &&
-		                                   (j.u.Privileges & 1) == 1 &&
-		                                   j.u.Country == countryCode)
-		                       .OrderByDescending(j => OrderByPp(mode) ? j.s.PP : j.s.Score)
-		                       .Take(AppSettings.ScoresOnLeaderboard)
-		                       .Select(j => j.s)
-		                       .ToListAsync();
-	}
 
-	private async Task<List<ScoreDto>> GetBeatmapModsLeaderboard(string beatmapMD5, GameMode mode, Mods mods)
-	{
-		return await _dbContext.Scores.Join(_dbContext.Players, u => u.PlayerId, s => s.Id, (s, u) => new { u, s })
-		                       .Where(j => j.s.BeatmapMD5 == beatmapMD5 &&
-		                                   j.s.Mode == (byte)mode &&
-		                                   j.s.Status != (byte)SubmissionStatus.Failed &&
-		                                   (j.u.Privileges & 1) == 1 &&
-		                                   j.s.Mods == (int)mods)
-		                       .OrderByDescending(j => OrderByPp(mode) ? j.s.PP : j.s.Score)
-		                       .Take(AppSettings.ScoresOnLeaderboard)
-		                       .Select(j => j.s)
-		                       .ToListAsync();
-	}
-	
-	private async Task<List<ScoreDto>> GetBeatmapFriendsLeaderboard(string beatmapMD5, GameMode mode, Player player)
-	{
-		//TODO add support for mods in this query
+		return (await _dbContext.Scores.Join(_dbContext.Players, u => u.PlayerId, s => s.Id, (s, u) => new { u, s })
+				.Where(j => j.s.BeatmapMD5 == beatmapMD5 &&
+				            j.s.Mode == (byte)mode &&
+				            (withMods ? j.s.Status > 0 : j.s.Status == (byte)SubmissionStatus.Best) &&
+				            (j.u.Privileges & 1) == 1 &&
+				            (!withMods || j.s.Mods == (int)mods) &&
+				            (!isCountry || j.u.Country == countryCode) &&
+				            (!withFriendsList || friendIds.Contains(j.s.PlayerId)))
+				.GroupBy(g => g.u.Username).ToListAsync())
+			.Select(g => g.OrderByDescending(j => OrderByPp(mode) ? j.s.PP : j.s.Score).First())
+			.Select(j => j.s).ToList();
 		
-		var friendIds = player.Friends.ToHashSet();
-		
-		return await _dbContext.Scores.Join(_dbContext.Players, u => u.PlayerId, s => s.Id, (s, u) => new { u, s })
-		                       .Where(j => j.s.BeatmapMD5 == beatmapMD5 &&
-		                                   j.s.Mode == (byte)mode &&
-		                                   j.s.Status == (byte)SubmissionStatus.Best &&
-		                                   (j.u.Privileges & 1) == 1 &&
-		                                   friendIds.Contains(j.s.PlayerId))
-		                       .OrderByDescending(j => OrderByPp(mode) ? j.s.PP : j.s.Score)
-		                       .Take(AppSettings.ScoresOnLeaderboard)
-		                       .Select(j => j.s)
-		                       .ToListAsync();
+		//TODO: dont know if this is good solution
 	}
 }
