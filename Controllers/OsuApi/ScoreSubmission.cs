@@ -119,12 +119,12 @@ public partial class OsuController
 
 			if (score.Passed)
 			{
-				var prevBest = await _bancho.GetPlayerBestScore(player, beatmapMD5, score.Mode);
+				var prevBest = await _bancho.GetPlayerBestScoreOnMap(player, beatmapMD5, score.Mode);
 				
-				score.ComputeSubmissionStatus(prevBest, AppSettings.SubmitByPP);
+				score.ComputeSubmissionStatus(prevBest);
 
 				if (beatmap.Status != BeatmapStatus.LatestPending)
-					await _bancho.SetScoreLeaderboardPosition(beatmap, score, AppSettings.SortLeaderboardByPP);
+					await _bancho.SetScoreLeaderboardPosition(beatmap, score, false);
 			}
 			else
 				score.Status = SubmissionStatus.Failed;
@@ -172,6 +172,7 @@ public partial class OsuController
 			await _bancho.UpdatePlayerBestScoreOnMap(beatmap, score);
 		}
 
+		score.Player = player;
 		await _bancho.InsertScore(score);
 
 		if (score.Passed)
@@ -265,7 +266,7 @@ public partial class OsuController
 				"chartId:beatmap",
 				$"chartUrl:{beatmap.Set?.Url()}",
 				"chartName:Beatmap Ranking",
-				ChartEntry("rank", previousBest?.LeaderboardPosition, score.LeaderboardPosition),
+				ChartEntry("rank", previousBest?.LeaderboardPosition, score.LeaderboardPosition), //TODO 'new!' every time
 				ChartEntry("rankedScore", previousBest?.TotalScore, score.TotalScore),
 				ChartEntry("totalScore", previousBest?.TotalScore, score.TotalScore),
 				ChartEntry("maxCombo", previousBest?.MaxCombo, score.MaxCombo),
@@ -276,7 +277,7 @@ public partial class OsuController
 				$"onlineScoreId:{score.Id}",
 				"\n",
 				"chartId:overall",
-				$"chartUrl:https://{AppSettings.CommandPrefix}/u/{player.Id}",
+				$"chartUrl:https://{AppSettings.Domain}/u/{player.Id}",
 				"chartName:Overall Ranking",
 				ChartEntry("rank", prevStats.Rank, stats.Rank),
 				ChartEntry("rankedScore", prevStats.RankedScore, stats.RankedScore),
@@ -299,8 +300,8 @@ public partial class OsuController
 			
 			response = string.Join("|", submissionCharts);
 		}
-		
-		return new FileContentResult(Encoding.UTF8.GetBytes(response), "application/octet-stream; charset=UTF-8");
+
+		return Responses.BytesContentResult(response);
 	}
 
 	private async Task AnnounceNewFirstScore(Score score, Player player, Beatmap beatmap)
@@ -310,14 +311,14 @@ public partial class OsuController
 			var announceChannel = _session.GetChannel("#announce");
 			var announcement = $@"\x01ACTION achieved #1 on {beatmap.Embed} with {score.Acc:F2}% and {score.PP}pp.";
 			
-			var currentBest = await _bancho.GetBestBeatmapScore(beatmap, score.Mode, AppSettings.SortLeaderboardByPP);
+			var currentBest = await _bancho.GetBestBeatmapScore(beatmap, score.Mode);
 					
 			if (score.Mods > 0)
 				announcement = announcement.Insert(0, $"+{score.Mods}");
 
-			if (currentBest.Score != null)
-				if (currentBest.Score.PlayerId != score.PlayerId)
-					announcement += $"(Previous #1: [https://{AppSettings.Domain}/u/{currentBest.Score.PlayerId} {currentBest.Username}])";
+			if (currentBest != null)
+				if (currentBest.PlayerId != score.PlayerId)
+					announcement += $"(Previous #1: [https://{AppSettings.Domain}/u/{currentBest.PlayerId} {currentBest.Username}])";
 					
 			announceChannel?.SendMessage(new Message
 			{

@@ -33,7 +33,11 @@ public class OsuVersionService
             var response = await _client.GetAsync($"{OsuApiV2ChangelogUrl}?stream={clientStream.Key}");
             response.EnsureSuccessStatusCode();
 
-            var changelog = JsonConvert.DeserializeObject<ClientBuildVersions>(await response.Content.ReadAsStringAsync());
+            var content = await response.Content.ReadAsStringAsync();
+            
+            if (content.IsValidResponse()) continue;
+            
+            var changelog = JsonConvert.DeserializeObject<ClientBuildVersions>(content);
             foreach (var build in changelog.Builds)
             {
                 _streams[clientStream.Key] = new OsuVersion

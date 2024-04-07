@@ -28,7 +28,7 @@ public sealed class BanchoSession
 	{
 		[1] = new Player(new PlayerDto { Id = 1 })
 		{
-			Username = "Nyzrum Bot", //TODO laod from config/db
+			Username = AppSettings.BanchoBotName, //TODO laod from config/db
 			LastActivityTime = DateTime.MaxValue,
 			Privileges = Privileges.Verified | Privileges.Staff,
 		}
@@ -40,10 +40,15 @@ public sealed class BanchoSession
 	
 	private readonly ConcurrentDictionary<string, string> _passwordHashes = [];
 	private readonly ConcurrentDictionary<string, IPAddress> _ipCache = [];
-	
+
+	#region Beatmaps
+
 	private readonly ConcurrentDictionary<int, BeatmapSet> _beatmapSetsCache = [];
 	private readonly ConcurrentDictionary<string, Beatmap> _beatmapMD5Cache = [];
 	private readonly ConcurrentDictionary<int, Beatmap> _beatmapIdCache = [];
+	private readonly List<string> _notSubmittedBeatmaps = [];
+
+	#endregion
 	
 	#region Channels
 
@@ -256,7 +261,7 @@ public sealed class BanchoSession
 
 	public void CacheBeatmapSet(BeatmapSet set)
 	{
-		Console.WriteLine("[BanchoSession] Caching beatmap set");
+		Console.WriteLine($"[BanchoSession] Caching beatmap set with id: {set.Id}");
 		
 		_beatmapSetsCache.TryGetValue(set.Id, out var currentSet);
 
@@ -271,6 +276,18 @@ public sealed class BanchoSession
 			_beatmapMD5Cache.TryAdd(beatmap.MD5, beatmap);
 			_beatmapIdCache.AddOrUpdate(beatmap.MapId, beatmap, (_, _) => beatmap);
 		}
+	}
+
+	public bool IsBeatmapNotSubmitted(string beatmapMD5)
+	{
+		return _notSubmittedBeatmaps.Contains(beatmapMD5);
+	}
+	
+	public void CacheNotSubmittedBeatmap(string beatmapMD5)
+	{
+		Console.WriteLine("[BanchoSession] Checking not submitted beatmaps for matching MD5");
+		
+		_notSubmittedBeatmaps.Add(beatmapMD5);
 	}
 
 	public void EnqueueToPlayers(byte[] data)

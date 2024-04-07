@@ -2,12 +2,15 @@
 using BanchoNET.Objects;
 using BanchoNET.Objects.Beatmaps;
 using BanchoNET.Objects.Players;
+using BanchoNET.Utils;
 using Microsoft.EntityFrameworkCore;
 
 namespace BanchoNET.Services;
 
 public partial class BanchoHandler
 {
+	private static bool OrderByPp(GameMode mode) => mode >= GameMode.RelaxStd || AppSettings.SortLeaderboardByPP;
+	
 	public async Task InsertScore(Score score)
 	{
 		var dbScore = await _dbContext.Scores.AddAsync(new ScoreDto
@@ -31,6 +34,7 @@ public partial class BanchoHandler
 			TimeElapsed = score.TimeElapsed,
 			ClientFlags = (int)score.ClientFlags,
 			PlayerId = score.PlayerId,
+			Username = score.Player.Username,
 			Perfect = score.Perfect,
 			OnlineChecksum = score.ClientChecksum
 		});
@@ -50,16 +54,52 @@ public partial class BanchoHandler
 		return null;
 	}
 
-	public async Task<Score?> GetPlayerBestScore(Player player, string beatmapMD5, GameMode mode)
+	public async Task<Score?> GetPlayerBestScoreOnMap(
+		Player player,
+		string beatmapMD5,
+		GameMode mode)
 	{
-		var score = await _dbContext.Scores
-            .Where(s => s.PlayerId == player.Id && 
-                        s.BeatmapMD5 == beatmapMD5 &&
-                        s.Mode == (byte)mode && 
-                        s.Status == (byte)SubmissionStatus.Best)
-            .FirstOrDefaultAsync();
+		var score = await _dbContext.Scores.FirstOrDefaultAsync(
+			s => s.PlayerId == player.Id &&
+			     s.BeatmapMD5 == beatmapMD5 &&
+			     s.Mode == (byte)mode &&
+			     s.Status == (byte)SubmissionStatus.Best);
 
 		return score == null ? null : new Score(score);
+	}
+	
+	public async Task<Score?> GetPlayerBestScoreOnLeaderboard(
+		Player player,
+		Beatmap beatmap,
+		GameMode mode,
+		bool withMods,
+		Mods mods = Mods.None)
+	{
+		Score? score;
+		if (withMods)
+		{
+			var result = await _dbContext.Scores.Where(s => s.BeatmapMD5 == beatmap.MD5 &&
+			                                   s.Mode == (byte)mode &&
+			                                   s.Status > 0 &&
+			                                   s.PlayerId == player.Id &&
+			                                   s.Mods == (int)mods)
+			                .OrderByDescending(s => OrderByPp(mode) ? s.PP : s.Score)
+			                .FirstOrDefaultAsync();
+
+			if (result == null) return null;
+			
+			score = new Score(result);
+		}
+		else
+		{
+			score = await GetPlayerBestScoreOnMap(player, beatmap.MD5, mode);
+
+			if (score == null) return null;
+		}
+
+		await SetScoreLeaderboardPosition(beatmap, score, withMods, mods);
+		
+		return score;
 	}
 
 	public async Task UpdatePlayerBestScoreOnMap(Beatmap beatmap, Score score)
@@ -72,69 +112,126 @@ public partial class BanchoHandler
 			                       s.SetProperty(u => u.Status, (byte)SubmissionStatus.Submitted));
 	}
 
-	public async Task<(ScoreDto? Score, string Username)> GetBestBeatmapScore(Beatmap beatmap, GameMode mode, bool leaderboardByPP)
+	public async Task<ScoreDto?> GetBestBeatmapScore(Beatmap beatmap, GameMode mode)
 	{
-		return mode >= GameMode.RelaxStd
-			? await GetBestBeatmapScorePp(beatmap, mode)
-			: leaderboardByPP
-				? await GetBestBeatmapScorePp(beatmap, mode)
-				: await GetBestBeatmapScoreScore(beatmap, mode);
-	}
-	
-	private async Task<(ScoreDto?, string)> GetBestBeatmapScorePp(Beatmap beatmap, GameMode mode)
-	{
-		var result = await _dbContext.Scores.Join(_dbContext.Players, u => u.PlayerId, s => s.Id, (s, u) => new { u, s })
-		                             .Where(j => j.s.BeatmapMD5 == beatmap.MD5 &&
-		                                         j.s.Mode == (byte)mode &&
-		                                         j.s.Status == (byte)SubmissionStatus.Best &&
-		                                         (j.u.Privileges & 1) == 1)
-		                             .OrderByDescending(j => j.s.Score)
-		                             .Take(1)
-		                             .FirstOrDefaultAsync();
-
-		return result == null ? (null, "") : (result.s, result.u.Username);
-	}
-	
-	private async Task<(ScoreDto?, string)> GetBestBeatmapScoreScore(Beatmap beatmap, GameMode mode)
-	{
-		var result = await _dbContext.Scores.Join(_dbContext.Players, u => u.PlayerId, s => s.Id, (s, u) => new { u, s })
+		return await _dbContext.Scores.Join(_dbContext.Players, u => u.PlayerId, s => s.Id, (s, u) => new { u, s })
 		                       .Where(j => j.s.BeatmapMD5 == beatmap.MD5 &&
 		                                   j.s.Mode == (byte)mode &&
 		                                   j.s.Status == (byte)SubmissionStatus.Best &&
 		                                   (j.u.Privileges & 1) == 1)
-		                       .OrderByDescending(j => j.s.Score)
-		                       .Take(1)
+		                       .OrderByDescending(j => OrderByPp(mode) ? j.s.PP : j.s.Score)
+		                       .Select(j => j.s)
 		                       .FirstOrDefaultAsync();
-		
-		return result == null ? (null, "") : (result.s, result.u.Username);
 	}
 
-	public async Task SetScoreLeaderboardPosition(Beatmap beatmap, Score score, bool leaderboardByPP)
+	//TODO does not work correctly
+	public async Task SetScoreLeaderboardPosition(
+		Beatmap beatmap,
+		Score score,
+		bool withMods,
+		Mods mods = Mods.None)
 	{
-		score.LeaderboardPosition = score.Mode >= GameMode.RelaxStd
-			? await LeaderboardPositionPp(beatmap, score)
-			: leaderboardByPP
-				? await LeaderboardPositionPp(beatmap, score)
-				: await LeaderboardPositionScore(beatmap, score);
+		score.LeaderboardPosition =
+			await _dbContext.Scores.Join(_dbContext.Players, u => u.PlayerId, s => s.Id, (s, u) => new { u, s })
+			                .CountAsync(j => j.s.BeatmapMD5 == beatmap.MD5 &&
+			                                 beatmap.Mode == score.Mode &&
+			                                 (OrderByPp(score.Mode)
+				                                 ? score.PP < j.s.PP
+				                                 : score.TotalScore < j.s.Score) &&
+			                                 score.Status == SubmissionStatus.Best &&
+			                                 (j.u.Privileges & 1) == 1 &&
+			                                 (!withMods || j.s.Mods == (int)mods)) + 1;
 	}
 	
-	private async Task<int> LeaderboardPositionPp(Beatmap beatmap, Score score)
+	public async Task<List<ScoreDto>> GetBeatmapLeaderboard(
+		string beatmapMD5,
+		GameMode mode,
+		LeaderboardType type,
+		Mods mods,
+		Player player)
+	{
+		var isCountry = type == LeaderboardType.Country;
+		var countryCode = player.Geoloc.Country.Acronym;
+		
+		var withMods = type is LeaderboardType.Mods or LeaderboardType.CountryMods or LeaderboardType.FriendsMods;
+		
+		var withFriendsList = type == LeaderboardType.Friends;
+		var friendIds = withFriendsList ? player.Friends.ToHashSet() : [];
+		
+		return await _dbContext.Scores.Join(_dbContext.Players, u => u.PlayerId, s => s.Id, (s, u) => new { u, s })
+		                       .Where(j => j.s.BeatmapMD5 == beatmapMD5 &&
+		                                   j.s.Mode == (byte)mode &&
+		                                   (withMods ?
+			                                   j.s.Status > 0 :
+			                                   j.s.Status == (byte)SubmissionStatus.Best) &&
+		                                   (j.u.Privileges & 1) == 1 &&
+		                                   (!withMods || j.s.Mods == (int)mods) &&
+		                                   (!isCountry || j.u.Country == countryCode) &&
+		                                   (!withFriendsList || friendIds.Contains(j.s.PlayerId)))
+		                       .OrderByDescending(j => OrderByPp(mode) ? j.s.PP : j.s.Score)
+		                       .Take(AppSettings.ScoresOnLeaderboard)
+		                       .Select(j => j.s)
+		                       .ToListAsync();
+	}
+	
+	private async Task<List<ScoreDto>> GetBeatmapTopLeaderboard(string beatmapMD5, GameMode mode)
 	{
 		return await _dbContext.Scores.Join(_dbContext.Players, u => u.PlayerId, s => s.Id, (s, u) => new { u, s })
-		                       .CountAsync(j => j.s.BeatmapMD5 == beatmap.MD5 &&
-		                                        beatmap.Mode == score.Mode &&
-		                                        score.PP < j.s.PP &&
-		                                        score.Status == SubmissionStatus.Best &&
-		                                        (j.u.Privileges & 1) == 1) + 1;
+		                       .Where(j => j.s.BeatmapMD5 == beatmapMD5 &&
+		                                   j.s.Mode == (byte)mode &&
+		                                   j.s.Status == (byte)SubmissionStatus.Best &&
+		                                   (j.u.Privileges & 1) == 1)
+		                       .OrderByDescending(j => OrderByPp(mode) ? j.s.PP : j.s.Score)
+		                       .Take(AppSettings.ScoresOnLeaderboard)
+		                       .Select(j => j.s)
+		                       .ToListAsync();
+	}
+	
+	private async Task<List<ScoreDto>> GetBeatmapCountryLeaderboard(string beatmapMD5, GameMode mode, Player player)
+	{
+		var countryCode = player.Geoloc.Country.Acronym;
+		
+		return await _dbContext.Scores.Join(_dbContext.Players, u => u.PlayerId, s => s.Id, (s, u) => new { u, s })
+		                       .Where(j => j.s.BeatmapMD5 == beatmapMD5 &&
+		                                   j.s.Mode == (byte)mode &&
+		                                   j.s.Status == (byte)SubmissionStatus.Best &&
+		                                   (j.u.Privileges & 1) == 1 &&
+		                                   j.u.Country == countryCode)
+		                       .OrderByDescending(j => OrderByPp(mode) ? j.s.PP : j.s.Score)
+		                       .Take(AppSettings.ScoresOnLeaderboard)
+		                       .Select(j => j.s)
+		                       .ToListAsync();
 	}
 
-	private async Task<int> LeaderboardPositionScore(Beatmap beatmap, Score score)
+	private async Task<List<ScoreDto>> GetBeatmapModsLeaderboard(string beatmapMD5, GameMode mode, Mods mods)
 	{
 		return await _dbContext.Scores.Join(_dbContext.Players, u => u.PlayerId, s => s.Id, (s, u) => new { u, s })
-		                       .CountAsync(j => j.s.BeatmapMD5 == beatmap.MD5 &&
-		                                        beatmap.Mode == score.Mode &&
-		                                        score.TotalScore < j.s.Score &&
-		                                        score.Status == SubmissionStatus.Best &&
-		                                        (j.u.Privileges & 1) == 1) + 1;
+		                       .Where(j => j.s.BeatmapMD5 == beatmapMD5 &&
+		                                   j.s.Mode == (byte)mode &&
+		                                   j.s.Status != (byte)SubmissionStatus.Failed &&
+		                                   (j.u.Privileges & 1) == 1 &&
+		                                   j.s.Mods == (int)mods)
+		                       .OrderByDescending(j => OrderByPp(mode) ? j.s.PP : j.s.Score)
+		                       .Take(AppSettings.ScoresOnLeaderboard)
+		                       .Select(j => j.s)
+		                       .ToListAsync();
+	}
+	
+	private async Task<List<ScoreDto>> GetBeatmapFriendsLeaderboard(string beatmapMD5, GameMode mode, Player player)
+	{
+		//TODO add support for mods in this query
+		
+		var friendIds = player.Friends.ToHashSet();
+		
+		return await _dbContext.Scores.Join(_dbContext.Players, u => u.PlayerId, s => s.Id, (s, u) => new { u, s })
+		                       .Where(j => j.s.BeatmapMD5 == beatmapMD5 &&
+		                                   j.s.Mode == (byte)mode &&
+		                                   j.s.Status == (byte)SubmissionStatus.Best &&
+		                                   (j.u.Privileges & 1) == 1 &&
+		                                   friendIds.Contains(j.s.PlayerId))
+		                       .OrderByDescending(j => OrderByPp(mode) ? j.s.PP : j.s.Score)
+		                       .Take(AppSettings.ScoresOnLeaderboard)
+		                       .Select(j => j.s)
+		                       .ToListAsync();
 	}
 }

@@ -11,6 +11,8 @@ public class ScoreDto
 	public long Id { get; set; }
 	[Key, ForeignKey("Player")]
 	public int PlayerId { get; set; }
+	[MaxLength(16), Unicode(false)]
+	public string Username { get; set; }
 	
 	[Column(TypeName = "CHAR(32)"), Unicode(false)]
 	public string BeatmapMD5 { get; set; }

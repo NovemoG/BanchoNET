@@ -1,6 +1,7 @@
 ﻿using BanchoNET.Models;
 using BanchoNET.Packets;
 using BanchoNET.Services;
+using BanchoNET.Utils;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
@@ -41,8 +42,8 @@ public partial class ChoController : ControllerBase
 		}
 		
 		await _bancho.ReadPackets(Request.Body, player);
-		
-		return new FileContentResult(player.Dequeue(), "application/octet-stream; charset=UTF-8");
+
+		return Responses.BytesContentResult(player.Dequeue());
 	}
 
 	[HttpGet("/")]

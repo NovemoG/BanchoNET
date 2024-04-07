@@ -11,6 +11,7 @@ public partial class BanchoHandler
 {
 	public async Task<bool> EnsureLocalBeatmapFile(int beatmapId, string beatmapMD5)
 	{
+		//TODO fix saving beatmap file
 		var beatmapPath = Storage.GetBeatmapPath(beatmapId);
 
 		if (!File.Exists(beatmapPath) ||
@@ -165,8 +166,8 @@ public partial class BanchoHandler
 
 		var response = await _httpClient.GetAsync(url);
 		var content = await response.Content.ReadAsStringAsync();
-
-		if (response.IsSuccessStatusCode && !string.IsNullOrEmpty(content))
+		
+		if (response.IsSuccessStatusCode && content.IsValidResponse())
 			return osuApiKeyProvided
 				? new Beatmap(JsonConvert.DeserializeObject<List<OsuApiBeatmap>>(content)![0])
 				: new Beatmap(JsonConvert.DeserializeObject<List<ApiBeatmap>>(content)![0]);
@@ -187,7 +188,7 @@ public partial class BanchoHandler
 		var response = await _httpClient.GetAsync(url);
 		var content = await response.Content.ReadAsStringAsync();
 
-		if (response.IsSuccessStatusCode && !string.IsNullOrEmpty(content))
+		if (response.IsSuccessStatusCode && content.IsValidResponse())
 			return osuApiKeyProvided
 				? new BeatmapSet(JsonConvert.DeserializeObject<List<OsuApiBeatmap>>(content)!)
 				: new BeatmapSet(JsonConvert.DeserializeObject<List<ApiBeatmap>>(content)!);
@@ -205,11 +206,14 @@ public partial class BanchoHandler
 			{
 				dbBeatmap = UpdateBeatmapDto(beatmap, dbBeatmap);
 				_dbContext.Update(dbBeatmap);
-				await _dbContext.SaveChangesAsync();
 			}
 			else
+			{
 				await _dbContext.Beatmaps.AddAsync(CreateBeatmapDto(beatmap));
+			}
 		}
+		
+		await _dbContext.SaveChangesAsync();
 	}
 
 	private BeatmapDto CreateBeatmapDto(Beatmap beatmap)

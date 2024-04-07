@@ -151,7 +151,7 @@ public class Program
 		
 		// Even if redis creates snapshots of rankings it isn't
 		// always 100% accurate with database so we need to update
-		// the redis leaderboards on startup
+		// redis leaderboards on startup
 		InitRedis(app.Services.CreateScope());
 		
 		app.Services.GetRequiredService<OsuVersionService>().FetchOsuVersion().Wait();
@@ -174,9 +174,10 @@ public class Program
 			if (i == 7) continue;
 
 			var mode = i;
-			var playersPpModeValues = db.Stats
-			                            .Where(s => s.Mode == mode)
-			                            .Select(s => new SortedSetEntry(s.PlayerId, s.PP))
+			var playersPpModeValues = db.Stats.Join(db.Players, u => u.PlayerId, s => s.Id, (s, u) => new { u, s })
+			                            .Where(j => j.s.Mode == mode &&
+			                                        (j.u.Privileges & 1) == 1)
+			                            .Select(j => new SortedSetEntry(j.s.PlayerId, j.s.PP))
 			                            .ToArray();
 
 			redis.SortedSetAdd($"bancho:leaderboard:{mode}", playersPpModeValues);

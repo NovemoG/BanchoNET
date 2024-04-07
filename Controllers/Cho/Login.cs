@@ -186,7 +186,7 @@ public partial class ChoController
 
 		loginPackets.ProtocolVersion(19);
 		loginPackets.PlayerId(player.Id);
-		loginPackets.BanchoPrivileges((int)player.ToBanchoPrivileges());
+		loginPackets.BanchoPrivileges((int)(player.ToBanchoPrivileges() | ClientPrivileges.Supporter));
 		loginPackets.Notification(_messages.WelcomeMessage + AppSettings.BanchoNETVersion);
 		loginPackets.ChannelInfo(_session.GetAutoJoinChannels(player));
 		loginPackets.ChannelInfoEnd();
