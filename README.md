@@ -82,18 +82,7 @@ server {
 
 server {
         listen 443 ssl;
-        server_name c.DOMAIN;
-
-        location / {
-                proxy_pass https://0.0.0.0:5000;
-                proxy_set_header Host $host;
-                proxy_set_header X-Real-IP $remote_addr;
-                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        }
-}
-server {
-        listen 443 ssl;
-        server_name osu.DOMAIN c4.DOMAIN;
+        server_name osu.DOMAIN c4.DOMAIN c.DOMAIN;
 
         location / {
                 proxy_pass https://0.0.0.0:5000;
