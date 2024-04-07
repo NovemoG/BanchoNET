@@ -5,6 +5,7 @@ using BanchoNET.Objects.Privileges;
 using BanchoNET.Packets;
 using BanchoNET.Utils;
 using Microsoft.EntityFrameworkCore;
+using StackExchange.Redis;
 
 namespace BanchoNET.Services;
 
@@ -73,7 +74,11 @@ public partial class BanchoHandler
 		
 		foreach (var stat in stats)
 		{
-			player.Stats[(GameMode)stat.Mode] = new ModeStats
+			var mode = (GameMode)stat.Mode;
+			
+			await _redis.SortedSetAddAsync($"bancho:leaderboard:{(byte)mode}", player.Id, stat.PP);
+			
+			player.Stats[mode] = new ModeStats
 			{
 				TotalScore = stat.TotalScore,
 				RankedScore = stat.RankedScore,
@@ -83,7 +88,8 @@ public partial class BanchoHandler
 				PlayTime = stat.PlayTime,
 				MaxCombo = stat.MaxCombo,
 				ReplayViews = stat.ReplayViews,
-				Grades = { 
+				Rank = await GetPlayerGlobalRank(mode, player.Id),
+				Grades = {
 					{Grade.XH, stat.XHCount},
 					{Grade.X, stat.XCount},
 					{Grade.SH, stat.SHCount},
@@ -194,7 +200,21 @@ public partial class BanchoHandler
 
 	public async Task UpdatePlayerRank(Player player, GameMode mode)
 	{
-		//TODO
+		var country = player.Geoloc.Country.Acronym;
+		var stats = player.Stats[mode];
+
+		switch (player.Restricted)
+		{
+			case false:
+				await _redis.SortedSetAddAsync($"bancho:leaderboard:{(byte)mode}", player.Id, stats.PP);
+				await _redis.SortedSetAddAsync($"bancho:leaderboard:{(byte)mode}:{country}", player.Id, stats.PP);
+				break;
+			case true:
+				stats.Rank = 0;
+				return;
+		}
+
+		stats.Rank = await GetPlayerGlobalRank(mode, player.Id);
 	}
 	
 	public async Task CreatePlayer(string name, string email, string pwdHash, string country)
@@ -229,5 +249,10 @@ public partial class BanchoHandler
 
 		await _dbContext.Stats.AddRangeAsync(scoreDtos);
 		await _dbContext.SaveChangesAsync();
+	}
+
+	private async Task<int> GetPlayerGlobalRank(GameMode mode, int playerId)
+	{
+		return (int)(await _redis.SortedSetRankAsync($"bancho:leaderboard:{(byte)mode}", playerId, Order.Descending))! + 1;
 	}
 }

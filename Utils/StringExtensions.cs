@@ -13,6 +13,11 @@ public static class StringExtensions
 		return name.Replace(" ", "_").ToLower();
 	}
 
+	public static bool IsValidResponse(this string content)
+	{
+		return content.Length > 2;
+	}
+	
 	public static string SplitNumber(this int number)
 	{
 		if (number < 1000) return number.ToString();

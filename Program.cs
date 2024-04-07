@@ -1,10 +1,13 @@
+using System.Diagnostics;
 using BanchoNET.Models;
+using BanchoNET.Objects;
 using BanchoNET.Services;
 using BanchoNET.Utils;
 using dotenv.net;
 using Hangfire;
 using Hangfire.MySql;
 using Microsoft.EntityFrameworkCore;
+using StackExchange.Redis;
 using static System.Data.IsolationLevel;
 using IsolationLevel = System.Transactions.IsolationLevel;
 
@@ -15,8 +18,24 @@ public class Program
 	public static void Main(string[] args)
 	{
 		var builder = WebApplication.CreateBuilder(args);
-
 		var messages = builder.Configuration.GetSection("messages");
+		
+		DotEnv.Load(); // Load .env when non dockerized
+
+		#region Domain Check
+
+		var domain = AppSettings.Domain;
+		if (string.IsNullOrEmpty(domain))
+		{
+			Console.ForegroundColor = ConsoleColor.Red;
+			Console.WriteLine("[Init] Please set the DOMAIN environment variable.");
+			Console.ForegroundColor = ConsoleColor.White;
+			return;
+		}
+
+		#endregion
+
+		#region Environment Variables Initialization
 
 		var requiredEnvVars = new[]
 		{
@@ -31,12 +50,12 @@ public class Program
 			"REDIS_HOST",
 			"REDIS_PORT",
 		};
-		DotEnv.Load(); // Load .env when non dockerized
+		
 		var missing = false;
 		foreach (var requiredEnvVar in requiredEnvVars)
 		{
 			if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable(requiredEnvVar))) continue;
-			Console.WriteLine($"Missing environment variable: {requiredEnvVar}");
+			Console.WriteLine($"[Init] Missing environment variable: {requiredEnvVar}");
 			missing = true;
 		}
 		if (missing) return;
@@ -64,9 +83,10 @@ public class Program
 		var hangfireConnectionString = 
 			$"server={dbConnections.HangfireHost};port={dbConnections.HangfirePort};user={dbConnections.HangfireUser};database={dbConnections.HangfireDb};Allow User Variables=True";
 		
-		// Didnt know is this correct
 		var redisConnectionString = 
 			$"{dbConnections.RedisHost}:{dbConnections.RedisPort},password={dbConnections.RedisPass}";
+		
+		#endregion
 			
 		builder.Services.AddHangfire(config =>
 		{
@@ -84,8 +104,9 @@ public class Program
 		builder.Services.AddEndpointsApiExplorer();
 		builder.Services.AddAuthorization();
 		builder.Services.AddControllers();
-
+		
 		builder.Services.Configure<Messages>(messages);
+		builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConnectionString));
 		builder.Services.AddSingleton<OsuVersionService>();
 		builder.Services.AddDbContext<BanchoDbContext>(options =>
 		{
@@ -106,17 +127,18 @@ public class Program
 		{
 			context.Response.ApplyHeaders();
 			
+			var stopwatch = new Stopwatch();
+			stopwatch.Start();
+			
 			await next(context);
+			
+			stopwatch.Stop();
+			//TODO some fancy coloring
+			Console.WriteLine($"[{context.Request.Method} {context.Response.StatusCode}]\t{context.Request.Host}{context.Request.Path} | Request took: {stopwatch.Elapsed.Microseconds}μs");
 		});
 
 		#region Initialization
-
-		var domain = Environment.GetEnvironmentVariable("DOMAIN");
-		if (string.IsNullOrEmpty(domain))
-		{
-			Console.WriteLine("Please set the DOMAIN environment variable.");
-			return;
-		}
+		
 		if (string.IsNullOrEmpty(AppSettings.OsuApiKey))
 		{
 			//TODO: Logging system || probably to change
@@ -125,15 +147,43 @@ public class Program
 			Console.ForegroundColor = ConsoleColor.White;
 		}
 		
-		
 		Regexes.InitNowPlayingRegex(domain);
-		BeatmapExtensions.InitBaseUrlValue(domain);
+		
+		// Even if redis creates snapshots of rankings it isn't
+		// always 100% accurate with database so we need to update
+		// redis leaderboards on startup
+		InitRedis(app.Services.CreateScope());
 		
 		app.Services.GetRequiredService<OsuVersionService>().FetchOsuVersion().Wait();
 
 		#endregion
 		
-		
 		app.Run();
+	}
+
+	private static void InitRedis(IServiceScope scope)
+	{
+		var redis = scope.ServiceProvider.GetRequiredService<IConnectionMultiplexer>().GetDatabase();
+		var db = scope.ServiceProvider.GetRequiredService<BanchoDbContext>();
+		
+		var stopwatch = new Stopwatch();
+		stopwatch.Start();
+		
+		for (byte i = 0; i <= (byte)GameMode.AutopilotStd; i++)
+		{
+			if (i == 7) continue;
+
+			var mode = i;
+			var playersPpModeValues = db.Stats.Join(db.Players, u => u.PlayerId, s => s.Id, (s, u) => new { u, s })
+			                            .Where(j => j.s.Mode == mode &&
+			                                        (j.u.Privileges & 1) == 1)
+			                            .Select(j => new SortedSetEntry(j.s.PlayerId, j.s.PP))
+			                            .ToArray();
+
+			redis.SortedSetAdd($"bancho:leaderboard:{mode}", playersPpModeValues);
+		}
+		
+		stopwatch.Stop();
+		Console.WriteLine($"[Init] Redis leaderboards updated in {stopwatch.ElapsedMilliseconds}ms");
 	}
 }

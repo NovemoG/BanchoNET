@@ -6,5 +6,7 @@ public enum LeaderboardType
 	Top,
 	Mods,
 	Friends,
-	Country
+	Country,
+	FriendsMods,
+	CountryMods
 }

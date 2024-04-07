@@ -5,13 +5,6 @@ namespace BanchoNET.Utils;
 
 public static class BeatmapExtensions
 {
-	private static string _url = null!;
-	
-	public static void InitBaseUrlValue(string domain)
-	{
-		_url = $"https://osu.{domain}";
-	}
-	
 	public static string FullName(this Beatmap beatmap)
 	{
 		return $"{beatmap.Artist} - {beatmap.Title} [{beatmap.Name}]";
@@ -19,12 +12,12 @@ public static class BeatmapExtensions
 
 	public static string Url(this Beatmap beatmap)
 	{
-		return $"{_url}/b/{beatmap.MapId}";
+		return $"https://osu.{AppSettings.Domain}/b/{beatmap.MapId}";
 	}
 
 	public static string Url(this BeatmapSet set)
 	{
-		return $"{_url}/s/{set.Id}";
+		return $"https://osu.{AppSettings.Domain}/s/{set.Id}";
 	}
 
 	public static string Embed(this Beatmap beatmap)
@@ -57,7 +50,7 @@ public static class BeatmapExtensions
 		return md5String == beatmapMD5;
 	}
 
-	public static BeatmapStatus StatusFromDirectApi(
+	public static BeatmapStatus StatusFromApi(
 		this int status,
 		bool frozen,
 		BeatmapStatus prevStatus)
@@ -70,25 +63,6 @@ public static class BeatmapExtensions
 			2 => BeatmapStatus.Approved,
 			3 => BeatmapStatus.Qualified,
 			4 => BeatmapStatus.Loved,
-			_ => BeatmapStatus.LatestPending
-		};
-	}
-	
-	public static BeatmapStatus StatusFromOsuApi(
-		this int status,
-		bool frozen,
-		BeatmapStatus prevStatus)
-	{
-		if (frozen) return prevStatus;
-		
-		return status switch
-		{
-			0 => BeatmapStatus.Ranked,
-			2 => BeatmapStatus.LatestPending,
-			3 => BeatmapStatus.Qualified,
-			5 => BeatmapStatus.LatestPending,
-			7 => BeatmapStatus.Ranked,
-			8 => BeatmapStatus.Loved,
 			_ => BeatmapStatus.LatestPending
 		};
 	}

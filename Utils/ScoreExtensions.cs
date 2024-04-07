@@ -120,7 +120,7 @@ public static class ScoreExtensions
 		Console.WriteLine($"[Score Extensions] Submitted score pp: {score.PP}");
 	}
 	
-	public static void ComputeSubmissionStatus(this Score score, Score? currentBest, bool submitByPP = false)
+	public static void ComputeSubmissionStatus(this Score score, Score? currentBest)
 	{
 		if (currentBest == null)
 		{
@@ -131,7 +131,7 @@ public static class ScoreExtensions
 		score.PreviousBest = currentBest;
 		score.Status = SubmissionStatus.Submitted;
 
-		if (submitByPP)
+		if (AppSettings.SubmitByPP)
 		{
 			if (!(score.PP > currentBest.PP)) return;
 			

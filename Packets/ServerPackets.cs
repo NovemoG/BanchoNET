@@ -1,6 +1,7 @@
 ﻿using BanchoNET.Objects.Channels;
 using BanchoNET.Objects.Players;
 using BanchoNET.Services;
+using BanchoNET.Utils;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BanchoNET.Packets;
@@ -23,7 +24,7 @@ public partial class ServerPackets : IDisposable
 
 	public FileContentResult GetContentResult()
 	{
-		return new FileContentResult(_dataBuffer.ToArray(), "application/octet-stream; charset=UTF-8");
+		return Responses.BytesContentResult(_dataBuffer.ToArray());
 	}
 	
 	public void WriteBytes(byte[] data)

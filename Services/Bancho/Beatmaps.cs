@@ -11,6 +11,7 @@ public partial class BanchoHandler
 {
 	public async Task<bool> EnsureLocalBeatmapFile(int beatmapId, string beatmapMD5)
 	{
+		//TODO fix saving beatmap file
 		var beatmapPath = Storage.GetBeatmapPath(beatmapId);
 
 		if (!File.Exists(beatmapPath) ||
@@ -159,14 +160,14 @@ public partial class BanchoHandler
 		if (!string.IsNullOrEmpty(beatmapMD5))
 			url += $"{paramsSign}h={beatmapMD5}";
 		else if (mapId > -1)
-			url += $"{paramsSign}b={beatmapMD5}";
+			url += $"{paramsSign}b={mapId}";
 		else
 			return null;
 
 		var response = await _httpClient.GetAsync(url);
 		var content = await response.Content.ReadAsStringAsync();
-
-		if (response.IsSuccessStatusCode && !string.IsNullOrEmpty(content))
+		
+		if (response.IsSuccessStatusCode && content.IsValidResponse())
 			return osuApiKeyProvided
 				? new Beatmap(JsonConvert.DeserializeObject<List<OsuApiBeatmap>>(content)![0])
 				: new Beatmap(JsonConvert.DeserializeObject<List<ApiBeatmap>>(content)![0]);
@@ -187,7 +188,7 @@ public partial class BanchoHandler
 		var response = await _httpClient.GetAsync(url);
 		var content = await response.Content.ReadAsStringAsync();
 
-		if (response.IsSuccessStatusCode && !string.IsNullOrEmpty(content))
+		if (response.IsSuccessStatusCode && content.IsValidResponse())
 			return osuApiKeyProvided
 				? new BeatmapSet(JsonConvert.DeserializeObject<List<OsuApiBeatmap>>(content)!)
 				: new BeatmapSet(JsonConvert.DeserializeObject<List<ApiBeatmap>>(content)!);
@@ -203,13 +204,16 @@ public partial class BanchoHandler
 
 			if (dbBeatmap != null)
 			{
-				dbBeatmap = CreateBeatmapDto(beatmap);
+				dbBeatmap = UpdateBeatmapDto(beatmap, dbBeatmap);
 				_dbContext.Update(dbBeatmap);
-				await _dbContext.SaveChangesAsync();
 			}
 			else
+			{
 				await _dbContext.Beatmaps.AddAsync(CreateBeatmapDto(beatmap));
+			}
 		}
+		
+		await _dbContext.SaveChangesAsync();
 	}
 
 	private BeatmapDto CreateBeatmapDto(Beatmap beatmap)
@@ -242,6 +246,39 @@ public partial class BanchoHandler
 			NotesCount = beatmap.NotesCount,
 			SlidersCount = beatmap.SlidersCount,
 			SpinnersCount = beatmap.SpinnersCount
+		};
+	}
+
+	private BeatmapDto UpdateBeatmapDto(Beatmap beatmap, BeatmapDto currentBeatmap)
+	{
+		return new BeatmapDto
+		{
+			MapId = currentBeatmap.MapId,
+			SetId = currentBeatmap.SetId,
+			Private = currentBeatmap.Private,
+			Mode = currentBeatmap.Mode,
+			Status = currentBeatmap.Status,
+			IsRankedOfficially = beatmap.IsRankedOfficially,
+			MD5 = beatmap.MD5,
+			Artist = beatmap.Artist,
+			Title = beatmap.Title,
+			Name = beatmap.Name,
+			Creator = beatmap.Creator,
+			SubmitDate = beatmap.SubmitDate,
+			LastUpdate = beatmap.LastUpdate,
+			TotalLength = beatmap.TotalLength,
+			MaxCombo = beatmap.MaxCombo,
+			Plays = currentBeatmap.Plays,
+			Passes = currentBeatmap.Passes,
+			Bpm = beatmap.Bpm,
+			Cs = beatmap.Cs,
+			Ar = beatmap.Ar,
+			Od = beatmap.Od,
+			Hp = beatmap.Hp,
+			StarRating = currentBeatmap.StarRating,
+			NotesCount = currentBeatmap.NotesCount,
+			SlidersCount = currentBeatmap.SlidersCount,
+			SpinnersCount = currentBeatmap.SpinnersCount
 		};
 	}
 }

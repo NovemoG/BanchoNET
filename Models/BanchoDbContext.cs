@@ -9,7 +9,8 @@ public class BanchoDbContext(DbContextOptions<BanchoDbContext> options) : DbCont
 	{
 		modelBuilder.Entity<PlayerDto>()
 		            .Property(p => p.Id)
-		            .UseIdentityColumn(3);
+		            .ValueGeneratedOnAdd()
+		            .UseIdentityColumn(3); //TODO this doesn't work, find fix
 	}
 	
 	public DbSet<PlayerDto> Players { get; init; } = null!;
