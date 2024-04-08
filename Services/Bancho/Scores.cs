@@ -62,8 +62,8 @@ public partial class BanchoHandler
 		var score = await _dbContext.Scores.FirstOrDefaultAsync(
 			s => s.PlayerId == player.Id &&
 			     s.BeatmapMD5 == beatmapMD5 &&
-			     s.Mode == (byte)mode &&
-			     s.Status == (byte)SubmissionStatus.Best);
+			     s.Mode == (int)mode &&
+			     s.Status == (int)SubmissionStatus.Best);
 
 		return score == null ? null : new Score(score);
 	}
@@ -80,7 +80,7 @@ public partial class BanchoHandler
 		if (withMods)
 		{
 			var result = await _dbContext.Scores.Where(s => s.BeatmapMD5 == beatmap.MD5 &&
-			                                   s.Mode == (byte)mode &&
+			                                   s.Mode == (int)mode &&
 			                                   s.Status > 0 &&
 			                                   s.PlayerId == player.Id &&
 			                                   s.Mods == (int)mods)
@@ -108,18 +108,18 @@ public partial class BanchoHandler
 	{
 		await _dbContext.Scores.Where(s => s.PlayerId == score.PlayerId && 
 		                                   s.BeatmapMD5 == beatmap.MD5 &&
-		                                   s.Mode == (byte)beatmap.Mode &&
-		                                   s.Status == (byte)SubmissionStatus.Best)
+		                                   s.Mode == (int)beatmap.Mode &&
+		                                   s.Status == (int)SubmissionStatus.Best)
 		                       .ExecuteUpdateAsync(s => 
-			                       s.SetProperty(u => u.Status, (byte)SubmissionStatus.Submitted));
+			                       s.SetProperty(u => u.Status, (int)SubmissionStatus.Submitted));
 	}
 
 	public async Task<ScoreDto?> GetBestBeatmapScore(Beatmap beatmap, GameMode mode)
 	{
 		return await _dbContext.Scores.Include(s => s.Player)
 		                       .Where(s => s.BeatmapMD5 == beatmap.MD5 &&
-		                                   s.Mode == (byte)mode &&
-		                                   s.Status == (byte)SubmissionStatus.Best &&
+		                                   s.Mode == (int)mode &&
+		                                   s.Status == (int)SubmissionStatus.Best &&
 		                                   (s.Player.Privileges & 1) == 1)
 		                       .OrderByDescending(s => OrderByPp(mode) ? s.PP : s.Score)
 		                       .FirstOrDefaultAsync();
@@ -131,19 +131,26 @@ public partial class BanchoHandler
 		bool withMods,
 		Mods mods = Mods.None)
 	{
-		score.LeaderboardPosition = await _dbContext.Scores.Include(s => s.Player)
-			.Where(s => s.BeatmapMD5 == beatmap.MD5 &&
-			            s.Mode == (byte)score.Mode &&
-			            (withMods 
-				            ? s.Status > 0
-				            : s.Status == (byte)SubmissionStatus.Best) &&
-			            (s.Player.Privileges & 1) == 1 &&
-			            (!withMods || s.Mods == (int)mods) &&
-			            (OrderByPp(score.Mode)
-				            ? score.PP < s.PP
-				            : score.TotalScore < s.Score))
-			.GroupBy(s => s.PlayerId)
-			.Select(s => s.First())
+		score.LeaderboardPosition = await (withMods
+				? _dbContext.Scores.Include(s => s.Player)
+				            .Where(s => s.BeatmapMD5 == beatmap.MD5 &&
+				                        s.Mode == (int)score.Mode &&
+				                        s.Status > 0 &&
+				                        (s.Player.Privileges & 1) == 1 &&
+				                        s.Mods == (int)mods &&
+				                        (OrderByPp(score.Mode)
+					                        ? score.PP < s.PP
+					                        : score.TotalScore < s.Score))
+				            .GroupBy(s => s.PlayerId)
+				            .Select(s => s.First())
+				: _dbContext.Scores.Include(s => s.Player)
+				            .Where(s => s.BeatmapMD5 == beatmap.MD5 &&
+				                        s.Mode == (int)score.Mode &&
+				                        s.Status == (int)SubmissionStatus.Best &&
+				                        (s.Player.Privileges & 1) == 1 &&
+				                        (OrderByPp(score.Mode)
+					                        ? score.PP < s.PP
+					                        : score.TotalScore < s.Score)))
 			.CountAsync() + 1;
 	}
 	
@@ -162,12 +169,12 @@ public partial class BanchoHandler
 		var withFriendsList = type == LeaderboardType.Friends;
 		var friendIds = withFriendsList ? player.Friends.ToHashSet() : [];
 
-		var result = await _dbContext.Scores.Include(s => s.Player)
+		var result = await _dbContext.Scores.AsNoTracking().Include(s => s.Player)
 		                             .Where(s => s.BeatmapMD5 == beatmapMD5 &&
-		                                         s.Mode == (byte)mode &&
+		                                         s.Mode == (int)mode &&
 		                                         (withMods
 			                                         ? s.Status > 0
-			                                         : s.Status == (byte)SubmissionStatus.Best) &&
+			                                         : s.Status == (int)SubmissionStatus.Best) &&
 		                                         (s.Player.Privileges & 1) == 1 &&
 		                                         (!withMods || s.Mods == (int)mods) &&
 		                                         (!isCountry || s.Player.Country == countryCode) &&
@@ -177,6 +184,8 @@ public partial class BanchoHandler
 		                             .Take(AppSettings.ScoresOnLeaderboard)
 		                             .ToListAsync();
 
+		//TODO optimize this query somehow or change database structure so it does not suck 
+		
 		return result;
 	}
 }

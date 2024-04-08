@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BanchoNET.Models.Dtos;
 
+[Index(nameof(PP))]
+[Index(nameof(Score))]
 [PrimaryKey(nameof(Id))]
 public class ScoreDto
 {

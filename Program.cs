@@ -137,7 +137,7 @@ public class Program
 			
 			stopwatch.Stop();
 			//TODO some fancy coloring
-			Console.WriteLine($"[{context.Request.Method} {context.Response.StatusCode}]\t{context.Request.Host}{context.Request.Path} | Request took: {stopwatch.Elapsed.Milliseconds}ms {stopwatch.Elapsed.Microseconds}μs");
+			Console.WriteLine($"[{context.Request.Method} {context.Response.StatusCode}]\t{context.Request.Host}{context.Request.Path} | Request took: {stopwatch.Elapsed.Seconds}s {stopwatch.Elapsed.Milliseconds}ms {stopwatch.Elapsed.Microseconds}μs");
 		});
 
 		#region Initialization
@@ -165,6 +165,20 @@ public class Program
 		#endregion
 		
 		app.Run();
+	}
+	
+	private static string RandomString(Random random, int length)
+	{
+		const string chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+		return new string(Enumerable.Repeat(chars, length)
+		                            .Select(s => s[random.Next(s.Length)]).ToArray());
+	}
+	
+	private static string RandomStringLower(Random random, int length)
+	{
+		const string chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+		return new string(Enumerable.Repeat(chars, length)
+		                            .Select(s => s[random.Next(s.Length)]).ToArray());
 	}
 
 	private static void InitBanchoBot(IServiceScope scope)
