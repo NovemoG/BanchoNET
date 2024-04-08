@@ -7,8 +7,9 @@ namespace BanchoNET.Models.Dtos;
 [PrimaryKey(nameof(PlayerId), nameof(Mode))]
 public class StatsDto
 {
-	[Key, ForeignKey("Player")]
-	public int PlayerId { get; set; }
+	[ForeignKey("PlayerId")]
+	public PlayerDto Player { get; set; } = null!;
+	[Key] public int PlayerId { get; set; }
 	[Key] public byte Mode { get; set; }
 	
 	public long TotalScore { get; set; }

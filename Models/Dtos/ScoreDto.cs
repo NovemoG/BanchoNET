@@ -4,13 +4,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BanchoNET.Models.Dtos;
 
-[PrimaryKey(nameof(Id), nameof(PlayerId))]
+[PrimaryKey(nameof(Id))]
 public class ScoreDto
 {
 	[Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
 	public long Id { get; set; }
-	[Key, ForeignKey("Player")]
-	public int PlayerId { get; set; }
 	[MaxLength(16), Unicode(false)]
 	public string Username { get; set; }
 	
@@ -47,4 +45,8 @@ public class ScoreDto
 	
 	[Column(TypeName = "CHAR(32)"), Unicode(false)]
 	public string OnlineChecksum { get; set; }
+	
+	[ForeignKey("PlayerId")]
+	public PlayerDto Player { get; set; } = null!;
+	public int PlayerId { get; set; }
 }

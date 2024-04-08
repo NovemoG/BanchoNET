@@ -9,7 +9,6 @@ public class LoginDto
 {
 	[Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
 	public int Id { get; set; }
-	public int PlayerId { get; set; }
 	
 	[MaxLength(45), Unicode(false)]
 	public string Ip { get; set; }
@@ -22,4 +21,8 @@ public class LoginDto
 	
 	[Column(TypeName = "DATETIME")]
 	public DateTime LoginTime { get; set; }
+	
+	[ForeignKey("PlayerId")]
+	public PlayerDto Player { get; set; } = null!;
+	public int PlayerId { get; set; }
 }

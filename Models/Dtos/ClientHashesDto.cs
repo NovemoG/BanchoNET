@@ -9,7 +9,6 @@ public class ClientHashesDto
 {
 	[Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
 	public int Id { get; set; }
-	public int PlayerId { get; set; }
 	
 	[Column(TypeName = "CHAR"), StringLength(32), Unicode(false)]
 	public string OsuPath { get; set; }
@@ -25,4 +24,8 @@ public class ClientHashesDto
 	
 	[Column(TypeName = "DATETIME")]
 	public DateTime LatestTime { get; set; }
+	
+	[ForeignKey("PlayerId")]
+	public PlayerDto Player { get; set; } = null!;
+	public int PlayerId { get; set; }
 }

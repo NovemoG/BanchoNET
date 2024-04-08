@@ -50,29 +50,25 @@ public partial class BanchoHandler
 		
 		if (runningUnderWine)
 		{
-			var hashes = await _dbContext
-               .ClientHashes.Join(_dbContext.Players,
-                   c => c.PlayerId,
-                   ph => ph.Id,
-                   (ph, p) => new { ph, p })
-               .Where(j => ((Privileges)j.p.Privileges & Privileges.Unrestricted) != Privileges.Unrestricted &&
-                           j.ph.Uninstall == uninstall)
-               .ToListAsync();
+			var hashes = await _dbContext.ClientHashes.Include(ch => ch.Player)
+			                             .Where(ch => ((Privileges)ch.Player.Privileges & Privileges.Unrestricted) !=
+			                                          Privileges.Unrestricted &&
+			                                          ch.Uninstall == uninstall)
+			                             .ToListAsync();
 
 			bannedHashes = hashes.Count;
 		}
 		else
 		{
 			var hashes = await _dbContext
-               .ClientHashes.Join(_dbContext.Players,
-                   c => c.PlayerId,
-                   ph => ph.Id,
-                   (ph, p) => new { ph, p })
-               .Where(j => ((Privileges)j.p.Privileges & Privileges.Unrestricted) != Privileges.Unrestricted &&
-                           j.ph.Uninstall == uninstall &&
-                           j.ph.Adapters == adapters &&
-                           j.ph.DiskSerial == diskSerial)
-               .ToListAsync();
+			                   .ClientHashes.Include(ch => ch.Player)
+			                   .Where(ch =>
+				                   ((Privileges)ch.Player.Privileges & Privileges.Unrestricted) !=
+				                   Privileges.Unrestricted &&
+				                   ch.Uninstall == uninstall &&
+				                   ch.Adapters == adapters &&
+				                   ch.DiskSerial == diskSerial)
+			                   .ToListAsync();
 
 			bannedHashes = hashes.Count;
 		}
