@@ -53,7 +53,7 @@ public partial class OsuController
         if (player == null)
             return Ok();
 
-        var score = ParseScoreData(scoreData[2..], beatmap, player);
+        var score = new Score(scoreData[2..], beatmap, player);
 		
         var uniqueIdMD5s = uniqueIds.Split('|', 2);
         var uniqueId1 = uniqueIdMD5s[0].CreateMD5();
@@ -173,7 +173,7 @@ public partial class OsuController
         }
 
         score.Player = player;
-        await _bancho.InsertScore(score);
+        await _bancho.InsertScore(score, beatmap.MD5, player.Username);
 
         if (score.Passed)
         {
@@ -202,42 +202,11 @@ public partial class OsuController
         stats.PlayCount += 1;
         stats.TotalScore += score.TotalScore;
         stats.UpdateHits(score);
-		
-        //TODO fix so it works with mods
+        
         var previousBest = score.PreviousBest;
         if (previousBest != null) await _bancho.SetScoreLeaderboardPosition(beatmap, previousBest, false);
-        if (score.Passed && beatmap.HasLeaderboard() && beatmap.Status != BeatmapStatus.Qualified)
-        {
-            if (score.MaxCombo > stats.MaxCombo)
-                stats.MaxCombo = score.MaxCombo;
-			
-            if (beatmap.AwardsPP() && score.Status == SubmissionStatus.Best)
-            {
-                var additionalRankedScore = score.TotalScore;
-                if (previousBest != null)
-                {
-                    additionalRankedScore -= previousBest.TotalScore;
-
-                    if (score.Grade != previousBest.Grade)
-                    {
-                        if (score.Grade >= Grade.A)
-                            stats.Grades[score.Grade] += 1;
-
-                        if (previousBest.Grade >= Grade.A)
-                            stats.Grades[score.Grade] -= 1;
-                    }
-                }
-                else
-                if (score.Grade >= Grade.A)
-                    stats.Grades[score.Grade] += 1;
-
-                stats.RankedScore += additionalRankedScore;
-				
-                await _bancho.RecalculatePlayerTopScores(player, score.Mode);
-                await _bancho.UpdatePlayerRank(player, score.Mode);
-            }
-        }
-
+        
+        await RecalculatePlayerStats(beatmap, stats, player, score, previousBest);
         await _bancho.UpdatePlayerStats(player, score.Mode);
 
         if (!player.Restricted)
@@ -308,6 +277,57 @@ public partial class OsuController
         return Responses.BytesContentResult(response);
     }
 
+    private async Task RecalculatePlayerStats(
+        Beatmap beatmap,
+        ModeStats stats,
+        Player player,
+        Score score,
+        Score? previousBest)
+    {
+        if (score.Passed && beatmap.HasLeaderboard() && beatmap.Status != BeatmapStatus.Qualified)
+        {
+            if (score.MaxCombo > stats.MaxCombo)
+                stats.MaxCombo = score.MaxCombo;
+            
+            if (score.Mods != /*previousBest.Mods*/Mods.None)
+            {
+                //TODO problem is that even if our score's mod combination is
+                //TODO unique that score is put in database before we access it here
+                //TODO so this condition: score.Grade == previousBestWithMods.Grade
+                //TODO is always true
+                
+                var previousBestWithMods =
+                    await _bancho.GetPlayerBestScoreOnLeaderboard(player, beatmap, score.Mode, true, score.Mods, false);
+            }
+
+            if (beatmap.AwardsPP() && score.Status == SubmissionStatus.Best)
+            {
+                var additionalRankedScore = score.TotalScore;
+                if (previousBest != null)
+                {
+                    additionalRankedScore -= previousBest.TotalScore;
+
+                    if (score.Grade != previousBest.Grade)
+                    {
+                        if (score.Grade >= Grade.A)
+                            stats.Grades[score.Grade] += 1;
+
+                        if (previousBest.Grade >= Grade.A)
+                            stats.Grades[score.Grade] -= 1;
+                    }
+                }
+                else
+                if (score.Grade >= Grade.A)
+                    stats.Grades[score.Grade] += 1;
+
+                stats.RankedScore += additionalRankedScore;
+				
+                await _bancho.RecalculatePlayerTopScores(player, score.Mode);
+                await _bancho.UpdatePlayerRank(player, score.Mode);
+            }
+        }
+    }
+
     private async Task AnnounceNewFirstScore(Score score, Player player, Beatmap beatmap)
     {
         if (score.LeaderboardPosition == 1 && !player.Restricted)
@@ -332,37 +352,6 @@ public partial class OsuController
                 SenderId = player.Id
             });
         }
-    }
-
-    private static Score ParseScoreData(string[] scoreData, Beatmap beatmap, Player player)
-    {
-        var mods = (Mods)int.Parse(scoreData[11]);
-        Enum.TryParse(scoreData[10], out Grade grade);
-		
-        return new Score
-        {
-            Beatmap = beatmap,
-            BeatmapMD5 = beatmap.MD5,
-            Player = player,
-            PlayerId = player.Id,
-			
-            ClientChecksum = scoreData[0],
-            Count300 = int.Parse(scoreData[1]),
-            Count100 = int.Parse(scoreData[2]),
-            Count50 = int.Parse(scoreData[3]),
-            Gekis = int.Parse(scoreData[4]),
-            Katus = int.Parse(scoreData[5]),
-            Misses = int.Parse(scoreData[6]),
-            TotalScore = int.Parse(scoreData[7]),
-            MaxCombo = int.Parse(scoreData[8]),
-            Perfect = scoreData[9] == "True",
-            Grade = grade,
-            Mods = mods,
-            Passed = scoreData[12] == "True",
-            Mode = ((GameMode)int.Parse(scoreData[13])).FromMods(mods),
-            ClientTime = DateTime.ParseExact(scoreData[14], "yyMMddHHmmss", null),
-            ClientFlags = (ClientFlags)int.Parse(scoreData[15]),
-        };
     }
 	
     private static (string[] scoreData, string clientHash)? DecryptScoreData(

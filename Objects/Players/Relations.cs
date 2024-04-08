@@ -2,7 +2,6 @@
 
 public enum Relations : byte
 {
-	None,
 	Friend,
 	Block
 }

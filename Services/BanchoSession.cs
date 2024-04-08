@@ -1,6 +1,5 @@
 ﻿using System.Collections.Concurrent;
 using System.Net;
-using BanchoNET.Models.Dtos;
 using BanchoNET.Objects.Beatmaps;
 using BanchoNET.Objects.Players;
 using BanchoNET.Objects.Privileges;
@@ -15,31 +14,15 @@ public sealed class BanchoSession
 	private static readonly Lazy<BanchoSession> Lazy = new(() => new BanchoSession());
 	public static BanchoSession Instance => Lazy.Value;
 	
-	private BanchoSession()
-	{
-		BanchoBot = Bots[1];
-	}
-	
 	#region PlayersCollections
+	
+	public Player BanchoBot => Bots[1];
 	
 	public readonly ConcurrentDictionary<int, Player> Players = [];
 	public readonly ConcurrentDictionary<int, Player> Restricted = [];
-	public readonly ConcurrentDictionary<int, Player> Bots = new()
-	{
-		[1] = new Player(new PlayerDto { Id = 1 })
-		{
-			Username = AppSettings.BanchoBotName, //TODO laod from config/db
-			LastActivityTime = DateTime.MaxValue,
-			Privileges = Privileges.Verified | Privileges.Staff,
-		}
-	};
-
-	public readonly Player BanchoBot;
+	public readonly ConcurrentDictionary<int, Player> Bots = [];
 
 	#endregion
-	
-	private readonly ConcurrentDictionary<string, string> _passwordHashes = [];
-	private readonly ConcurrentDictionary<string, IPAddress> _ipCache = [];
 
 	#region Beatmaps
 
@@ -112,6 +95,13 @@ public sealed class BanchoSession
 
 	#endregion
 
+	#region Other
+
+	private readonly ConcurrentDictionary<string, string> _passwordHashes = [];
+	private readonly ConcurrentDictionary<string, IPAddress> _ipCache = [];
+
+	#endregion
+
 	public void InsertPasswordHash(string passwordMD5, string passwordHash)
 	{
 		_passwordHashes.TryAdd(passwordHash, passwordMD5);
@@ -140,6 +130,11 @@ public sealed class BanchoSession
 		var ip = IPAddress.Parse(ipString);
 		_ipCache.TryAdd(ipString, ip);
 		return ip;
+	}
+	
+	public void AppendBot(Player bot)
+	{
+		Bots.TryAdd(bot.Id, bot);
 	}
 	
 	public void AppendPlayer(Player player)
@@ -291,7 +286,7 @@ public sealed class BanchoSession
 		_notSubmittedBeatmaps.Add(beatmapMD5);
 	}
 	
-	public bool IsBeatmapNeedsUpdate(string beatmapMD5)
+	public bool BeatmapNeedsUpdate(string beatmapMD5)
 	{
 		return _needUpdateBeatmaps.Contains(beatmapMD5);
 	}

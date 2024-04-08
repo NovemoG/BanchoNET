@@ -49,4 +49,10 @@ public class PlayerDto
 
 	[Column(TypeName = "CHAR"), StringLength(36), Unicode(false)]
 	public string? ApiKey { get; set; }
+
+	public ICollection<StatsDto> Stats { get; set; } = null!;
+	public ICollection<ScoreDto> Scores { get; set; } = null!;
+	public ICollection<LoginDto> LoginsData { get; set; } = null!;
+	public ICollection<ClientHashesDto> ClientHashes { get; set; } = null!;
+	public ICollection<RelationshipDto> Relationships { get; set; } = null!;
 }

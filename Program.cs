@@ -1,6 +1,9 @@
 using System.Diagnostics;
 using BanchoNET.Models;
+using BanchoNET.Models.Dtos;
 using BanchoNET.Objects;
+using BanchoNET.Objects.Players;
+using BanchoNET.Objects.Privileges;
 using BanchoNET.Services;
 using BanchoNET.Utils;
 using dotenv.net;
@@ -149,6 +152,9 @@ public class Program
 		
 		Regexes.InitNowPlayingRegex(domain);
 		
+		InitBanchoBot(app.Services.CreateScope());
+		InitChannels(app.Services.CreateScope());
+		
 		// Even if redis creates snapshots of rankings it isn't
 		// always 100% accurate with database so we need to update
 		// redis leaderboards on startup
@@ -159,6 +165,43 @@ public class Program
 		#endregion
 		
 		app.Run();
+	}
+
+	private static void InitBanchoBot(IServiceScope scope)
+	{
+		var db = scope.ServiceProvider.GetRequiredService<BanchoDbContext>();
+
+		var dbBanchoBot = db.Players.FirstOrDefault(p => p.Id == 1);
+		if (dbBanchoBot != null)
+		{
+			BanchoSession.Instance.AppendBot(new Player(dbBanchoBot));
+			return;
+		}
+
+		var banchoBotName = AppSettings.BanchoBotName;
+		
+		var entry = db.Players.Add(new PlayerDto
+		{
+			Id = 1,
+			Username = banchoBotName,
+			SafeName = banchoBotName.MakeSafe(),
+			LoginName = banchoBotName.ToLogin(),
+			Email = "ban@cho.bot",
+			PasswordHash = "1",
+			Country = "a2",
+			LastActivityTime = DateTime.MaxValue,
+			Privileges = (int)(Privileges.Verified | Privileges.Staff),
+		});
+		db.SaveChanges();
+		
+		BanchoSession.Instance.AppendBot(new Player(entry.Entity));
+	}
+
+	private static void InitChannels(IServiceScope scope)
+	{
+		var db = scope.ServiceProvider.GetRequiredService<BanchoDbContext>();
+		
+		//TODO get channels and add them to BanchoSession collection
 	}
 
 	private static void InitRedis(IServiceScope scope)
@@ -174,10 +217,10 @@ public class Program
 			if (i == 7) continue;
 
 			var mode = i;
-			var playersPpModeValues = db.Stats.Join(db.Players, u => u.PlayerId, s => s.Id, (s, u) => new { u, s })
-			                            .Where(j => j.s.Mode == mode &&
-			                                        (j.u.Privileges & 1) == 1)
-			                            .Select(j => new SortedSetEntry(j.s.PlayerId, j.s.PP))
+			var playersPpModeValues = db.Stats.Include(s => s.Player)
+			                            .Where(s => s.Mode == mode &&
+			                                        (s.Player.Privileges & 1) == 1)
+			                            .Select(s => new SortedSetEntry(s.PlayerId, s.PP))
 			                            .ToArray();
 
 			redis.SortedSetAdd($"bancho:leaderboard:{mode}", playersPpModeValues);

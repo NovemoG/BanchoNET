@@ -37,7 +37,33 @@ public class Score
 	public int LeaderboardPosition { get; set; }
 	public Score? PreviousBest { get; set; }
 
-	public Score() { }
+	public Score(IReadOnlyList<string> scoreData, Beatmap beatmap, Player player)
+	{
+		var mods = (Mods)int.Parse(scoreData[11]);
+		Enum.TryParse(scoreData[10], out Grade grade);
+
+		Beatmap = beatmap;
+		BeatmapMD5 = beatmap.MD5;
+		Player = player;
+		PlayerId = player.Id;
+			
+		ClientChecksum = scoreData[0];
+		Count300 = int.Parse(scoreData[1]);
+		Count100 = int.Parse(scoreData[2]);
+		Count50 = int.Parse(scoreData[3]);
+		Gekis = int.Parse(scoreData[4]);
+		Katus = int.Parse(scoreData[5]);
+		Misses = int.Parse(scoreData[6]);
+		TotalScore = int.Parse(scoreData[7]);
+		MaxCombo = int.Parse(scoreData[8]);
+		Perfect = scoreData[9] == "True";
+		Grade = grade;
+		Mods = mods;
+		Passed = scoreData[12] == "True";
+		Mode = ((GameMode)int.Parse(scoreData[13])).FromMods(mods);
+		ClientTime = DateTime.ParseExact(scoreData[14], "yyMMddHHmmss", null);
+		ClientFlags = (ClientFlags)int.Parse(scoreData[15]);
+	}
 	
 	public Score(ScoreDto scoreDto)
 	{
