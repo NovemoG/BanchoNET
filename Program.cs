@@ -137,7 +137,7 @@ public class Program
 			
 			stopwatch.Stop();
 			//TODO some fancy coloring
-			Console.WriteLine($"[{context.Request.Method} {context.Response.StatusCode}]\t{context.Request.Host}{context.Request.Path} | Request took: {stopwatch.Elapsed.Milliseconds}ms {stopwatch.Elapsed.Microseconds}μs");
+			Console.WriteLine($"[{context.Request.Method} {context.Response.StatusCode}]\t{context.Request.Host}{context.Request.Path} | Request took: {stopwatch.Elapsed.Seconds}s {stopwatch.Elapsed.Milliseconds}ms {stopwatch.Elapsed.Microseconds}μs");
 		});
 
 		#region Initialization
@@ -166,7 +166,7 @@ public class Program
 		
 		app.Run();
 	}
-
+	
 	private static void InitBanchoBot(IServiceScope scope)
 	{
 		var db = scope.ServiceProvider.GetRequiredService<BanchoDbContext>();
@@ -179,17 +179,23 @@ public class Program
 		}
 
 		var banchoBotName = AppSettings.BanchoBotName;
+		if (banchoBotName.Length > 16)
+		{
+			Console.WriteLine("[Init] Bancho bot name is too long, truncating to 16 characters");
+			banchoBotName = banchoBotName[..16];
+			Console.WriteLine("[Init] New bot name: " + banchoBotName);
+		}
 		
 		var entry = db.Players.Add(new PlayerDto
 		{
 			Id = 1,
 			Username = banchoBotName,
 			SafeName = banchoBotName.MakeSafe(),
-			LoginName = banchoBotName.ToLogin(),
+			LoginName = banchoBotName.MakeSafe(),
 			Email = "ban@cho.bot",
 			PasswordHash = "1",
 			Country = "a2",
-			LastActivityTime = DateTime.MaxValue,
+			LastActivityTime = DateTime.Now.AddYears(100),
 			Privileges = (int)(Privileges.Verified | Privileges.Staff),
 		});
 		db.SaveChanges();

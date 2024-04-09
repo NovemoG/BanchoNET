@@ -9,6 +9,8 @@ namespace BanchoNET.Models.Dtos;
 [Index(nameof(LoginName), IsUnique = true)]
 [Index(nameof(Email), IsUnique = true)]
 [Index(nameof(ApiKey), IsUnique = true)]
+[Index(nameof(Country))]
+[Index(nameof(Privileges))]
 [PrimaryKey(nameof(Id))]
 public class PlayerDto
 {

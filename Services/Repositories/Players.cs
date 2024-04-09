@@ -61,7 +61,7 @@ public partial class BanchoHandler
 		
 		if (loginName != "")
 		{
-			loginName = loginName.ToLogin();
+			loginName = loginName.MakeSafe();
 			return await _dbContext.Players.FirstOrDefaultAsync(p => p.LoginName == loginName);
 		}
 
@@ -222,7 +222,7 @@ public partial class BanchoHandler
 		var playerDto = new PlayerDto
 		{
 			Username = name,
-			LoginName = name.ToLogin(),
+			LoginName = name.MakeSafe(),
 			SafeName = name.MakeSafe(),
 			Email = email,
 			PasswordHash = pwdHash,
