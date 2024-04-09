@@ -16,8 +16,6 @@ public partial class BanchoHandler
         var dbScore = await _dbContext.Scores.AddAsync(new ScoreDto
         {
             BeatmapMD5 = beatmapMD5,
-            Username = player.Username,
-            CountryCode = player.Geoloc.Country.Acronym,
             PP = score.PP,
             Acc = score.Acc,
             Score = score.TotalScore,
@@ -56,6 +54,17 @@ public partial class BanchoHandler
         return null;
     }
 
+    public async Task SetScoresStatuses(Score? previousScore, Score? previousWithMods)
+    {
+        if (previousScore != null)
+            await _dbContext.Scores.Where(s => s.Id == previousScore.Id).ExecuteUpdateAsync(s => 
+                s.SetProperty(u => u.Status, (int)previousScore.Status));
+
+        if (previousWithMods != null)
+            await _dbContext.Scores.Where(s => s.Id == previousWithMods.Id).ExecuteUpdateAsync(s =>
+                s.SetProperty(u => u.Status, (int)previousWithMods.Status));
+    }
+    
     public async Task<Score?> GetPlayerBestScoreOnMap(
         Player player,
         string beatmapMD5,
@@ -72,64 +81,17 @@ public partial class BanchoHandler
     public async Task<Score?> GetPlayerBestScoreWithModsOnMap(
         Player player,
         string beatmapMD5,
-        Score score)
+        GameMode mode,
+        Mods mods)
     {
         var response = await _dbContext.Scores.FirstOrDefaultAsync(
             s => s.PlayerId == player.Id &&
                  s.BeatmapMD5 == beatmapMD5 &&
-                 s.Mode == (int)score.Mode &&
-                 s.Mods == (int)score.Mods &&
+                 s.Mode == (int)mode &&
+                 s.Mods == (int)mods &&
                  s.Status == (int)SubmissionStatus.BestWithMods);
 
         return response == null ? null : new Score(response);
-    }
-
-    public async Task SetLb(Score? previousScore, Score? previousWithMods)
-    {
-        if (previousScore != null)
-            await _dbContext.Scores.Where(s => s.Id == previousScore.Id).ExecuteUpdateAsync(s => 
-                s.SetProperty(u => u.Status, (int)previousScore.Status));
-
-        if (previousWithMods != null)
-            await _dbContext.Scores.Where(s => s.Id == previousWithMods.Id).ExecuteUpdateAsync(s =>
-                s.SetProperty(u => u.Status, (int)previousWithMods.Status));
-
-    }
-	
-    public async Task<Score?> GetPlayerBestScoreOnLeaderboard(
-        Player player,
-        Beatmap beatmap,
-        GameMode mode,
-        bool withMods,
-        Mods mods = Mods.None,
-        bool calculatePlacement = true)
-    {
-        Score? score;
-        if (withMods)
-        {
-            var result = await _dbContext.Scores.Where(s => s.BeatmapMD5 == beatmap.MD5 &&
-                                                            s.Mode == (int)mode &&
-                                                            s.Status > 0 &&
-                                                            s.PlayerId == player.Id &&
-                                                            s.Mods == (int)mods)
-                .OrderByDescending(s => OrderByPp(mode) ? s.PP : s.Score)
-                .FirstOrDefaultAsync();
-
-            if (result == null) return null;
-			
-            score = new Score(result);
-        }
-        else
-        {
-            score = await GetPlayerBestScoreOnMap(player, beatmap.MD5, mode);
-
-            if (score == null) return null;
-        }
-
-        if (calculatePlacement)
-            await SetScoreLeaderboardPosition(beatmap, score, withMods, mods);
-		
-        return score;
     }
 	
     public async Task<ScoreDto?> GetBestBeatmapScore(Beatmap beatmap, GameMode mode)
@@ -150,13 +112,14 @@ public partial class BanchoHandler
         Mods mods = Mods.None)
     {
         score.LeaderboardPosition = await _dbContext.Scores
+            .Include(s => s.Player)
             .Where(s => s.BeatmapMD5 == beatmap.MD5 
                         && s.Mode == (int)score.Mode
                         && (withMods
                             ? s.Status >= (int)SubmissionStatus.BestWithMods
                             : s.Status == (int)SubmissionStatus.Best)
                         && (!withMods || s.Mods == (int)mods) 
-                        && !s.IsRestricted
+                        && (s.Player.Privileges & 1) == 1 
                         && (OrderByPp(score.Mode)
                             ? score.PP < s.PP
                             : score.TotalScore < s.Score))
@@ -177,24 +140,25 @@ public partial class BanchoHandler
 		
         var withFriendsList = type == LeaderboardType.Friends;
         var friendIds = withFriendsList ? player.Friends.ToHashSet() : [];
-
-        var result = await _dbContext.Scores.AsNoTracking()
-            .Where(s => s.BeatmapMD5 == beatmapMD5 
-                        &&  s.Mode == (int)mode 
-                        && (withMods
-                            ? s.Status >= (int)SubmissionStatus.BestWithMods
-                            : s.Status == (int)SubmissionStatus.Best) 
-                        &&  !s.IsRestricted
-                        && (!withMods || s.Mods == (int)mods) 
-                        && (!isCountry || s.CountryCode == countryCode) 
-                        && (!withFriendsList || friendIds.Contains(s.PlayerId)))
-            .OrderByDescending(s => OrderByPp(mode) ? s.PP : s.Score)
-            .Take(AppSettings.ScoresOnLeaderboard)
-            .ToListAsync();
-
-        //TODO: (maybe fixed)
-        //TODO optimize this query somehow or change database structure so it does not suck 
 		
+        var result = await _dbContext.Scores.AsNoTracking()
+             .Include(s => s.Player)
+             .Where(s => s.BeatmapMD5 == beatmapMD5 
+                         && s.Mode == (int)mode 
+                         && (withMods
+                             ? s.Status >= (int)SubmissionStatus.BestWithMods
+                             : s.Status == (int)SubmissionStatus.Best) 
+                         && (s.Player.Privileges & 1) == 1 
+                         && (!withMods || s.Mods == (int)mods) 
+                         && (!isCountry || s.Player.Country == countryCode) 
+                         && (!withFriendsList || friendIds.Contains(s.PlayerId)))
+             .OrderByDescending(s => OrderByPp(mode) ? s.PP : s.Score)
+             .Take(AppSettings.ScoresOnLeaderboard)
+             .ToListAsync();
+        
+        /*TODO best we've managed to squeeze out of our brains is <1s with 5mln scores
+               we're not knowledgeable enough to make it faster ~Cossin & foksurek*/
+        
         return result;
     }
 }

@@ -1,22 +1,21 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Runtime.InteropServices;
 using Microsoft.EntityFrameworkCore;
 
 namespace BanchoNET.Models.Dtos;
 
 [Index(nameof(PP))]
 [Index(nameof(Score))]
+[Index(nameof(Mods))]
+[Index(nameof(BeatmapMD5))]
+[Index(nameof(Mode))]
+[Index(nameof(Status))]
 [PrimaryKey(nameof(Id))]
 public class ScoreDto
 {
 	[Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
 	public long Id { get; set; }
-	
-	[MaxLength(16), Unicode(false)]
-	public string Username { get; set; }
-	
-	[Column(TypeName = "CHAR(2)"), Unicode(false)]
-	public string CountryCode { get; set; } = null!;
 	
 	[Column(TypeName = "CHAR(32)"), Unicode(false)]
 	public string BeatmapMD5 { get; set; }
@@ -56,5 +55,6 @@ public class ScoreDto
 	public PlayerDto Player { get; set; } = null!;
 	public int PlayerId { get; set; }
 	
+	//TODO
 	public bool IsRestricted { get; set; }
 }

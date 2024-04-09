@@ -84,7 +84,7 @@ public partial class OsuController
 
 		if (beatmap.Status < BeatmapStatus.Ranked)
 			return Responses.BytesContentResult($"{(int)beatmap.Status}|false");
-
+		
 		(List<ScoreDto> Scores, Score? PlayerBest) leaderboard = !fromEditor
 			? await GetLeaderboardScores(leaderboardType, beatmap, mode, mods, player)
 			: ([], null);
@@ -124,12 +124,17 @@ public partial class OsuController
 	{
 		var type = (LeaderboardType)leaderboardType;
 		var scores = await _bancho.GetBeatmapLeaderboard(beatmap.MD5, mode, type, mods, player);
-
+		
 		Score? playerBest = null;
 		if (scores.Count > 0)
 		{
 			var withMods = type is LeaderboardType.Mods or LeaderboardType.CountryMods or LeaderboardType.FriendsMods;
-			playerBest = await _bancho.GetPlayerBestScoreOnLeaderboard(player, beatmap, mode, withMods, mods);
+			playerBest = withMods
+				? await _bancho.GetPlayerBestScoreWithModsOnMap(player, beatmap.MD5, mode, mods)
+				: await _bancho.GetPlayerBestScoreOnMap(player, beatmap.MD5, mode);
+			
+			if (playerBest != null)
+				await _bancho.SetScoreLeaderboardPosition(beatmap, playerBest, withMods, mods);
 		}
 		
 		return (scores, playerBest);
@@ -138,7 +143,7 @@ public partial class OsuController
 	private static string FormatScore(ScoreDto dto, int position)
 	{
 		var scoreAsPp = dto.Mode >= (byte)GameMode.RelaxStd || AppSettings.SortLeaderboardByPP;
-		return $"{(int)dto.Id}|{dto.Username}|{(int)(scoreAsPp ? dto.PP : dto.Score)}|{dto.MaxCombo}|{dto.Count50}|{dto.Count100}|{dto.Count300}|{dto.Misses}|{dto.Katus}|{dto.Gekis}|{dto.Perfect}|{dto.Mods}|{dto.PlayerId}|{position}|{DateTimeToUnix(dto.PlayTime)}|1";	//TODO this '1' tells client whether score has a saved replay
+		return $"{(int)dto.Id}|{dto.Player.Username}|{(int)(scoreAsPp ? dto.PP : dto.Score)}|{dto.MaxCombo}|{dto.Count50}|{dto.Count100}|{dto.Count300}|{dto.Misses}|{dto.Katus}|{dto.Gekis}|{dto.Perfect}|{dto.Mods}|{dto.PlayerId}|{position}|{DateTimeToUnix(dto.PlayTime)}|1";	//TODO this '1' tells client whether score has a saved replay
 	}
 
 	private static string FormatBestScore(Score score, Player player)

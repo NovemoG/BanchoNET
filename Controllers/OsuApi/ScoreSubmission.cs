@@ -112,7 +112,8 @@ public partial class OsuController
         }
 		
         score.CalculateAccuracy();
-        var bestWithMods = await _bancho.GetPlayerBestScoreWithModsOnMap(player, beatmapMD5, score);
+        
+        var bestWithMods = await _bancho.GetPlayerBestScoreWithModsOnMap(player, beatmapMD5, score.Mode, score.Mods);
         var prevBest = await _bancho.GetPlayerBestScoreOnMap(player, beatmapMD5, score.Mode);
 
         if (await _bancho.EnsureLocalBeatmapFile(beatmap.MapId, beatmapMD5))
@@ -121,7 +122,6 @@ public partial class OsuController
 
             if (score.Passed)
             {
-                
                 score.ComputeSubmissionStatus(prevBest, bestWithMods);
 
                 if (beatmap.Status != BeatmapStatus.LatestPending)
@@ -139,7 +139,6 @@ public partial class OsuController
         score.TimeElapsed = score.Passed ? scoreTime : failTime;
 		
         //TODO pp autoban(?)
-
         
         if (score.Status == SubmissionStatus.Best)
         {
@@ -170,8 +169,8 @@ public partial class OsuController
 
                 await AnnounceNewFirstScore(score, player, beatmap);
             }
-            await _bancho.SetLb(prevBest, bestWithMods);
-            // await _bancho.UpdatePlayerBestScoreOnMap(beatmap, score.PlayerId, updateBestWithMods || bestWithMods == null);  
+            
+            await _bancho.SetScoresStatuses(prevBest, bestWithMods);
         }
         
         score.Player = player;
@@ -298,8 +297,8 @@ public partial class OsuController
                 //TODO so this condition: score.Grade == previousBestWithMods.Grade
                 //TODO is always true
                 
-                var previousBestWithMods =
-                    await _bancho.GetPlayerBestScoreOnLeaderboard(player, beatmap, score.Mode, true, score.Mods, false);
+                /*var previousBestWithMods =
+                    await _bancho.GetPlayerBestScoreOnLeaderboard(player, beatmap, score.Mode, true, score.Mods, false);*/
             }
 
             if (beatmap.AwardsPP() && score.Status == SubmissionStatus.Best)
@@ -344,7 +343,7 @@ public partial class OsuController
 
             if (currentBest != null)
                 if (currentBest.PlayerId != score.PlayerId)
-                    announcement += $"(Previous #1: [https://{AppSettings.Domain}/u/{currentBest.PlayerId} {currentBest.Username}])";
+                    announcement += $"(Previous #1: [https://{AppSettings.Domain}/u/{currentBest.PlayerId} {currentBest.Player.Username}])";
 					
             announceChannel?.SendMessage(new Message
             {
