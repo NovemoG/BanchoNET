@@ -112,16 +112,17 @@ public partial class OsuController
         }
 		
         score.CalculateAccuracy();
-		
+        var bestWithMods = await _bancho.GetPlayerBestScoreWithModsOnMap(player, beatmapMD5, score);
+        var prevBest = await _bancho.GetPlayerBestScoreOnMap(player, beatmapMD5, score.Mode);
+
         if (await _bancho.EnsureLocalBeatmapFile(beatmap.MapId, beatmapMD5))
         {
             score.CalculatePerformance(beatmap.MapId);
 
             if (score.Passed)
             {
-                var prevBest = await _bancho.GetPlayerBestScoreOnMap(player, beatmapMD5, score.Mode);
-				
-                score.ComputeSubmissionStatus(prevBest);
+                
+                score.ComputeSubmissionStatus(prevBest, bestWithMods);
 
                 if (beatmap.Status != BeatmapStatus.LatestPending)
                     await _bancho.SetScoreLeaderboardPosition(beatmap, score, false);
@@ -139,6 +140,7 @@ public partial class OsuController
 		
         //TODO pp autoban(?)
 
+        
         if (score.Status == SubmissionStatus.Best)
         {
             if (beatmap.HasLeaderboard())
@@ -168,10 +170,10 @@ public partial class OsuController
 
                 await AnnounceNewFirstScore(score, player, beatmap);
             }
-
-            await _bancho.UpdatePlayerBestScoreOnMap(beatmap, score);
+            await _bancho.SetLb(prevBest, bestWithMods);
+            // await _bancho.UpdatePlayerBestScoreOnMap(beatmap, score.PlayerId, updateBestWithMods || bestWithMods == null);  
         }
-
+        
         score.Player = player;
         await _bancho.InsertScore(score, beatmap.MD5, player.Username);
 

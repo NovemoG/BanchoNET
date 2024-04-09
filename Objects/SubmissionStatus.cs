@@ -4,5 +4,6 @@ public enum SubmissionStatus : byte
 {
 	Failed,
 	Submitted,
+	BestWithMods,
 	Best
 }

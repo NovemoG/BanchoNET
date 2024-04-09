@@ -167,20 +167,6 @@ public class Program
 		app.Run();
 	}
 	
-	private static string RandomString(Random random, int length)
-	{
-		const string chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-		return new string(Enumerable.Repeat(chars, length)
-		                            .Select(s => s[random.Next(s.Length)]).ToArray());
-	}
-	
-	private static string RandomStringLower(Random random, int length)
-	{
-		const string chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-		return new string(Enumerable.Repeat(chars, length)
-		                            .Select(s => s[random.Next(s.Length)]).ToArray());
-	}
-
 	private static void InitBanchoBot(IServiceScope scope)
 	{
 		var db = scope.ServiceProvider.GetRequiredService<BanchoDbContext>();
@@ -193,6 +179,12 @@ public class Program
 		}
 
 		var banchoBotName = AppSettings.BanchoBotName;
+		if (banchoBotName.Length > 16)
+		{
+			Console.WriteLine("[Init] Bancho bot name is too long, truncating to 16 characters");
+			banchoBotName = banchoBotName[..16];
+			Console.WriteLine("[Init] New bot name: " + banchoBotName);
+		}
 		
 		var entry = db.Players.Add(new PlayerDto
 		{
@@ -203,7 +195,7 @@ public class Program
 			Email = "ban@cho.bot",
 			PasswordHash = "1",
 			Country = "a2",
-			LastActivityTime = DateTime.MaxValue,
+			LastActivityTime = DateTime.Now.AddYears(100),
 			Privileges = (int)(Privileges.Verified | Privileges.Staff),
 		});
 		db.SaveChanges();
