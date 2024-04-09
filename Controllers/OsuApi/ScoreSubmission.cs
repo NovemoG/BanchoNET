@@ -175,7 +175,7 @@ public partial class OsuController
         }
         
         score.Player = player;
-        await _bancho.InsertScore(score, beatmap.MD5, player.Username);
+        await _bancho.InsertScore(score, beatmap.MD5, player);
 
         if (score.Passed)
         {

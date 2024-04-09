@@ -191,7 +191,7 @@ public class Program
 			Id = 1,
 			Username = banchoBotName,
 			SafeName = banchoBotName.MakeSafe(),
-			LoginName = banchoBotName.ToLogin(),
+			LoginName = banchoBotName.MakeSafe(),
 			Email = "ban@cho.bot",
 			PasswordHash = "1",
 			Country = "a2",

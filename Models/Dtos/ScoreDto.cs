@@ -11,8 +11,12 @@ public class ScoreDto
 {
 	[Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
 	public long Id { get; set; }
+	
 	[MaxLength(16), Unicode(false)]
 	public string Username { get; set; }
+	
+	[Column(TypeName = "CHAR(2)"), Unicode(false)]
+	public string CountryCode { get; set; } = null!;
 	
 	[Column(TypeName = "CHAR(32)"), Unicode(false)]
 	public string BeatmapMD5 { get; set; }
@@ -51,4 +55,6 @@ public class ScoreDto
 	[ForeignKey("PlayerId")]
 	public PlayerDto Player { get; set; } = null!;
 	public int PlayerId { get; set; }
+	
+	public bool IsRestricted { get; set; }
 }
