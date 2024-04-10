@@ -76,8 +76,8 @@ public partial class ChoController
 		var player = _session.GetPlayer(username: loginData.Username);
 		if (player != null && loginData.OsuVersion.Stream != "tourney")
 		{
-			Console.WriteLine($"[{GetType().Name}] Login time difference: {DateTime.UtcNow - player.LastActivityTime}");
-			if (DateTime.UtcNow - player.LastActivityTime < TimeSpan.FromSeconds(15))
+			Console.WriteLine($"[{GetType().Name}] Login time difference: {DateTime.Now - player.LastActivityTime}");
+			if (DateTime.Now - player.LastActivityTime < TimeSpan.FromSeconds(15))
 			{
 				Response.Headers["cho-token"] = "user-already-logged-in";
                 
@@ -164,7 +164,7 @@ public partial class ChoController
 			return responseData.GetContentResult();
 		}
 		
-		player = new Player(userInfo, Guid.NewGuid(), DateTime.UtcNow, 1)
+		player = new Player(userInfo, Guid.NewGuid(), DateTime.Now, 1)
 		{
 			Geoloc = geoloc.Value,
 			ClientDetails = new ClientDetails

@@ -1,4 +1,5 @@
 ﻿using BanchoNET.Objects;
+using BanchoNET.Objects.Multiplayer;
 using BanchoNET.Objects.Privileges;
 
 namespace BanchoNET.Utils;
@@ -33,5 +34,15 @@ public static class EnumExtensions
 	public static bool HasMod(this Mods value, Mods mod)
 	{
 		return (value & mod) == mod;
+	}
+	
+	public static bool HasStatuses(this SlotStatus value, params SlotStatus[] checkFlags)
+	{
+		return checkFlags.All(flag => (value & flag) == flag);
+	}
+
+	public static bool HasStatus(this SlotStatus value, SlotStatus status)
+	{
+		return (value & status) == status;
 	}
 }

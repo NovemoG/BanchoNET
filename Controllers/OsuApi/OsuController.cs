@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using BanchoNET.Objects;
+using BanchoNET.Objects.Players;
 using BanchoNET.Services;
 using Microsoft.AspNetCore.Mvc;
 

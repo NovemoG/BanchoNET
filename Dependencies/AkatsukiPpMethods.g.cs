@@ -3,6 +3,7 @@
 using System;
 using System.Runtime.InteropServices;
 using BanchoNET.Objects;
+using BanchoNET.Objects.Scores;
 using BanchoNET.Utils;
 
 namespace AkatsukiPp

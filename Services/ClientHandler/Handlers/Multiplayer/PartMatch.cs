@@ -1,14 +1,13 @@
 ﻿using BanchoNET.Objects.Players;
+using BanchoNET.Utils;
 
 namespace BanchoNET.Services;
 
 public partial class BanchoHandler
 {
-	private Task ReceiveUpdates(Player player, BinaryReader br)
+	private Task PartMatch(Player player, BinaryReader br)
 	{
-		var value = br.ReadInt32();
-		
-		player.PresenceFilter = (PresenceFilter)value;
+		player.LeaveMatch();
 		player.LastActivityTime = DateTime.Now;
 		return Task.CompletedTask;
 	}

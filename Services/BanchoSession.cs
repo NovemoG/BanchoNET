@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Net;
 using BanchoNET.Objects.Beatmaps;
+using BanchoNET.Objects.Multiplayer;
 using BanchoNET.Objects.Players;
 using BanchoNET.Objects.Privileges;
 using BanchoNET.Packets;
@@ -16,11 +17,16 @@ public sealed class BanchoSession
 	
 	#region PlayersCollections
 	
-	public Player BanchoBot => Bots[1];
+	public Player BanchoBot => _bots[1];
 	
-	public readonly ConcurrentDictionary<int, Player> Players = [];
-	public readonly ConcurrentDictionary<int, Player> Restricted = [];
-	public readonly ConcurrentDictionary<int, Player> Bots = [];
+	private readonly ConcurrentDictionary<int, Player> _players = [];
+	public IEnumerable<Player> Players => _players.Values;
+	
+	private readonly ConcurrentDictionary<int, Player> _restricted = [];
+	public IEnumerable<Player> Restricted => _restricted.Values;
+	
+	private readonly ConcurrentDictionary<int, Player> _bots = [];
+	public IEnumerable<Player> Bots => _bots.Values;
 
 	#endregion
 
@@ -97,6 +103,9 @@ public sealed class BanchoSession
 
 	#region Other
 
+	private readonly ConcurrentDictionary<int, MultiplayerLobby> _multiplayerLobbies = [];
+	public IEnumerable<MultiplayerLobby> Lobbies => _multiplayerLobbies.Values;
+	
 	private readonly ConcurrentDictionary<string, string> _passwordHashes = [];
 	private readonly ConcurrentDictionary<string, IPAddress> _ipCache = [];
 
@@ -134,19 +143,19 @@ public sealed class BanchoSession
 	
 	public void AppendBot(Player bot)
 	{
-		Bots.TryAdd(bot.Id, bot);
+		_bots.TryAdd(bot.Id, bot);
 	}
 	
 	public void AppendPlayer(Player player)
 	{
-		if (player.Restricted) Restricted.TryAdd(player.Id, player);
-		else Players.TryAdd(player.Id, player);
+		if (player.Restricted) _restricted.TryAdd(player.Id, player);
+		else _players.TryAdd(player.Id, player);
 	}
 
 	public bool LogoutPlayer(Player player)
 	{
-		Console.WriteLine($"[{GetType().Name}] Logout time difference: {DateTime.UtcNow - player.LoginTime}");
-		if (DateTime.UtcNow - player.LoginTime < TimeSpan.FromSeconds(1)) return false;
+		Console.WriteLine($"[{GetType().Name}] Logout time difference: {DateTime.Now - player.LoginTime}");
+		if (DateTime.Now - player.LoginTime < TimeSpan.FromSeconds(1)) return false;
 		
 		if (player.Lobby != null) player.LeaveMatch();
 
@@ -162,11 +171,11 @@ public sealed class BanchoSession
 			EnqueueToPlayers(logoutPacket.GetContent());
 		}
 		
-		if (!Players.TryRemove(player.Id, out _))
+		if (!_players.TryRemove(player.Id, out _))
 			Console.WriteLine($"[{GetType().Name}] Failed to remove {player.Id} from session");
 
-		Console.Write($"[{GetType().Name}] Players left: {Players.Count}, names: ");
-		foreach (var user in Players)
+		Console.Write($"[{GetType().Name}] Players left: {_players.Count}, names: ");
+		foreach (var user in _players)
 		{
 			Console.Write($"{user.Value.Username}, ");
 		}
@@ -175,41 +184,56 @@ public sealed class BanchoSession
 		return true;
 	}
 	
-	public Player? GetPlayer(int id = 1, string username = "", Guid token = new())
+	public Player? GetPlayer(int id = 0, string username = "", Guid token = new())
 	{
 		Player? sessionPlayer;
 		
-		if (id > 1)
+		if (id > 0)
 		{
-			Bots.TryGetValue(id, out sessionPlayer);
+			_players.TryGetValue(id, out sessionPlayer);
 			if (sessionPlayer != null) return sessionPlayer;
-			Players.TryGetValue(id, out sessionPlayer);
-			if (sessionPlayer != null) return sessionPlayer;
-			Restricted.TryGetValue(id, out sessionPlayer);
+			_restricted.TryGetValue(id, out sessionPlayer);
 			return sessionPlayer;
 		}
 
 		if (username != string.Empty)
 		{
-			sessionPlayer = Bots.FirstOrDefault(p => p.Value.Username == username).Value;
+			sessionPlayer = _bots.Values.FirstOrDefault(p => p.Username == username);
 			if (sessionPlayer != null) return sessionPlayer;
-			sessionPlayer = Players.FirstOrDefault(r => r.Value.Username == username).Value;
-			return sessionPlayer ?? Restricted.FirstOrDefault(b => b.Value.Username == username).Value;
+			sessionPlayer = _players.Values.FirstOrDefault(r => r.Username == username);
+			return sessionPlayer ?? _restricted.Values.FirstOrDefault(b => b.Username == username);
 		}
 
 		if (token != Guid.Empty)
 		{
-			sessionPlayer = Players.FirstOrDefault(p => p.Value.Token == token).Value;
-			return sessionPlayer ?? Restricted.FirstOrDefault(r => r.Value.Token == token).Value;
+			sessionPlayer = _players.Values.FirstOrDefault(p => p.Token == token);
+			return sessionPlayer ?? _restricted.Values.FirstOrDefault(r => r.Token == token);
 		}
 
 		return null;
+	}
+
+	public Player? GetBot(int id = 0, string username = "")
+	{
+		if (id <= 0)
+			return username != string.Empty
+				? _bots.Values.FirstOrDefault(p => p.Username == username)
+				: null;
+		
+		_bots.TryGetValue(id, out var sessionPlayer);
+		return sessionPlayer;
 	}
 	
 	public Channel? GetChannel(string name, bool spectator = false)
 	{
 		return spectator ? _spectatorChannels.FirstOrDefault(c => c.Name == name) 
 			: _channels.FirstOrDefault(c => c.Name == name);
+	}
+	
+	public void InsertChannel(Channel channel, bool spectator = false)
+	{
+		if (spectator) _spectatorChannels.Add(channel);
+		else _channels.Add(channel);
 	}
 	
 	public List<Channel> GetAutoJoinChannels(Player player)
@@ -298,12 +322,28 @@ public sealed class BanchoSession
 		_needUpdateBeatmaps.Add(beatmapMD5);
 	}
 
+	public MultiplayerLobby? GetLobby(ushort id)
+	{
+		_multiplayerLobbies.TryGetValue(id, out var lobby);
+		return lobby;
+	}
+	
+	public void InsertLobby(MultiplayerLobby lobby)
+	{
+		_multiplayerLobbies.TryAdd(lobby.Id, lobby);
+	}
+	
+	public void RemoveLobby(MultiplayerLobby lobby)
+	{
+		_multiplayerLobbies.TryRemove(lobby.Id, out _);
+	}
+
 	public void EnqueueToPlayers(byte[] data)
 	{
-		foreach (var player in Players.Values)
+		foreach (var player in _players.Values)
 			player.Enqueue(data);
 
-		foreach (var player in Restricted.Values)
+		foreach (var player in _restricted.Values)
 			player.Enqueue(data);
 	}
 }

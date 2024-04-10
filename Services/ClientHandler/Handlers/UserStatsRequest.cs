@@ -22,20 +22,26 @@ public partial class BanchoHandler
 		for (var i = ids.Count - 1; i >= 0; i--)
 		{
 			var id = ids[i];
-			
-			if (_session.Bots.TryGetValue(id, out var bot))
+
+			var bot = _session.GetBot(id: id);
+			if (bot != null)
 			{
 				statsPacket.BotStats(bot);
 				ids.RemoveAt(i);
 			}
-			else if (_session.Players.TryGetValue(id, out var user))
+			else
 			{
+				var user = _session.GetPlayer(id: id);
+				if (user == null) continue;
+				
 				statsPacket.UserStats(user);
 				ids.RemoveAt(i);
 			}
 		}
 
 		player.Enqueue(statsPacket.GetContent());
+		player.LastActivityTime = DateTime.Now;
+		
 		return Task.CompletedTask;
 	}
 }

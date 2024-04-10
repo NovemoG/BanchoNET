@@ -1,4 +1,5 @@
 ﻿using BanchoNET.Objects.Channels;
+using BanchoNET.Objects.Multiplayer;
 using BanchoNET.Objects.Players;
 using BanchoNET.Services;
 using BanchoNET.Utils;
@@ -165,46 +166,56 @@ public partial class ServerPackets : IDisposable
 	/// <summary>
 	/// Packet id 26
 	/// </summary>
-	[Obsolete]
-	public void UpdateMatch()
+	public void UpdateMatch(MultiplayerLobby lobby, bool sendPassword)
 	{
-		
+		var data = new LobbyData
+		{
+			Lobby = lobby,
+			SendPassword = sendPassword
+		};
+		WritePacketData(ServerPacketId.UpdateMatch, new PacketData(data, DataType.Match));
 	}
 	
 	/// <summary>
 	/// Packet id 27
 	/// </summary>
-	[Obsolete]
-	public void NewMatch()
+	public void NewMatch(MultiplayerLobby lobby)
 	{
-		
+		var data = new LobbyData
+		{
+			Lobby = lobby,
+			SendPassword = true
+		};
+		WritePacketData(ServerPacketId.NewMatch, new PacketData(data, DataType.Match));
 	}
 
 	/// <summary>
 	/// Packet id 28
 	/// </summary>
-	[Obsolete]
-	public void DisposeMatch()
+	public void DisposeMatch(MultiplayerLobby lobby)
 	{
-		
+		WritePacketData(ServerPacketId.DisposeMatch, new PacketData(lobby.Id, DataType.Int));
 	}
 
 	/// <summary>
 	/// Packet id 36
 	/// </summary>
-	[Obsolete]
-	public void MatchJoinSuccess()
+	public void MatchJoinSuccess(MultiplayerLobby lobby)
 	{
-		
+		var data = new LobbyData
+		{
+			Lobby = lobby,
+			SendPassword = true
+		};
+		WritePacketData(ServerPacketId.MatchJoinSuccess, new PacketData(data, DataType.Match));
 	}
 
 	/// <summary>
 	/// Packet id 37
 	/// </summary>
-	[Obsolete]
 	public void MatchJoinFail()
 	{
-		
+		WritePacketData(ServerPacketId.MatchJoinFail);
 	}
 	
 	/// <summary>
@@ -557,21 +568,21 @@ public partial class ServerPackets : IDisposable
 		
 		foreach (var bot in session.Bots)
 		{
-			BotPresence(bot.Value);
-			BotStats(bot.Value);
+			BotPresence(bot);
+			BotStats(bot);
 		}
 		
 		foreach (var user in session.Players)
 		{
-			if (toOthers) user.Value.Enqueue(loginData);
-			UserPresence(user.Value);
-			UserStats(user.Value);
+			if (toOthers) user.Enqueue(loginData);
+			UserPresence(user);
+			UserStats(user);
 		}
 
 		if (!toOthers) return;
 		
 		foreach (var restricted in session.Restricted)
-			restricted.Value.Enqueue(loginData);
+			restricted.Enqueue(loginData);
 	}
 
 	public void Dispose()

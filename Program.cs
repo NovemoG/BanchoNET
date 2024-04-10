@@ -150,8 +150,6 @@ public class Program
 			Console.ForegroundColor = ConsoleColor.White;
 		}
 		
-		Regexes.InitNowPlayingRegex(domain);
-		
 		InitBanchoBot(app.Services.CreateScope());
 		InitChannels(app.Services.CreateScope());
 		

@@ -70,7 +70,7 @@ public class Beatmap
 		Hp = apiBeatmap.DiffDrain;
 		StarRating = (float)apiBeatmap.DifficultyRating;
 
-		LastApiCheck = DateTime.UtcNow;
+		LastApiCheck = DateTime.Now;
 		IsRankedOfficially = Status is BeatmapStatus.Ranked or BeatmapStatus.Approved;
 	}
 
@@ -100,7 +100,7 @@ public class Beatmap
 		SlidersCount = int.Parse(apiBeatmap.CountSlider);
 		SpinnersCount = int.Parse(apiBeatmap.CountSpinner);
 
-		LastApiCheck = DateTime.UtcNow;
+		LastApiCheck = DateTime.Now;
 		IsRankedOfficially = Status is BeatmapStatus.Ranked or BeatmapStatus.Approved;
 	}
 

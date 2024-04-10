@@ -2,7 +2,7 @@
 using BanchoNET.Objects.Beatmaps;
 using BanchoNET.Objects.Players;
 
-namespace BanchoNET.Objects;
+namespace BanchoNET.Objects.Scores;
 
 public class Score
 {

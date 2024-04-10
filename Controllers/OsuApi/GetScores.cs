@@ -3,6 +3,7 @@ using BanchoNET.Models.Dtos;
 using BanchoNET.Objects;
 using BanchoNET.Objects.Beatmaps;
 using BanchoNET.Objects.Players;
+using BanchoNET.Objects.Scores;
 using BanchoNET.Packets;
 using BanchoNET.Utils;
 using Microsoft.AspNetCore.Mvc;

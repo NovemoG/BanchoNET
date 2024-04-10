@@ -22,7 +22,7 @@ public partial class BanchoHandler
 		{
 			storedLogin.OsuVersion = osuVersion;
 			storedLogin.ReleaseStream = stream;
-			storedLogin.LoginTime = DateTime.UtcNow;
+			storedLogin.LoginTime = DateTime.Now;
 			await _dbContext.SaveChangesAsync();
 			return;
 		}
@@ -33,7 +33,7 @@ public partial class BanchoHandler
 			Ip = ip.ToString(),
 			OsuVersion = osuVersion,
 			ReleaseStream = stream,
-			LoginTime = DateTime.UtcNow
+			LoginTime = DateTime.Now
 		});
 		await _dbContext.SaveChangesAsync();
 	}
@@ -96,7 +96,7 @@ public partial class BanchoHandler
 
 		if (storedHash != null)
 		{
-			storedHash.LatestTime = DateTime.UtcNow;
+			storedHash.LatestTime = DateTime.Now;
 			await _dbContext.SaveChangesAsync();
 			return false;
 		}
@@ -108,7 +108,7 @@ public partial class BanchoHandler
 			Adapters = adapters,
 			Uninstall = uninstall,
 			DiskSerial = diskSerial,
-			LatestTime = DateTime.UtcNow
+			LatestTime = DateTime.Now
 		});
 		await _dbContext.SaveChangesAsync();
 

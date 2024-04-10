@@ -2,6 +2,7 @@
 using BanchoNET.Objects;
 using BanchoNET.Objects.Players;
 using BanchoNET.Objects.Privileges;
+using BanchoNET.Objects.Scores;
 using BanchoNET.Packets;
 using BanchoNET.Utils;
 using Microsoft.EntityFrameworkCore;
@@ -32,7 +33,7 @@ public partial class BanchoHandler
 	
 	public async Task UpdateLatestActivity(Player player)
 	{
-		player.LastActivityTime = DateTime.UtcNow;
+		player.LastActivityTime = DateTime.Now;
 		
 		await _dbContext.Players
 		               .Where(p => p.Id == player.Id)
@@ -228,8 +229,8 @@ public partial class BanchoHandler
 			PasswordHash = pwdHash,
 			Privileges = 1,
 			Country = country,
-			CreationTime = DateTime.UtcNow,
-			LastActivityTime = DateTime.UtcNow
+			CreationTime = DateTime.Now,
+			LastActivityTime = DateTime.Now
 		};
 		
 		var player = await _dbContext.Players.AddAsync(playerDto);

@@ -21,7 +21,7 @@ public partial class ServerPackets
 		[DataType.Double] = (bw, data) => bw.Write((double)data),
 		[DataType.Message] = (bw, data) => bw.WriteOsuMessage((Message)data),
 		[DataType.Channel] = (bw, data) => bw.WriteOsuChannel((Channel)data),
-		[DataType.Match] = (bw, data) => bw.WriteOsuMatch((MultiplayerLobby)data),
+		[DataType.Match] = (bw, data) => bw.WriteOsuMatch((LobbyData)data),
 		[DataType.Stats] = (bw, data) => bw.WriteUserStats((Player)data),
 		[DataType.BotStats] = (bw, data) => bw.WriteBotStats((Player)data),
 		[DataType.Presence] = (bw, data) => bw.WriteUserPresence((Player)data),

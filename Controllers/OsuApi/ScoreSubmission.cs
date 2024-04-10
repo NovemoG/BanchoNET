@@ -8,6 +8,7 @@ using BanchoNET.Objects;
 using BanchoNET.Objects.Beatmaps;
 using BanchoNET.Objects.Channels;
 using BanchoNET.Objects.Players;
+using BanchoNET.Objects.Scores;
 using BanchoNET.Packets;
 using BanchoNET.Utils;
 using Microsoft.AspNetCore.Mvc;
@@ -335,7 +336,7 @@ public partial class OsuController
         if (score.LeaderboardPosition == 1 && !player.Restricted)
         {
             var announceChannel = _session.GetChannel("#announce");
-            var announcement = $@"\x01ACTION achieved #1 on {beatmap.Embed} with {score.Acc:F2}% and {score.PP}pp.";
+            var announcement = $@"\x01ACTION achieved #1 on {beatmap.Embed()} with {score.Acc:F2}% and {score.PP}pp.";
 			
             var currentBest = await _bancho.GetBestBeatmapScore(beatmap, score.Mode);
 					
@@ -344,7 +345,7 @@ public partial class OsuController
 
             if (currentBest != null)
                 if (currentBest.PlayerId != score.PlayerId)
-                    announcement += $"(Previous #1: [https://{AppSettings.Domain}/u/{currentBest.PlayerId} {currentBest.Player.Username}])";
+                    announcement += $" (Previous #1: [https://{AppSettings.Domain}/u/{currentBest.PlayerId} {currentBest.Player.Username}])";
 					
             announceChannel?.SendMessage(new Message
             {

@@ -21,12 +21,11 @@ public partial class BanchoHandler
 		
 		status.BeatmapId = br.ReadInt32();
 		
-		player.LastActivityTime = DateTime.UtcNow;
-		
 		using var packet = new ServerPackets();
 		packet.UserStats(player);
 		_session.EnqueueToPlayers(packet.GetContent());
 
+		player.LastActivityTime = DateTime.Now;
 		return Task.CompletedTask;
 	}
 }

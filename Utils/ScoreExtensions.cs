@@ -1,6 +1,7 @@
 ﻿using AkatsukiPp;
 using BanchoNET.Models.Dtos;
 using BanchoNET.Objects;
+using BanchoNET.Objects.Scores;
 
 namespace BanchoNET.Utils;
 
@@ -169,7 +170,9 @@ public static class ScoreExtensions
             {
                 if (!(score.PP > prevBest.PP))
                 {
-                    if (score.PP > prevBestWithMods.PP) prevBestWithMods.Status = SubmissionStatus.Submitted;
+                    if (score.PP > prevBestWithMods.PP)
+                        prevBestWithMods.Status = SubmissionStatus.Submitted;
+                    
                     return;
                 }
         
@@ -185,7 +188,9 @@ public static class ScoreExtensions
             {
                 if (score.TotalScore < prevBest.TotalScore)
                 {
-                    if (score.TotalScore > prevBestWithMods.TotalScore) prevBestWithMods.Status = SubmissionStatus.Submitted;
+                    if (score.TotalScore > prevBestWithMods.TotalScore)
+                        prevBestWithMods.Status = SubmissionStatus.Submitted;
+                    
                     return;
                 }
         

@@ -80,7 +80,7 @@ public partial class BanchoHandler
 			});
 		}
 		
-		player.LastActivityTime = DateTime.UtcNow;
+		player.LastActivityTime = DateTime.Now;
 		return Task.CompletedTask;
 	}
 }

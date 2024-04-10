@@ -4,13 +4,6 @@ namespace BanchoNET.Utils;
 
 public static class Regexes
 {
-	public static void InitNowPlayingRegex(string domain)
-	{
-		NowPlaying = new Regex(
-			@$"^\x01ACTION is (?:playing|editing|watching|listening to) \[https://osu\.(?:{domain.Replace(".", "\\.")}|ppy\.sh)/beatmapsets/(?<sid>\d{{1,10}})#/?(?:osu|taiko|fruits|mania)?/(?<bid>\d{{1,10}})/? .+\](?<mods>(?: (?:-|\+|~|\|)\w+(?:~|\|)?)+)?\x01$",
-			RegexOptions.Compiled);
-	}
-	
 	static Regexes()
 	{
 		Username = new Regex(
@@ -32,6 +25,10 @@ public static class Regexes
 		NumSeparator = new Regex(
 			".{3}",
 			RegexOptions.RightToLeft | RegexOptions.Compiled);
+		
+		NowPlaying = new Regex(
+			@$"^\x01ACTION is (?:playing|editing|watching|listening to) \[https://osu\.(?:{AppSettings.Domain.Replace(".", "\\.")}|ppy\.sh)/beatmapsets/(?<sid>\d{{1,10}})#/?(?:osu|taiko|fruits|mania)?/(?<bid>\d{{1,10}})/? .+\](?<mods>(?: (?:-|\+|~|\|)\w+(?:~|\|)?)+)?\x01$",
+			RegexOptions.Compiled);
 	}
 
 	public static readonly Regex Username;
@@ -39,5 +36,5 @@ public static class Regexes
 	public static readonly Regex Whitespace;
 	public static readonly Regex OsuVersion;
 	public static readonly Regex NumSeparator;
-	public static Regex NowPlaying { get; private set; } = null!;
+	public static readonly Regex NowPlaying;
 }

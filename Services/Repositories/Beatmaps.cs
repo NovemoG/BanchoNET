@@ -260,7 +260,9 @@ public partial class BanchoHandler
 			SetId = currentBeatmap.SetId,
 			Private = currentBeatmap.Private,
 			Mode = currentBeatmap.Mode,
-			Status = currentBeatmap.Status,
+			Status = beatmap.IsRankedOfficially || beatmap.Status == BeatmapStatus.Qualified
+				? (sbyte)beatmap.Status
+				: currentBeatmap.Status,
 			IsRankedOfficially = beatmap.IsRankedOfficially,
 			MD5 = beatmap.MD5,
 			Artist = beatmap.Artist,

@@ -1,6 +1,7 @@
 ﻿using BanchoNET.Objects.Channels;
 using BanchoNET.Objects.Players;
 using BanchoNET.Packets;
+using BanchoNET.Services;
 
 namespace BanchoNET.Utils;
 
@@ -36,5 +37,29 @@ public static class ChannelExtensions
 			if (!player.BlockedByPlayer(message.SenderId) && (toSelf || player.Id != message.SenderId))
 				player.Enqueue(messagePacket.GetContent());
 		}
+	}
+
+	public static void SendBotMessage(this Channel channel, string message)
+	{
+		var bot = BanchoSession.Instance.BanchoBot;
+
+		if (message.Length >= 31979)
+			message = $"message would have crashed games ({message.Length} characters).";
+		
+		using var messagePacket = new ServerPackets();
+		messagePacket.SendMessage(new Message
+		{
+			Sender = bot.Username,
+			Content = message,
+			Destination = channel.Name,
+			SenderId = bot.Id
+		});
+		channel.EnqueueToPlayers(messagePacket.GetContent());
+	}
+
+	public static void EnqueueToPlayers(this Channel channel, byte[] data)
+	{
+		foreach (var player in channel.Players)
+			player.Enqueue(data);
 	}
 }

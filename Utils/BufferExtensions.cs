@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using BanchoNET.Objects;
 using BanchoNET.Objects.Channels;
 using BanchoNET.Objects.Multiplayer;
 using BanchoNET.Objects.Players;
@@ -45,8 +46,51 @@ public static class BufferExtensions
 			returnList.Add(br.ReadInt32());
 			length--;
 		}
-
+ 
 		return returnList;
+	}
+	
+	public static MultiplayerLobby ReadOsuMatch(this BinaryReader br)
+	{
+		var match = new MultiplayerLobby
+		{
+			Id = br.ReadInt16(),
+			InProgress = br.ReadByte() == 1,
+			Powerplay = br.ReadByte(),
+			Mods = (Mods)br.ReadInt32(),
+			Name = br.ReadOsuString(),
+			Password = br.ReadOsuString(),
+			BeatmapName = br.ReadOsuString(),
+			BeatmapId = br.ReadInt32(),
+			BeatmapMD5 = br.ReadOsuString(),
+		};
+
+		var slots = match.Slots;
+
+		for (int i = 0; i < slots.Length; i++)
+			slots[i].Status = (SlotStatus)br.ReadByte();
+
+		for (int i = 0; i < slots.Length; i++)
+			slots[i].Team = (LobbyTeams)br.ReadByte();
+
+		for (int i = 0; i < slots.Length; i++)
+			if (((int)slots[i].Status & 124) != 0)
+				br.ReadInt32();
+
+		match.HostId = br.ReadInt32();
+		match.Mode = (GameMode)br.ReadByte();
+		match.WinCondition = (WinCondition)br.ReadByte();
+		match.Type = (LobbyType)br.ReadByte();
+		match.Freemods = br.ReadByte() == 1;
+		
+		if (match.Freemods)
+			for (int i = 0; i < slots.Length; i++)
+				slots[i].Mods = (Mods)br.ReadInt32();
+
+		match.Slots = slots;
+		match.Seed = br.ReadInt32();
+		
+		return match;
 	}
 
 	public static void WriteOsuList32(this BinaryWriter bw, List<int> list)
@@ -172,8 +216,59 @@ public static class BufferExtensions
 		bw.Write((ushort)channel.Players.Count);
 	}
 
-	public static void WriteOsuMatch(this BinaryWriter bw, MultiplayerLobby lobby)
+	public static void WriteOsuMatch(this BinaryWriter bw, LobbyData lobbyData)
 	{
-		//TODO
+		var match = lobbyData.Lobby;
+		
+		bw.Write(match.Id);
+		bw.Write((byte)(match.InProgress ? 1 : 0));
+		bw.Write((byte)0);
+		bw.Write((int)match.Mods);
+
+		if (!string.IsNullOrEmpty(match.Password))
+		{
+			if (lobbyData.SendPassword)
+				bw.WriteOsuString(match.Password);
+			else
+			{
+				bw.Write((byte)0);
+				bw.Write((byte)11);
+			}
+		}
+		else
+			bw.Write((byte)0);
+		
+		bw.WriteOsuString(match.BeatmapName);
+		bw.Write(match.BeatmapId);
+		bw.WriteOsuString(match.BeatmapMD5);
+
+		var slots = match.Slots;
+		for (int i = 0; i < slots.Length; i++)
+			bw.Write((byte)slots[i].Status); //TODO check if it has to be int
+		
+		for (int i = 0; i < slots.Length; i++)
+			bw.Write((byte)slots[i].Team);  //TODO check if it has to be int
+		
+		for (int i = 0; i < slots.Length; i++)
+		{
+			if (((int)slots[i].Status & 0x01111100) == 0) continue;
+			
+			var player = slots[i].Player;
+				
+			if (player != null)
+				bw.Write(player.Id);
+		}
+		
+		bw.Write(match.HostId);
+		bw.Write((byte)match.Mode); //TODO check if it has to be int
+		bw.Write((byte)match.WinCondition); //TODO check if it has to be int
+		bw.Write((byte)match.Type); //TODO check if it has to be int
+		bw.Write((byte)(match.Freemods ? 1 : 0)); //TODO check if it has to be int
+		
+		if (match.Freemods)
+			for (int i = 0; i < slots.Length; i++)
+				bw.Write((int)slots[i].Mods);
+		
+		bw.Write(match.Seed);
 	}
 }

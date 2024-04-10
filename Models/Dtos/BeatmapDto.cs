@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BanchoNET.Models.Dtos;
 
+[Index(nameof(MapId))]
+[Index(nameof(SetId))]
 [Index(nameof(MD5), IsUnique = true)]
 [PrimaryKey(nameof(MapId))]
 public class BeatmapDto

@@ -36,4 +36,6 @@ public enum Mods
 	Key2 = 2 << 27,
 	ScoreV2 = 2 << 28,
 	Mirror = 2 << 29,
+	
+	SpeedChangingMods = DoubleTime | NightCore | HalfTime,
 }

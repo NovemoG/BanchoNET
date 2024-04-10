@@ -21,6 +21,7 @@ public class Player
 	public Privileges.Privileges Privileges { get; set; }
 	public Player? Spectating { get; set; }
 	public MultiplayerLobby? Lobby { get; set; }
+	public bool InLobby { get; set; }
 	public Geoloc Geoloc { get; set; }
 	public byte TimeZone { get; set; }
 	public bool PmFriendsOnly { get; set; }
@@ -45,7 +46,7 @@ public class Player
 	//public int ClubPrivileges { get; set; }
 
 	public bool Online => Token != Guid.Empty;
-	public bool InLobby => Lobby != null;
+	public bool InMatch => Lobby != null;
 	public bool Silenced => RemainingSilence > 0;
 	public bool Restricted => !Privileges.HasPrivilege(Unrestricted);
 	public bool IsSpectating => Spectating != null;
@@ -59,7 +60,7 @@ public class Player
 		
 		Token = token != Guid.Empty ? token : Guid.Empty;
 		
-		LoginTime = loginTime ?? DateTime.UtcNow;
+		LoginTime = loginTime ?? DateTime.Now;
 		
 		Username = playerData.Username;
 		SafeName = playerData.SafeName;
