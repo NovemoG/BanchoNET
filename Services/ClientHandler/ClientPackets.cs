@@ -34,13 +34,10 @@ public partial class BanchoHandler
 			
 			PacketHandlerMap.PacketMethodsMap.TryGetValue(packetId, out var method);
 			if (method != null)
-			{
 				await (Task)method.Invoke(this, [player, br])!;
-			}
 			else
-			{
 				Console.WriteLine("[ClientPackets] Handler of this packet is not (yet) implemented");
-			}
+			
 		} while (br.BaseStream.Position < br.BaseStream.Length - 7);
 	}
 }

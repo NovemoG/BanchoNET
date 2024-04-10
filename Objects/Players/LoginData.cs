@@ -1,4 +1,4 @@
-﻿namespace BanchoNET.Objects;
+﻿namespace BanchoNET.Objects.Players;
 
 public class LoginData
 {

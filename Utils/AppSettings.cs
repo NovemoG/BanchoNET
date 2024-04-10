@@ -10,7 +10,6 @@ public static class AppSettings
         SortLeaderboardByPP = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("SORT_LEADERBOARD_BY_PP")) || bool.Parse(Environment.GetEnvironmentVariable("SORT_LEADERBOARD_BY_PP")!);
         ScoresOnLeaderboard = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("SCORES_ON_LEADERBOARD")) ? 50 : int.Parse(Environment.GetEnvironmentVariable("SCORES_ON_LEADERBOARD")!);
         SubmitByPP = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("SUBMIT_BY_PP")) || bool.Parse(Environment.GetEnvironmentVariable("SUBMIT_BY_PP")!);
-        DisplayPPOnLeaderboard = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DISPLAY_PP_ON_LEADERBOARD")) || bool.Parse(Environment.GetEnvironmentVariable("DISPLAY_PP_ON_LEADERBOARD")!);
         DisplayScoreInNotification = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DISPLAY_SCORE_IN_NOTIFICATION")) || bool.Parse(Environment.GetEnvironmentVariable("DISPLAY_SCORE_IN_NOTIFICATION")!);
 	    DisplayPPInNotification = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DISPLAY_PP_IN_NOTIFICATION")) || bool.Parse(Environment.GetEnvironmentVariable("DISPLAY_PP_IN_NOTIFICATION")!);
         MenuIconUrl = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("MENU_ICON_URL")) ? "" : Environment.GetEnvironmentVariable("MENU_ICON_URL")!;
@@ -27,7 +26,6 @@ public static class AppSettings
     public static readonly bool SortLeaderboardByPP;
     public static readonly int ScoresOnLeaderboard;
     public static readonly bool SubmitByPP;
-    public static readonly bool DisplayPPOnLeaderboard;
     public static readonly bool DisplayPPInNotification;
     public static readonly bool DisplayScoreInNotification;
     public static readonly string MenuIconUrl;

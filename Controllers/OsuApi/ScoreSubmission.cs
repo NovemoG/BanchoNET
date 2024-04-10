@@ -153,7 +153,8 @@ public partial class OsuController
                     scoreNotification += $" ({score.TotalScore.SplitNumber()} score)";
 
                 //Subject to change
-                if (score.Misses > 0 || beatmap.MaxCombo - score.MaxCombo > 15)
+                if (AppSettings.DisplayPPInNotification
+                    && (score.Misses > 0 || beatmap.MaxCombo - score.MaxCombo > 15))
                 {
                     var fcPP = AkatsukiPpMethods.ComputeNoMissesScorePp(
                         Storage.GetBeatmapPath(beatmap.MapId),
