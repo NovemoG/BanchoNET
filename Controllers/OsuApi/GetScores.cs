@@ -29,9 +29,7 @@ public partial class OsuController
 		var fromEditor = fromEditorValue == "1";
 		var aqnFilesFound = aqnFilesFoundValue == "1";
 		
-		username = HttpUtility.UrlDecode(username);
 		var player = await _bancho.GetPlayerFromLogin(username, passwordMD5);
-		
 		if (player == null)
 			return Unauthorized("auth fail");
 

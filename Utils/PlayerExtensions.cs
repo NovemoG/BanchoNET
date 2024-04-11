@@ -67,7 +67,7 @@ public static class PlayerExtensions
 		//TODO tourney clients
 
 		MultiplayerSlot? slot;
-		if (lobby.Refs.Contains(player.Id))
+		if (lobby.HostId != player.Id)
 		{
 			if (password != lobby.Password && !player.Privileges.HasFlag(Privileges.Staff))
 			{
@@ -75,8 +75,7 @@ public static class PlayerExtensions
 				joinFailPacket.MatchJoinFail();
 				player.Enqueue(joinFailPacket.GetContent());
 
-				Console.WriteLine(
-					$"[PlayerExtensions] {player.Username} tried to join {lobby.LobbyId} with incorrect password.");
+				Console.WriteLine($"[PlayerExtensions] {player.Username} tried to join {lobby.LobbyId} with incorrect password.");
 				return;
 			}
 
@@ -176,7 +175,7 @@ public static class PlayerExtensions
 	{
 		if (channel.PlayerInChannel(player) ||
 		    !channel.CanPlayerRead(player) ||
-		    (channel.Name == "#lobby" && !player.InMatch))
+		    (channel.Name == "#lobby" && !player.InLobby))
 		{
 			return false;
 		}

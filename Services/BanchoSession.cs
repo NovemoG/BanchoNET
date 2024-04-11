@@ -335,6 +335,8 @@ public sealed class BanchoSession
 	
 	public void RemoveLobby(MultiplayerLobby lobby)
 	{
+		Console.WriteLine($"[BanchoSession] Removing lobby with id: {lobby.Id}");
+		
 		_multiplayerLobbies.TryRemove(lobby.Id, out _);
 	}
 

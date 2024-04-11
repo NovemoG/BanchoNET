@@ -52,7 +52,7 @@ public partial class ServerPackets
 		for (int i = 0; i < dataArray.Length; i++)
 		{
 			var data = dataArray[i];
-			Console.WriteLine($"[{GetType().Name}] Parsing data: {data.Data} of type {data.Type}");
+			Console.WriteLine($"[PacketWriter]\t({packetId}) Parsing data: {data.Data} of type {data.Type}");
 
 			_actionsMap[data.Type](bw, data.Data!);
 		}

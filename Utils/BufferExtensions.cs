@@ -220,10 +220,11 @@ public static class BufferExtensions
 	{
 		var match = lobbyData.Lobby;
 		
-		bw.Write(match.Id);
+		bw.Write((ushort)match.Id);
 		bw.Write((byte)(match.InProgress ? 1 : 0));
 		bw.Write((byte)0);
-		bw.Write((int)match.Mods);
+		bw.Write((uint)match.Mods);
+		bw.WriteOsuString(match.Name);
 
 		if (!string.IsNullOrEmpty(match.Password))
 		{
@@ -231,8 +232,8 @@ public static class BufferExtensions
 				bw.WriteOsuString(match.Password);
 			else
 			{
-				bw.Write((byte)0);
 				bw.Write((byte)11);
+				bw.Write((byte)0);
 			}
 		}
 		else
@@ -251,10 +252,10 @@ public static class BufferExtensions
 		
 		for (int i = 0; i < slots.Length; i++)
 		{
-			if (((int)slots[i].Status & 0x01111100) == 0) continue;
+			if ((slots[i].Status & SlotStatus.PlayerInSlot) == 0) continue;
 			
 			var player = slots[i].Player;
-				
+			
 			if (player != null)
 				bw.Write(player.Id);
 		}

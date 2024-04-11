@@ -87,7 +87,7 @@ public class Program
 			$"server={dbConnections.HangfireHost};port={dbConnections.HangfirePort};user={dbConnections.HangfireUser};database={dbConnections.HangfireDb};Allow User Variables=True";
 		
 		var redisConnectionString = 
-			$"{dbConnections.RedisHost}:{dbConnections.RedisPort},password={dbConnections.RedisPass}";
+			$"{dbConnections.RedisHost}:{dbConnections.RedisPort},password={dbConnections.RedisPass},allowAdmin=true";
 		
 		#endregion
 			
@@ -156,7 +156,7 @@ public class Program
 		// Even if redis creates snapshots of rankings it isn't
 		// always 100% accurate with database so we need to update
 		// redis leaderboards on startup
-		InitRedis(app.Services.CreateScope());
+		InitRedis(app.Services.CreateScope(), dbConnections.RedisHost, dbConnections.RedisPort);
 		
 		app.Services.GetRequiredService<OsuVersionService>().FetchOsuVersion().Wait();
 
@@ -208,13 +208,16 @@ public class Program
 		//TODO get channels and add them to BanchoSession collection
 	}
 
-	private static void InitRedis(IServiceScope scope)
+	private static void InitRedis(IServiceScope scope, string redisHost, string redisPort)
 	{
-		var redis = scope.ServiceProvider.GetRequiredService<IConnectionMultiplexer>().GetDatabase();
 		var db = scope.ServiceProvider.GetRequiredService<BanchoDbContext>();
+		var redis = scope.ServiceProvider.GetRequiredService<IConnectionMultiplexer>();
+		var redisDb = redis.GetDatabase();
 		
 		var stopwatch = new Stopwatch();
 		stopwatch.Start();
+		
+		redis.GetServer($"{redisHost}:{redisPort}").FlushDatabase();
 		
 		for (byte i = 0; i <= (byte)GameMode.AutopilotStd; i++)
 		{
@@ -227,7 +230,8 @@ public class Program
 			                            .Select(s => new SortedSetEntry(s.PlayerId, s.PP))
 			                            .ToArray();
 
-			redis.SortedSetAdd($"bancho:leaderboard:{mode}", playersPpModeValues);
+			redisDb.SortedSetAdd($"bancho:leaderboard:{mode}", playersPpModeValues);
+			//TODO load country leaderboards
 		}
 		
 		stopwatch.Stop();

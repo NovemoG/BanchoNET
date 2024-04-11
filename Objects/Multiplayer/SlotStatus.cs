@@ -10,5 +10,7 @@ public enum SlotStatus
 	NoMap = 1 << 4,
 	Playing = 1 << 5,
 	Complete = 1 << 6,
-	Quit = 1 << 7
+	Quit = 1 << 7,
+	
+	PlayerInSlot = NotReady | Ready | NoMap | Playing | Complete,
 }

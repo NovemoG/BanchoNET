@@ -10,9 +10,9 @@ public partial class BanchoHandler
 	private async Task MatchChangeSettings(Player player, BinaryReader br)
 	{
 		var matchData = br.ReadOsuMatch();
-
+		
 		if (!player.InMatch) return;
-
+		
 		var lobby = player.Lobby!;
 		if (lobby.HostId != player.Id) return;
 

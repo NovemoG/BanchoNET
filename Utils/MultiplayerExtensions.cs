@@ -60,16 +60,10 @@ public static class MultiplayerExtensions
 
 	public static MultiplayerSlot GetHostSlot(this MultiplayerLobby lobby)
 	{
-		Console.WriteLine($"host: {lobby.HostId}");
-		foreach (var slot in lobby.Slots)
-		{
-			Console.WriteLine(slot.Player?.Id);
-		}
-		
 		return lobby.Slots.First(s => s.Player?.Id == lobby.HostId);
 	}
 
-	public static void EnqueueState(this MultiplayerLobby lobby)
+	public static void EnqueueState(this MultiplayerLobby lobby, bool toLobby = true)
 	{
 		using (var updatePacket = new ServerPackets())
 		{
@@ -78,7 +72,7 @@ public static class MultiplayerExtensions
 		}
 		
 		var lobbyChannel = BanchoSession.Instance.GetChannel("#lobby")!;
-		if (lobbyChannel.Players.Count > 0)
+		if (toLobby && lobbyChannel.Players.Count > 0)
 		{
 			using var updatePacket = new ServerPackets();
 			updatePacket.UpdateMatch(lobby, false);

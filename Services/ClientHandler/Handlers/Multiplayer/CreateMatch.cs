@@ -31,7 +31,7 @@ public partial class BanchoHandler
 		var matchChannel = new Channel
 		{
 			Name = $"multi_{matchData.Id}",
-			Description = $"MID {matchData.Id}",
+			Description = $"MID {matchData.Id}'s multiplayer channel.",
 			AutoJoin = false,
 			Instance = true
 		};
