@@ -41,7 +41,7 @@ public partial class BanchoHandler
 				foreach (var slot in slots)
 				{
 					if (slot.Player == null) continue;
-					slot.Mods = Mods.None; //TODO how does this work on bancho?
+					slot.Mods = Mods.None;
 				}
 			}
 		}

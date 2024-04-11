@@ -125,11 +125,8 @@ public partial class ServerPackets : IDisposable
 	/// <summary>
 	/// Packet id 15
 	/// </summary>
-	[Obsolete]
-	public void SpectateFrames()
-	{
-		
-	}
+	[Obsolete("Validated by client anyway so it's left unused")]
+	public void SpectateFrames() { }
 
 	/// <summary>
 	/// Packet id 22
@@ -221,20 +218,21 @@ public partial class ServerPackets : IDisposable
 	/// <summary>
 	/// Packet id 46
 	/// </summary>
-	[Obsolete]
-	public void MatchStart()
+	public void MatchStart(MultiplayerLobby lobby)
 	{
-		
+		var data = new LobbyData
+		{
+			Lobby = lobby,
+			SendPassword = true
+		};
+		WritePacketData(ServerPacketId.MatchStart, new PacketData(data, DataType.Match));
 	}
 
 	/// <summary>
 	/// Packet id 48
 	/// </summary>
-	[Obsolete]
-	public void MatchScoreUpdate()
-	{
-		
-	}
+	[Obsolete("Currently unused")]
+	public void MatchScoreUpdate() { }
 
 	/// <summary>
 	/// Packet id 50
@@ -287,15 +285,23 @@ public partial class ServerPackets : IDisposable
 	/// <summary>
 	/// Packet id 88
 	/// </summary>
-	[Obsolete]
 	public void MatchInvite(Player player, string targetName)
 	{
-		
+		WritePacketData(ServerPacketId.MatchInvite , new PacketData(
+			new Message
+			{
+				Sender = player.Username,
+				Content = $"Come join my game: {player.Lobby!.Embed()}",
+				Destination = targetName,
+				SenderId = player.Id
+			},
+			DataType.Message));
 	}
 
 	/// <summary>
 	/// Packet id 91
 	/// </summary>
+	[Obsolete("Currently unused")]
 	public void MatchChangePassword(string newPwd)
 	{
 		WritePacketData(ServerPacketId.MatchChangePassword, new PacketData(newPwd, DataType.String));

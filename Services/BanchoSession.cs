@@ -143,6 +143,7 @@ public sealed class BanchoSession
 	
 	public void AppendBot(Player bot)
 	{
+		bot.IsBot = true;
 		_bots.TryAdd(bot.Id, bot);
 	}
 	
@@ -190,6 +191,8 @@ public sealed class BanchoSession
 		
 		if (id > 0)
 		{
+			sessionPlayer = GetBot(id);
+			if (sessionPlayer != null) return sessionPlayer;
 			_players.TryGetValue(id, out sessionPlayer);
 			if (sessionPlayer != null) return sessionPlayer;
 			_restricted.TryGetValue(id, out sessionPlayer);
@@ -198,6 +201,8 @@ public sealed class BanchoSession
 
 		if (username != string.Empty)
 		{
+			sessionPlayer = GetBot(username: username);
+			if (sessionPlayer != null) return sessionPlayer;
 			sessionPlayer = _bots.Values.FirstOrDefault(p => p.Username == username);
 			if (sessionPlayer != null) return sessionPlayer;
 			sessionPlayer = _players.Values.FirstOrDefault(r => r.Username == username);
@@ -213,7 +218,7 @@ public sealed class BanchoSession
 		return null;
 	}
 
-	public Player? GetBot(int id = 0, string username = "")
+	private Player? GetBot(int id = 0, string username = "")
 	{
 		if (id <= 0)
 			return username != string.Empty

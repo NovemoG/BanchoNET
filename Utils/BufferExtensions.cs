@@ -256,6 +256,7 @@ public static class BufferExtensions
 			
 			var player = slots[i].Player;
 			
+			Console.WriteLine($"Writing player data, status: {slots[i].Status}");
 			if (player != null)
 				bw.Write(player.Id);
 		}

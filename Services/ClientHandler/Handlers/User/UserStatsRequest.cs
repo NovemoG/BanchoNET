@@ -23,17 +23,16 @@ public partial class BanchoHandler
 		{
 			var id = ids[i];
 
-			var bot = _session.GetBot(id: id);
-			if (bot != null)
+			var user = _session.GetPlayer(id: id);
+			if (user == null) continue;
+			
+			if (user.IsBot)
 			{
-				statsPacket.BotStats(bot);
+				statsPacket.BotStats(user);
 				ids.RemoveAt(i);
 			}
 			else
 			{
-				var user = _session.GetPlayer(id: id);
-				if (user == null) continue;
-				
 				statsPacket.UserStats(user);
 				ids.RemoveAt(i);
 			}

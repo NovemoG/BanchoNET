@@ -48,7 +48,7 @@ public static class MultiplayerExtensions
 				slot.Status = SlotStatus.NotReady;
 	}
 
-	public static void Reset(this MultiplayerSlot slot, SlotStatus newStatus)
+	public static void Reset(this MultiplayerSlot slot, SlotStatus newStatus = SlotStatus.Open)
 	{
 		slot.Player = null;
 		slot.Status = newStatus;
@@ -58,9 +58,68 @@ public static class MultiplayerExtensions
 		slot.Skipped = false;
 	}
 
+	public static void CopyStatusFrom(this MultiplayerSlot slot, MultiplayerSlot other)
+	{
+		slot.Player = other.Player;
+		slot.Status = other.Status;
+		slot.Team = other.Team;
+		slot.Mods = other.Mods;
+	}
+
 	public static MultiplayerSlot GetHostSlot(this MultiplayerLobby lobby)
 	{
 		return lobby.Slots.First(s => s.Player?.Id == lobby.HostId);
+	}
+
+	public static MultiplayerSlot GetPlayerSlot(this MultiplayerLobby lobby, Player player)
+	{
+		return lobby.Slots.First(s => s.Player == player);
+	}
+
+	public static int GetPlayerSlotId(this MultiplayerLobby lobby, Player player)
+	{
+		for (int i = 0; i < lobby.Slots.Length; i++)
+			if (lobby.Slots[i].Player == player)
+				return i;
+
+		return -1;
+	}
+
+	public static void Start(this MultiplayerLobby lobby)
+	{
+		var noMapPlayerIds = new List<int>();
+
+		foreach (var slot in lobby.Slots)
+		{
+			if (slot.Player == null) continue;
+
+			if (slot.Status != SlotStatus.NoMap)
+				slot.Status = SlotStatus.Playing;
+			else
+				noMapPlayerIds.Add(slot.Player.Id);
+		}
+
+		lobby.InProgress = true;
+
+		using var matchStartPacket = new ServerPackets();
+		matchStartPacket.MatchStart(lobby);
+		lobby.Enqueue(matchStartPacket.GetContent(), noMapPlayerIds, false);
+		lobby.EnqueueState();
+	}
+
+	public static void Enqueue(
+		this MultiplayerLobby lobby,
+		byte[] data,
+		List<int>? immune = default,
+		bool toLobby = true)
+	{
+		immune ??= [];
+		
+		lobby.Chat.EnqueueToPlayers(data, immune);
+		
+		var lobbyChannel = BanchoSession.Instance.GetChannel("#lobby")!;
+		if (toLobby && lobbyChannel.Players.Count > 0)
+			lobbyChannel.EnqueueToPlayers(data);
 	}
 
 	public static void EnqueueState(this MultiplayerLobby lobby, bool toLobby = true)

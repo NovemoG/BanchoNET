@@ -52,6 +52,21 @@ public static class PlayerExtensions
 		player.Enqueue(messagePacket.GetContent());
 	}
 
+	public static void SendBotMessage(this Player player, string message)
+	{
+		var bot = Session.BanchoBot;
+		
+		using var messagePacket = new ServerPackets();
+		messagePacket.SendMessage(new Message
+		{
+			Sender = bot.Username,
+			Content = message,
+			Destination = player.Username,
+			SenderId = bot.Id
+		});
+		player.Enqueue(messagePacket.GetContent());
+	}
+
 	public static void JoinMatch(this Player player, MultiplayerLobby lobby, string password)
 	{
 		if (player.InMatch)

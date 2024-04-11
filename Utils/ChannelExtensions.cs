@@ -57,9 +57,12 @@ public static class ChannelExtensions
 		channel.EnqueueToPlayers(messagePacket.GetContent());
 	}
 
-	public static void EnqueueToPlayers(this Channel channel, byte[] data)
+	public static void EnqueueToPlayers(this Channel channel, byte[] data, List<int>? immune = default)
 	{
+		immune ??= [];
+		
 		foreach (var player in channel.Players)
-			player.Enqueue(data);
+			if (!immune.Remove(player.Id))
+				player.Enqueue(data);
 	}
 }

@@ -15,6 +15,9 @@ public partial class BanchoHandler
 		var txt = message.Content.Trim();
 		if (txt == string.Empty) return;
 
+		if (txt == "!mp start")
+			player.Lobby.Start();
+
 		var target = await GetPlayerOrOffline(message.Destination);
 		if (target == null) return;
 		if (player.BlockedByPlayer(target.Id))
