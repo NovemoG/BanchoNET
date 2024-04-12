@@ -18,6 +18,9 @@ public partial class BanchoHandler
 		
 		if (_ignoredChannels.Contains(message.Destination)) return Task.CompletedTask;
 
+		if (txt == "!mp start")
+			player.Lobby.Start();
+		
 		Channel? channel;
 		if (message.Destination == "#spectator")
 		{

@@ -45,10 +45,9 @@ public sealed class BanchoSession
 	private readonly List<Channel> _spectatorChannels = [];
 	private readonly List<Channel> _channels =
 	[
-		new Channel
+		new Channel("#osu")
 		{
 			Id = 0,
-			Name = "#osu",
 			Description = "Main osu! chatroom",
 			AutoJoin = true,
 			Hidden = false,
@@ -58,10 +57,9 @@ public sealed class BanchoSession
 			WritePrivileges = ClientPrivileges.Player,
 			Players = []
 		},
-		new Channel
+		new Channel("#lobby")
 		{
 			Id = 1,
-			Name = "#lobby",
 			Description = "Multiplayer chatroom",
 			AutoJoin = false,
 			Hidden = false,
@@ -71,10 +69,9 @@ public sealed class BanchoSession
 			WritePrivileges = ClientPrivileges.Player,
 			Players = []
 		},
-		new Channel
+		new Channel("#announce")
 		{
 			Id = 2,
-			Name = "#announce",
 			Description = "Multiplayer chatroom",
 			AutoJoin = false,
 			Hidden = false,
@@ -84,10 +81,9 @@ public sealed class BanchoSession
 			WritePrivileges = ClientPrivileges.Player,
 			Players = []
 		},
-		new Channel
+		new Channel("#staff")
 		{
 			Id = 3,
-			Name = "#staff",
 			Description = "osu! staff chatroom",
 			AutoJoin = false,
 			Hidden = true,
@@ -231,8 +227,8 @@ public sealed class BanchoSession
 	
 	public Channel? GetChannel(string name, bool spectator = false)
 	{
-		return spectator ? _spectatorChannels.FirstOrDefault(c => c.Name == name) 
-			: _channels.FirstOrDefault(c => c.Name == name);
+		return spectator ? _spectatorChannels.FirstOrDefault(c => c.IdName == name) 
+			: _channels.FirstOrDefault(c => c.IdName == name);
 	}
 	
 	public void InsertChannel(Channel channel, bool spectator = false)
@@ -249,7 +245,7 @@ public sealed class BanchoSession
 		{
 			if (!channel.AutoJoin || 
 			    !channel.CanPlayerRead(player) ||
-			    channel.Name == "#lobby")
+			    channel.IdName == "#lobby")
 			{
 				continue;
 			}

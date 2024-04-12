@@ -29,7 +29,7 @@ public static class MultiplayerExtensions
 
 	public static string MapEmbed(this MultiplayerLobby lobby)
 	{
-		return $"[https://osu.{AppSettings.Domain}/b/{lobby.BeatmapId} {lobby.BeatmapName}]";
+		return $"https://osu.{AppSettings.Domain}/b/{lobby.BeatmapId} {lobby.BeatmapName}";
 	}
 	
 	public static void ResetPlayersLoadedStatuses(this MultiplayerLobby lobby)

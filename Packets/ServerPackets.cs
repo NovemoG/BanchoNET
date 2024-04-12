@@ -247,7 +247,7 @@ public partial class ServerPackets : IDisposable
 	/// </summary>
 	public void MatchAllPlayersLoaded()
 	{
-		WritePacketData(ServerPacketId.AllPlayersLoaded);
+		WritePacketData(ServerPacketId.MatchAllPlayersLoaded);
 	}
 	
 	/// <summary>

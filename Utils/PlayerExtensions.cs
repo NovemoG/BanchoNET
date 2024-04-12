@@ -108,7 +108,7 @@ public static class PlayerExtensions
 
 		if (!player.JoinChannel(lobby.Chat))
 		{
-			Console.WriteLine($"[PlayerExtensions] {player.Username} failed to join {lobby.Chat.Name}");
+			Console.WriteLine($"[PlayerExtensions] {player.Username} failed to join {lobby.Chat.IdName}");
 			return;
 		}
 
@@ -190,7 +190,7 @@ public static class PlayerExtensions
 	{
 		if (channel.PlayerInChannel(player) ||
 		    !channel.CanPlayerRead(player) ||
-		    (channel.Name == "#lobby" && !player.InLobby))
+		    (channel.IdName == "#lobby" && !player.InLobby))
 		{
 			return false;
 		}
@@ -218,7 +218,7 @@ public static class PlayerExtensions
 	{
 		if (!channel.PlayerInChannel(player))
 		{
-			Console.WriteLine($"[PlayerExtensions] {player.Username} tried to leave {channel.Name} without being in it");
+			Console.WriteLine($"[PlayerExtensions] {player.Username} tried to leave {channel.IdName} without being in it");
 			return;
 		}
 		
@@ -241,7 +241,7 @@ public static class PlayerExtensions
 			foreach (var user in Session.Players.Where(channel.CanPlayerRead))
 				user.Enqueue(channelInfoPacket.GetContent());
 		
-		Console.WriteLine($"[PlayerExtensions] {player.Username} left {channel.Name}");
+		Console.WriteLine($"[PlayerExtensions] {player.Username} left {channel.IdName}");
 	}
 
 	private static void AddToChannel(this Player player, Channel channel)

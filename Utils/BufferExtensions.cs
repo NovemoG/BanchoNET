@@ -52,9 +52,11 @@ public static class BufferExtensions
 	
 	public static MultiplayerLobby ReadOsuMatch(this BinaryReader br)
 	{
+		Console.WriteLine(br.ReadInt16());
+		
 		var match = new MultiplayerLobby
 		{
-			Id = br.ReadInt16(),
+			Id = 0,
 			InProgress = br.ReadByte() == 1,
 			Powerplay = br.ReadByte(),
 			Mods = (Mods)br.ReadInt32(),
@@ -74,7 +76,7 @@ public static class BufferExtensions
 			slots[i].Team = (LobbyTeams)br.ReadByte();
 
 		for (int i = 0; i < slots.Length; i++)
-			if (((int)slots[i].Status & 124) != 0)
+			if ((slots[i].Status & SlotStatus.PlayerInSlot) != 0)
 				br.ReadInt32();
 
 		match.HostId = br.ReadInt32();
@@ -167,7 +169,7 @@ public static class BufferExtensions
 	{
 		bw.Write(player.Id);
 		bw.WriteOsuString(player.Username);
-		bw.Write(player.TimeZone);
+		bw.Write(player.TimeZone + 24);
 		bw.Write((byte)player.Geoloc.Country.Numeric);
 		bw.Write((byte)((int)player.ToBanchoPrivileges() | ((int)player.Status.Mode.AsVanilla() << 5)));
 		bw.Write(player.Geoloc.Longitude);
@@ -256,12 +258,11 @@ public static class BufferExtensions
 			
 			var player = slots[i].Player;
 			
-			Console.WriteLine($"Writing player data, status: {slots[i].Status}");
 			if (player != null)
-				bw.Write(player.Id);
+				bw.Write((uint)player.Id);
 		}
 		
-		bw.Write(match.HostId);
+		bw.Write((uint)match.HostId);
 		bw.Write((byte)match.Mode); //TODO check if it has to be int
 		bw.Write((byte)match.WinCondition); //TODO check if it has to be int
 		bw.Write((byte)match.Type); //TODO check if it has to be int
@@ -269,8 +270,8 @@ public static class BufferExtensions
 		
 		if (match.Freemods)
 			for (int i = 0; i < slots.Length; i++)
-				bw.Write((int)slots[i].Mods);
+				bw.Write((uint)slots[i].Mods);
 		
-		bw.Write(match.Seed);
+		bw.Write((uint)match.Seed);
 	}
 }

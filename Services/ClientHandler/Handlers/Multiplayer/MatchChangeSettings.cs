@@ -58,9 +58,9 @@ public partial class BanchoHandler
 		else if (lobby.BeatmapId == -1)
 		{
 			if (lobby.PreviousBeatmapId != matchData.BeatmapId)
-				lobby.Chat.SendBotMessage($"Selected: {lobby.MapEmbed()}");
+				lobby.Chat.SendBotMessage($"Selected: {matchData.MapEmbed()}");
 
-			var beatmap = await GetBeatmapWithMD5(lobby.BeatmapMD5, -1);
+			var beatmap = await GetBeatmapWithMD5(matchData.BeatmapMD5, -1);
 
 			if (beatmap != null)
 			{

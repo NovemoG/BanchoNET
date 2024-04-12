@@ -18,6 +18,7 @@ public partial class BanchoHandler
 			br.ReadBytes(8);
 		
 		var slotId = lobby.GetPlayerSlotId(player);
+		lobby.Enqueue([0], toLobby: false);
 		
 		return Task.CompletedTask;
 	}

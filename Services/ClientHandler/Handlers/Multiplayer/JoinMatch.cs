@@ -8,6 +8,9 @@ public partial class BanchoHandler
 {
 	private Task JoinMatch(Player player, BinaryReader br)
 	{
+		var lobbyId = br.ReadInt32();
+		var password = br.ReadOsuString();
+		
 		if (player.Restricted)
 		{
 			using var joinFailPacket = new ServerPackets();
@@ -27,9 +30,6 @@ public partial class BanchoHandler
 			
 			return Task.CompletedTask;
 		}
-		
-		var lobbyId = br.ReadInt32();
-		var password = br.ReadOsuString();
 		
 		var lobby = _session.GetLobby((ushort)lobbyId);
 		if (lobby == null)

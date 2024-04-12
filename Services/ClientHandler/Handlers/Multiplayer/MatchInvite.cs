@@ -28,7 +28,7 @@ public partial class BanchoHandler
 		
 		player.LastActivityTime = DateTime.Now;
 		
-		Console.WriteLine($"{player.Username} invited {target.Username} to their match.");
+		Console.WriteLine($"[MatchInvite] {player.Username} invited {target.Username} to their match.");
 		return Task.CompletedTask;
 	}
 }

@@ -23,7 +23,7 @@ public class Player
 	public MultiplayerLobby? Lobby { get; set; }
 	public bool InLobby { get; set; }
 	public Geoloc Geoloc { get; set; }
-	public byte TimeZone { get; set; }
+	public sbyte TimeZone { get; set; }
 	public bool PmFriendsOnly { get; set; }
 	public int RemainingSilence { get; set; }
 	public int RemainingSupporter { get; set; }
@@ -55,7 +55,7 @@ public class Player
 	
 	public string? ApiKey { get; set; }
 	
-	public Player(PlayerDto playerData, Guid token = new(), DateTime? loginTime = null, byte timeZone = 0)
+	public Player(PlayerDto playerData, Guid token = new(), DateTime? loginTime = null, sbyte timeZone = 0)
 	{
 		Id = playerData.Id;
 		

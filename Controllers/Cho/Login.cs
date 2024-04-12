@@ -164,7 +164,7 @@ public partial class ChoController
 			return responseData.GetContentResult();
 		}
 		
-		player = new Player(userInfo, Guid.NewGuid(), DateTime.Now, 1)
+		player = new Player(userInfo, Guid.NewGuid(), DateTime.Now, loginData.TimeZone)
 		{
 			Geoloc = geoloc.Value,
 			ClientDetails = new ClientDetails
@@ -282,7 +282,7 @@ public partial class ChoController
 			Username = bodyString[0],
 			PasswordMD5 = bodyString[1],
 			OsuVersion = osuVersion,
-			TimeZone = byte.Parse(remainder[1]),
+			TimeZone = sbyte.Parse(remainder[1]),
 			DisplayCity = remainder[2] == "1",
 			PmPrivate = remainder[4] == "1",
 			OsuPathMD5 = clientHashes[0],

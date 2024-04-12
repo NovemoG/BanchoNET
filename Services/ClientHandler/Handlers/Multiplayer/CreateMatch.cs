@@ -9,6 +9,8 @@ public partial class BanchoHandler
 {
 	private async Task CreateMatch(Player player, BinaryReader br)
 	{
+		var matchData = br.ReadOsuMatch();
+		
 		if (player.Restricted)
 		{
 			using var joinFailPacket = new ServerPackets();
@@ -27,10 +29,8 @@ public partial class BanchoHandler
 			return;
 		}
 		
-		var matchData = br.ReadOsuMatch();
-		var matchChannel = new Channel
+		var matchChannel = new Channel($"#multi_{matchData.Id}")
 		{
-			Name = $"multi_{matchData.Id}",
 			Description = $"MID {matchData.Id}'s multiplayer channel.",
 			AutoJoin = false,
 			Instance = true

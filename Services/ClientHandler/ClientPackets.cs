@@ -9,6 +9,8 @@ public partial class BanchoHandler
 {
 	public async Task ReadPackets(Stream stream, Player player)
 	{
+		Console.WriteLine();
+		
 		using var ms = new MemoryStream();
 		await stream.CopyToAsync(ms);
 		ms.Position = 0;

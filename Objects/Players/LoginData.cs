@@ -5,7 +5,7 @@ public class LoginData
 	public string Username { get; set; }
 	public string PasswordMD5 { get; set; }
 	public OsuVersion OsuVersion { get; set; }
-	public byte TimeZone { get; set; }
+	public sbyte TimeZone { get; set; }
 	public bool DisplayCity { get; set; }
 	public bool PmPrivate { get; set; }
 	public string OsuPathMD5 { get; set; }
