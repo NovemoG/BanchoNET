@@ -4,27 +4,29 @@ A dotnet implementation of [osu!](https://osu.ppy.sh)bancho server.
 
 ## Technologies
 
-- .NET 8
-- ASP.NET Core
+- ASP.NET Core (.NET 8)
 - MYSQL (MariaDB)
+- Redis
+- Docker (soon™)
 
 ## Progress
 
 Go to the [Projects](https://github.com/orgs/NovemoG/projects/1) section to see the progress of the BanchoNET project.
 
 ## Features
-- Client login
-- Client register
+- Player registration (currently only in-game)
 - Online users listing and statuses
-- Public and private chat
-- Banchobot
+- Multiplayer lobbies
+- Global/Country reanking leaderboards
+- In-game leaderboards
+- Spectating
 
 ## In development
-- Multiplayer lobbies
-- Scoreboards
-- Spectator mode
 - Clubs (clans)
 - osu!Direct
+- Beatmap submission
+- Custom commands
+- Website
 
 ## Building
 
