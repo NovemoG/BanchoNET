@@ -1,4 +1,5 @@
 ﻿using BanchoNET.Objects.Channels;
+using BanchoNET.Objects.Multiplayer;
 using BanchoNET.Objects.Players;
 using BanchoNET.Objects.Privileges;
 using BanchoNET.Packets;
@@ -33,7 +34,7 @@ public static class PlayerExtensions
 	}
 
 	/// <summary>
-	/// Sends message directly to this player. If channel is provided, it will be sent to that channel instead.
+	/// Sends a message directly to this player. If channel is provided, it will be sent to that channel instead.
 	/// </summary>
 	/// <param name="message">Message content</param>
 	/// <param name="source">Player that sent message</param>
@@ -50,10 +51,129 @@ public static class PlayerExtensions
 		});
 		player.Enqueue(messagePacket.GetContent());
 	}
+
+	public static void SendBotMessage(this Player player, string message)
+	{
+		var bot = Session.BanchoBot;
+		
+		using var messagePacket = new ServerPackets();
+		messagePacket.SendMessage(new Message
+		{
+			Sender = bot.Username,
+			Content = message,
+			Destination = player.Username,
+			SenderId = bot.Id
+		});
+		player.Enqueue(messagePacket.GetContent());
+	}
+
+	public static void JoinMatch(this Player player, MultiplayerLobby lobby, string password)
+	{
+		if (player.InMatch)
+		{
+			using var joinFailPacket = new ServerPackets();
+			joinFailPacket.MatchJoinFail();
+			player.Enqueue(joinFailPacket.GetContent());
+			
+			Console.WriteLine($"[PlayerExtensions] {player.Username} tried to join multiple matches.");
+			return;
+		}
+		
+		//TODO tourney clients
+
+		MultiplayerSlot? slot;
+		if (lobby.HostId != player.Id)
+		{
+			if (password != lobby.Password && !player.Privileges.HasFlag(Privileges.Staff))
+			{
+				using var joinFailPacket = new ServerPackets();
+				joinFailPacket.MatchJoinFail();
+				player.Enqueue(joinFailPacket.GetContent());
+
+				Console.WriteLine($"[PlayerExtensions] {player.Username} tried to join {lobby.LobbyId} with incorrect password.");
+				return;
+			}
+
+			slot = lobby.Slots.FirstOrDefault(s => s.Status == SlotStatus.Open);
+			if (slot == null)
+			{
+				using var joinFailPacket = new ServerPackets();
+				joinFailPacket.MatchJoinFail();
+				player.Enqueue(joinFailPacket.GetContent());
+				return;
+			}
+		}
+		else
+			slot = lobby.Slots[0];
+
+		if (!player.JoinChannel(lobby.Chat))
+		{
+			Console.WriteLine($"[PlayerExtensions] {player.Username} failed to join {lobby.Chat.IdName}");
+			return;
+		}
+
+		var lobbyChannel = Session.GetChannel("#lobby")!;
+		if (player.Channels.Contains(lobbyChannel)) 
+			player.LeaveChannel(lobbyChannel);
+
+		if (lobby.Type is LobbyType.TeamVS or LobbyType.TagTeamVS)
+			slot.Team = LobbyTeams.Red;
+
+		slot.Status = SlotStatus.NotReady;
+		slot.Player = player;
+		player.Lobby = lobby;
+		
+		using var joinSuccessPacket = new ServerPackets();
+		joinSuccessPacket.MatchJoinSuccess(lobby);
+		player.Enqueue(joinSuccessPacket.GetContent());
+		lobby.EnqueueState();
+	}
 	
 	public static void LeaveMatch(this Player player)
 	{
+		if (!player.InMatch)
+		{
+			Console.WriteLine($"[PlayerExtensions] {player.Username} tried to leave a match without being in one.");
+			return;
+		}
+
+		var lobby = player.Lobby!;
+		var slot = lobby.Slots.First(s => s.Player == player);
 		
+		slot.Reset(slot.Status == SlotStatus.Locked ? SlotStatus.Locked : SlotStatus.Open);
+		player.LeaveChannel(lobby.Chat);
+
+		if (lobby.Slots.All(s => s.Player == null) /*TODO check for tourney clients*/)
+		{
+			Console.WriteLine($"[PlayerExtensions] Match \"{lobby.Name}\" is empty, removing.");
+
+			lobby.StartTimer?.Stop();
+
+			Session.RemoveLobby(lobby);
+
+			var lobbyChannel = Session.GetChannel("#lobby")!;
+			using var matchDisposePacket = new ServerPackets();
+			matchDisposePacket.DisposeMatch(lobby);
+			lobbyChannel.EnqueueToPlayers(matchDisposePacket.GetContent());
+		}
+		else
+		{
+			if (lobby.HostId == player.Id)
+			{
+				var firstOccupiedSlot = lobby.Slots.First(s => s.Player != null);
+				lobby.HostId = firstOccupiedSlot.Player!.Id;
+				using var matchTransferPacket = new ServerPackets();
+				matchTransferPacket.MatchTransferHost();
+				firstOccupiedSlot.Player.Enqueue(matchTransferPacket.GetContent());
+			}
+
+			if (lobby.Refs.Remove(player.Id))
+				lobby.Chat.SendBotMessage($"{player.Username} removed from match referees.");
+			
+			lobby.EnqueueState();
+		}
+
+		player.Lobby = null;
 	}
 	
 	public static void RemoveSpectator(this Player player)
@@ -70,7 +190,7 @@ public static class PlayerExtensions
 	{
 		if (channel.PlayerInChannel(player) ||
 		    !channel.CanPlayerRead(player) ||
-		    (channel.Name == "#lobby" && !player.InLobby))
+		    (channel.IdName == "#lobby" && !player.InLobby))
 		{
 			return false;
 		}
@@ -88,15 +208,19 @@ public static class PlayerExtensions
 			foreach (var user in channel.Players)
 				user.Enqueue(channelInfoPacket.GetContent());
 		else
-			foreach (var user in Session.Players.Where(p => channel.CanPlayerRead(p.Value)))
-				user.Value.Enqueue(channelInfoPacket.GetContent());
+			foreach (var user in Session.Players.Where(channel.CanPlayerRead))
+				user.Enqueue(channelInfoPacket.GetContent());
 		
 		return true;
 	}
 	
 	public static void LeaveChannel(this Player player, Channel channel, bool kick = true)
 	{
-		if (!channel.PlayerInChannel(player)) return;
+		if (!channel.PlayerInChannel(player))
+		{
+			Console.WriteLine($"[PlayerExtensions] {player.Username} tried to leave {channel.IdName} without being in it");
+			return;
+		}
 		
 		player.RemoveFromChannel(channel);
 
@@ -114,10 +238,10 @@ public static class PlayerExtensions
 			foreach (var user in channel.Players)
 				user.Enqueue(channelInfoPacket.GetContent());
 		else
-			foreach (var user in Session.Players.Where(p => channel.CanPlayerRead(p.Value)))
-				user.Value.Enqueue(channelInfoPacket.GetContent());
+			foreach (var user in Session.Players.Where(channel.CanPlayerRead))
+				user.Enqueue(channelInfoPacket.GetContent());
 		
-		Console.WriteLine($"[PlayerExtensions] {player.Username} left {channel.Name}");
+		Console.WriteLine($"[PlayerExtensions] {player.Username} left {channel.IdName}");
 	}
 
 	private static void AddToChannel(this Player player, Channel channel)

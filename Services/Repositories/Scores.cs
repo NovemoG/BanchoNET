@@ -2,6 +2,7 @@
 using BanchoNET.Objects;
 using BanchoNET.Objects.Beatmaps;
 using BanchoNET.Objects.Players;
+using BanchoNET.Objects.Scores;
 using BanchoNET.Utils;
 using Microsoft.EntityFrameworkCore;
 
@@ -78,6 +79,7 @@ public partial class BanchoHandler
 
         return score == null ? null : new Score(score);
     }
+    
     public async Task<Score?> GetPlayerBestScoreWithModsOnMap(
         Player player,
         string beatmapMD5,
@@ -89,7 +91,7 @@ public partial class BanchoHandler
                  s.BeatmapMD5 == beatmapMD5 &&
                  s.Mode == (int)mode &&
                  s.Mods == (int)mods &&
-                 s.Status == (int)SubmissionStatus.BestWithMods);
+                 s.Status >= (int)SubmissionStatus.BestWithMods);
 
         return response == null ? null : new Score(response);
     }

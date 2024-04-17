@@ -10,6 +10,8 @@ public partial class BanchoHandler
 		using var packet = new ServerPackets();
 		packet.UserStats(player);
 		_session.EnqueueToPlayers(packet.GetContent());
+		
+		player.LastActivityTime = DateTime.Now;
 		return Task.CompletedTask;
 	}
 }

@@ -9,6 +9,7 @@ public partial class BanchoHandler
 		var value = br.ReadInt32();
 		
 		player.PresenceFilter = (PresenceFilter)value;
+		player.LastActivityTime = DateTime.Now;
 		return Task.CompletedTask;
 	}
 }

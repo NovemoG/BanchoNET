@@ -1,4 +1,5 @@
-﻿using BanchoNET.Objects.Players;
+﻿using System.ComponentModel;
+using BanchoNET.Objects.Players;
 using BanchoNET.Packets;
 using BanchoNET.Utils;
 
@@ -8,6 +9,8 @@ public partial class BanchoHandler
 {
 	public async Task ReadPackets(Stream stream, Player player)
 	{
+		Console.WriteLine();
+		
 		using var ms = new MemoryStream();
 		await stream.CopyToAsync(ms);
 		ms.Position = 0;
@@ -34,13 +37,10 @@ public partial class BanchoHandler
 			
 			PacketHandlerMap.PacketMethodsMap.TryGetValue(packetId, out var method);
 			if (method != null)
-			{
 				await (Task)method.Invoke(this, [player, br])!;
-			}
 			else
-			{
-				Console.WriteLine("[ClientPackets] Handler of this packet is not (yet) implemented");
-			}
-		} while (br.BaseStream.Position < br.BaseStream.Length - 7);
+				throw new InvalidEnumArgumentException($"[ClientPackets] Handler of packet {packetId} is not (yet) implemented");
+			
+		} while (br.BaseStream.Position < br.BaseStream.Length);
 	}
 }

@@ -53,7 +53,7 @@ public partial class BanchoHandler
 		if (target.Status.Activity == Activity.Afk && !string.IsNullOrEmpty(target.AwayMessage))
 			player.SendMessage(target.AwayMessage, target);
 
-		if (_session.Bots.FirstOrDefault(b => b.Value.Username == target.Username).Value == null)
+		if (_session.Bots.FirstOrDefault(b => b.Username == target.Username) == null)
 		{
 			if (target.Online)
 				target.SendMessage(txt, player);
@@ -78,6 +78,6 @@ public partial class BanchoHandler
 			}
 		}
 		
-		player.LastActivityTime = DateTime.UtcNow;
+		player.LastActivityTime = DateTime.Now;
 	}
 }

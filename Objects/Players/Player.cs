@@ -21,14 +21,16 @@ public class Player
 	public Privileges.Privileges Privileges { get; set; }
 	public Player? Spectating { get; set; }
 	public MultiplayerLobby? Lobby { get; set; }
+	public bool InLobby { get; set; }
 	public Geoloc Geoloc { get; set; }
-	public byte TimeZone { get; set; }
+	public sbyte TimeZone { get; set; }
 	public bool PmFriendsOnly { get; set; }
 	public int RemainingSilence { get; set; }
 	public int RemainingSupporter { get; set; }
 	public DateTime LoginTime { get; set; }
 	public DateTime LastActivityTime { get; set; }
 	public string? AwayMessage { get; set; }
+	public bool IsBot { get; set; }
 	public bool Stealth { get; set; } //TODO
 	
 	public ClientDetails ClientDetails { get; set; }
@@ -45,7 +47,7 @@ public class Player
 	//public int ClubPrivileges { get; set; }
 
 	public bool Online => Token != Guid.Empty;
-	public bool InLobby => Lobby != null;
+	public bool InMatch => Lobby != null;
 	public bool Silenced => RemainingSilence > 0;
 	public bool Restricted => !Privileges.HasPrivilege(Unrestricted);
 	public bool IsSpectating => Spectating != null;
@@ -53,13 +55,13 @@ public class Player
 	
 	public string? ApiKey { get; set; }
 	
-	public Player(PlayerDto playerData, Guid token = new(), DateTime? loginTime = null, byte timeZone = 0)
+	public Player(PlayerDto playerData, Guid token = new(), DateTime? loginTime = null, sbyte timeZone = 0)
 	{
 		Id = playerData.Id;
 		
 		Token = token != Guid.Empty ? token : Guid.Empty;
 		
-		LoginTime = loginTime ?? DateTime.UtcNow;
+		LoginTime = loginTime ?? DateTime.Now;
 		
 		Username = playerData.Username;
 		SafeName = playerData.SafeName;

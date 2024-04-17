@@ -21,7 +21,7 @@ public partial class ServerPackets
 		[DataType.Double] = (bw, data) => bw.Write((double)data),
 		[DataType.Message] = (bw, data) => bw.WriteOsuMessage((Message)data),
 		[DataType.Channel] = (bw, data) => bw.WriteOsuChannel((Channel)data),
-		[DataType.Match] = (bw, data) => bw.WriteOsuMatch((MultiplayerLobby)data),
+		[DataType.Match] = (bw, data) => bw.WriteOsuMatch((LobbyData)data),
 		[DataType.Stats] = (bw, data) => bw.WriteUserStats((Player)data),
 		[DataType.BotStats] = (bw, data) => bw.WriteBotStats((Player)data),
 		[DataType.Presence] = (bw, data) => bw.WriteUserPresence((Player)data),
@@ -35,24 +35,25 @@ public partial class ServerPackets
 		[DataType.Raw] = (bw, data) => bw.Write((byte[])data),
 	};
 	
-	private void WritePacketData(ServerPacketId packetId, params PacketData[]? dataArray)
+	private void WritePacketData(ServerPacketId packetId, params PacketData[] dataArray)
 	{
 		var buffer = new MemoryStream();
 		using var bw = new BinaryWriter(buffer);
 		
 		bw.Write((short)packetId);
 		bw.Write((byte)0);
-		if (dataArray == null)
+		if (dataArray.Length == 0)
 		{
+			Console.WriteLine($"[PacketWriter]\t({packetId})");
+			
 			bw.Write((int)0);
 			_binaryWriter.Write(buffer.ToArray());
 			return;
 		}
 		
-		for (int i = 0; i < dataArray.Length; i++)
+		foreach (var data in dataArray)
 		{
-			var data = dataArray[i];
-			Console.WriteLine($"[{GetType().Name}] Parsing data: {data.Data} of type {data.Type}");
+			Console.WriteLine($"[PacketWriter]\t({packetId}) Parsing data: {data.Data} of type {data.Type}");
 
 			_actionsMap[data.Type](bw, data.Data!);
 		}

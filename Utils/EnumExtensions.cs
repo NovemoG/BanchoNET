@@ -1,4 +1,5 @@
 ﻿using BanchoNET.Objects;
+using BanchoNET.Objects.Multiplayer;
 using BanchoNET.Objects.Privileges;
 
 namespace BanchoNET.Utils;

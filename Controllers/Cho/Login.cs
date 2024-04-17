@@ -76,8 +76,8 @@ public partial class ChoController
 		var player = _session.GetPlayer(username: loginData.Username);
 		if (player != null && loginData.OsuVersion.Stream != "tourney")
 		{
-			Console.WriteLine($"[{GetType().Name}] Login time difference: {DateTime.UtcNow - player.LastActivityTime}");
-			if (DateTime.UtcNow - player.LastActivityTime < TimeSpan.FromSeconds(15))
+			Console.WriteLine($"[{GetType().Name}] Login time difference: {DateTime.Now - player.LastActivityTime}");
+			if (DateTime.Now - player.LastActivityTime < TimeSpan.FromSeconds(15))
 			{
 				Response.Headers["cho-token"] = "user-already-logged-in";
                 
@@ -164,7 +164,7 @@ public partial class ChoController
 			return responseData.GetContentResult();
 		}
 		
-		player = new Player(userInfo, Guid.NewGuid(), DateTime.UtcNow, 1)
+		player = new Player(userInfo, Guid.NewGuid(), DateTime.Now, loginData.TimeZone)
 		{
 			Geoloc = geoloc.Value,
 			ClientDetails = new ClientDetails
@@ -188,8 +188,30 @@ public partial class ChoController
 		loginPackets.PlayerId(player.Id);
 		loginPackets.BanchoPrivileges((int)(player.ToBanchoPrivileges() | ClientPrivileges.Supporter));
 		loginPackets.Notification(_messages.WelcomeMessage + AppSettings.BanchoNETVersion);
-		loginPackets.ChannelInfo(_session.GetAutoJoinChannels(player));
+
+		#region Append AutoJoin Channels
+
+		foreach (var channel in _session.Channels)
+		{
+			if (!channel.AutoJoin || 
+			    !channel.CanPlayerRead(player) ||
+			    channel.IdName == "#lobby")
+			{
+				continue;
+			}
+
+			using var chanInfoPacket = new ServerPackets();
+			chanInfoPacket.ChannelInfo(channel);
+			var bytes = chanInfoPacket.GetContent();
+			
+			loginPackets.WriteBytes(bytes);
+			channel.EnqueueIfCanRead(bytes);
+		}
+		
 		loginPackets.ChannelInfoEnd();
+
+		#endregion
+		
 		loginPackets.MainMenuIcon(AppSettings.MenuIconUrl, AppSettings.MenuOnclickUrl);
 		
 		await _bancho.FetchPlayerStats(player);
@@ -282,7 +304,7 @@ public partial class ChoController
 			Username = bodyString[0],
 			PasswordMD5 = bodyString[1],
 			OsuVersion = osuVersion,
-			TimeZone = byte.Parse(remainder[1]),
+			TimeZone = sbyte.Parse(remainder[1]),
 			DisplayCity = remainder[2] == "1",
 			PmPrivate = remainder[4] == "1",
 			OsuPathMD5 = clientHashes[0],

@@ -5,15 +5,27 @@ namespace BanchoNET.Objects.Channels;
 
 public class Channel
 {
+	public Channel(string name)
+	{
+		IdName = name;
+		
+		if (name.StartsWith("#multi_"))
+			Name = "#multiplayer";
+		else if (name.StartsWith("#s_"))
+			Name = "#spectator";
+		else Name = name;
+	}
+	
 	public int Id { get; set; }
 	public bool AutoJoin { get; set; }
 	public bool Hidden { get; set; }
 	public bool ReadOnly { get; set; }
 	public bool Instance { get; set; }
-	public ClientPrivileges ReadPrivileges { get; set; }
-	public ClientPrivileges WritePrivileges { get; set; }
+	public ClientPrivileges ReadPrivileges { get; set; } = ClientPrivileges.Player;
+	public ClientPrivileges WritePrivileges { get; set; } = ClientPrivileges.Player;
 
-	public string Name { get; set; }
-	public string Description { get; set; }
+	public string IdName { get; init; }
+	public string Name { get; }
+	public required string Description { get; set; }
 	public List<Player> Players { get; set; } = [];
 }

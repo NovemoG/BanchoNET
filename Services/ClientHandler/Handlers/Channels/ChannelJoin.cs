@@ -7,20 +7,20 @@ public partial class BanchoHandler
 {
 	private Task ChannelJoin(Player player, BinaryReader br)
 	{
-		var name = br.ReadOsuString();
+		var channelName = br.ReadOsuString();
 
-		if (_ignoredChannels.Contains(name))
+		if (_ignoredChannels.Contains(channelName))
 			return Task.CompletedTask;
 		
-		var channel = _session.GetChannel(name);
+		var channel = _session.GetChannel(channelName);
 
 		if (channel == null || !player.JoinChannel(channel))
 		{
 			//TODO log
-			Console.WriteLine($"[ChannelJoin] {player} failed to join {name}");
+			Console.WriteLine($"[ChannelJoin] {player} failed to join {channelName}");
 		}
 		
-		player.LastActivityTime = DateTime.UtcNow;
+		player.LastActivityTime = DateTime.Now;
 		return Task.CompletedTask;
 	}
 }

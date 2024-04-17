@@ -1,12 +1,30 @@
 ﻿using BanchoNET.Objects.Channels;
+using Timer = System.Timers.Timer;
 
 namespace BanchoNET.Objects.Multiplayer;
 
 public class MultiplayerLobby
 {
-	public short MultiId { get; set; }
+	public MultiplayerLobby()
+	{
+		Slots = new MultiplayerSlot[16];
+
+		for (int i = 0; i < Slots.Length; i++)
+			Slots[i] = new MultiplayerSlot();
+	}
+	
+	/// <summary>
+	/// Used by database for identification
+	/// </summary>
+	public int LobbyId { get; set; }
+	
+	/// <summary>
+	/// Used by osu for multiplayer lobby identification
+	/// </summary>
+	public ushort Id { get; set; }
+	
 	public string Name { get; set; }
-	public string? Password { get; set; }
+	public string Password { get; set; }
 	public GameMode Mode { get; set; }
 	public int HostId { get; set; }
 	public List<int> Refs { get; set; } = [];
@@ -19,9 +37,10 @@ public class MultiplayerLobby
 	public WinCondition WinCondition { get; set; }
 	public LobbyType Type { get; set; }
 	public bool InProgress { get; set; }
+	public byte Powerplay { get; set; }
 	public int Seed { get; set; }
 	public Channel Chat { get; set; }
-	public MultiplayerSlot[] Slots { get; set; } = new MultiplayerSlot[16];
-	
-	//TODO Starting timer
+	public MultiplayerSlot[] Slots { get; set; }
+	public Timer? StartTimer { get; set; }
+	//TODO alerts that signalize how much time is left until the match starts
 }

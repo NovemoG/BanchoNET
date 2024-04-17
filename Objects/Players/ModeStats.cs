@@ -1,4 +1,6 @@
-﻿namespace BanchoNET.Objects.Players;
+﻿using BanchoNET.Objects.Scores;
+
+namespace BanchoNET.Objects.Players;
 
 public class ModeStats
 {

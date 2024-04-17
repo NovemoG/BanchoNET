@@ -1,4 +1,5 @@
 ﻿using BanchoNET.Objects.Channels;
+using BanchoNET.Objects.Multiplayer;
 using BanchoNET.Objects.Players;
 using BanchoNET.Services;
 using BanchoNET.Utils;
@@ -124,11 +125,8 @@ public partial class ServerPackets : IDisposable
 	/// <summary>
 	/// Packet id 15
 	/// </summary>
-	[Obsolete]
-	public void SpectateFrames()
-	{
-		
-	}
+	[Obsolete("Validated by client anyway so it's left unused")]
+	public void SpectateFrames() { }
 
 	/// <summary>
 	/// Packet id 22
@@ -165,64 +163,77 @@ public partial class ServerPackets : IDisposable
 	/// <summary>
 	/// Packet id 26
 	/// </summary>
-	[Obsolete]
-	public void UpdateMatch()
+	public void UpdateMatch(MultiplayerLobby lobby, bool sendPassword)
 	{
-		
+		var data = new LobbyData
+		{
+			Lobby = lobby,
+			SendPassword = sendPassword
+		};
+		WritePacketData(ServerPacketId.UpdateMatch, new PacketData(data, DataType.Match));
 	}
 	
 	/// <summary>
 	/// Packet id 27
 	/// </summary>
-	[Obsolete]
-	public void NewMatch()
+	public void NewMatch(MultiplayerLobby lobby)
 	{
-		
+		var data = new LobbyData
+		{
+			Lobby = lobby,
+			SendPassword = true
+		};
+		WritePacketData(ServerPacketId.NewMatch, new PacketData(data, DataType.Match));
 	}
 
 	/// <summary>
 	/// Packet id 28
 	/// </summary>
-	[Obsolete]
-	public void DisposeMatch()
+	public void DisposeMatch(MultiplayerLobby lobby)
 	{
-		
+		WritePacketData(ServerPacketId.DisposeMatch, new PacketData((int)lobby.Id, DataType.Int));
 	}
 
 	/// <summary>
 	/// Packet id 36
 	/// </summary>
-	[Obsolete]
-	public void MatchJoinSuccess()
+	public void MatchJoinSuccess(MultiplayerLobby lobby)
 	{
-		
+		var data = new LobbyData
+		{
+			Lobby = lobby,
+			SendPassword = true
+		};
+		WritePacketData(ServerPacketId.MatchJoinSuccess, new PacketData(data, DataType.Match));
 	}
 
 	/// <summary>
 	/// Packet id 37
 	/// </summary>
-	[Obsolete]
 	public void MatchJoinFail()
 	{
-		
+		WritePacketData(ServerPacketId.MatchJoinFail);
 	}
 	
 	/// <summary>
 	/// Packet id 46
 	/// </summary>
-	[Obsolete]
-	public void MatchStart()
+	public void MatchStart(MultiplayerLobby lobby)
 	{
-		
+		var data = new LobbyData
+		{
+			Lobby = lobby,
+			SendPassword = true
+		};
+		WritePacketData(ServerPacketId.MatchStart, new PacketData(data, DataType.Match));
 	}
 
 	/// <summary>
 	/// Packet id 48
 	/// </summary>
-	[Obsolete]
-	public void MatchScoreUpdate()
+	public void MatchScoreUpdate(byte[] rawData)
 	{
-		
+		WritePacketData(ServerPacketId.MatchScoreUpdate, new PacketData(rawData, DataType.Raw));
 	}
 
 	/// <summary>
@@ -238,7 +249,7 @@ public partial class ServerPackets : IDisposable
 	/// </summary>
 	public void MatchAllPlayersLoaded()
 	{
-		WritePacketData(ServerPacketId.AllPlayersLoaded);
+		WritePacketData(ServerPacketId.MatchAllPlayersLoaded);
 	}
 	
 	/// <summary>
@@ -276,15 +287,23 @@ public partial class ServerPackets : IDisposable
 	/// <summary>
 	/// Packet id 88
 	/// </summary>
-	[Obsolete]
 	public void MatchInvite(Player player, string targetName)
 	{
-		
+		WritePacketData(ServerPacketId.MatchInvite , new PacketData(
+			new Message
+			{
+				Sender = player.Username,
+				Content = $"Come join my game: {player.Lobby!.Embed()}",
+				Destination = targetName,
+				SenderId = player.Id
+			},
+			DataType.Message));
 	}
 
 	/// <summary>
 	/// Packet id 91
 	/// </summary>
+	[Obsolete("Currently unused")]
 	public void MatchChangePassword(string newPwd)
 	{
 		WritePacketData(ServerPacketId.MatchChangePassword, new PacketData(newPwd, DataType.String));
@@ -320,15 +339,6 @@ public partial class ServerPackets : IDisposable
 	public void ChannelInfo(Channel channel)
 	{
 		WritePacketData(ServerPacketId.ChannelInfo, new PacketData(channel, DataType.Channel));
-	}
-	
-	/// <summary>
-	/// Packet id 65
-	/// </summary>
-	public void ChannelInfo(List<Channel> channels)
-	{
-		foreach (var channel in channels)
-			ChannelInfo(channel);
 	}
 	
 	/// <summary>
@@ -557,21 +567,21 @@ public partial class ServerPackets : IDisposable
 		
 		foreach (var bot in session.Bots)
 		{
-			BotPresence(bot.Value);
-			BotStats(bot.Value);
+			BotPresence(bot);
+			BotStats(bot);
 		}
 		
 		foreach (var user in session.Players)
 		{
-			if (toOthers) user.Value.Enqueue(loginData);
-			UserPresence(user.Value);
-			UserStats(user.Value);
+			if (toOthers) user.Enqueue(loginData);
+			UserPresence(user);
+			UserStats(user);
 		}
 
 		if (!toOthers) return;
 		
 		foreach (var restricted in session.Restricted)
-			restricted.Value.Enqueue(loginData);
+			restricted.Enqueue(loginData);
 	}
 
 	public void Dispose()

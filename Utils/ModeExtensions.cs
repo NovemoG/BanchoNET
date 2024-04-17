@@ -1,5 +1,6 @@
 ﻿using BanchoNET.Objects;
 using BanchoNET.Objects.Players;
+using BanchoNET.Objects.Scores;
 
 namespace BanchoNET.Utils;
 
