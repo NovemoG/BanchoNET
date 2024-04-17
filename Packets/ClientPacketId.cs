@@ -7,11 +7,11 @@ public enum ClientPacketId : short
 	Logout = 2,
 	RequestStatusUpdate = 3,
 	Ping = 4,
-	StartSpectating = 16, //TODO
-	StopSpectating = 17, //TODO
-	SpectateFrames = 18, //TODO
-	ErrorReport = 20, //TODO
-	CantSpectate = 21, //TODO
+	StartSpectating = 16,
+	StopSpectating = 17,
+	SpectateFrames = 18,
+	ErrorReport = 20,
+	CantSpectate = 21,
 	SendPrivateMessage = 25,
 	PartLobby = 29,
 	JoinLobby = 30,

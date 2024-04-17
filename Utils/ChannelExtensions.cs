@@ -34,10 +34,12 @@ public static class ChannelExtensions
 			Destination = channel.Name,
 			SenderId = message.SenderId
 		});
+		var bytes = messagePacket.GetContent();
+		
 		foreach (var player in channel.Players)
 		{
 			if (!player.BlockedByPlayer(message.SenderId) && (toSelf || player.Id != message.SenderId))
-				player.Enqueue(messagePacket.GetContent());
+				player.Enqueue(bytes);
 		}
 	}
 

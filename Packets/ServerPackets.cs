@@ -125,8 +125,10 @@ public partial class ServerPackets : IDisposable
 	/// <summary>
 	/// Packet id 15
 	/// </summary>
-	[Obsolete("Validated by client anyway so it's left unused")]
-	public void SpectateFrames() { }
+	public void SpectateFrames(byte[] rawData)
+	{
+		WritePacketData(ServerPacketId.SpectateFrames, new PacketData(rawData, DataType.Raw));
+	}
 
 	/// <summary>
 	/// Packet id 22
