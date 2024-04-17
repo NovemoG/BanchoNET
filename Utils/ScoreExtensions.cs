@@ -15,7 +15,7 @@ public static class ScoreExtensions
         if (score.Player == null || score.Beatmap == null) return "";
 
         return string.Format(
-            "chickenmcnuggets{0}o15{1}{2}smustard{3}{4}uu{5}{6}{7}{8}{9}{10}{11}Q{12}{13}{15}{14}{16}{17}",
+            "chickenmcnuggets{0}o15{1}{2}smustard{3}{4}uu{5}{6}{7}{8}{9}{10}{11}Q{12}{13}{15}{14:yyMMddHHmmss}{16}{17}",
             score.Count300 + score.Count100,
             score.Count50,
             score.Gekis,
@@ -30,7 +30,7 @@ public static class ScoreExtensions
             (int)score.Mods,
             score.Passed,
             (int)score.Mode.AsVanilla(),
-            score.ClientTime.ToString("yyMMddHHmmss"),
+            score.ClientTime,
             osuVersion,
             clientHash,
             storyboardChecksum).CreateMD5();

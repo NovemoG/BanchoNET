@@ -108,7 +108,6 @@ public class Program
 		builder.Services.AddAuthorization();
 		builder.Services.AddControllers();
 		
-		builder.Services.Configure<Messages>(messages);
 		builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConnectionString));
 		builder.Services.AddSingleton<OsuVersionService>();
 		builder.Services.AddDbContext<BanchoDbContext>(options =>

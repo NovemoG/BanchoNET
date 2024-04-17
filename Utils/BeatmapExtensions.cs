@@ -66,4 +66,18 @@ public static class BeatmapExtensions
 			_ => BeatmapStatus.LatestPending
 		};
 	}
+
+	public static int ToApiFromDirect(this int status)
+	{
+		return status switch
+		{
+			0 => 1,
+			2 => 0,
+			3 => 3,
+			5 => 0,
+			7 => 1, //TODO played before
+			8 => 4,
+			_ => 4
+		};
+	}
 }
