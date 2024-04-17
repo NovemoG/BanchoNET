@@ -3,6 +3,7 @@ using BanchoNET.Objects;
 using BanchoNET.Objects.Channels;
 using BanchoNET.Objects.Multiplayer;
 using BanchoNET.Objects.Players;
+using BanchoNET.Objects.Replay;
 
 namespace BanchoNET.Utils;
 
@@ -55,7 +56,7 @@ public static class BufferExtensions
 		var match = new MultiplayerLobby
 		{
 			Id = br.ReadUInt16(),
-			InProgress = br.ReadByte() == 1,
+			InProgress = br.ReadBoolean(),
 			Powerplay = br.ReadByte(),
 			Mods = (Mods)br.ReadInt32(),
 			Name = br.ReadOsuString(),
@@ -81,7 +82,7 @@ public static class BufferExtensions
 		match.Mode = (GameMode)br.ReadByte();
 		match.WinCondition = (WinCondition)br.ReadByte();
 		match.Type = (LobbyType)br.ReadByte();
-		match.Freemods = br.ReadByte() == 1;
+		match.Freemods = br.ReadBoolean();
 		
 		if (match.Freemods)
 			for (int i = 0; i < slots.Length; i++)
@@ -91,6 +92,67 @@ public static class BufferExtensions
 		match.Seed = br.ReadInt32();
 		
 		return match;
+	}
+
+	public static SpectateFrames ReadSpectateFrames(this BinaryReader br)
+	{
+		return new SpectateFrames
+		{
+			Extra = br.ReadInt32(),
+			ReplayFrames = br.ReadReplayFrames(br.ReadUInt16()),
+			Action = (ReplayAction)br.ReadByte(),
+			ScoreFrame = br.ReadScoreFrame(),
+			Sequence = br.ReadUInt16()
+		};
+	}
+	
+	private static List<ReplayFrame> ReadReplayFrames(this BinaryReader br, int frameCount)
+	{
+		var returnFrames = new List<ReplayFrame>();
+
+		for (int i = 0; i < frameCount; i++)
+		{
+			returnFrames.Add(new ReplayFrame
+			{
+				ButtonState = br.ReadByte(),
+				TaikoByte = br.ReadByte(),
+				MouseX = br.ReadSingle(),
+				MouseY = br.ReadSingle(),
+				Time = br.ReadInt32()
+			});
+		}
+
+		return returnFrames;
+	}
+
+	private static ScoreFrame ReadScoreFrame(this BinaryReader br)
+	{
+		var scoreFrame = new ScoreFrame
+		{
+			Time = br.ReadInt32(),
+			Id = br.ReadByte(),
+			Count300 = br.ReadUInt16(),
+			Count100 = br.ReadUInt16(),
+			Count50 = br.ReadUInt16(),
+			Gekis = br.ReadUInt16(),
+			Katus = br.ReadUInt16(),
+			Misses = br.ReadUInt16(),
+			TotalScore = br.ReadInt32(),
+			MaxCombo = br.ReadUInt16(),
+			CurrentCombo = br.ReadUInt16(),
+			Perfect = br.ReadBoolean(),
+			CurrentHp = br.ReadByte(),
+			TagByte = br.ReadByte(),
+			ScoreV2 = br.ReadBoolean()
+		};
+
+		if (scoreFrame.ScoreV2)
+		{
+			scoreFrame.ComboPortion = br.ReadDouble();
+			scoreFrame.BonusPortion = br.ReadDouble();
+		}
+
+		return scoreFrame;
 	}
 
 	/// <summary>
@@ -232,7 +294,7 @@ public static class BufferExtensions
 		var match = lobbyData.Lobby;
 		
 		bw.Write(match.Id);
-		bw.Write((byte)(match.InProgress ? 1 : 0));
+		bw.Write(match.InProgress);
 		bw.Write((byte)0);
 		bw.Write((uint)match.Mods);
 		bw.WriteOsuString(match.Name);
@@ -275,12 +337,59 @@ public static class BufferExtensions
 		bw.Write((byte)match.Mode);
 		bw.Write((byte)match.WinCondition);
 		bw.Write((byte)match.Type);
-		bw.Write((byte)(match.Freemods ? 1 : 0));
+		bw.Write(match.Freemods);
 		
 		if (match.Freemods)
 			for (int i = 0; i < slots.Length; i++)
 				bw.Write((uint)slots[i].Mods);
 		
 		bw.Write((uint)match.Seed);
+	}
+	
+	public static void WriteSpectateFrames(this BinaryWriter bw, SpectateFrames frames)
+	{
+		bw.Write(frames.Extra);
+		bw.Write((ushort)frames.ReplayFrames.Count);
+		
+		foreach (var frame in frames.ReplayFrames)
+			bw.WriteReplayFrame(frame);
+		
+		bw.Write((byte)frames.Action);
+		bw.WriteScoreFrame(frames.ScoreFrame);
+		bw.Write(frames.Sequence);
+	}
+	
+	private static void WriteScoreFrame(this BinaryWriter bw, ScoreFrame frame)
+	{
+		bw.Write(frame.Time);
+		bw.Write(frame.Id);
+		bw.Write(frame.Count300);
+		bw.Write(frame.Count100);
+		bw.Write(frame.Count50);
+		bw.Write(frame.Gekis);
+		bw.Write(frame.Katus);
+		bw.Write(frame.Misses);
+		bw.Write(frame.TotalScore);
+		bw.Write(frame.MaxCombo);
+		bw.Write(frame.CurrentCombo);
+		bw.Write(frame.Perfect);
+		bw.Write(frame.CurrentHp);
+		bw.Write(frame.TagByte);
+		bw.Write(frame.ScoreV2);
+		
+		if (frame.ScoreV2)
+		{
+			bw.Write(frame.ComboPortion);
+			bw.Write(frame.BonusPortion);
+		}
+	}
+	
+	private static void WriteReplayFrame(this BinaryWriter bw, ReplayFrame frame)
+	{
+		bw.Write(frame.ButtonState);
+		bw.Write(frame.TaikoByte);
+		bw.Write(frame.MouseX);
+		bw.Write(frame.MouseY);
+		bw.Write(frame.Time);
 	}
 }

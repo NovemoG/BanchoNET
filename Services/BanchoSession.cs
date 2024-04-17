@@ -47,7 +47,6 @@ public sealed class BanchoSession
 	[
 		new Channel("#osu")
 		{
-			Id = 0,
 			Description = "Main osu! chatroom",
 			AutoJoin = true,
 			Hidden = false,
@@ -59,7 +58,6 @@ public sealed class BanchoSession
 		},
 		new Channel("#lobby")
 		{
-			Id = 1,
 			Description = "Multiplayer chatroom",
 			AutoJoin = false,
 			Hidden = false,
@@ -71,7 +69,6 @@ public sealed class BanchoSession
 		},
 		new Channel("#announce")
 		{
-			Id = 2,
 			Description = "Multiplayer chatroom",
 			AutoJoin = false,
 			Hidden = false,
@@ -83,7 +80,6 @@ public sealed class BanchoSession
 		},
 		new Channel("#staff")
 		{
-			Id = 3,
 			Description = "osu! staff chatroom",
 			AutoJoin = false,
 			Hidden = true,
@@ -157,7 +153,7 @@ public sealed class BanchoSession
 		
 		if (player.Lobby != null) player.LeaveMatch();
 
-		player.Spectating?.RemoveSpectator();
+		player.Spectating?.RemoveSpectator(player);
 
 		while (player.Channels.Count != 0)
 			player.LeaveChannel(player.Channels[0], false);

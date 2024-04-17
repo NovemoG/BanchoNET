@@ -175,10 +175,83 @@ public static class PlayerExtensions
 
 		player.Lobby = null;
 	}
-	
-	public static void RemoveSpectator(this Player player)
+
+	public static void AddSpectator(this Player host, Player target)
 	{
+		var channelName = $"#s_{host.Id}";
+		var spectatorChannel = Session.GetChannel(channelName, true);
+
+		if (spectatorChannel == null)
+		{
+			spectatorChannel = new Channel(channelName)
+			{
+				Description = $"{host.Username}'s spectator channel",
+				AutoJoin = false,
+				Instance = true
+			};
+
+			host.JoinChannel(spectatorChannel);
+			Session.InsertChannel(spectatorChannel, true);
+		}
+
+		if (!target.JoinChannel(spectatorChannel))
+		{
+			Console.WriteLine($"[PlayerExtensions] {target.Username} failed to join {channelName}");
+			return;
+		}
+
+		using var joinedPacket = new ServerPackets();
+		joinedPacket.FellowSpectatorJoined(target.Id);
+		var bytes = joinedPacket.GetContent();
 		
+		foreach (var spectator in host.Spectators)
+		{
+			spectator.Enqueue(bytes);
+
+			using var fellowSpectatorPacket = new ServerPackets();
+			fellowSpectatorPacket.FellowSpectatorJoined(spectator.Id);
+			target.Enqueue(fellowSpectatorPacket.GetContent());
+		}
+		
+		using var spectatorJoinedPacket = new ServerPackets();
+		spectatorJoinedPacket.SpectatorJoined(target.Id);
+		host.Enqueue(spectatorJoinedPacket.GetContent());
+		
+		host.Spectators.Add(target);
+		target.Spectating = host;
+		
+		Console.WriteLine($"{target.Username} is now spectating {host.Username}");
+	}
+	
+	public static void RemoveSpectator(this Player host, Player target)
+	{
+		host.Spectators.Remove(target);
+		target.Spectating = null;
+
+		var spectatorChannel = Session.GetChannel(name: $"#s_{host.Id}", true)!;
+		target.LeaveChannel(spectatorChannel);
+
+		if (host.Spectators.Count == 0)
+			host.LeaveChannel(spectatorChannel);
+		else
+		{
+			using var returnPacket = new ServerPackets();
+			returnPacket.ChannelInfo(spectatorChannel);
+			
+			target.Enqueue(returnPacket.GetContent());
+			
+			returnPacket.FellowSpectatorLeft(target.Id);
+
+			var bytes = returnPacket.GetContent();
+			foreach (var spectator in host.Spectators)
+				spectator.Enqueue(bytes);
+		}
+		
+		using var spectatorLeftPacket = new ServerPackets();
+		spectatorLeftPacket.SpectatorLeft(target.Id);
+		host.Enqueue(spectatorLeftPacket.GetContent());
+		
+		Console.WriteLine($"{target.Username} is no longer spectating {host.Username}");
 	}
 
 	public static bool BlockedByPlayer(this Player player, int targetId)
@@ -203,13 +276,14 @@ public static class PlayerExtensions
 
 		using var channelInfoPacket = new ServerPackets();
 		channelInfoPacket.ChannelInfo(channel);
+		var bytes = channelInfoPacket.GetContent();
 
 		if (channel.Instance)
 			foreach (var user in channel.Players)
-				user.Enqueue(channelInfoPacket.GetContent());
+				user.Enqueue(bytes);
 		else
 			foreach (var user in Session.Players.Where(channel.CanPlayerRead))
-				user.Enqueue(channelInfoPacket.GetContent());
+				user.Enqueue(bytes);
 		
 		return true;
 	}
@@ -233,13 +307,14 @@ public static class PlayerExtensions
 		
 		using var channelInfoPacket = new ServerPackets();
 		channelInfoPacket.ChannelInfo(channel);
+		var bytes = channelInfoPacket.GetContent();
 
 		if (channel.Instance)
 			foreach (var user in channel.Players)
-				user.Enqueue(channelInfoPacket.GetContent());
+				user.Enqueue(bytes);
 		else
 			foreach (var user in Session.Players.Where(channel.CanPlayerRead))
-				user.Enqueue(channelInfoPacket.GetContent());
+				user.Enqueue(bytes);
 		
 		Console.WriteLine($"[PlayerExtensions] {player.Username} left {channel.IdName}");
 	}

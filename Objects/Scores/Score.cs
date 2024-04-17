@@ -1,6 +1,7 @@
 ﻿using BanchoNET.Models.Dtos;
 using BanchoNET.Objects.Beatmaps;
 using BanchoNET.Objects.Players;
+using BanchoNET.Utils;
 
 namespace BanchoNET.Objects.Scores;
 

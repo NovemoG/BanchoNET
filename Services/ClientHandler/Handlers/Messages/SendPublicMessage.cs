@@ -29,7 +29,7 @@ public partial class BanchoHandler
 				else if (player.HasSpectators) spectatorId = player.Id;
 				else return Task.CompletedTask;
 			
-				channel = _session.GetChannel($"#s_{spectatorId}", true)!;
+				channel = _session.GetChannel($"#s_{spectatorId}", true);
 				break;
 			}
 			case "#multiplayer" when player.Lobby == null:
