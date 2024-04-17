@@ -34,7 +34,7 @@ public static class PlayerExtensions
 	}
 
 	/// <summary>
-	/// Sends message directly to this player. If channel is provided, it will be sent to that channel instead.
+	/// Sends a message directly to this player. If channel is provided, it will be sent to that channel instead.
 	/// </summary>
 	/// <param name="message">Message content</param>
 	/// <param name="source">Player that sent message</param>
@@ -94,7 +94,7 @@ public static class PlayerExtensions
 				return;
 			}
 
-			slot = lobby.Slots.FirstOrDefault(s => s.Status.HasStatus(SlotStatus.Open));
+			slot = lobby.Slots.FirstOrDefault(s => s.Status == SlotStatus.Open);
 			if (slot == null)
 			{
 				using var joinFailPacket = new ServerPackets();
@@ -145,7 +145,7 @@ public static class PlayerExtensions
 
 		if (lobby.Slots.All(s => s.Player == null) /*TODO check for tourney clients*/)
 		{
-			Console.WriteLine($"[PlayerExtensions] Match {lobby.Name} is empty, removing.");
+			Console.WriteLine($"[PlayerExtensions] Match \"{lobby.Name}\" is empty, removing.");
 
 			lobby.StartTimer?.Stop();
 

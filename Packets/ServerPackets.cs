@@ -191,7 +191,7 @@ public partial class ServerPackets : IDisposable
 	/// </summary>
 	public void DisposeMatch(MultiplayerLobby lobby)
 	{
-		WritePacketData(ServerPacketId.DisposeMatch, new PacketData(lobby.Id, DataType.Int));
+		WritePacketData(ServerPacketId.DisposeMatch, new PacketData((int)lobby.Id, DataType.Int));
 	}
 
 	/// <summary>
@@ -231,8 +231,10 @@ public partial class ServerPackets : IDisposable
 	/// <summary>
 	/// Packet id 48
 	/// </summary>
-	[Obsolete("Currently unused")]
-	public void MatchScoreUpdate() { }
+	public void MatchScoreUpdate(byte[] rawData)
+	{
+		WritePacketData(ServerPacketId.MatchScoreUpdate, new PacketData(rawData, DataType.Raw));
+	}
 
 	/// <summary>
 	/// Packet id 50
@@ -337,15 +339,6 @@ public partial class ServerPackets : IDisposable
 	public void ChannelInfo(Channel channel)
 	{
 		WritePacketData(ServerPacketId.ChannelInfo, new PacketData(channel, DataType.Channel));
-	}
-	
-	/// <summary>
-	/// Packet id 65
-	/// </summary>
-	public void ChannelInfo(List<Channel> channels)
-	{
-		foreach (var channel in channels)
-			ChannelInfo(channel);
 	}
 	
 	/// <summary>

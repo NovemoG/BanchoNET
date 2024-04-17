@@ -188,8 +188,30 @@ public partial class ChoController
 		loginPackets.PlayerId(player.Id);
 		loginPackets.BanchoPrivileges((int)(player.ToBanchoPrivileges() | ClientPrivileges.Supporter));
 		loginPackets.Notification(_messages.WelcomeMessage + AppSettings.BanchoNETVersion);
-		loginPackets.ChannelInfo(_session.GetAutoJoinChannels(player));
+
+		#region Append AutoJoin Channels
+
+		foreach (var channel in _session.Channels)
+		{
+			if (!channel.AutoJoin || 
+			    !channel.CanPlayerRead(player) ||
+			    channel.IdName == "#lobby")
+			{
+				continue;
+			}
+
+			using var chanInfoPacket = new ServerPackets();
+			chanInfoPacket.ChannelInfo(channel);
+			var bytes = chanInfoPacket.GetContent();
+			
+			loginPackets.WriteBytes(bytes);
+			channel.EnqueueIfCanRead(bytes);
+		}
+		
 		loginPackets.ChannelInfoEnd();
+
+		#endregion
+		
 		loginPackets.MainMenuIcon(AppSettings.MenuIconUrl, AppSettings.MenuOnclickUrl);
 		
 		await _bancho.FetchPlayerStats(player);

@@ -23,7 +23,7 @@ public enum ClientPacketId : short
 	MatchLock = 40,
 	MatchChangeSettings = 41,
 	MatchStart = 44,
-	MatchScoreUpdate = 47, //TODO
+	MatchScoreUpdate = 47,
 	MatchComplete = 49,
 	MatchChangeMods = 51,
 	MatchLoadComplete = 52,

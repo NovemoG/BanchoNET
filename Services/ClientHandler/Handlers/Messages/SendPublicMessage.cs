@@ -17,29 +17,30 @@ public partial class BanchoHandler
 		if (txt == string.Empty) return Task.CompletedTask;
 		
 		if (_ignoredChannels.Contains(message.Destination)) return Task.CompletedTask;
-
-		if (txt == "!mp start")
-			player.Lobby.Start();
 		
 		Channel? channel;
-		if (message.Destination == "#spectator")
+		switch (message.Destination)
 		{
-			int spectatorId;
+			case "#spectator":
+			{
+				int spectatorId;
 
-			if (player.IsSpectating) spectatorId = player.Spectating!.Id;
-			else if (player.HasSpectators) spectatorId = player.Id;
-			else return Task.CompletedTask;
+				if (player.IsSpectating) spectatorId = player.Spectating!.Id;
+				else if (player.HasSpectators) spectatorId = player.Id;
+				else return Task.CompletedTask;
 			
-			channel = _session.GetChannel($"#s_{spectatorId}", true)!;
+				channel = _session.GetChannel($"#s_{spectatorId}", true)!;
+				break;
+			}
+			case "#multiplayer" when player.Lobby == null:
+				return Task.CompletedTask;
+			case "#multiplayer":
+				channel = player.Lobby.Chat;
+				break;
+			default:
+				channel = _session.GetChannel(message.Destination);
+				break;
 		}
-		else if (message.Destination == "#multiplayer")
-		{
-			if (player.Lobby == null) return Task.CompletedTask;
-
-			channel = player.Lobby.Chat;
-		}
-		else
-			channel = _session.GetChannel(message.Destination);
 
 		if (channel == null) //TODO log
 			return Task.CompletedTask;

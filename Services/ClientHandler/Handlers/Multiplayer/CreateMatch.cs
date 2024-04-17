@@ -10,6 +10,7 @@ public partial class BanchoHandler
 	private async Task CreateMatch(Player player, BinaryReader br)
 	{
 		var matchData = br.ReadOsuMatch();
+		matchData.Id = _session.GetFreeMatchId();
 		
 		if (player.Restricted)
 		{
@@ -31,7 +32,7 @@ public partial class BanchoHandler
 		
 		var matchChannel = new Channel($"#multi_{matchData.Id}")
 		{
-			Description = $"MID {matchData.Id}'s multiplayer channel.",
+			Description = "This multiplayer's channel.",
 			AutoJoin = false,
 			Instance = true
 		};

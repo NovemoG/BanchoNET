@@ -13,9 +13,10 @@ public partial class BanchoHandler
 		if (lobby == null) return Task.CompletedTask;
 
 		var slots = lobby.Slots;
+		
 		var slot = lobby.GetPlayerSlot(player);
-
 		slot.Status = SlotStatus.Complete;
+        
 		if (slots.Any(s => s.Status == SlotStatus.Playing))
 			return Task.CompletedTask;
 

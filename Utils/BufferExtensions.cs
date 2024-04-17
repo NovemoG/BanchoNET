@@ -52,11 +52,9 @@ public static class BufferExtensions
 	
 	public static MultiplayerLobby ReadOsuMatch(this BinaryReader br)
 	{
-		Console.WriteLine(br.ReadInt16());
-		
 		var match = new MultiplayerLobby
 		{
-			Id = 0,
+			Id = br.ReadUInt16(),
 			InProgress = br.ReadByte() == 1,
 			Powerplay = br.ReadByte(),
 			Mods = (Mods)br.ReadInt32(),
@@ -93,6 +91,17 @@ public static class BufferExtensions
 		match.Seed = br.ReadInt32();
 		
 		return match;
+	}
+
+	/// <summary>
+	/// Reads raw data from the osu packet that had its length already read
+	/// </summary>
+	public static byte[] ReadRawData(this BinaryReader br)
+	{
+		br.BaseStream.Position -= 4;
+		
+		var dataLength = br.ReadInt32();
+		return br.ReadBytes(dataLength);
 	}
 
 	public static void WriteOsuList32(this BinaryWriter bw, List<int> list)
@@ -222,7 +231,7 @@ public static class BufferExtensions
 	{
 		var match = lobbyData.Lobby;
 		
-		bw.Write((ushort)match.Id);
+		bw.Write(match.Id);
 		bw.Write((byte)(match.InProgress ? 1 : 0));
 		bw.Write((byte)0);
 		bw.Write((uint)match.Mods);
@@ -247,10 +256,10 @@ public static class BufferExtensions
 
 		var slots = match.Slots;
 		for (int i = 0; i < slots.Length; i++)
-			bw.Write((byte)slots[i].Status); //TODO check if it has to be int
+			bw.Write((byte)slots[i].Status);
 		
 		for (int i = 0; i < slots.Length; i++)
-			bw.Write((byte)slots[i].Team);  //TODO check if it has to be int
+			bw.Write((byte)slots[i].Team);
 		
 		for (int i = 0; i < slots.Length; i++)
 		{
@@ -263,10 +272,10 @@ public static class BufferExtensions
 		}
 		
 		bw.Write((uint)match.HostId);
-		bw.Write((byte)match.Mode); //TODO check if it has to be int
-		bw.Write((byte)match.WinCondition); //TODO check if it has to be int
-		bw.Write((byte)match.Type); //TODO check if it has to be int
-		bw.Write((byte)(match.Freemods ? 1 : 0)); //TODO check if it has to be int
+		bw.Write((byte)match.Mode);
+		bw.Write((byte)match.WinCondition);
+		bw.Write((byte)match.Type);
+		bw.Write((byte)(match.Freemods ? 1 : 0));
 		
 		if (match.Freemods)
 			for (int i = 0; i < slots.Length; i++)

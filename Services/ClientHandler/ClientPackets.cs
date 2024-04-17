@@ -41,6 +41,6 @@ public partial class BanchoHandler
 			else
 				throw new InvalidEnumArgumentException($"[ClientPackets] Handler of packet {packetId} is not (yet) implemented");
 			
-		} while (br.BaseStream.Position < br.BaseStream.Length - 7);
+		} while (br.BaseStream.Position < br.BaseStream.Length);
 	}
 }

@@ -94,6 +94,7 @@ public sealed class BanchoSession
 			Players = []
 		},
 	];
+	public IEnumerable<Channel> Channels => _channels;
 
 	#endregion
 
@@ -236,27 +237,6 @@ public sealed class BanchoSession
 		if (spectator) _spectatorChannels.Add(channel);
 		else _channels.Add(channel);
 	}
-	
-	public List<Channel> GetAutoJoinChannels(Player player)
-	{
-		var joinChannels = new List<Channel>();
-
-		foreach (var channel in _channels)
-		{
-			if (!channel.AutoJoin || 
-			    !channel.CanPlayerRead(player) ||
-			    channel.IdName == "#lobby")
-			{
-				continue;
-			}
-
-			joinChannels.Add(channel);
-			
-			//TODO Send to all players present in the channel to update their player count
-		}
-
-		return joinChannels;
-	}
 
 	public Beatmap? GetBeatmap(string beatmapMD5 = "", int mapId = -1)
 	{
@@ -323,6 +303,17 @@ public sealed class BanchoSession
 		_needUpdateBeatmaps.Add(beatmapMD5);
 	}
 
+	public ushort GetFreeMatchId()
+	{
+		for (ushort i = 0; i < _multiplayerLobbies.Count; i++)
+		{
+			if (_multiplayerLobbies[i].Id != i)
+				return i;
+		}
+
+		return (ushort)_multiplayerLobbies.Count;
+	}
+	
 	public MultiplayerLobby? GetLobby(ushort id)
 	{
 		_multiplayerLobbies.TryGetValue(id, out var lobby);
@@ -336,9 +327,9 @@ public sealed class BanchoSession
 	
 	public void RemoveLobby(MultiplayerLobby lobby)
 	{
-		Console.WriteLine($"[BanchoSession] Removing lobby with id: {lobby.Id}");
+		var removed = _multiplayerLobbies.TryRemove(lobby.Id, out _);
 		
-		_multiplayerLobbies.TryRemove(lobby.Id, out _);
+		Console.WriteLine($"[BanchoSession] Removing lobby with id: {lobby.Id}");
 	}
 
 	public void EnqueueToPlayers(byte[] data)

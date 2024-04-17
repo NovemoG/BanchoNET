@@ -7,6 +7,8 @@ namespace BanchoNET.Utils;
 
 public static class ChannelExtensions
 {
+	private static readonly BanchoSession Session = BanchoSession.Instance;
+	
 	public static bool PlayerInChannel(this Channel channel, Player player)
 	{
 		return channel.Players.Any(p => p.Id == player.Id);
@@ -41,7 +43,7 @@ public static class ChannelExtensions
 
 	public static void SendBotMessage(this Channel channel, string message)
 	{
-		var bot = BanchoSession.Instance.BanchoBot;
+		var bot = Session.BanchoBot;
 
 		if (message.Length >= 31979)
 			message = $"message would have crashed games ({message.Length} characters).";
@@ -55,6 +57,13 @@ public static class ChannelExtensions
 			SenderId = bot.Id
 		});
 		channel.EnqueueToPlayers(messagePacket.GetContent());
+	}
+
+	public static void EnqueueIfCanRead(this Channel channel, byte[] data)
+	{
+		foreach (var player in Session.Players)
+			if (channel.CanPlayerRead(player))
+				player.Enqueue(data);
 	}
 
 	public static void EnqueueToPlayers(this Channel channel, byte[] data, List<int>? immune = default)

@@ -8,7 +8,7 @@ namespace BanchoNET.Utils;
 
 public static class MultiplayerExtensions
 {
-	public static readonly int[] Alerts = [
+	public static readonly int[] StartTimerAlerts = [
 		60, 30, 15, 10, 5, 4, 3, 2, 1
 	];
 	
@@ -44,7 +44,7 @@ public static class MultiplayerExtensions
 	public static void UnreadyPlayers(this MultiplayerLobby lobby, SlotStatus expectedStatus = SlotStatus.Ready)
 	{
 		foreach (var slot in lobby.Slots)
-			if (slot.Status.HasStatus(expectedStatus))
+			if (slot.Status == expectedStatus)
 				slot.Status = SlotStatus.NotReady;
 	}
 
@@ -113,8 +113,6 @@ public static class MultiplayerExtensions
 		List<int>? immune = default,
 		bool toLobby = true)
 	{
-		immune ??= [];
-		
 		lobby.Chat.EnqueueToPlayers(data, immune);
 		
 		var lobbyChannel = BanchoSession.Instance.GetChannel("#lobby")!;

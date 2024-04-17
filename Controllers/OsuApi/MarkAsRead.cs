@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Http.Extensions;
+using Microsoft.AspNetCore.Mvc;
 
 namespace BanchoNET.Controllers.OsuApi;
 
@@ -10,6 +11,8 @@ public partial class OsuController
 		[FromQuery(Name = "h")] string passwordMD5,
 		[FromQuery] string? channel)
 	{
+		/*channel = Request.GetDisplayUrl().Split("=")[2];*/
+		
 		if (string.IsNullOrEmpty(channel))
 			return Ok();
 		

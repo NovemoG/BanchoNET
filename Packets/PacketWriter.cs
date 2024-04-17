@@ -35,23 +35,24 @@ public partial class ServerPackets
 		[DataType.Raw] = (bw, data) => bw.Write((byte[])data),
 	};
 	
-	private void WritePacketData(ServerPacketId packetId, params PacketData[]? dataArray)
+	private void WritePacketData(ServerPacketId packetId, params PacketData[] dataArray)
 	{
 		var buffer = new MemoryStream();
 		using var bw = new BinaryWriter(buffer);
 		
 		bw.Write((short)packetId);
 		bw.Write((byte)0);
-		if (dataArray == null)
+		if (dataArray.Length == 0)
 		{
+			Console.WriteLine($"[PacketWriter]\t({packetId})");
+			
 			bw.Write((int)0);
 			_binaryWriter.Write(buffer.ToArray());
 			return;
 		}
 		
-		for (int i = 0; i < dataArray.Length; i++)
+		foreach (var data in dataArray)
 		{
-			var data = dataArray[i];
 			Console.WriteLine($"[PacketWriter]\t({packetId}) Parsing data: {data.Data} of type {data.Type}");
 
 			_actionsMap[data.Type](bw, data.Data!);

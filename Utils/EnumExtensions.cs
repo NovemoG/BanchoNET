@@ -35,14 +35,4 @@ public static class EnumExtensions
 	{
 		return (value & mod) == mod;
 	}
-	
-	public static bool HasStatuses(this SlotStatus value, params SlotStatus[] checkFlags)
-	{
-		return checkFlags.All(flag => (value & flag) == flag);
-	}
-
-	public static bool HasStatus(this SlotStatus value, SlotStatus status)
-	{
-		return (value & status) == status;
-	}
 }

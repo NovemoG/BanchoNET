@@ -21,7 +21,7 @@ public class MultiplayerLobby
 	/// <summary>
 	/// Used by osu for multiplayer lobby identification
 	/// </summary>
-	public int Id { get; set; }
+	public ushort Id { get; set; }
 	
 	public string Name { get; set; }
 	public string Password { get; set; }
