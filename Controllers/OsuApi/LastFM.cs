@@ -5,7 +5,7 @@ namespace BanchoNET.Controllers.OsuApi;
 
 public partial class OsuController
 {
-	[HttpGet("/web/lastfm.php")]
+	[HttpGet("lastfm.php")]
 	public async Task<IActionResult> LastFM(
 		[FromQuery(Name = "b")]string beatmapId, 
 		[FromQuery(Name = "c")]string beatmapNameBase64,

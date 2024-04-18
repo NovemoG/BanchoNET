@@ -5,7 +5,7 @@ namespace BanchoNET.Controllers.OsuApi;
 
 public partial class OsuController
 {
-	[HttpGet("/web/osu-getfriends.php")]
+	[HttpGet("osu-getfriends.php")]
 	public async Task<IActionResult> BanchoHttpHandler(
 		[FromQuery(Name = "u")] string username,
 		[FromQuery(Name = "h")] string passwordMD5)

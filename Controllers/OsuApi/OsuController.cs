@@ -1,11 +1,9 @@
-﻿using System.Diagnostics;
-using BanchoNET.Objects;
-using BanchoNET.Objects.Players;
-using BanchoNET.Services;
+﻿using BanchoNET.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BanchoNET.Controllers.OsuApi;
 
+[Route("web")]
 [ApiController]
 public partial class OsuController : ControllerBase
 {
@@ -24,21 +22,21 @@ public partial class OsuController : ControllerBase
         // _logger = logger;
     }
 	
-    [HttpPost("/web/osu-error.php")]
+    [HttpPost("osu-error.php")]
     public async Task<IActionResult> OsuError()
     {
         Console.WriteLine("OsuError");
         return Ok("");
     }
 
-    [HttpGet("/web/bancho_connect.php")]
+    [HttpGet("bancho_connect.php")]
     public async Task<IActionResult> BanchoConnect()
     {
         Console.WriteLine("BanchoConnect");
         return Ok();
     }
 
-    [HttpGet("/web/check-updates.php")]
+    [HttpGet("check-updates.php")]
     public async Task<IActionResult> CheckUpdates()
     {
         Console.WriteLine("CheckUpdates");

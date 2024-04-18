@@ -5,7 +5,7 @@ namespace BanchoNET.Controllers.OsuApi;
 
 public partial class OsuController
 {
-	[HttpGet("/web/osu-markasread.php")]
+	[HttpGet("osu-markasread.php")]
 	public async Task<IActionResult> MarkAsRead(
 		[FromQuery(Name = "u")] string username,
 		[FromQuery(Name = "h")] string passwordMD5,

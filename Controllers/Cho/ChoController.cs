@@ -1,9 +1,7 @@
-﻿using BanchoNET.Models;
-using BanchoNET.Packets;
+﻿using BanchoNET.Packets;
 using BanchoNET.Services;
 using BanchoNET.Utils;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 
 namespace BanchoNET.Controllers.Cho;
 

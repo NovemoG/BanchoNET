@@ -12,7 +12,7 @@ namespace BanchoNET.Controllers.OsuApi;
 
 public partial class OsuController
 {
-	[HttpGet("/web/osu-osz2-getscores.php")]
+	[HttpGet("osu-osz2-getscores.php")]
 	public async Task<IActionResult> GetScores(
 		[FromQuery(Name = "us")] string username,
 		[FromQuery(Name = "ha")] string passwordMD5,

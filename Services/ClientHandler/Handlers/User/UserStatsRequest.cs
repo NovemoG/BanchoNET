@@ -12,13 +12,6 @@ public partial class BanchoHandler
 		
 		using var statsPacket = new ServerPackets();
 
-		Console.Write("[UserStatsRequest] User requested ids: ");
-		foreach (var id in ids)
-		{
-			Console.Write($"{id}, ");
-		}
-		Console.Write('\n');
-
 		for (var i = ids.Count - 1; i >= 0; i--)
 		{
 			var id = ids[i];

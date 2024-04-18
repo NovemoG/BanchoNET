@@ -151,7 +151,7 @@ public class Program
 		{
 			//TODO: Logging system || probably to change
 			Console.ForegroundColor = ConsoleColor.Yellow;
-			Console.WriteLine("OSU_API_KEY is not set. Some features will be disabled.");
+			Console.WriteLine("[Init] OSU_API_KEY is not set. Some features will be disabled.");
 			Console.ForegroundColor = ConsoleColor.White;
 		}
 		
@@ -226,20 +226,23 @@ public class Program
 		stopwatch.Start();
 		
 		redis.GetServer($"{redisHost}:{redisPort}").FlushDatabase();
-		
+
 		for (byte i = 0; i <= (byte)GameMode.AutopilotStd; i++)
 		{
 			if (i == 7) continue;
 
 			var mode = i;
 			var playersPpModeValues = db.Stats.Include(s => s.Player)
-			                            .Where(s => s.Mode == mode &&
-			                                        (s.Player.Privileges & 1) == 1)
-			                            .Select(s => new SortedSetEntry(s.PlayerId, s.PP))
-			                            .ToArray();
+				.Where(s => s.Mode == mode &&
+				            (s.Player.Privileges & 1) == 1)
+				.Select(s => new { s.PlayerId, s.Player.Country, s.PP })
+				.ToArray();
 
-			redisDb.SortedSetAdd($"bancho:leaderboard:{mode}", playersPpModeValues);
-			//TODO load country leaderboards
+			foreach (var values in playersPpModeValues)
+			{
+				redisDb.SortedSetAdd($"bancho:leaderboard:{mode}", values.PlayerId, values.PP);
+				redisDb.SortedSetAdd($"bancho:leaderboard:{mode}:{values.Country}", values.PlayerId, values.PP);
+			}
 		}
 		
 		stopwatch.Stop();

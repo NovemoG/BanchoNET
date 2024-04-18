@@ -8,7 +8,7 @@ namespace BanchoNET.Controllers.OsuApi;
 
 public partial class OsuController
 {
-    [HttpGet("/web/osu-search.php")]
+    [HttpGet("osu-search.php")]
     public async Task<IActionResult> OsuSearch(
         [FromQuery(Name = "u")] string username,
         [FromQuery(Name = "h")] string passwordMD5,
@@ -77,6 +77,7 @@ public partial class OsuController
             var beatmapsString = mapset.Beatmaps.Aggregate("",
                 (current, map) => current + $"{map.DiffName.Replace('|', 'I')} [{map.DifficultyRating:F2}⭐]@{map.Mode},")[..^1];
             
+            //TODO replace 10.0 with actual rating
             returnResponse.Add($"{mapset.SetId}.osz|{mapset.Artist}|{mapset.Title}|{mapset.Creator}|{mapset.RankedStatus}|10.0|{mapset.LastUpdate}|{mapset.SetId}|0|{hasVideo}|0|0|0|{beatmapsString}");
         }
         

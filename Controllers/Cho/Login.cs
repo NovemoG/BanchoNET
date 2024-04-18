@@ -40,8 +40,8 @@ public partial class ChoController
 			responseData.PlayerId(-5);
 			return responseData.GetContentResult();
 		}
-
-		if (AppSettings.DisallowOldClients)
+		
+		if (!AppSettings.DisallowOldClients)
 		{
 			var clientStream = loginData.OsuVersion.Stream;
 			if (clientStream is "stable" or "beta") clientStream += "40";

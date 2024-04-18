@@ -17,7 +17,7 @@ namespace BanchoNET.Controllers.OsuApi;
 
 public partial class OsuController
 {
-    [HttpPost("/web/osu-submit-modular-selector.php")]
+    [HttpPost("osu-submit-modular-selector.php")]
     public async Task<IActionResult> SubmitScore(
         [FromForm(Name = "ft")] int failTime,
         [FromForm(Name = "bmk")] string beatmapHash,

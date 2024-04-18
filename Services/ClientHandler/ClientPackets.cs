@@ -31,8 +31,7 @@ public partial class BanchoHandler
 
 			ms.Position -= bytesRead;
 			
-			PacketHandlerMap.PacketMethodsMap.TryGetValue(packetId, out var method);
-			if (method != null)
+			if (PacketHandlerMap.PacketMethodsMap.TryGetValue(packetId, out var method))
 				await (Task)method.Invoke(this, [player, br])!;
 			else
 				throw new InvalidEnumArgumentException($"[ClientPackets] Handler of packet {packetId} is not (yet) implemented");
