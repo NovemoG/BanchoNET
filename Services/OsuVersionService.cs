@@ -35,7 +35,7 @@ public class OsuVersionService
 
             var content = await response.Content.ReadAsStringAsync();
             
-            if (content.IsValidResponse()) continue;
+            if (!content.IsValidResponse()) continue;
             
             var changelog = JsonConvert.DeserializeObject<ClientBuildVersions>(content);
             foreach (var build in changelog.Builds)
