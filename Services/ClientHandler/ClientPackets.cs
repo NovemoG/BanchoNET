@@ -9,8 +9,6 @@ public partial class BanchoHandler
 {
 	public async Task ReadPackets(Stream stream, Player player)
 	{
-		Console.WriteLine();
-		
 		using var ms = new MemoryStream();
 		await stream.CopyToAsync(ms);
 		ms.Position = 0;
@@ -27,8 +25,6 @@ public partial class BanchoHandler
 
 			var dataBuffer = new byte[packetSize];
 			var bytesRead = br.Read(dataBuffer, 0, packetSize);
-			
-			Console.WriteLine($"[ClientPackets] Packet: {packetId}, Length: {dataBuffer.Length}, Read: {bytesRead}, To read: {packetSize}");
 			
 			if (bytesRead != packetSize)
 				throw new Exception("Packet size mismatch");

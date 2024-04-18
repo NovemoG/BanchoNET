@@ -65,6 +65,10 @@ public static class AppSettings
         OsuDirectDownloadEndpoints =
             ImmutableList.Create(string.IsNullOrEmpty(downloadEndpoints) ? [""] : downloadEndpoints.Split(","));
         
+        var storeLocally = Environment.GetEnvironmentVariable("STORE_BEATMAPS_LOCALLY");
+        StoreBeatmapsLocally = string.IsNullOrEmpty(storeLocally)
+            || bool.Parse(storeLocally);
+        
         //TODO make it more customizable (use string.Format or something to allow usage of some variables)
         var welcomeMessage = Environment.GetEnvironmentVariable("WELCOME_MESSAGE");
         WelcomeMessage = string.IsNullOrEmpty(welcomeMessage)
@@ -111,6 +115,7 @@ public static class AppSettings
     public static readonly ImmutableList<string> DisallowedNames;
     public static readonly ImmutableList<string> OsuDirectSearchEndpoints;
     public static readonly ImmutableList<string> OsuDirectDownloadEndpoints;
+    public static readonly bool StoreBeatmapsLocally;
     public static readonly string WelcomeMessage;
     public static readonly string FirstLoginMessage;
     public static readonly string RestrictedMessage;

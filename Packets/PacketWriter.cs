@@ -44,19 +44,13 @@ public partial class ServerPackets
 		bw.Write((byte)0);
 		if (dataArray.Length == 0)
 		{
-			Console.WriteLine($"[PacketWriter]\t({packetId})");
-			
 			bw.Write((int)0);
 			_binaryWriter.Write(buffer.ToArray());
 			return;
 		}
 		
 		foreach (var data in dataArray)
-		{
-			Console.WriteLine($"[PacketWriter]\t({packetId}) Parsing data: {data.Data} of type {data.Type}");
-
 			_actionsMap[data.Type](bw, data.Data!);
-		}
 		
 		var dataBytes = buffer.ToArray();
 		var returnStream = new MemoryStream();

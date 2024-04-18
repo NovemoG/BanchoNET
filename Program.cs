@@ -20,6 +20,9 @@ public class Program
 {
 	public static void Main(string[] args)
 	{
+		var initStopwatch = new Stopwatch();
+		initStopwatch.Start();
+		
 		var builder = WebApplication.CreateBuilder(args);
 		var messages = builder.Configuration.GetSection("messages");
 		
@@ -160,6 +163,9 @@ public class Program
 		app.Services.GetRequiredService<OsuVersionService>().FetchOsuVersion().Wait();
 
 		#endregion
+		
+		initStopwatch.Stop();
+		Console.WriteLine($"[Init] Initialization took: {initStopwatch.Elapsed}");
 		
 		app.Run();
 	}
