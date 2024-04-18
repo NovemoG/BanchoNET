@@ -1,4 +1,5 @@
-﻿using BanchoNET.Objects.Channels;
+﻿using BanchoNET.Commands;
+using BanchoNET.Objects.Channels;
 using BanchoNET.Objects.Players;
 using BanchoNET.Packets;
 using BanchoNET.Utils;
@@ -62,7 +63,7 @@ public partial class BanchoHandler
 
 		if (txt.StartsWith(AppSettings.CommandPrefix))
 		{
-			//TODO command hadnling
+			channel.SendBotMessage(CommandProcessor.Execute(txt));
 		}
 		else
 		{

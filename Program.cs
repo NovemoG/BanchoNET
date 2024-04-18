@@ -24,7 +24,6 @@ public class Program
 		initStopwatch.Start();
 		
 		var builder = WebApplication.CreateBuilder(args);
-		var messages = builder.Configuration.GetSection("messages");
 		
 		DotEnv.Load(); // Load .env when non dockerized
 

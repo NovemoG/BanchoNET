@@ -1,14 +1,22 @@
-﻿namespace BanchoNET.Commands;
+﻿using BanchoNET.Attributes;
 
-public partial class Commands
+namespace BanchoNET.Commands;
+
+public class ChangeMapStatusCommand
 {
-    public void Map(params string[] args)
+    [Command(
+        "map",
+        "changes the status of previously /np'd map. Syntax: map <status> <map/set>",
+        "\nAvailable statuses: loved, qualified, approved, ranked, pending/unrank (does the same)" +
+        "\nmrs - ranks whole set",
+        ["mrs"])]
+    private static string Map(params string[] args)
     {
-        
+        return "";
     }
 
-    private void ChangeStatus()
+    private static string ChangeStatus()
     {
-        
+        return "";
     }
 }
