@@ -54,20 +54,19 @@ public static class AppSettings
             : banchoBotName;
         
         var disallowedNames = Environment.GetEnvironmentVariable("DISALLOWED_NAMES");
-        DisallowedNames =
-            ImmutableList.Create(string.IsNullOrEmpty(disallowedNames) ? [""] : disallowedNames.Split(","));
+        DisallowedNames = ImmutableList.Create(string.IsNullOrEmpty(disallowedNames)
+            ? ["vaxei,mrekk,cookiezi"]
+            : disallowedNames.Split(","));
 
         var searchEndpoints = Environment.GetEnvironmentVariable("OSU_DIRECT_SEARCH_ENDPOINTS");
-        OsuDirectSearchEndpoints =
-            ImmutableList.Create(string.IsNullOrEmpty(searchEndpoints) ? [""] : searchEndpoints.Split(","));
+        OsuDirectSearchEndpoints = ImmutableList.Create(string.IsNullOrEmpty(searchEndpoints)
+            ? ["https://osu.direct/api/search"]
+            : searchEndpoints.Split(","));
 
-        var downloadEndpoints = Environment.GetEnvironmentVariable("OSU_DIRECT_DOWNLOAD_ENDPOINTS");
-        OsuDirectDownloadEndpoints =
-            ImmutableList.Create(string.IsNullOrEmpty(downloadEndpoints) ? [""] : downloadEndpoints.Split(","));
-        
-        var storeLocally = Environment.GetEnvironmentVariable("STORE_BEATMAPS_LOCALLY");
-        StoreBeatmapsLocally = string.IsNullOrEmpty(storeLocally)
-            || bool.Parse(storeLocally);
+        var downloadEndpoint = Environment.GetEnvironmentVariable("OSU_DIRECT_DOWNLOAD_ENDPOINT");
+        OsuDirectDownloadEndpoint = string.IsNullOrEmpty(downloadEndpoint)
+            ? "https://osu.direct/d"
+            : downloadEndpoint;
         
         //TODO make it more customizable (use string.Format or something to allow usage of some variables)
         var welcomeMessage = Environment.GetEnvironmentVariable("WELCOME_MESSAGE");
@@ -114,8 +113,7 @@ public static class AppSettings
     public static readonly string BanchoBotName;
     public static readonly ImmutableList<string> DisallowedNames;
     public static readonly ImmutableList<string> OsuDirectSearchEndpoints;
-    public static readonly ImmutableList<string> OsuDirectDownloadEndpoints;
-    public static readonly bool StoreBeatmapsLocally;
+    public static readonly string OsuDirectDownloadEndpoint;
     public static readonly string WelcomeMessage;
     public static readonly string FirstLoginMessage;
     public static readonly string RestrictedMessage;

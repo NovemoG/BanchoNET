@@ -20,12 +20,6 @@ public class DirectBeatmapSet
     public int Favourites { get; set; }
     [JsonProperty("ChildrenBeatmaps")]
     public List<DirectBeatmap>? Beatmaps { get; set; }
-    
-    //TODO catboy uses arrays but rest uses ints
-    /*public int Genre { get; set; }
-    public Genre[] Genres { get; set; }
-    public int Language { get; set; }
-    public Language[] Languages { get; set; }*/
 }
 
 public class DirectBeatmap
@@ -46,16 +40,4 @@ public class DirectBeatmap
     public int Passcount { get; set; }
     public int MaxCombo { get; set; }
     public double DifficultyRating { get; set; }
-}
-
-public class Genre
-{
-    public int Id { get; set; }
-    public string Name { get; set; }
-}
-
-public class Language
-{
-    public int Id { get; set; }
-    public string Name { get; set; }
 }
