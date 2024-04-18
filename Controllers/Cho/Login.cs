@@ -187,7 +187,7 @@ public partial class ChoController
 		loginPackets.ProtocolVersion(19);
 		loginPackets.PlayerId(player.Id);
 		loginPackets.BanchoPrivileges((int)(player.ToBanchoPrivileges() | ClientPrivileges.Supporter));
-		loginPackets.Notification(_messages.WelcomeMessage + AppSettings.BanchoNETVersion);
+		loginPackets.Notification(AppSettings.WelcomeMessage);
 
 		#region Append AutoJoin Channels
 
@@ -236,7 +236,7 @@ public partial class ChoController
 				loginPackets.SendMessage(new Message
 				{
 					Sender = banchoBot.Username,
-					Content = _messages.FirstLoginMessage,
+					Content = AppSettings.FirstLoginMessage,
 					Destination = player.Username,
 					SenderId = banchoBot.Id
 				});
@@ -249,7 +249,7 @@ public partial class ChoController
 			loginPackets.SendMessage(new Message
 			{
 				Sender = banchoBot.Username,
-				Content = _messages.RestrictedMessage,
+				Content = AppSettings.RestrictedMessage,
 				Destination = player.Username,
 				SenderId = banchoBot.Id
 			});

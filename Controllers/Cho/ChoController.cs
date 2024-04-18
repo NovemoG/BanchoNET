@@ -14,15 +14,13 @@ public partial class ChoController : ControllerBase
 	private readonly BanchoSession _session;
 	private readonly GeolocService _geoloc;
 	private readonly OsuVersionService _version;
-	private readonly Messages _messages;
 
-	public ChoController(BanchoHandler bancho, GeolocService geoloc, OsuVersionService version, IOptions<Messages> messages)
+	public ChoController(BanchoHandler bancho, GeolocService geoloc, OsuVersionService version)
 	{
 		_bancho = bancho;
 		_session = BanchoSession.Instance;
 		_geoloc = geoloc;
 		_version = version;
-		_messages = messages.Value;
 	}
 	
 	[HttpPost("/")]

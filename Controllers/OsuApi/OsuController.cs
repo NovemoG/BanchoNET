@@ -12,13 +12,15 @@ public partial class OsuController : ControllerBase
     private readonly BanchoHandler _bancho;
     private readonly GeolocService _geoloc;
     private readonly BanchoSession _session;
+    private readonly HttpClient _httpClient;
     // private readonly ILogger<OsuController> _logger;
 
-    public OsuController(BanchoHandler bancho, GeolocService geoloc/*, ILogger<OsuController>? logger*/)
+    public OsuController(BanchoHandler bancho, GeolocService geoloc, HttpClient httpClient/*, ILogger<OsuController>? logger*/)
     {
         _bancho = bancho;
         _geoloc = geoloc;
         _session = BanchoSession.Instance;
+        _httpClient = httpClient;
         // _logger = logger;
     }
 	
