@@ -1,14 +1,17 @@
 ﻿using BanchoNET.Attributes;
+using BanchoNET.Objects.Players;
+using BanchoNET.Objects.Privileges;
 
 namespace BanchoNET.Commands;
 
 public class ReloadCommand
 {
     [Command("reload",
+        Privileges.Staff,
         "reloads given collection/configuration. Syntax: reload <collection>",
         "\nAvailable options: commands",
         ["r"])]
-    private static string Reload(params string[] args)
+    private static string Reload(Player player, string commandBase, params string[] args)
     {
         if (args.Length == 0)
             return "No parameter provided. Available options are: commands";

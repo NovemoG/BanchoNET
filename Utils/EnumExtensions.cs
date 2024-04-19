@@ -6,9 +6,9 @@ namespace BanchoNET.Utils;
 
 public static class EnumExtensions
 {
-	public static bool HasPrivileges(this Privileges value, params Privileges[] checkFlags)
+	public static bool HasAnyPrivilege(this Privileges value, Privileges checkFlags)
 	{
-		return checkFlags.All(flag => (value & flag) == flag);
+		return (value & checkFlags) != 0;
 	}
 
 	public static bool HasPrivilege(this Privileges value, Privileges privilege)

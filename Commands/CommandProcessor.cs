@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Reflection;
 using BanchoNET.Attributes;
+using BanchoNET.Objects.Players;
 using BanchoNET.Utils;
 
 namespace BanchoNET.Commands;
@@ -13,9 +14,7 @@ public static class CommandProcessor
     }
     
     private static readonly int PrefixLength = AppSettings.CommandPrefix.Length;
-    private static readonly Dictionary<string, MethodInfo> CommandMethodsMap = new();
-
-    public static readonly Dictionary<string, (string Brief, string Detailed)> CommandDescriptions = [];
+    public static readonly Dictionary<string, (MethodInfo Method, CommandAttribute Attribute)> CommandMethodsMap = new();
     
     //TODO support creating custom commands (idk what can be possible)
 
@@ -23,17 +22,23 @@ public static class CommandProcessor
     /// Executes a command from a given string.
     /// </summary>
     /// <param name="command">Unedited string containing whole command</param>
-    public static string Execute(string command)
+    /// <param name="player">Player instance that used this command</param>
+    public static string Execute(string command, Player player)
     {
         command = command[PrefixLength..];
         
         var commandValues = command.Split(" ");
 
-        if (!CommandMethodsMap.TryGetValue(commandValues[0].ToLower(), out var method))
-            return $"Command not found. Please use '{AppSettings.CommandPrefix}help' to see all available commands.";
+        if (!CommandMethodsMap.TryGetValue(commandValues[0].ToLower(), out var cm))
+        {
+            return !player.Privileges.HasAnyPrivilege(cm.Attribute.Privileges)
+                ? "" //if a player does not have privileges to use this command,
+                     //we don't want to show him that command even exists
+                : $"Command not found. Please use '{AppSettings.CommandPrefix}help' to see all available commands.";
+        }
 
-        var returnValue = method.Invoke(null, [commandValues[1..]]);
-        if (method.ReturnType != typeof(string) || returnValue == null)
+        var returnValue = cm.Method.Invoke(null, [player, commandValues[0], commandValues[1..]]);
+        if (cm.Method.ReturnType != typeof(string) || returnValue == null)
             return "Some lazy ass developer forgot to make his command return a string value...";
         
         return (string)returnValue;
@@ -45,7 +50,6 @@ public static class CommandProcessor
         stopwatch.Start();
         
         CommandMethodsMap.Clear();
-        CommandDescriptions.Clear();
         
         const BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
 
@@ -57,32 +61,14 @@ public static class CommandProcessor
         foreach (var method in methods)
         {
             var commandAttribute = (CommandAttribute)method.GetCustomAttributes(typeof(CommandAttribute), false)[0];
-            var commandDescription = (commandAttribute.Name, commandAttribute.BriefDescription, commandAttribute.DetailedDescription);
             
-            CommandMethodsMap.Add(commandAttribute.Name.ToLower(), method);
+            CommandMethodsMap.Add(commandAttribute.Name.ToLower(), (method, commandAttribute));
             
             if (commandAttribute.Aliases == null)
-            {
-                CommandDescriptions.Add(
-                    commandDescription.Name.ToLower(),
-                    (commandDescription.BriefDescription,
-                     commandAttribute.DetailedDescription));
                 continue;
-            }
-
-            var aliases = "";
-            foreach (var alias in commandAttribute.Aliases)
-            {
-                var aliasValue = alias.ToLower();
-                
-                CommandMethodsMap.Add(aliasValue, method);
-                aliases += aliasValue + ", ";
-            }
             
-            CommandDescriptions.Add(
-                commandDescription.Name.ToLower(),
-                (commandDescription.BriefDescription,
-                 commandAttribute.DetailedDescription + "\nAliases/shortcuts: " + aliases[..^2]));
+            foreach (var alias in commandAttribute.Aliases)
+                CommandMethodsMap.Add(alias.ToLower(), (method, commandAttribute));
         }
         
         stopwatch.Stop();
