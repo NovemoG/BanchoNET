@@ -6,6 +6,8 @@ using BanchoNET.Objects;
 using BanchoNET.Objects.Players;
 using BanchoNET.Objects.Privileges;
 using BanchoNET.Services;
+using BanchoNET.Services.ClientPacketsHandler;
+using BanchoNET.Services.Repositories;
 using BanchoNET.Utils;
 using dotenv.net;
 using Hangfire;
@@ -125,7 +127,7 @@ public class Program
 		builder.Services.AddScoped<GeolocService>();
 		builder.Services.AddScoped<BeatmapHandler>();
 		builder.Services.AddScoped<CommandProcessor>();
-		builder.Services.AddScoped<PacketsHandler>();
+		builder.Services.AddScoped<ClientPacketsHandler>();
 		builder.Services.AddHttpClient();
 
 		var app = builder.Build();

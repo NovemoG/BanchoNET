@@ -7,7 +7,7 @@ using BanchoNET.Objects.Scores;
 using BanchoNET.Utils;
 using Microsoft.EntityFrameworkCore;
 
-namespace BanchoNET.Services;
+namespace BanchoNET.Services.Repositories;
 
 public class ScoresRepository(BanchoDbContext dbContext)
 {

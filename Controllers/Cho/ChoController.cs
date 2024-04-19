@@ -1,5 +1,7 @@
 ﻿using BanchoNET.Packets;
 using BanchoNET.Services;
+using BanchoNET.Services.ClientPacketsHandler;
+using BanchoNET.Services.Repositories;
 using BanchoNET.Utils;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,7 +13,7 @@ public partial class ChoController(
 	OsuVersionService version,
 	PlayersRepository players,
 	ClientRepository client,
-	PacketsHandler packets)
+	ClientPacketsHandler clientPackets)
 	: ControllerBase
 {
 	private readonly BanchoSession _session = BanchoSession.Instance;
@@ -32,7 +34,7 @@ public partial class ChoController(
 			return restartData.GetContentResult();
 		}
 		
-		await packets.ReadPackets(Request.Body, player);
+		await clientPackets.ReadPackets(Request.Body, player);
 
 		return Responses.BytesContentResult(player.Dequeue());
 	}

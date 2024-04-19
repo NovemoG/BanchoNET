@@ -9,7 +9,7 @@ using BanchoNET.Utils;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
 
-namespace BanchoNET.Services;
+namespace BanchoNET.Services.Repositories;
 
 public class PlayersRepository
 {

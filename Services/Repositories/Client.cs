@@ -4,7 +4,7 @@ using BanchoNET.Models.Dtos;
 using BanchoNET.Objects.Privileges;
 using Microsoft.EntityFrameworkCore;
 
-namespace BanchoNET.Services;
+namespace BanchoNET.Services.Repositories;
 
 public class ClientRepository(BanchoDbContext dbContext)
 {

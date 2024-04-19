@@ -26,16 +26,17 @@ public partial class CommandProcessor
             return description + "\nAliases/shortcuts: " + aliases[..^2];
         }
 
-        return CommandsMap
-            .DistinctBy(c => c.Value.Method)
-            .Where(c => parameters.Player.Privileges.HasAnyPrivilege(c.Value.Attribute.Privileges))
-            .OrderBy(c => c.Key)
-            .Aggregate(
-                $"{(args.Length == 0
-                    ? ""
-                    : "Command not found. ")}" +
-                $"Here is a list of available commands [name - description and usage]:\n",
-                (current, c) =>
-                    current + $"{AppSettings.CommandPrefix}{c.Key} - {c.Value.Attribute.BriefDescription}\n")[..^1];
+        if (args.Length == 0)
+        {
+            return CommandsMap
+                .DistinctBy(c => c.Value.Method)
+                .Where(c => parameters.Player.Privileges.HasAnyPrivilege(c.Value.Attribute.Privileges))
+                .OrderBy(c => c.Key)
+                .Aggregate("Here is a list of available commands [name - description and usage]:\n",
+                    (current, c) =>
+                        current + $"{AppSettings.CommandPrefix}{c.Key} - {c.Value.Attribute.BriefDescription}\n")[..^1];
+        }
+
+        return $"Command not found. Please use '{AppSettings.CommandPrefix}help' to see all available commands.";
     }
 }

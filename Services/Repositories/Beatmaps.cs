@@ -3,7 +3,7 @@ using BanchoNET.Models.Dtos;
 using BanchoNET.Objects.Beatmaps;
 using Microsoft.EntityFrameworkCore;
 
-namespace BanchoNET.Services;
+namespace BanchoNET.Services.Repositories;
 
 public class BeatmapsRepository(BanchoDbContext dbContext, BeatmapHandler beatmapHandler)
 {

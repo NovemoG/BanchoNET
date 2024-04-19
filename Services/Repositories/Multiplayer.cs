@@ -1,7 +1,7 @@
 ﻿using BanchoNET.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace BanchoNET.Services;
+namespace BanchoNET.Services.Repositories;
 
 public class MultiplayerRepository(BanchoDbContext dbContext)
 {
