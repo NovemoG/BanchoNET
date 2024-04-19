@@ -5,14 +5,16 @@ using BanchoNET.Utils;
 
 namespace BanchoNET.Commands;
 
-public class HelpCommand
+public partial class CommandProcessor
 {
     [Command("help",
         Privileges.Verified,
         "shows all available commands or displays detailed description of a given command")]
-    private static string Help(Player player, string commandBase, params string[] args)
+    private string Help(Player player, string commandBase, params string[] args)
     {
-        if (args.Length > 0 && CommandProcessor.CommandMethodsMap.TryGetValue(args[0], out var cm))
+        if (args.Length > 0
+            && _commandMethodsMap.TryGetValue(args[0], out var cm)
+            && player.Privileges.HasAnyPrivilege(cm.Attribute.Privileges))
         {
             var description = cm.Attribute.BriefDescription + cm.Attribute.DetailedDescription;
             
@@ -23,11 +25,11 @@ public class HelpCommand
             return description + "\nAliases/shortcuts: " + aliases[..^2];
         }
 
-        return CommandProcessor.CommandMethodsMap
+        return _commandMethodsMap
             .DistinctBy(c => c.Value.Method)
             .Where(c => player.Privileges.HasAnyPrivilege(c.Value.Attribute.Privileges))
             .OrderBy(c => c.Key)
-            .Aggregate("Available commands [name - description and usage]:\n",
+            .Aggregate("Command not found, available commands [name - description and usage]:\n",
                 (current, c) => current + $"{c.Key} - {c.Value.Attribute.BriefDescription}\n")[..^1];
     }
 }

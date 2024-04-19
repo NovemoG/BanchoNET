@@ -4,29 +4,33 @@ using BanchoNET.Objects.Privileges;
 
 namespace BanchoNET.Commands;
 
-public class ReloadCommand
+public partial class CommandProcessor
 {
     [Command("reload",
         Privileges.Staff,
         "reloads given collection/configuration. Syntax: reload <collection>",
         "\nAvailable options: commands",
         ["r"])]
-    private static string Reload(Player player, string commandBase, params string[] args)
+    private string Reload(Player player, string commandBase, params string[] args)
     {
         if (args.Length == 0)
             return "No parameter provided. Available options are: commands";
         
         return args[0] switch
         {
-            "commands" => ReloadCommands(),
+            "commands" => ReloadCommandsCollection(),
             _ => "Invalid parameter provided. Available options are: commands"
         };
     }
 
-    private static string ReloadCommands()
+    private string ReloadCommandsCollection()
     {
-        var elapsed = CommandProcessor.ReloadCommands();
+        var elapsed = ReloadCommands();
+        var returnString = "Commands successfully reloaded in:";
         
-        return $"Commands successfully reloaded in: {elapsed.Milliseconds}ms {elapsed.Microseconds}μs";
+        if (elapsed.Milliseconds > 0)
+            returnString += $" {elapsed.Milliseconds}ms";
+        
+        return $"{returnString} {elapsed.Microseconds}μs";
     }
 }

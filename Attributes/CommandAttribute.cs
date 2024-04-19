@@ -36,7 +36,7 @@ public class CommandAttribute : Attribute
         Aliases = aliases;
     }
 
-    private static string Method(Player player, string commandBase, params string[] args)
+    private string Method(Player player, string commandBase, params string[] args)
     {
         return "";
     }

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using BanchoNET.Commands;
 using BanchoNET.Models;
 using BanchoNET.Models.Dtos;
 using BanchoNET.Objects;
@@ -112,6 +113,7 @@ public class Program
 		
 		builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConnectionString));
 		builder.Services.AddSingleton<OsuVersionService>();
+		builder.Services.AddSingleton<CommandProcessor>();
 		builder.Services.AddDbContext<BanchoDbContext>(options =>
 		{
 			options.UseMySQL(mySqlConnectionString);

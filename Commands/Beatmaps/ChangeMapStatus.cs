@@ -4,7 +4,7 @@ using BanchoNET.Objects.Privileges;
 
 namespace BanchoNET.Commands;
 
-public class ChangeMapStatusCommand
+public partial class CommandProcessor
 {
     [Command("map",
         Privileges.Alumni | Privileges.Nominator | Privileges.Administrator | Privileges.Developer,

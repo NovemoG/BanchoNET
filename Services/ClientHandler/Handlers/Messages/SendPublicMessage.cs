@@ -63,7 +63,7 @@ public partial class BanchoHandler
 
 		if (txt.StartsWith(AppSettings.CommandPrefix))
 		{
-			var response = CommandProcessor.Execute(txt, player);
+			var response = _commands.Execute(txt, player);
 			
 			if (response != "")
 				channel.SendBotMessage(response);

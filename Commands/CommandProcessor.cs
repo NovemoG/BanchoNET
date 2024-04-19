@@ -2,19 +2,27 @@
 using System.Reflection;
 using BanchoNET.Attributes;
 using BanchoNET.Objects.Players;
+using BanchoNET.Services;
 using BanchoNET.Utils;
 
 namespace BanchoNET.Commands;
 
-public static class CommandProcessor
+public partial class CommandProcessor
 {
-    static CommandProcessor()
+    private readonly BanchoHandler _bancho;
+    
+    public CommandProcessor(BanchoHandler bancho)
     {
+        _bancho = bancho;
+        
         Console.WriteLine($"[CommandProcessor] Loaded commands in: {ReloadCommands()}");
     }
     
-    private static readonly int PrefixLength = AppSettings.CommandPrefix.Length;
-    public static readonly Dictionary<string, (MethodInfo Method, CommandAttribute Attribute)> CommandMethodsMap = new();
+    private readonly int _prefixLength = AppSettings.CommandPrefix.Length;
+    private readonly string _commandNotFound =
+        $"Command not found. Please use '{AppSettings.CommandPrefix}help' to see all available commands.";
+    
+    private readonly Dictionary<string, (MethodInfo Method, CommandAttribute Attribute)> _commandMethodsMap = new();
     
     //TODO support creating custom commands (idk what can be possible)
 
@@ -23,35 +31,35 @@ public static class CommandProcessor
     /// </summary>
     /// <param name="command">Unedited string containing whole command</param>
     /// <param name="player">Player instance that used this command</param>
-    public static string Execute(string command, Player player)
+    public string Execute(string command, Player player)
     {
-        command = command[PrefixLength..];
+        command = command[_prefixLength..];
         
         var commandValues = command.Split(" ");
+        
+        if (!_commandMethodsMap.TryGetValue(commandValues[0].ToLower(), out var cm))
+            return _commandNotFound;
 
-        if (!CommandMethodsMap.TryGetValue(commandValues[0].ToLower(), out var cm))
-        {
-            return !player.Privileges.HasAnyPrivilege(cm.Attribute.Privileges)
-                ? "" //if a player does not have privileges to use this command,
-                     //we don't want to show him that command even exists
-                : $"Command not found. Please use '{AppSettings.CommandPrefix}help' to see all available commands.";
-        }
+        //If a player doesn't have required privileges to execute this command,
+        //we don't want to expose the existence of this command to him
+        if (!player.Privileges.HasAnyPrivilege(cm.Attribute.Privileges))
+            return _commandNotFound;
 
-        var returnValue = cm.Method.Invoke(null, [player, commandValues[0], commandValues[1..]]);
+        var returnValue = cm.Method.Invoke(this, [player, commandValues[0], commandValues[1..]]);
         if (cm.Method.ReturnType != typeof(string) || returnValue == null)
             return "Some lazy ass developer forgot to make his command return a string value...";
         
         return (string)returnValue;
     }
 
-    public static TimeSpan ReloadCommands()
+    private TimeSpan ReloadCommands()
     {
         var stopwatch = new Stopwatch();
         stopwatch.Start();
         
-        CommandMethodsMap.Clear();
+        _commandMethodsMap.Clear();
         
-        const BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
+        const BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
 
         var methods = typeof(Program).Assembly
             .GetTypes()
@@ -62,13 +70,13 @@ public static class CommandProcessor
         {
             var commandAttribute = (CommandAttribute)method.GetCustomAttributes(typeof(CommandAttribute), false)[0];
             
-            CommandMethodsMap.Add(commandAttribute.Name.ToLower(), (method, commandAttribute));
+            _commandMethodsMap.Add(commandAttribute.Name.ToLower(), (method, commandAttribute));
             
             if (commandAttribute.Aliases == null)
                 continue;
             
             foreach (var alias in commandAttribute.Aliases)
-                CommandMethodsMap.Add(alias.ToLower(), (method, commandAttribute));
+                _commandMethodsMap.Add(alias.ToLower(), (method, commandAttribute));
         }
         
         stopwatch.Stop();

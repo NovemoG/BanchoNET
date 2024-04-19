@@ -52,8 +52,8 @@ public partial class BanchoHandler
 		{
 			var hashes = await _dbContext.ClientHashes.Include(ch => ch.Player)
 			                             .Where(ch => ((Privileges)ch.Player.Privileges & Privileges.Unrestricted) !=
-			                                          Privileges.Unrestricted &&
-			                                          ch.Uninstall == uninstall)
+			                                          Privileges.Unrestricted
+			                                          && ch.Uninstall == uninstall)
 			                             .ToListAsync();
 
 			bannedHashes = hashes.Count;
@@ -64,10 +64,10 @@ public partial class BanchoHandler
 			                   .ClientHashes.Include(ch => ch.Player)
 			                   .Where(ch =>
 				                   ((Privileges)ch.Player.Privileges & Privileges.Unrestricted) !=
-				                   Privileges.Unrestricted &&
-				                   ch.Uninstall == uninstall &&
-				                   ch.Adapters == adapters &&
-				                   ch.DiskSerial == diskSerial)
+				                   Privileges.Unrestricted
+				                   && ch.Uninstall == uninstall
+				                   && ch.Adapters == adapters
+				                   && ch.DiskSerial == diskSerial)
 			                   .ToListAsync();
 
 			bannedHashes = hashes.Count;
@@ -81,17 +81,17 @@ public partial class BanchoHandler
 		{
 			storedHash = await _dbContext.ClientHashes
                  .FirstOrDefaultAsync(ch =>
-                     ch.PlayerId == playerId &&
-                     ch.Uninstall == uninstall);
+                     ch.PlayerId == playerId
+                     && ch.Uninstall == uninstall);
 		}
 		else
 		{
 			storedHash = await _dbContext.ClientHashes
                  .FirstOrDefaultAsync(ch =>
-                     ch.PlayerId == playerId &&
-                     ch.Uninstall == uninstall &&
-                     ch.Adapters == adapters &&
-                     ch.DiskSerial == diskSerial);
+                     ch.PlayerId == playerId
+                     && ch.Uninstall == uninstall
+                     && ch.Adapters == adapters
+                     && ch.DiskSerial == diskSerial);
 		}
 
 		if (storedHash != null)

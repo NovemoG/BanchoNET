@@ -72,10 +72,10 @@ public partial class BanchoHandler
         GameMode mode)
     {
         var score = await _dbContext.Scores.FirstOrDefaultAsync(
-            s => s.PlayerId == player.Id &&
-                 s.BeatmapMD5 == beatmapMD5 &&
-                 s.Mode == (int)mode &&
-                 s.Status == (int)SubmissionStatus.Best);
+            s => s.PlayerId == player.Id
+                 && s.BeatmapMD5 == beatmapMD5
+                 && s.Mode == (int)mode
+                 && s.Status == (int)SubmissionStatus.Best);
 
         return score == null ? null : new Score(score);
     }
@@ -87,11 +87,11 @@ public partial class BanchoHandler
         Mods mods)
     {
         var response = await _dbContext.Scores.FirstOrDefaultAsync(
-            s => s.PlayerId == player.Id &&
-                 s.BeatmapMD5 == beatmapMD5 &&
-                 s.Mode == (int)mode &&
-                 s.Mods == (int)mods &&
-                 s.Status >= (int)SubmissionStatus.BestWithMods);
+            s => s.PlayerId == player.Id
+                 && s.BeatmapMD5 == beatmapMD5
+                 && s.Mode == (int)mode
+                 && s.Mods == (int)mods
+                 && s.Status >= (int)SubmissionStatus.BestWithMods);
 
         return response == null ? null : new Score(response);
     }
@@ -99,10 +99,10 @@ public partial class BanchoHandler
     public async Task<ScoreDto?> GetBestBeatmapScore(Beatmap beatmap, GameMode mode)
     {
         return await _dbContext.Scores.Include(s => s.Player)
-            .Where(s => s.BeatmapMD5 == beatmap.MD5 &&
-                        s.Mode == (int)mode &&
-                        s.Status == (int)SubmissionStatus.Best &&
-                        (s.Player.Privileges & 1) == 1)
+            .Where(s => s.BeatmapMD5 == beatmap.MD5
+                        && s.Mode == (int)mode
+                        && s.Status == (int)SubmissionStatus.Best
+                        && (s.Player.Privileges & 1) == 1)
             .OrderByDescending(s => OrderByPp(mode) ? s.PP : s.Score)
             .FirstOrDefaultAsync();
     }
