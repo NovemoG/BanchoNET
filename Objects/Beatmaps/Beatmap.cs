@@ -92,7 +92,7 @@ public class Beatmap
 		LastUpdate = DateTime.Parse(apiBeatmap.LastUpdate);
 		TotalLength = int.Parse(apiBeatmap.TotalLength);
 		MaxCombo = int.Parse(apiBeatmap.MaxCombo);
-		HasVideo = bool.Parse(apiBeatmap.Video);
+		HasVideo = apiBeatmap.Video == "1";
 		Bpm = float.Parse(apiBeatmap.Bpm);
 		Cs = float.Parse(apiBeatmap.DiffSize);
 		Ar = float.Parse(apiBeatmap.DiffApproach);

@@ -4,8 +4,7 @@ namespace BanchoNET.Commands;
 
 public class ReloadCommand
 {
-    [Command(
-        "reload",
+    [Command("reload",
         "reloads given collection/configuration. Syntax: reload <collection>",
         "\nAvailable options: commands",
         ["r"])]

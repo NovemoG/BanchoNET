@@ -9,7 +9,7 @@ public static class CommandProcessor
 {
     static CommandProcessor()
     {
-        Console.WriteLine($"[CommandProcessor] Reloaded commands in: {ReloadCommands()}");
+        Console.WriteLine($"[CommandProcessor] Loaded commands in: {ReloadCommands()}");
     }
     
     private static readonly int PrefixLength = AppSettings.CommandPrefix.Length;
@@ -28,11 +28,15 @@ public static class CommandProcessor
         command = command[PrefixLength..];
         
         var commandValues = command.Split(" ");
+
+        if (!CommandMethodsMap.TryGetValue(commandValues[0].ToLower(), out var method))
+            return $"Command not found. Please use '{AppSettings.CommandPrefix}help' to see all available commands.";
+
+        var returnValue = method.Invoke(null, [commandValues[1..]]);
+        if (method.ReturnType != typeof(string) || returnValue == null)
+            return "Some lazy ass developer forgot to make his command return a string value...";
         
-        if (CommandMethodsMap.TryGetValue(commandValues[0].ToLower(), out var method))
-            return (string)method.Invoke(null, [commandValues[1..]])!;
-        
-        return $"Command not found. Please use {AppSettings.CommandPrefix}help to see all available commands.";
+        return (string)returnValue;
     }
 
     public static TimeSpan ReloadCommands()

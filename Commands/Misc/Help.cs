@@ -4,7 +4,8 @@ namespace BanchoNET.Commands;
 
 public class HelpCommand
 {
-    [Command("help", "shows all available commands or displays detailed description of a given command")]
+    [Command("help",
+        "shows all available commands or displays detailed description of a given command")]
     private static string Help(params string[] args)
     {
         if (args.Length > 0 && CommandProcessor.CommandDescriptions.TryGetValue(args[0], out var description))

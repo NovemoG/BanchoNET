@@ -109,7 +109,6 @@ public class Program
 		builder.Services.AddEndpointsApiExplorer();
 		builder.Services.AddAuthorization();
 		builder.Services.AddControllers();
-		builder.Services.AddSwaggerGen();
 		
 		builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConnectionString));
 		builder.Services.AddSingleton<OsuVersionService>();
@@ -127,8 +126,6 @@ public class Program
 		app.UseHttpsRedirection();
 		app.UseAuthorization();
 		app.MapControllers();
-		app.UseSwagger();
-		app.UseSwaggerUI();
 
 		app.Use(async (context, next) =>
 		{

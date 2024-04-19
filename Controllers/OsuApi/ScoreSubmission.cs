@@ -24,7 +24,7 @@ public partial class OsuController
         [FromForm(Name = "iv")] string ivB64,
         [FromForm(Name = "c1")] string uniqueIds,
         [FromForm(Name = "st")] int scoreTime,
-        [FromForm(Name = "pass")] string pwdMD5,
+        [FromForm(Name = "pass")] string passwordMD5,
         [FromForm(Name = "osuver")] string osuVersion,
         [FromForm(Name = "s")] byte[] clientHashB64,
         [FromForm(Name = "score")] string scoreDataB64,
@@ -50,7 +50,7 @@ public partial class OsuController
         if (username[^1] == ' ')
             username = username[..^1];
 
-        var player = await _bancho.GetPlayerFromLogin(username, pwdMD5);
+        var player = await _bancho.GetPlayerFromLogin(username, passwordMD5);
         if (player == null)
             return Ok();
 
