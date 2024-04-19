@@ -1,4 +1,5 @@
-﻿using BanchoNET.Models.Dtos;
+﻿using BanchoNET.Models;
+using BanchoNET.Models.Dtos;
 using BanchoNET.Objects;
 using BanchoNET.Objects.Players;
 using BanchoNET.Objects.Privileges;
@@ -10,8 +11,28 @@ using StackExchange.Redis;
 
 namespace BanchoNET.Services;
 
-public partial class BanchoHandler
+public class PlayersRepository
 {
+	private readonly BanchoSession _session = BanchoSession.Instance;
+	private readonly BanchoDbContext _dbContext;
+	private readonly IDatabase _redis;
+
+	public PlayersRepository(BanchoDbContext dbContext, IConnectionMultiplexer redis)
+	{
+		_dbContext = dbContext;
+		_redis = redis.GetDatabase();
+	}
+	
+	public async Task<bool> EmailTaken(string email)
+	{
+		return await _dbContext.Players.AnyAsync(p => p.Email == email);
+	}
+	
+	public async Task<bool> UsernameTaken(string username)
+	{
+		return await _dbContext.Players.AnyAsync(p => p.SafeName == username.MakeSafe());
+	}
+
 	public async Task<Player?> GetPlayerFromLogin(string username, string pwdMD5)
 	{
 		var player = await GetPlayerOrOffline(username);

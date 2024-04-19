@@ -10,7 +10,7 @@ public static class PacketHandlerMap
 	
 	static PacketHandlerMap()
 	{
-		var handlerType = typeof(BanchoHandler);
+		var handlerType = typeof(PacketsHandler);
 		foreach (var packetName in Enum.GetValues<ClientPacketId>())
 		{
 			var method = handlerType.GetMethod(packetName.ToString(), BindingFlags.NonPublic | BindingFlags.Instance);

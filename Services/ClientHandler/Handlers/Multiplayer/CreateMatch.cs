@@ -5,7 +5,7 @@ using BanchoNET.Utils;
 
 namespace BanchoNET.Services;
 
-public partial class BanchoHandler
+public partial class PacketsHandler
 {
 	private async Task CreateMatch(Player player, BinaryReader br)
 	{
@@ -37,7 +37,7 @@ public partial class BanchoHandler
 			Instance = true
 		};
 
-		matchData.LobbyId = await GetMatchId();
+		matchData.LobbyId = await multiplayer.GetMatchId();
 		matchData.Chat = matchChannel; 
 		
 		_session.InsertLobby(matchData);

@@ -5,7 +5,7 @@ using BanchoNET.Utils;
 
 namespace BanchoNET.Services;
 
-public partial class BanchoHandler
+public partial class PacketsHandler
 {
 	private async Task MatchChangeSettings(Player player, BinaryReader br)
 	{
@@ -60,7 +60,7 @@ public partial class BanchoHandler
 			if (lobby.PreviousBeatmapId != matchData.BeatmapId)
 				lobby.Chat.SendBotMessage($"Selected: {matchData.MapEmbed()}");
 
-			var beatmap = await GetBeatmapWithMD5(matchData.BeatmapMD5, -1);
+			var beatmap = await beatmaps.GetBeatmapWithMD5(matchData.BeatmapMD5, -1);
 
 			if (beatmap != null)
 			{

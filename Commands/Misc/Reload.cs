@@ -1,6 +1,7 @@
 ﻿using BanchoNET.Attributes;
-using BanchoNET.Objects.Players;
+using BanchoNET.Models;
 using BanchoNET.Objects.Privileges;
+using BanchoNET.Utils;
 
 namespace BanchoNET.Commands;
 
@@ -8,10 +9,10 @@ public partial class CommandProcessor
 {
     [Command("reload",
         Privileges.Staff,
-        "reloads given collection/configuration. Syntax: reload <collection>",
+        "Reloads given collection/configuration. Syntax: reload <collection>",
         "\nAvailable options: commands",
         ["r"])]
-    private string Reload(Player player, string commandBase, params string[] args)
+    private string Reload(CommandParameters parameters, params string[] args)
     {
         if (args.Length == 0)
             return "No parameter provided. Available options are: commands";
@@ -23,9 +24,9 @@ public partial class CommandProcessor
         };
     }
 
-    private string ReloadCommandsCollection()
+    private static string ReloadCommandsCollection()
     {
-        var elapsed = ReloadCommands();
+        var elapsed = CommandHandlerMap.ReloadCommands();
         var returnString = "Commands successfully reloaded in:";
         
         if (elapsed.Milliseconds > 0)

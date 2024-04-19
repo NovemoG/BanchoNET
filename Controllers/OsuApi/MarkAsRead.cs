@@ -16,7 +16,7 @@ public partial class OsuController
 		if (string.IsNullOrEmpty(channel))
 			return Ok();
 		
-		if (await _bancho.GetPlayerFromLogin(username, passwordMD5) == null)
+		if (await players.GetPlayerFromLogin(username, passwordMD5) == null)
 			return Unauthorized("auth fail");
 		
 		//TODO

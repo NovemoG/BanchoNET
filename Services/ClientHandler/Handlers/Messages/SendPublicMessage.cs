@@ -1,12 +1,11 @@
-﻿using BanchoNET.Commands;
-using BanchoNET.Objects.Channels;
+﻿using BanchoNET.Objects.Channels;
 using BanchoNET.Objects.Players;
 using BanchoNET.Packets;
 using BanchoNET.Utils;
 
 namespace BanchoNET.Services;
 
-public partial class BanchoHandler
+public partial class PacketsHandler
 {
 	private Task SendPublicMessage(Player player, BinaryReader br)
 	{
@@ -63,7 +62,7 @@ public partial class BanchoHandler
 
 		if (txt.StartsWith(AppSettings.CommandPrefix))
 		{
-			var response = _commands.Execute(txt, player);
+			var response = commands.Execute(txt, player);
 			
 			if (response != "")
 				channel.SendBotMessage(response);

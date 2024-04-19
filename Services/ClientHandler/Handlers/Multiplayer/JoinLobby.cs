@@ -3,7 +3,7 @@ using BanchoNET.Packets;
 
 namespace BanchoNET.Services;
 
-public partial class BanchoHandler
+public partial class PacketsHandler
 {
 	private Task JoinLobby(Player player, BinaryReader br)
 	{

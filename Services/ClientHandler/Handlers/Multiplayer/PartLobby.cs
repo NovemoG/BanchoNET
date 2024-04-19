@@ -2,7 +2,7 @@
 
 namespace BanchoNET.Services;
 
-public partial class BanchoHandler
+public partial class PacketsHandler
 {
 	private Task PartLobby(Player player, BinaryReader br)
 	{

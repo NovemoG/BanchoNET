@@ -1,12 +1,20 @@
 ﻿using System.ComponentModel;
+using BanchoNET.Commands;
 using BanchoNET.Objects.Players;
 using BanchoNET.Packets;
 using BanchoNET.Utils;
 
 namespace BanchoNET.Services;
 
-public partial class BanchoHandler
+public partial class PacketsHandler(
+	PlayersRepository players,
+	MultiplayerRepository multiplayer,
+	BeatmapsRepository beatmaps,
+	CommandProcessor commands)
 {
+	private readonly BanchoSession _session = BanchoSession.Instance;
+	private readonly string[] _ignoredChannels = ["#highlight", "#userlog"];
+	
 	public async Task ReadPackets(Stream stream, Player player)
 	{
 		using var ms = new MemoryStream();

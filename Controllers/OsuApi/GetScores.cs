@@ -1,5 +1,4 @@
-﻿using System.Web;
-using BanchoNET.Models.Dtos;
+﻿using BanchoNET.Models.Dtos;
 using BanchoNET.Objects;
 using BanchoNET.Objects.Beatmaps;
 using BanchoNET.Objects.Players;
@@ -19,7 +18,7 @@ public partial class OsuController
 		[FromQuery(Name = "s")] string? fromEditorValue,
 		[FromQuery(Name = "v")] int leaderboardType,
 		[FromQuery(Name = "c")] string mapMD5,
-		[FromQuery(Name = "f")] string? mapFilename,
+		[FromQuery(Name = "f")] string mapFilename,
 		[FromQuery(Name = "m")] int modeValue,
 		[FromQuery(Name = "i")] int setId,
 		[FromQuery(Name = "mods")] int modsValue,
@@ -29,7 +28,7 @@ public partial class OsuController
 		var fromEditor = fromEditorValue == "1";
 		var aqnFilesFound = aqnFilesFoundValue == "1";
 		
-		var player = await _bancho.GetPlayerFromLogin(username, passwordMD5);
+		var player = await players.GetPlayerFromLogin(username, passwordMD5);
 		if (player == null)
 			return Unauthorized("auth fail");
 
@@ -69,10 +68,10 @@ public partial class OsuController
 			}
 		}
 		
-		var beatmap = await _bancho.GetBeatmap(beatmapMD5: mapMD5, setId: setId);
+		var beatmap = await beatmaps.GetBeatmap(beatmapMD5: mapMD5, setId: setId);
 		if (beatmap == null)
 		{
-			if (await _bancho.CheckIfMapExistsOnBanchoByFilename(mapFilename))
+			if (await beatmapHandler.CheckIfMapExistsOnBanchoByFilename(mapFilename))
 			{
 				_session.CacheNeedUpdateBeatmap(mapMD5);
 				return Ok("1|false");
@@ -122,21 +121,21 @@ public partial class OsuController
 		Player player)
 	{
 		var type = (LeaderboardType)leaderboardType;
-		var scores = await _bancho.GetBeatmapLeaderboard(beatmap.MD5, mode, type, mods, player);
+		var leaderboard = await scores.GetBeatmapLeaderboard(beatmap.MD5, mode, type, mods, player);
 		
 		Score? playerBest = null;
-		if (scores.Count > 0)
+		if (leaderboard.Count > 0)
 		{
 			var withMods = type is LeaderboardType.Mods or LeaderboardType.CountryMods or LeaderboardType.FriendsMods;
 			playerBest = withMods
-				? await _bancho.GetPlayerBestScoreWithModsOnMap(player, beatmap.MD5, mode, mods)
-				: await _bancho.GetPlayerBestScoreOnMap(player, beatmap.MD5, mode);
+				? await scores.GetPlayerBestScoreWithModsOnMap(player, beatmap.MD5, mode, mods)
+				: await scores.GetPlayerBestScoreOnMap(player, beatmap.MD5, mode);
 			
 			if (playerBest != null)
-				await _bancho.SetScoreLeaderboardPosition(beatmap, playerBest, withMods, mods);
+				await scores.SetScoreLeaderboardPosition(beatmap, playerBest, withMods, mods);
 		}
 		
-		return (scores, playerBest);
+		return (leaderboard, playerBest);
 	}
 
 	private static string FormatScore(ScoreDto dto, int position)

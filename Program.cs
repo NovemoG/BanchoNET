@@ -113,13 +113,19 @@ public class Program
 		
 		builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConnectionString));
 		builder.Services.AddSingleton<OsuVersionService>();
-		builder.Services.AddSingleton<CommandProcessor>();
 		builder.Services.AddDbContext<BanchoDbContext>(options =>
 		{
 			options.UseMySQL(mySqlConnectionString);
 		});
+		builder.Services.AddScoped<BeatmapsRepository>();
+		builder.Services.AddScoped<ClientRepository>();
+		builder.Services.AddScoped<MultiplayerRepository>();
+		builder.Services.AddScoped<PlayersRepository>();
+		builder.Services.AddScoped<ScoresRepository>();
 		builder.Services.AddScoped<GeolocService>();
-		builder.Services.AddScoped<BanchoHandler>();
+		builder.Services.AddScoped<BeatmapHandler>();
+		builder.Services.AddScoped<CommandProcessor>();
+		builder.Services.AddScoped<PacketsHandler>();
 		builder.Services.AddHttpClient();
 
 		var app = builder.Build();

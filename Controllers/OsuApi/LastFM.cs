@@ -13,7 +13,7 @@ public partial class OsuController
 		[FromQuery(Name = "us")]string username,
 		[FromQuery(Name = "ha")]string passwordMD5)
 	{
-		var player = await _bancho.GetPlayerFromLogin(username, passwordMD5);
+		var player = await players.GetPlayerFromLogin(username, passwordMD5);
 		if (player == null)
 			return Unauthorized("auth fail");
 		

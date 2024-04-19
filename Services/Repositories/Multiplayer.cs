@@ -1,12 +1,13 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using BanchoNET.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace BanchoNET.Services;
 
-public partial class BanchoHandler
+public class MultiplayerRepository(BanchoDbContext dbContext)
 {
 	public async Task<int> GetMatchId()
 	{
-		var match = await _dbContext.MultiplayerMatches.OrderByDescending(m => m.Id).FirstOrDefaultAsync();
+		var match = await dbContext.MultiplayerMatches.OrderByDescending(m => m.Id).FirstOrDefaultAsync();
 		return match?.Id + 1 ?? 1;
 	}
 }

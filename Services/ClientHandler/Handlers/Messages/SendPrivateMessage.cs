@@ -4,7 +4,7 @@ using BanchoNET.Utils;
 
 namespace BanchoNET.Services;
 
-public partial class BanchoHandler
+public partial class PacketsHandler
 {
 	private async Task SendPrivateMessage(Player player, BinaryReader br)
 	{
@@ -15,7 +15,7 @@ public partial class BanchoHandler
 		var txt = message.Content.Trim();
 		if (txt == string.Empty) return;
 
-		var target = await GetPlayerOrOffline(message.Destination);
+		var target = await players.GetPlayerOrOffline(message.Destination);
 		if (target == null) return;
 		if (player.BlockedByPlayer(target.Id))
 		{

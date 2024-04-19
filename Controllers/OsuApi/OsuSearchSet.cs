@@ -12,10 +12,10 @@ public partial class OsuController
         [FromQuery(Name = "s")] int mapSetId,
         [FromQuery(Name = "b")] int mapId)
     {
-        if (await _bancho.GetPlayerFromLogin(username, passwordMD5) == null)
+        if (await players.GetPlayerFromLogin(username, passwordMD5) == null)
             return Unauthorized("auth fail");
 
-        var beatmap = await _bancho.GetBeatmap(mapId, mapSetId);
+        var beatmap = await beatmaps.GetBeatmap(mapId, mapSetId);
 
         if (beatmap == null)
             return Ok();

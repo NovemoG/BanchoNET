@@ -5,7 +5,7 @@ using BanchoNET.Utils;
 
 namespace BanchoNET.Services;
 
-public partial class BanchoHandler
+public partial class PacketsHandler
 {
 	private Task MatchComplete(Player player, BinaryReader br)
 	{

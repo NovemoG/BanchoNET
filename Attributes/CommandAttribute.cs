@@ -1,5 +1,6 @@
-﻿using BanchoNET.Objects.Players;
+﻿using BanchoNET.Models;
 using BanchoNET.Objects.Privileges;
+using BanchoNET.Utils;
 
 namespace BanchoNET.Attributes;
 
@@ -15,7 +16,7 @@ public class CommandAttribute : Attribute
     /// <summary>
     /// Registers a new command with the given name, description, and aliases. Be aware
     /// that name and aliases will be registered as lowercase no matter what. Methods
-    /// using this attribute must have structure like this: <see cref="Method(Player, string, string[])"/>.
+    /// using this attribute must have structure like this: <see cref="Method(CommandParameters, string[])"/>.
     /// </summary>
     /// <param name="name">Name by which command will be called</param>
     /// <param name="privileges">Privileges needed to use that command</param>
@@ -32,11 +33,14 @@ public class CommandAttribute : Attribute
         Name = name;
         Privileges = privileges;
         BriefDescription = briefDescription;
-        DetailedDescription = detailedDescription;
+        
+        //Fix for multiplayer detailed description (it looked kinda awkward without prefix)
+        DetailedDescription = detailedDescription.Replace("mp", $"{AppSettings.CommandPrefix}mp");
+        
         Aliases = aliases;
     }
 
-    private string Method(Player player, string commandBase, params string[] args)
+    private string Method(CommandParameters parameters, params string[] args)
     {
         return "";
     }

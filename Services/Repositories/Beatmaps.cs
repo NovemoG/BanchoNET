@@ -1,41 +1,17 @@
-﻿using BanchoNET.Models.Beatmaps;
+﻿using BanchoNET.Models;
 using BanchoNET.Models.Dtos;
 using BanchoNET.Objects.Beatmaps;
-using BanchoNET.Utils;
 using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json;
 
 namespace BanchoNET.Services;
 
-public partial class BanchoHandler
+public class BeatmapsRepository(BanchoDbContext dbContext, BeatmapHandler beatmapHandler)
 {
-	public async Task<bool> CheckIfMapExistsOnBanchoByFilename(string filename)
-	{
-		var response = await _httpClient.GetAsync($"https://osu.ppy.sh/web/maps/{filename}");
-		return response.Content.Headers.ContentLength > 0;
-	}
-	
-	public async Task<bool> EnsureLocalBeatmapFile(int beatmapId, string beatmapMD5)
-	{
-		var beatmapPath = Storage.GetBeatmapPath(beatmapId);
-
-		if (!File.Exists(beatmapPath) ||
-		    !beatmapPath.CheckLocalBeatmapMD5(beatmapMD5))
-		{
-			var response = await _httpClient.GetAsync($"https://old.ppy.sh/osu/{beatmapId}");
-			if (response.Content.Headers.ContentLength == 0)
-				return false;
-
-			await using var fileStream = new FileStream(beatmapPath, FileMode.Create, FileAccess.ReadWrite);
-			await response.Content.CopyToAsync(fileStream);
-		}
-		
-		return true;
-	}
+	private readonly BanchoSession _session = BanchoSession.Instance;
 
 	public async Task UpdateBeatmapStats(Beatmap beatmap)
 	{
-		await _dbContext.Beatmaps.Where(b => b.MapId == beatmap.MapId)
+		await dbContext.Beatmaps.Where(b => b.MapId == beatmap.MapId)
 		                .ExecuteUpdateAsync(p => 
 			                p.SetProperty(b => b.Plays, beatmap.Plays)
 			                 .SetProperty(b => b.Passes, beatmap.Passes));
@@ -52,7 +28,7 @@ public partial class BanchoHandler
 		return null;
 	}
 
-	private async Task<Beatmap?> GetBeatmapWithMD5(string beatmapMD5, int setId)
+	public async Task<Beatmap?> GetBeatmapWithMD5(string beatmapMD5, int setId)
 	{
 		var beatmap = _session.GetBeatmap(beatmapMD5: beatmapMD5);
 		if (beatmap != null) return beatmap;
@@ -61,7 +37,7 @@ public partial class BanchoHandler
 			
 		if (setId <= 0)
 		{
-			var map = await _dbContext.Beatmaps.FirstOrDefaultAsync(b => b.MD5 == beatmapMD5);
+			var map = await dbContext.Beatmaps.FirstOrDefaultAsync(b => b.MD5 == beatmapMD5);
 
 			if (map != null)
 			{
@@ -70,7 +46,7 @@ public partial class BanchoHandler
 			}
 			else
 			{
-				var apiMap = await GetBeatmapFromApi(beatmapMD5: beatmapMD5);
+				var apiMap = await beatmapHandler.GetBeatmapFromApi(beatmapMD5: beatmapMD5);
 				if (apiMap == null) return null;
 
 				setId = apiMap.SetId;
@@ -85,19 +61,19 @@ public partial class BanchoHandler
 			: beatmap;
 	}
 
-	private async Task<Beatmap?> GetBeatmapWithId(int mapId)
+	public async Task<Beatmap?> GetBeatmapWithId(int mapId)
 	{
 		var beatmap = _session.GetBeatmap(mapId: mapId);
 		if (beatmap != null) return beatmap;
 		
 		int setId;
-		var map = await _dbContext.Beatmaps.FirstOrDefaultAsync(b => b.MapId == mapId);
+		var map = await dbContext.Beatmaps.FirstOrDefaultAsync(b => b.MapId == mapId);
 			
 		if (map != null)
 			setId = map.SetId;
 		else
 		{
-			var apiMap = await GetBeatmapFromApi(mapId: mapId);
+			var apiMap = await beatmapHandler.GetBeatmapFromApi(mapId: mapId);
 			if (apiMap == null) return null;
 
 			setId = apiMap.SetId;
@@ -110,20 +86,20 @@ public partial class BanchoHandler
 			: beatmap;
 	}
 
-	private async Task<BeatmapSet?> GetBeatmapSet(int setId, int mapId = 0)
+	public async Task<BeatmapSet?> GetBeatmapSet(int setId, int mapId = 0)
 	{
 		var didApiRequest = false;
 		var beatmapSet = _session.GetBeatmapSet(setId);
 		
 		if (beatmapSet == null)
 		{
-			var dbBeatmaps = await _dbContext.Beatmaps
+			var dbBeatmaps = await dbContext.Beatmaps
 			                                 .Where(b => b.SetId == setId)
 			                                 .ToListAsync();
 
 			if (dbBeatmaps.Count == 0)
 			{
-				beatmapSet = await GetBeatmapSetFromApi(setId);
+				beatmapSet = await beatmapHandler.GetBeatmapSetFromApi(setId);
 				if (beatmapSet == null) return null;
 
 				didApiRequest = true;
@@ -141,82 +117,33 @@ public partial class BanchoHandler
 		return beatmapSet;
 	}
 
-	private async Task UpdateBeatmapSet(int setId)
+	public async Task UpdateBeatmapSet(int setId)
 	{
-		var beatmapSet = await GetBeatmapSetFromApi(setId);
+		var beatmapSet = await beatmapHandler.GetBeatmapSetFromApi(setId);
 		if (beatmapSet == null) return;
 		
 		_session.CacheBeatmapSet(beatmapSet);
 		await InsertSetIntoDatabase(beatmapSet);
 	}
-	
-	private async Task<Beatmap?> GetBeatmapFromApi(string beatmapMD5 = "", int mapId = -1)
-	{
-		var osuApiKeyProvided = !string.IsNullOrEmpty(AppSettings.OsuApiKey);
-		
-		var url = osuApiKeyProvided ?
-			$"https://osu.ppy.sh/api/get_beatmaps?k={AppSettings.OsuApiKey}" :
-			"https://osu.direct/api/get_beatmaps";
-		
-		var paramsSign = osuApiKeyProvided ? "&" : "?";
 
-		if (!string.IsNullOrEmpty(beatmapMD5))
-			url += $"{paramsSign}h={beatmapMD5}";
-		else if (mapId > -1)
-			url += $"{paramsSign}b={mapId}";
-		else
-			return null;
-
-		var response = await _httpClient.GetAsync(url);
-		var content = await response.Content.ReadAsStringAsync();
-		
-		if (response.IsSuccessStatusCode && content.IsValidResponse())
-			return osuApiKeyProvided
-				? new Beatmap(JsonConvert.DeserializeObject<List<OsuApiBeatmap>>(content)![0])
-				: new Beatmap(JsonConvert.DeserializeObject<List<ApiBeatmap>>(content)![0]);
-
-		return null;
-	}
-
-	private async Task<BeatmapSet?> GetBeatmapSetFromApi(int setId)
-	{
-		if (setId <= 0) return null;
-		
-		var osuApiKeyProvided = !string.IsNullOrEmpty(AppSettings.OsuApiKey);
-		
-		var url = osuApiKeyProvided ?
-			$"https://osu.ppy.sh/api/get_beatmaps?k={AppSettings.OsuApiKey}&s={setId}" :
-			$"https://osu.direct/api/get_beatmaps?s={setId}";
-		
-		var response = await _httpClient.GetAsync(url);
-		var content = await response.Content.ReadAsStringAsync();
-
-		if (response.IsSuccessStatusCode && content.IsValidResponse())
-			return osuApiKeyProvided
-				? new BeatmapSet(JsonConvert.DeserializeObject<List<OsuApiBeatmap>>(content)!)
-				: new BeatmapSet(JsonConvert.DeserializeObject<List<ApiBeatmap>>(content)!);
-
-		return null;
-	}
-
-	private async Task InsertSetIntoDatabase(BeatmapSet set)
+	public async Task InsertSetIntoDatabase(BeatmapSet set)
 	{
 		foreach (var beatmap in set.Beatmaps)
 		{
-			var dbBeatmap = await _dbContext.Beatmaps.FirstOrDefaultAsync(b => b.MapId == beatmap.MapId);
+			var dbBeatmap = await dbContext.Beatmaps.FirstOrDefaultAsync(b => b.MapId == beatmap.MapId);
 
 			if (dbBeatmap != null)
 			{
 				dbBeatmap = UpdateBeatmapDto(beatmap, dbBeatmap);
-				_dbContext.Update(dbBeatmap);
+				dbContext.Update(dbBeatmap);
 			}
 			else
 			{
-				await _dbContext.Beatmaps.AddAsync(CreateBeatmapDto(beatmap));
+				await dbContext.Beatmaps.AddAsync(CreateBeatmapDto(beatmap));
 			}
 		}
 		
-		await _dbContext.SaveChangesAsync();
+		await dbContext.SaveChangesAsync();
 	}
 
 	private static BeatmapDto CreateBeatmapDto(Beatmap beatmap)

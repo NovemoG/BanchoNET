@@ -6,21 +6,16 @@ using Microsoft.AspNetCore.Mvc;
 namespace BanchoNET.Controllers.Cho;
 
 [ApiController]
-public partial class ChoController : ControllerBase
+public partial class ChoController(
+	GeolocService geoloc,
+	OsuVersionService version,
+	PlayersRepository players,
+	ClientRepository client,
+	PacketsHandler packets)
+	: ControllerBase
 {
-	private readonly BanchoHandler _bancho;
-	private readonly BanchoSession _session;
-	private readonly GeolocService _geoloc;
-	private readonly OsuVersionService _version;
+	private readonly BanchoSession _session = BanchoSession.Instance;
 
-	public ChoController(BanchoHandler bancho, GeolocService geoloc, OsuVersionService version)
-	{
-		_bancho = bancho;
-		_session = BanchoSession.Instance;
-		_geoloc = geoloc;
-		_version = version;
-	}
-	
 	[HttpPost("/")]
 	public async Task<IActionResult> BanchoHandler()
 	{
@@ -37,7 +32,7 @@ public partial class ChoController : ControllerBase
 			return restartData.GetContentResult();
 		}
 		
-		await _bancho.ReadPackets(Request.Body, player);
+		await packets.ReadPackets(Request.Body, player);
 
 		return Responses.BytesContentResult(player.Dequeue());
 	}

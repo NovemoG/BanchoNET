@@ -17,7 +17,7 @@ public partial class OsuController
         [FromQuery(Name = "m")] int mode,
         [FromQuery(Name = "p")] int pageNumber)
     {
-        if (await _bancho.GetPlayerFromLogin(username, passwordMD5) == null)
+        if (await players.GetPlayerFromLogin(username, passwordMD5) == null)
             return Unauthorized("auth fail");
         
         var parameters = HttpUtility.ParseQueryString(string.Empty); //TODO might change if direct suddenly stops working
@@ -47,7 +47,7 @@ public partial class OsuController
             
             Console.WriteLine($"osu!direct request uri: {uriBuilder.Uri}");
 
-            var response = await _httpClient.GetAsync(uriBuilder.Uri);
+            var response = await httpClient.GetAsync(uriBuilder.Uri);
 
             responseJson = await response.Content.ReadAsStringAsync();
             statusCode = (int)response.StatusCode;
