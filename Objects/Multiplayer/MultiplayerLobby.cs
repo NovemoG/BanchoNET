@@ -1,5 +1,5 @@
 ﻿using BanchoNET.Objects.Channels;
-using Timer = System.Timers.Timer;
+using BanchoNET.Utils;
 
 namespace BanchoNET.Objects.Multiplayer;
 
@@ -27,6 +27,7 @@ public class MultiplayerLobby
 	public required string Password { get; set; }
 	public GameMode Mode { get; set; }
 	public int HostId { get; set; }
+	public int CreatorId { get; set; } //TODO
 	public List<int> Refs { get; set; } = []; //TODO full ref support
 	public Mods Mods { get; set; }
 	public bool Freemods { get; set; }
@@ -42,6 +43,5 @@ public class MultiplayerLobby
 	public Channel Chat { get; set; }
 	public MultiplayerSlot[] Slots { get; set; }
 	public bool IsLocked { get; set; } //TODO
-	public Timer? StartTimer { get; set; }
-	//TODO alerts that signalize how much time is left until the match starts
+	public LobbyTimer? Timer { get; set; }
 }

@@ -19,7 +19,7 @@ public partial class CommandProcessor
         return Task.FromResult(args[0] switch
         {
             "commands" => ReloadCommandsCollection(),
-            _ => $"Invalid parameter provided. Available options: commands."
+            _ => "Invalid parameter provided. Available options: commands."
         });
     }
 

@@ -11,10 +11,6 @@ public static class MultiplayerExtensions
 {
 	private static readonly BanchoSession Session = BanchoSession.Instance;
 	
-	public static readonly int[] StartTimerAlerts = [
-		60, 30, 15, 10, 5, 4, 3, 2, 1
-	];
-	
 	public static string MPLinkEmbed(this MultiplayerLobby lobby)
 	{
 		return $"[https://osu.{AppSettings.Domain}/matches/{lobby.LobbyId} Multiplayer Link]";
@@ -124,6 +120,13 @@ public static class MultiplayerExtensions
 				return i;
 
 		return -1;
+	}
+
+	public static void ReadyAllPlayers(this MultiplayerLobby lobby)
+	{
+		foreach (var slot in lobby.Slots)
+			if (slot.Status == SlotStatus.NotReady)
+				slot.Status = SlotStatus.Ready;
 	}
 
 	public static void Start(this MultiplayerLobby lobby)

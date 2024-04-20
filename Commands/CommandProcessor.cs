@@ -1,5 +1,6 @@
 ﻿using BanchoNET.Objects.Channels;
 using BanchoNET.Objects.Players;
+using BanchoNET.Services;
 using BanchoNET.Services.Repositories;
 using BanchoNET.Utils;
 using static BanchoNET.Utils.CommandHandlerMap;
@@ -16,6 +17,8 @@ public partial class CommandProcessor(
     private readonly int _prefixLength = AppSettings.CommandPrefix.Length;
     private readonly string _commandNotFound =
         $"Command not found. Please use '{AppSettings.CommandPrefix}help' to see all available commands.";
+
+    private readonly BanchoSession _session = BanchoSession.Instance;
 
     private Player _playerCtx = null!;
     private Channel? _channelCtx;

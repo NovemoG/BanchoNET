@@ -153,7 +153,7 @@ public static class PlayerExtensions
 		{
 			Console.WriteLine($"[PlayerExtensions] Match \"{lobby.Name}\" is empty, removing.");
 
-			lobby.StartTimer?.Stop();
+			lobby.Timer?.Stop();
 
 			Session.RemoveLobby(lobby);
 

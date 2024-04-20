@@ -7,6 +7,8 @@ namespace BanchoNET.Commands;
 
 public partial class CommandProcessor
 {
+    private MultiplayerLobby _lobby;
+    
     [Command("mp",
         Privileges.Verified,
         "A set of commands to manage your multiplayer lobby. List of commands available under 'mp help' or 'help mp' command.",
@@ -56,6 +58,8 @@ public partial class CommandProcessor
         if (_playerCtx.Lobby != null && _playerCtx.Lobby.Chat != _channelCtx)
             return "";
 
+        _lobby = _playerCtx.Lobby!;
+
         return args[0] switch
         {
             "help" => await Help("mp"),
@@ -76,7 +80,7 @@ public partial class CommandProcessor
             "mods" => ChangeMods(args[1..]),
             "start" => StartMatch(args[1..]),
             "timer" => StartTimer(args[1..]),
-            "aborttimer" => AbortTimer(args[1..]),
+            "aborttimer" => AbortTimer(),
             "kick" => KickPlayer(args[1..]),
             "ban" => BanPlayer(args[1..]),
             "addref" => AddReferee(args[1..]),
@@ -118,204 +122,172 @@ public partial class CommandProcessor
         
         MultiplayerExtensions.CreateLobby(lobby, _playerCtx, await multiplayer.GetMatchId());
         
-        if (_playerCtx.Lobby == null)
-            return "";
-        
         return "";
     }
     
     private string InviteToLobby(params string[] args)
     {
-        if (_playerCtx.Lobby == null)
-            return "";
-
         if (args.Length == 0)
             return $"No username provided. Use '{_prefix}mp invite <username>'.";
+
+        var target = _session.GetPlayer(username: args[0]);
+        if (target == null)
+            return $"{args[0]} is either offline or you misspelled the username.";
         
-        return "";
+        MultiplayerExtensions.InviteToLobby(_playerCtx, target);
+        
+        return $"Invite sent to {target.Username}.";
     }
     
     private string ChangeLobbyName(params string[] args)
     {
-        if (_playerCtx.Lobby == null)
-            return "";
-        
         return "";
     }
     
     private string ChangeLobbyPassword(params string[] args)
     {
-        if (_playerCtx.Lobby == null)
-            return "";
-        
         return "";
     }
     
     private string LockLobby(params string[] args)
     {
-        if (_playerCtx.Lobby == null)
-            return "";
-        
         return "";
     }
     
     private string UnlockLobby(params string[] args)
     {
-        if (_playerCtx.Lobby == null)
-            return "";
-        
         return "";
     }
     
     private string SetLobbySize(params string[] args)
     {
-        if (_playerCtx.Lobby == null)
-            return "";
-        
         return "";
     }
     
     private string SetLobbyProperties(params string[] args)
     {
-        if (_playerCtx.Lobby == null)
-            return "";
-        
         return "";
     }
     
     private string MovePlayer(params string[] args)
     {
-        if (_playerCtx.Lobby == null)
-            return "";
-        
         return "";
     }
     
     private string TransferHost(params string[] args)
     {
-        if (_playerCtx.Lobby == null)
-            return "";
-        
         return "";
     }
     
     private string ClearHost(params string[] args)
     {
-        if (_playerCtx.Lobby == null)
-            return "";
-        
         return "";
     }
     
     private string AbortMatch(params string[] args)
     {
-        if (_playerCtx.Lobby == null)
-            return "";
-        
         return "";
     }
     
     private string MovePlayerToTeam(params string[] args)
     {
-        if (_playerCtx.Lobby == null)
-            return "";
-        
         return "";
     }
     
     private string ChangeBeatmap(params string[] args)
     {
-        if (_playerCtx.Lobby == null)
-            return "";
-        
         return "";
     }
     
     private string ChangeMods(params string[] args)
     {
-        if (_playerCtx.Lobby == null)
-            return "";
-        
         return "";
     }
     
     private string StartMatch(params string[] args)
     {
-        if (_playerCtx.Lobby == null)
+        if (!_lobby.Refs.Contains(_playerCtx.Id))
             return "";
+        
+        if (_lobby.BeatmapId < 0)
+            return "No beatmap is selected.";
+        
+        if (_lobby.InProgress)
+            return "Match is already in progress.";
+        
+        var seconds = args.Length == 0 ? 30 : uint.Parse(args[0]);
+        
+        //TODO should this overwrite current timer or display this message?
+        if (_lobby.Timer != null)
+            return "Timer is already running.";
+        
+        _lobby.Timer = new LobbyTimer(_lobby, seconds, true);
+        _lobby.ReadyAllPlayers();
         
         return "";
     }
     
     private string StartTimer(params string[] args)
     {
-        if (_playerCtx.Lobby == null)
+        if (!_lobby.Refs.Contains(_playerCtx.Id))
             return "";
+        
+        var seconds = args.Length == 0 ? 30 : uint.Parse(args[0]);
+        
+        //TODO should this overwrite current timer or display this message?
+        if (_lobby.Timer != null)
+            return "Timer is already running.";
+        
+        _lobby.Timer = new LobbyTimer(_lobby, seconds);
         
         return "";
     }
     
-    private string AbortTimer(params string[] args)
+    private string AbortTimer()
     {
-        if (_playerCtx.Lobby == null)
+        if (!_lobby.Refs.Contains(_playerCtx.Id))
             return "";
         
-        return "";
+        if (_lobby.Timer == null)
+            return "No timer is running.";
+        
+        _lobby.Timer.Stop();
+        
+        return "Aborted current timer.";
     }
     
     private string KickPlayer(params string[] args)
     {
-        if (_playerCtx.Lobby == null)
-            return "";
-        
         return "";
     }
     
     private string BanPlayer(params string[] args)
     {
-        if (_playerCtx.Lobby == null)
-            return "";
-        
         return "";
     }
     
     private string AddReferee(params string[] args)
     {
-        if (_playerCtx.Lobby == null)
-            return "";
-        
         return "";
     }
     
     private string RemoveReferee(params string[] args)
     {
-        if (_playerCtx.Lobby == null)
-            return "";
-        
         return "";
     }
     
     private string ClearReferees(params string[] args)
     {
-        if (_playerCtx.Lobby == null)
-            return "";
-        
         return "";
     }
     
     private string ListReferees(params string[] args)
     {
-        if (_playerCtx.Lobby == null)
-            return "";
-        
         return "";
     }
     
     private string CloseLobby(params string[] args)
     {
-        if (_playerCtx.Lobby == null)
-            return "";
-        
         return "";
     }
 }

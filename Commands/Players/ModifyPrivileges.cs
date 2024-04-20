@@ -6,6 +6,8 @@ namespace BanchoNET.Commands;
 
 public partial class CommandProcessor
 {
+    private readonly string[] _validPrivileges = ["nominator", "moderator", "administrator", "developer"];
+    
     [Command("addpriv",
         Privileges.Administrator | Privileges.Developer,
         "Adds given privilege to a player with given username. Syntax: addpriv <username> <privilege>",
@@ -19,13 +21,13 @@ public partial class CommandProcessor
             return $"No parameter(s) provided. Syntax: {_prefix}addpriv <username> <privilege>.";
         
         if (args.Length == 1)
-            return "No privilege provided. Available privileges: nominator, moderator, administrator, developer.";
+            return $"No privilege provided. Available privileges: {string.Join(", ", _validPrivileges)}.";
 
         var username = args[0];
         var priv = args[1].ToLower();
         
         if (!Enum.TryParse(priv.FirstCharToUpper(), out Privileges privilege))
-            return "Invalid privilege provided. Available privileges: nominator, moderator, administrator, developer.";
+            return $"Invalid privilege provided. Available privileges: {string.Join(", ", _validPrivileges)}.";
         
         if (_playerCtx.Privileges.GetHighestPrivilege() < privilege)
             return "You can't add a privilege that is higher in rank than yours.";
@@ -55,7 +57,7 @@ public partial class CommandProcessor
             return $"No parameter(s) provided. Use '{_prefix}help rmpriv' for more information.";
         
         if (args.Length == 1)
-            return "No privilege provided. Available privileges: nominator, moderator, administrator, developer.";
+            return $"No privilege provided. Available privileges: {string.Join(", ", _validPrivileges)}.";
         
         var username = args[0];
         var priv = args[1].ToLower();
@@ -64,7 +66,7 @@ public partial class CommandProcessor
             return "You can't remove your own privileges.";
         
         if (!Enum.TryParse(priv.FirstCharToUpper(), out Privileges privilege))
-            return $"Invalid privilege provided. Use '{_prefix}help addpriv' for more information.";
+            return $"Invalid privilege provided. Available privileges: {string.Join(", ", _validPrivileges)}.";
         
         if (_playerCtx.Privileges.GetHighestPrivilege() <= privilege)
             return "You can't remove a privilege that is higher or equal in rank.";

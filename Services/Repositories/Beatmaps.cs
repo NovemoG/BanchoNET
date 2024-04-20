@@ -9,6 +9,10 @@ public class BeatmapsRepository(BanchoDbContext dbContext, BeatmapHandler beatma
 {
 	private readonly BanchoSession _session = BanchoSession.Instance;
 
+	/// <summary>
+	/// Updates Playcount and Passcount of a beatmap in database
+	/// </summary>
+	/// <param name="beatmap"></param>
 	public async Task UpdateBeatmapStats(Beatmap beatmap)
 	{
 		await dbContext.Beatmaps.Where(b => b.MapId == beatmap.MapId)
@@ -17,6 +21,13 @@ public class BeatmapsRepository(BanchoDbContext dbContext, BeatmapHandler beatma
 			                 .SetProperty(b => b.Passes, beatmap.Passes));
 	}
 
+	/// <summary>
+	/// Changes beatmap status in cache and database
+	/// </summary>
+	/// <param name="targetStatus">Target status to which the current one will be changed</param>
+	/// <param name="beatmapId">Id of a beatmap to update</param>
+	/// <param name="setId">Id of a set to update</param>
+	/// <returns>Number of maps that were affected</returns>
 	public async Task<int> ChangeBeatmapStatus(
 		BeatmapStatus targetStatus,
 		int beatmapId = -1,
