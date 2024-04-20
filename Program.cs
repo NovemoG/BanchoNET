@@ -1,10 +1,13 @@
 using System.Diagnostics;
+using BanchoNET.Commands;
 using BanchoNET.Models;
 using BanchoNET.Models.Dtos;
 using BanchoNET.Objects;
 using BanchoNET.Objects.Players;
 using BanchoNET.Objects.Privileges;
 using BanchoNET.Services;
+using BanchoNET.Services.ClientPacketsHandler;
+using BanchoNET.Services.Repositories;
 using BanchoNET.Utils;
 using dotenv.net;
 using Hangfire;
@@ -24,7 +27,6 @@ public class Program
 		initStopwatch.Start();
 		
 		var builder = WebApplication.CreateBuilder(args);
-		var messages = builder.Configuration.GetSection("messages");
 		
 		DotEnv.Load(); // Load .env when non dockerized
 
@@ -110,7 +112,6 @@ public class Program
 		builder.Services.AddEndpointsApiExplorer();
 		builder.Services.AddAuthorization();
 		builder.Services.AddControllers();
-		builder.Services.AddSwaggerGen();
 		
 		builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConnectionString));
 		builder.Services.AddSingleton<OsuVersionService>();
@@ -118,8 +119,15 @@ public class Program
 		{
 			options.UseMySQL(mySqlConnectionString);
 		});
+		builder.Services.AddScoped<BeatmapsRepository>();
+		builder.Services.AddScoped<ClientRepository>();
+		builder.Services.AddScoped<MultiplayerRepository>();
+		builder.Services.AddScoped<PlayersRepository>();
+		builder.Services.AddScoped<ScoresRepository>();
 		builder.Services.AddScoped<GeolocService>();
-		builder.Services.AddScoped<BanchoHandler>();
+		builder.Services.AddScoped<BeatmapHandler>();
+		builder.Services.AddScoped<CommandProcessor>();
+		builder.Services.AddScoped<ClientPacketsHandler>();
 		builder.Services.AddHttpClient();
 
 		var app = builder.Build();
@@ -128,8 +136,6 @@ public class Program
 		app.UseHttpsRedirection();
 		app.UseAuthorization();
 		app.MapControllers();
-		app.UseSwagger();
-		app.UseSwaggerUI();
 
 		app.Use(async (context, next) =>
 		{
@@ -151,7 +157,7 @@ public class Program
 		{
 			//TODO: Logging system || probably to change
 			Console.ForegroundColor = ConsoleColor.Yellow;
-			Console.WriteLine("OSU_API_KEY is not set. Some features will be disabled.");
+			Console.WriteLine("[Init] OSU_API_KEY is not set. Some features will be disabled.");
 			Console.ForegroundColor = ConsoleColor.White;
 		}
 		
@@ -226,20 +232,23 @@ public class Program
 		stopwatch.Start();
 		
 		redis.GetServer($"{redisHost}:{redisPort}").FlushDatabase();
-		
+
 		for (byte i = 0; i <= (byte)GameMode.AutopilotStd; i++)
 		{
 			if (i == 7) continue;
 
 			var mode = i;
 			var playersPpModeValues = db.Stats.Include(s => s.Player)
-			                            .Where(s => s.Mode == mode &&
-			                                        (s.Player.Privileges & 1) == 1)
-			                            .Select(s => new SortedSetEntry(s.PlayerId, s.PP))
-			                            .ToArray();
+				.Where(s => s.Mode == mode &&
+				            (s.Player.Privileges & 1) == 1)
+				.Select(s => new { s.PlayerId, s.Player.Country, s.PP })
+				.ToArray();
 
-			redisDb.SortedSetAdd($"bancho:leaderboard:{mode}", playersPpModeValues);
-			//TODO load country leaderboards
+			foreach (var values in playersPpModeValues)
+			{
+				redisDb.SortedSetAdd($"bancho:leaderboard:{mode}", values.PlayerId, values.PP);
+				redisDb.SortedSetAdd($"bancho:leaderboard:{mode}:{values.Country}", values.PlayerId, values.PP);
+			}
 		}
 		
 		stopwatch.Stop();

@@ -12,7 +12,7 @@ public partial class OsuController
         if (noVideo)
             mapSetId = mapSetId[..^1];
 
-        var redirectUrl = $"{AppSettings.OsuDirectDownloadEndpoint}/{mapSetId}?n={(!noVideo ? 1 : 0)}";
+        var redirectUrl = $"{AppSettings.OsuDirectDownloadEndpoint}/{mapSetId}?n={(noVideo ? 0 : 1)}";
         return RedirectPermanent(redirectUrl);
     }
 }

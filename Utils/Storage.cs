@@ -1,6 +1,4 @@
-﻿using System.Reflection;
-
-namespace BanchoNET.Utils;
+﻿namespace BanchoNET.Utils;
 
 public static class Storage
 {
@@ -22,12 +20,12 @@ public static class Storage
 			Directory.CreateDirectory(MedalIconsPath);
 	}
 	
-	public static readonly string ExecPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
-	public static readonly string BeatmapsPath = Path.Combine(ExecPath, "Beatmaps");
-	public static readonly string ReplaysPath = Path.Combine(ExecPath, "Replays");
-	public static readonly string AvatarsPath = Path.Combine(ExecPath, "Avatars");
-	public static readonly string ScreenshotsPath = Path.Combine(ExecPath, "Screenshots");
-	public static readonly string MedalIconsPath = Path.Combine(ExecPath, "MedalIcons");
+	private static readonly string BasePath = AppSettings.DataPath;
+	public static readonly string BeatmapsPath = Path.Combine(BasePath, "Beatmaps");
+	public static readonly string ReplaysPath = Path.Combine(BasePath, "Replays");
+	public static readonly string AvatarsPath = Path.Combine(BasePath, "Avatars");
+	public static readonly string ScreenshotsPath = Path.Combine(BasePath, "Screenshots");
+	public static readonly string MedalIconsPath = Path.Combine(BasePath, "MedalIcons");
 	
 	public static string GetBeatmapPath(int beatmapId) => Path.Combine(BeatmapsPath, $"{beatmapId}.osu");
 	public static string GetReplayPath(long scoreId) => Path.Combine(ReplaysPath, $"{scoreId}.osr");

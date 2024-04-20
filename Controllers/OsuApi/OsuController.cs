@@ -1,44 +1,37 @@
-﻿using System.Diagnostics;
-using BanchoNET.Objects;
-using BanchoNET.Objects.Players;
-using BanchoNET.Services;
+﻿using BanchoNET.Services;
+using BanchoNET.Services.Repositories;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BanchoNET.Controllers.OsuApi;
 
+[Route("web")]
 [ApiController]
-public partial class OsuController : ControllerBase
+public partial class OsuController(
+    PlayersRepository players,
+    BeatmapsRepository beatmaps,
+    ScoresRepository scores,
+    BeatmapHandler beatmapHandler,
+    GeolocService geoloc,
+    HttpClient httpClient)
+    : ControllerBase
 {
-    private readonly BanchoHandler _bancho;
-    private readonly GeolocService _geoloc;
-    private readonly BanchoSession _session;
-    private readonly HttpClient _httpClient;
-    // private readonly ILogger<OsuController> _logger;
+    private readonly BanchoSession _session = BanchoSession.Instance;
 
-    public OsuController(BanchoHandler bancho, GeolocService geoloc, HttpClient httpClient/*, ILogger<OsuController>? logger*/)
-    {
-        _bancho = bancho;
-        _geoloc = geoloc;
-        _session = BanchoSession.Instance;
-        _httpClient = httpClient;
-        // _logger = logger;
-    }
-	
-    [HttpPost("/web/osu-error.php")]
+    [HttpPost("osu-error.php")]
     public async Task<IActionResult> OsuError()
     {
         Console.WriteLine("OsuError");
         return Ok("");
     }
 
-    [HttpGet("/web/bancho_connect.php")]
+    [HttpGet("bancho_connect.php")]
     public async Task<IActionResult> BanchoConnect()
     {
         Console.WriteLine("BanchoConnect");
         return Ok();
     }
 
-    [HttpGet("/web/check-updates.php")]
+    [HttpGet("check-updates.php")]
     public async Task<IActionResult> CheckUpdates()
     {
         Console.WriteLine("CheckUpdates");

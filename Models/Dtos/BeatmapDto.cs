@@ -38,6 +38,7 @@ public class BeatmapDto
 	public int TotalLength { get; set; }
 	public int MaxCombo { get; set; }
 	public bool Frozen { get; set; }
+	public bool HasVideo { get; set; }
 	public long Plays { get; set; }
 	public long Passes { get; set; }
 	

@@ -114,7 +114,7 @@ public sealed class BanchoSession
 		if (_passwordHashes.TryGetValue(passwordHash, out var md5))
 			return md5 == passwordMD5;
 
-		if (!BCrypt.Net.BCrypt.Verify(passwordMD5, passwordHash)) 
+		if (!BCrypt.Net.BCrypt.Verify(passwordMD5, passwordHash))
 			return false;
 		
 		_passwordHashes.TryAdd(passwordHash, passwordMD5);

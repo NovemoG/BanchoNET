@@ -17,14 +17,14 @@ namespace BanchoNET.Controllers.OsuApi;
 
 public partial class OsuController
 {
-    [HttpPost("/web/osu-submit-modular-selector.php")]
+    [HttpPost("osu-submit-modular-selector.php")]
     public async Task<IActionResult> SubmitScore(
         [FromForm(Name = "ft")] int failTime,
         [FromForm(Name = "bmk")] string beatmapHash,
         [FromForm(Name = "iv")] string ivB64,
         [FromForm(Name = "c1")] string uniqueIds,
         [FromForm(Name = "st")] int scoreTime,
-        [FromForm(Name = "pass")] string pwdMD5,
+        [FromForm(Name = "pass")] string passwordMD5,
         [FromForm(Name = "osuver")] string osuVersion,
         [FromForm(Name = "s")] byte[] clientHashB64,
         [FromForm(Name = "score")] string scoreDataB64,
@@ -42,7 +42,7 @@ public partial class OsuController
         var clientHash = decryptedData.Value.clientHash;
 
         var beatmapMD5 = scoreData[0];
-        var beatmap = await _bancho.GetBeatmap(beatmapMD5: beatmapMD5);
+        var beatmap = await beatmaps.GetBeatmap(beatmapMD5: beatmapMD5);
         if (beatmap == null)
             return Ok("error: beatmap");
 
@@ -50,7 +50,7 @@ public partial class OsuController
         if (username[^1] == ' ')
             username = username[..^1];
 
-        var player = await _bancho.GetPlayerFromLogin(username, pwdMD5);
+        var player = await players.GetPlayerFromLogin(username, passwordMD5);
         if (player == null)
             return Ok();
 
@@ -91,7 +91,7 @@ public partial class OsuController
             return Ok("error: ban");
         }
 
-        await _bancho.UpdateLatestActivity(player);
+        await players.UpdateLatestActivity(player);
 
         if (score.Mode != player.Status.Mode)
         {
@@ -106,7 +106,7 @@ public partial class OsuController
             }
         }
 
-        if (await _bancho.GetScore(score.ClientChecksum) != null)
+        if (await scores.GetScore(score.ClientChecksum) != null)
         {
             Console.WriteLine($"[ScoreSubmission] {player.Username} tried to submit a duplicate score.");
             return Ok("error: no");
@@ -114,10 +114,10 @@ public partial class OsuController
 		
         score.CalculateAccuracy();
         
-        var bestWithMods = await _bancho.GetPlayerBestScoreWithModsOnMap(player, beatmapMD5, score.Mode, score.Mods);
-        var prevBest = await _bancho.GetPlayerBestScoreOnMap(player, beatmapMD5, score.Mode);
+        var bestWithMods = await scores.GetPlayerBestScoreWithModsOnMap(player, beatmapMD5, score.Mode, score.Mods);
+        var prevBest = await scores.GetPlayerBestScoreOnMap(player, beatmapMD5, score.Mode);
 
-        if (await _bancho.EnsureLocalBeatmapFile(beatmap.MapId, beatmapMD5))
+        if (await beatmapHandler.EnsureLocalBeatmapFile(beatmap.MapId, beatmapMD5))
         {
             score.CalculatePerformance(beatmap.MapId);
 
@@ -126,7 +126,7 @@ public partial class OsuController
                 score.ComputeSubmissionStatus(prevBest, bestWithMods);
 
                 if (beatmap.Status != BeatmapStatus.LatestPending)
-                    await _bancho.SetScoreLeaderboardPosition(beatmap, score, false);
+                    await scores.SetScoreLeaderboardPosition(beatmap, score, false);
             }
             else
                 score.Status = SubmissionStatus.Failed;
@@ -172,11 +172,11 @@ public partial class OsuController
                 await AnnounceNewFirstScore(score, player, beatmap);
             }
             
-            await _bancho.SetScoresStatuses(prevBest, bestWithMods);
+            await scores.SetScoresStatuses(prevBest, bestWithMods);
         }
         
         score.Player = player;
-        await _bancho.InsertScore(score, beatmap.MD5, player);
+        await scores.InsertScore(score, beatmap.MD5, player);
 
         if (score.Passed)
         {
@@ -207,10 +207,10 @@ public partial class OsuController
         stats.UpdateHits(score);
         
         var previousBest = score.PreviousBest;
-        if (previousBest != null) await _bancho.SetScoreLeaderboardPosition(beatmap, previousBest, false);
+        if (previousBest != null) await scores.SetScoreLeaderboardPosition(beatmap, previousBest, false);
         
         await RecalculatePlayerStats(beatmap, stats, player, score, previousBest);
-        await _bancho.UpdatePlayerStats(player, score.Mode);
+        await players.UpdatePlayerStats(player, score.Mode);
 
         if (!player.Restricted)
         {
@@ -222,7 +222,7 @@ public partial class OsuController
             if (score.Passed)
                 beatmap.Passes += 1;
 			
-            await _bancho.UpdateBeatmapStats(beatmap);
+            await beatmaps.UpdateBeatmapStats(beatmap);
         }
 		
         string response;
@@ -325,8 +325,8 @@ public partial class OsuController
 
                 stats.RankedScore += additionalRankedScore;
 				
-                await _bancho.RecalculatePlayerTopScores(player, score.Mode);
-                await _bancho.UpdatePlayerRank(player, score.Mode);
+                await players.RecalculatePlayerTopScores(player, score.Mode);
+                await players.UpdatePlayerRank(player, score.Mode);
             }
         }
     }
@@ -338,7 +338,7 @@ public partial class OsuController
             var announceChannel = _session.GetChannel("#announce");
             var announcement = $@"\x01ACTION achieved #1 on {beatmap.Embed()} with {score.Acc:F2}% and {score.PP}pp.";
 			
-            var currentBest = await _bancho.GetBestBeatmapScore(beatmap, score.Mode);
+            var currentBest = await scores.GetBestBeatmapScore(beatmap, score.Mode);
 					
             if (score.Mods > 0)
                 announcement = announcement.Insert(0, $"+{score.Mods}");

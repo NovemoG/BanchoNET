@@ -1,6 +1,6 @@
 ﻿using System.Reflection;
 using BanchoNET.Packets;
-using BanchoNET.Services;
+using BanchoNET.Services.ClientPacketsHandler;
 
 namespace BanchoNET.Utils;
 
@@ -10,7 +10,7 @@ public static class PacketHandlerMap
 	
 	static PacketHandlerMap()
 	{
-		var handlerType = typeof(BanchoHandler);
+		var handlerType = typeof(ClientPacketsHandler);
 		foreach (var packetName in Enum.GetValues<ClientPacketId>())
 		{
 			var method = handlerType.GetMethod(packetName.ToString(), BindingFlags.NonPublic | BindingFlags.Instance);

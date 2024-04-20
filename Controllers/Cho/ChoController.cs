@@ -1,28 +1,23 @@
-﻿using BanchoNET.Models;
-using BanchoNET.Packets;
+﻿using BanchoNET.Packets;
 using BanchoNET.Services;
+using BanchoNET.Services.ClientPacketsHandler;
+using BanchoNET.Services.Repositories;
 using BanchoNET.Utils;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 
 namespace BanchoNET.Controllers.Cho;
 
 [ApiController]
-public partial class ChoController : ControllerBase
+public partial class ChoController(
+	GeolocService geoloc,
+	OsuVersionService version,
+	PlayersRepository players,
+	ClientRepository client,
+	ClientPacketsHandler clientPackets)
+	: ControllerBase
 {
-	private readonly BanchoHandler _bancho;
-	private readonly BanchoSession _session;
-	private readonly GeolocService _geoloc;
-	private readonly OsuVersionService _version;
+	private readonly BanchoSession _session = BanchoSession.Instance;
 
-	public ChoController(BanchoHandler bancho, GeolocService geoloc, OsuVersionService version)
-	{
-		_bancho = bancho;
-		_session = BanchoSession.Instance;
-		_geoloc = geoloc;
-		_version = version;
-	}
-	
 	[HttpPost("/")]
 	public async Task<IActionResult> BanchoHandler()
 	{
@@ -39,7 +34,7 @@ public partial class ChoController : ControllerBase
 			return restartData.GetContentResult();
 		}
 		
-		await _bancho.ReadPackets(Request.Body, player);
+		await clientPackets.ReadPackets(Request.Body, player);
 
 		return Responses.BytesContentResult(player.Dequeue());
 	}

@@ -31,7 +31,7 @@ public partial class OsuController
 			Field = "username",
 			Messages = ["Cannot contain spaces and underscores."]
 		});
-		if (await _bancho.UsernameTaken(username)) errors.Add(new ErrorDetails
+		if (await players.UsernameTaken(username)) errors.Add(new ErrorDetails
 		{
 			Field = "username",
 			Messages = ["Username already taken by other player."]
@@ -43,7 +43,7 @@ public partial class OsuController
 			Field = "user_email",
 			Messages = ["Invalid email syntax."]
 		});
-		if (await _bancho.EmailTaken(email)) errors.Add(new ErrorDetails
+		if (await players.EmailTaken(email)) errors.Add(new ErrorDetails
 		{
 			Field = "user_email",
 			Messages = ["Email already taken by someone else."]
@@ -70,13 +70,19 @@ public partial class OsuController
 		
 		if (check != 0) return Ok("ok"); //if there are no errors but it is a check request
 		
-		var pwdMD5 = password.CreateMD5();
-		var pwdBcrypt = BCrypt.Net.BCrypt.HashPassword(pwdMD5);
+		var passwordMD5 = password.CreateMD5();
+		var passwordBcrypt = BCrypt.Net.BCrypt.HashPassword(passwordMD5);
 		
-		_session.InsertPasswordHash(pwdMD5, pwdBcrypt);
+		_session.InsertPasswordHash(passwordMD5, passwordBcrypt);
 		
-		var geoloc = await _geoloc.GetGeoloc(Request.Headers);
-		await _bancho.CreatePlayer(username, email, pwdBcrypt, geoloc == null ? "xx" : geoloc.Value.Country.Acronym);
+		var playerGeoloc = await geoloc.GetGeoloc(Request.Headers);
+		await players.CreatePlayer(
+			username,
+			email,
+			passwordBcrypt,
+			playerGeoloc == null
+				? "xx"
+				: playerGeoloc.Value.Country.Acronym);
 
 		return Ok("ok");
 	}
