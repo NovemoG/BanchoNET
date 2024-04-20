@@ -5,6 +5,18 @@ namespace BanchoNET.Utils;
 
 public static class BeatmapExtensions
 {
+	public static BeatmapStatus ToBeatmapStatus(this string status)
+	{
+		return status switch
+		{
+			"love" => BeatmapStatus.Loved,
+			"qualify" => BeatmapStatus.Qualified,
+			"approve" => BeatmapStatus.Approved,
+			"rank" => BeatmapStatus.Ranked,
+			_ => BeatmapStatus.LatestPending
+		};
+	}
+	
 	public static string FullName(this Beatmap beatmap)
 	{
 		return $"{beatmap.Artist} - {beatmap.Title} [{beatmap.Name}]";

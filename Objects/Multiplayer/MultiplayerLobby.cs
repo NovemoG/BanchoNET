@@ -23,17 +23,17 @@ public class MultiplayerLobby
 	/// </summary>
 	public ushort Id { get; set; }
 	
-	public string Name { get; set; }
-	public string Password { get; set; }
+	public required string Name { get; set; }
+	public required string Password { get; set; }
 	public GameMode Mode { get; set; }
 	public int HostId { get; set; }
-	public List<int> Refs { get; set; } = [];
+	public List<int> Refs { get; set; } = []; //TODO full ref support
 	public Mods Mods { get; set; }
 	public bool Freemods { get; set; }
 	public int BeatmapId { get; set; }
 	public int PreviousBeatmapId { get; set; }
-	public string BeatmapName { get; set; }
-	public string BeatmapMD5 { get; set; }
+	public required string BeatmapName { get; set; }
+	public required string BeatmapMD5 { get; set; }
 	public WinCondition WinCondition { get; set; }
 	public LobbyType Type { get; set; }
 	public bool InProgress { get; set; }
@@ -41,6 +41,7 @@ public class MultiplayerLobby
 	public int Seed { get; set; }
 	public Channel Chat { get; set; }
 	public MultiplayerSlot[] Slots { get; set; }
+	public bool IsLocked { get; set; } //TODO
 	public Timer? StartTimer { get; set; }
 	//TODO alerts that signalize how much time is left until the match starts
 }

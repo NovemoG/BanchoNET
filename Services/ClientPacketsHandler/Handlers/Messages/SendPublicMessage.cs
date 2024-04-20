@@ -62,7 +62,7 @@ public partial class ClientPacketsHandler
 
 		if (txt.StartsWith(AppSettings.CommandPrefix))
 		{
-			var response = await commands.Execute(txt, player);
+			var response = await commands.Execute(txt, player, channel);
 			
 			if (response != "")
 				channel.SendBotMessage(response);
@@ -73,9 +73,16 @@ public partial class ClientPacketsHandler
 
 			if (npMatch.Success)
 			{
-				//TODO load map
-				
-				//TODO maybe store np in player instance (?)
+				var modeGroup = npMatch.Groups["mode_vn"];
+
+				player.LastNp = new LastNp
+				{
+					BeatmapId = int.Parse(npMatch.Groups["bid"].Value),
+					SetId = int.Parse(npMatch.Groups["sid"].Value),
+					Mode = modeGroup.Success
+						? modeGroup.Value.FromRegexMatch()
+						: player.Status.Mode
+				};
 			}
 			
 			channel.SendMessage(new Message

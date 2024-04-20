@@ -70,11 +70,30 @@ public partial class ClientPacketsHandler
 		{
 			if (txt.StartsWith(AppSettings.CommandPrefix))
 			{
-				//TODO command handling
+				var response = await commands.Execute(txt, player);
+			
+				if (response != "")
+					player.SendMessage(response, target);
 			}
 			else
 			{
-				//TODO np handling
+				var npMatch = Regexes.NowPlaying.Match(txt);
+
+				if (npMatch.Success)
+				{
+					var modeGroup = npMatch.Groups["mode_vn"];
+
+					player.LastNp = new LastNp
+					{
+						BeatmapId = int.Parse(npMatch.Groups["bid"].Value),
+						SetId = int.Parse(npMatch.Groups["sid"].Value),
+						Mode = modeGroup.Success
+							? modeGroup.Value.FromRegexMatch()
+							: player.Status.Mode
+					};
+				}
+				
+				//TODO pp values response
 			}
 		}
 		

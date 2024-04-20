@@ -1,4 +1,5 @@
 ﻿using BanchoNET.Objects;
+using BanchoNET.Objects.Channels;
 using BanchoNET.Objects.Multiplayer;
 using BanchoNET.Objects.Players;
 using BanchoNET.Packets;
@@ -8,6 +9,8 @@ namespace BanchoNET.Utils;
 
 public static class MultiplayerExtensions
 {
+	private static readonly BanchoSession Session = BanchoSession.Instance;
+	
 	public static readonly int[] StartTimerAlerts = [
 		60, 30, 15, 10, 5, 4, 3, 2, 1
 	];
@@ -30,6 +33,44 @@ public static class MultiplayerExtensions
 	public static string MapEmbed(this MultiplayerLobby lobby)
 	{
 		return $"https://osu.{AppSettings.Domain}/b/{lobby.BeatmapId} {lobby.BeatmapName}";
+	}
+
+	public static void CreateLobby(MultiplayerLobby lobby, Player player, int lobbyId)
+	{
+		var matchChannel = new Channel($"#multi_{lobby.Id}")
+		{
+			Description = "This multiplayer's channel.",
+			AutoJoin = false,
+			Instance = true
+		};
+
+		lobby.LobbyId = lobbyId;
+		lobby.Chat = matchChannel; 
+		lobby.Refs.Add(player.Id);
+		
+		Session.InsertLobby(lobby);
+		Session.InsertChannel(matchChannel);
+
+		player.JoinMatch(lobby, lobby.Password);
+		
+		matchChannel.SendBotMessage($"Match created by {player.Username} {lobby.MPLinkEmbed()}");
+		Console.WriteLine($"[CreateMatch] {player.Username} created a match with ID {lobby.LobbyId}, in-game ID: {lobby.Id}.");
+	}
+
+	public static void InviteToLobby(Player player, Player? target)
+	{
+		if (target == null) return;
+		if (target.IsBot)
+		{
+			player.SendBotMessage("I'm too busy right now! Maybe later \ud83d\udc7c");
+			return;
+		}
+
+		using var invitePacket = new ServerPackets();
+		invitePacket.MatchInvite(player, target.Username);
+		target.Enqueue(invitePacket.GetContent());
+		
+		Console.WriteLine($"[MatchInvite] {player.Username} invited {target.Username} to their match.");
 	}
 	
 	public static void ResetPlayersLoadedStatuses(this MultiplayerLobby lobby)
@@ -115,7 +156,7 @@ public static class MultiplayerExtensions
 	{
 		lobby.Chat.EnqueueToPlayers(data, immune);
 		
-		var lobbyChannel = BanchoSession.Instance.GetChannel("#lobby")!;
+		var lobbyChannel = Session.GetChannel("#lobby")!;
 		if (toLobby && lobbyChannel.Players.Count > 0)
 			lobbyChannel.EnqueueToPlayers(data);
 	}
@@ -128,7 +169,7 @@ public static class MultiplayerExtensions
 			lobby.Chat.EnqueueToPlayers(updatePacket.GetContent());
 		}
 		
-		var lobbyChannel = BanchoSession.Instance.GetChannel("#lobby")!;
+		var lobbyChannel = Session.GetChannel("#lobby")!;
 		if (toLobby && lobbyChannel.Players.Count > 0)
 		{
 			using var updatePacket = new ServerPackets();

@@ -1,5 +1,4 @@
 ﻿using BanchoNET.Attributes;
-using BanchoNET.Models;
 using BanchoNET.Objects.Privileges;
 using BanchoNET.Utils;
 
@@ -12,15 +11,15 @@ public partial class CommandProcessor
         "Reloads given collection/configuration. Syntax: reload <collection>",
         "\nAvailable options: commands",
         ["r"])]
-    private Task<string> Reload(CommandParameters parameters, params string[] args)
+    private Task<string> Reload(params string[] args)
     {
         if (args.Length == 0)
-            return Task.FromResult($"No parameter provided. Use '{_prefix}help reload' for more information.");
+            return Task.FromResult("No parameter provided. Available options: commands");
         
         return Task.FromResult(args[0] switch
         {
             "commands" => ReloadCommandsCollection(),
-            _ => $"Invalid parameter provided. Use '{_prefix}help reload' for more information."
+            _ => $"Invalid parameter provided. Available options: commands."
         });
     }
 

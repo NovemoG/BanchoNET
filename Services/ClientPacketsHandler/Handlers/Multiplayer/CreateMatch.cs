@@ -30,23 +30,7 @@ public partial class ClientPacketsHandler
 			return;
 		}
 		
-		var matchChannel = new Channel($"#multi_{matchData.Id}")
-		{
-			Description = "This multiplayer's channel.",
-			AutoJoin = false,
-			Instance = true
-		};
-
-		matchData.LobbyId = await multiplayer.GetMatchId();
-		matchData.Chat = matchChannel; 
-		
-		_session.InsertLobby(matchData);
-		_session.InsertChannel(matchChannel);
-
-		player.JoinMatch(matchData, matchData.Password);
+		MultiplayerExtensions.CreateLobby(matchData, player, await multiplayer.GetMatchId());
 		player.LastActivityTime = DateTime.Now;
-		
-		matchChannel.SendBotMessage($"Match created by {player.Username} {matchData.MPLinkEmbed()}");
-		Console.WriteLine($"[CreateMatch] {player.Username} created a match with ID {matchData.LobbyId}, in-game ID: {matchData.Id}.");
 	}
 }

@@ -16,6 +16,37 @@ public class BeatmapsRepository(BanchoDbContext dbContext, BeatmapHandler beatma
 			                p.SetProperty(b => b.Plays, beatmap.Plays)
 			                 .SetProperty(b => b.Passes, beatmap.Passes));
 	}
+
+	public async Task<int> ChangeBeatmapStatus(
+		BeatmapStatus targetStatus,
+		int beatmapId = -1,
+		int setId = -1)
+	{
+		if (setId > -1)
+		{
+			var cachedSet = _session.GetBeatmapSet(setId);
+
+			if (cachedSet != null)
+				foreach (var map in cachedSet.Beatmaps)
+					map.Status = targetStatus;
+			
+			return await dbContext.Beatmaps.Where(b => b.SetId == setId)
+				.ExecuteUpdateAsync(p => p.SetProperty(b => b.Status, (int)targetStatus));
+		}
+
+		if (beatmapId <= -1) return 0;
+		
+		var cachedMap = _session.GetBeatmap(mapId: beatmapId);
+		if (cachedMap != null)
+		{
+			cachedMap.Status = targetStatus;
+			cachedMap = _session.GetBeatmap(beatmapMD5: cachedMap.MD5);
+			cachedMap!.Status = targetStatus; //Map exists because we got it by id
+		}
+			
+		return await dbContext.Beatmaps.Where(b => b.MapId == beatmapId)
+				.ExecuteUpdateAsync(p => p.SetProperty(b => b.Status, (int)targetStatus));
+	}
 	
 	public async Task<Beatmap?> GetBeatmap(int mapId = -1, int setId = -1, string beatmapMD5 = "")
 	{

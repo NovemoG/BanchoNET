@@ -16,7 +16,7 @@ public class CommandAttribute : Attribute
     /// <summary>
     /// Registers a new command with the given name, description, and aliases. Be aware
     /// that name and aliases will be registered as lowercase no matter what. Methods
-    /// using this attribute must have structure like this: <see cref="Method(CommandParameters, string[])"/>.
+    /// using this attribute must have structure like this: <see cref="Method(string[])"/>.
     /// </summary>
     /// <param name="name">Name by which command will be called</param>
     /// <param name="privileges">Privileges needed to use that command</param>
@@ -40,7 +40,7 @@ public class CommandAttribute : Attribute
         Aliases = aliases;
     }
 
-    private Task<string> Method(CommandParameters parameters, params string[] args)
+    private Task<string> Method(params string[] args)
     {
         return Task.FromResult("");
     }
