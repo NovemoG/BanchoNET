@@ -40,8 +40,8 @@ public class CommandAttribute : Attribute
         Aliases = aliases;
     }
 
-    private string Method(CommandParameters parameters, params string[] args)
+    private Task<string> Method(CommandParameters parameters, params string[] args)
     {
-        return "";
+        return Task.FromResult("");
     }
 }

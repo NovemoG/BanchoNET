@@ -45,9 +45,8 @@ public class PlayersRepository
 	{
 		var sessionPlayer = _session.GetPlayer(username: username);
 		if (sessionPlayer != null) return sessionPlayer;
-
-		username = username.MakeSafe();
-		var dbPlayer = await _dbContext.Players.FirstOrDefaultAsync(p => p.SafeName == username);
+		
+		var dbPlayer = await _dbContext.Players.FirstOrDefaultAsync(p => p.SafeName == username.MakeSafe());
 
 		return dbPlayer == null ? null : new Player(dbPlayer);
 	}
@@ -76,16 +75,10 @@ public class PlayersRepository
 			return await _dbContext.Players.FindAsync(id);
 
 		if (username != "")
-		{
-			username = username.MakeSafe();
-			return await _dbContext.Players.FirstOrDefaultAsync(p => p.SafeName == username);
-		}
+			return await _dbContext.Players.FirstOrDefaultAsync(p => p.SafeName == username.MakeSafe());
 		
 		if (loginName != "")
-		{
-			loginName = loginName.MakeSafe();
-			return await _dbContext.Players.FirstOrDefaultAsync(p => p.LoginName == loginName);
-		}
+			return await _dbContext.Players.FirstOrDefaultAsync(p => p.LoginName == loginName.MakeSafe());
 
 		return null;
 	}
@@ -176,9 +169,12 @@ public class PlayersRepository
 		}
 	}
 	
-	public async Task AddPlayerPrivileges(Player player, Privileges privileges)
+	public async Task ModifyPlayerPrivileges(Player player, Privileges privileges, bool remove)
 	{
-		player.Privileges |= privileges;
+		if (remove)
+			player.Privileges &= ~privileges;
+		else
+			player.Privileges |= privileges;
 		
 		await _dbContext.Players.Where(p => p.Id == player.Id)
 		               .ExecuteUpdateAsync(p => 

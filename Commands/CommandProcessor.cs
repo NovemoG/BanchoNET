@@ -1,6 +1,5 @@
 ﻿using BanchoNET.Models;
 using BanchoNET.Objects.Players;
-using BanchoNET.Services;
 using BanchoNET.Services.Repositories;
 using BanchoNET.Utils;
 using static BanchoNET.Utils.CommandHandlerMap;
@@ -9,10 +8,11 @@ namespace BanchoNET.Commands;
 
 public partial class CommandProcessor(ScoresRepository scores, PlayersRepository players)
 {
+    private readonly string _prefix = AppSettings.CommandPrefix;
     private readonly int _prefixLength = AppSettings.CommandPrefix.Length;
     private readonly string _commandNotFound =
         $"Command not found. Please use '{AppSettings.CommandPrefix}help' to see all available commands.";
-    
+
     //TODO support creating custom commands (idk what can be possible)
 
     /// <summary>
@@ -20,7 +20,7 @@ public partial class CommandProcessor(ScoresRepository scores, PlayersRepository
     /// </summary>
     /// <param name="command">Unedited string containing whole command</param>
     /// <param name="player">Player instance that used this command</param>
-    public string Execute(string command, Player player)
+    public async Task<string> Execute(string command, Player player)
     {
         command = command[_prefixLength..];
         
@@ -33,15 +33,19 @@ public partial class CommandProcessor(ScoresRepository scores, PlayersRepository
         //we don't want to expose the existence of this command to him
         if (!player.Privileges.HasAnyPrivilege(cm.Attribute.Privileges))
             return _commandNotFound;
-        
-        var returnValue = cm.Method.Invoke(this, [new CommandParameters
-        {
-            Player = player,
-            CommandBase = commandValues[0]
-        }, commandValues[1..]]);
-        if (cm.Method.ReturnType != typeof(string) || returnValue == null)
+
+        if (cm.Method.ReturnType != typeof(Task<string>))
             return "Some lazy ass developer forgot to make his command return a string value...";
+
+        var returnValue = await (Task<string>)cm.Method.Invoke(this, [
+            new CommandParameters
+            {
+                Player = player,
+                CommandBase = commandValues[0]
+            },
+            commandValues[1..]
+        ])!;
         
-        return (string)returnValue;
+        return returnValue;
     }
 }

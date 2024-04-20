@@ -39,34 +39,178 @@ public partial class CommandProcessor
         "\nmp ban <username> - Bans the player from the lobby" +
         "\nmp addref <username> [<username>] ... - Adds a referee to the lobby." +
         "\nmp removeref <username> [<username>] ... - Removes a referee from the lobby." +
-        "\nmp removerefs - Removes all referees from the lobby (aside of creator)." +
+        "\nmp clearrefs - Removes all referees from the lobby (aside of creator)." +
         "\n        Only the creator of the lobby can manage referees." +
         "\nmp listrefs - Lists all referees in the lobby" +
         "\nmp close - Disbands current lobby." +
         "\nParameters inside of [] are optional.")]
-    private string Multiplayer(CommandParameters parameters, params string[] args)
+    private async Task<string> Multiplayer(CommandParameters parameters, params string[] args)
     {
         var player = parameters.Player;
         var prefix = AppSettings.CommandPrefix;
         
         if (args.Length == 0)
-            return $"No parameter provided. Check available options using '{prefix}mp help' or '{prefix}help mp'.";
+            return $"No parameter(s) provided. Check available options using '{prefix}mp help' or '{prefix}help mp'.";
 
         if (player.Lobby == null && args[0] is not ("help" or "create"))
             return "You're not in a multiplayer lobby. Use 'mp create [<name>] [<password>]' to create one.";
 
         return args[0] switch
         {
-            "help" => Help(new CommandParameters
+            "help" => await Help(new CommandParameters
             {
                 Player = player
             }, "mp"),
-            "create" => MakeMultiplayerLobby(player, args[1..]),
+            "create" => CreateMultiplayerLobby(player, args[1..]),
+            "invite" => InviteToLobby(player, args[1..]),
+            "name" => ChangeLobbyName(player, args[1..]),
+            "password" => ChangeLobbyPassword(player, args[1..]),
+            "lock" => LockLobby(player, args[1..]),
+            "unlock" => UnlockLobby(player, args[1..]),
+            "size" => SetLobbySize(player, args[1..]),
+            "set" => SetLobbyProperties(player, args[1..]),
+            "move" => MovePlayer(player, args[1..]),
+            "host" => TransferHost(player, args[1..]),
+            "clearhost" => ClearHost(player, args[1..]),
+            "abort" => AbortMatch(player, args[1..]),
+            "team" => MovePlayerToTeam(player, args[1..]),
+            "map" => ChangeBeatmap(player, args[1..]),
+            "mods" => ChangeMods(player, args[1..]),
+            "start" => StartMatch(player, args[1..]),
+            "timer" => StartTimer(player, args[1..]),
+            "aborttimer" => AbortTimer(player, args[1..]),
+            "kick" => KickPlayer(player, args[1..]),
+            "ban" => BanPlayer(player, args[1..]),
+            "addref" => AddReferee(player, args[1..]),
+            "removeref" => RemoveReferee(player, args[1..]),
+            "clearrefs" => ClearReferees(player, args[1..]),
+            "listrefs" => ListReferees(player, args[1..]),
+            "close" => CloseLobby(player, args[1..]),
             _ => $"Invalid parameter provided. Check available options using '{prefix}mp help' or '{prefix}help mp'."
         };
     }
 
-    private string MakeMultiplayerLobby(Player player, params string[] args)
+    private string CreateMultiplayerLobby(Player player, params string[] args)
+    {
+        return "";
+    }
+    
+    private string InviteToLobby(Player player, params string[] args)
+    {
+        return "";
+    }
+    
+    private string ChangeLobbyName(Player player, params string[] args)
+    {
+        return "";
+    }
+    
+    private string ChangeLobbyPassword(Player player, params string[] args)
+    {
+        return "";
+    }
+    
+    private string LockLobby(Player player, params string[] args)
+    {
+        return "";
+    }
+    
+    private string UnlockLobby(Player player, params string[] args)
+    {
+        return "";
+    }
+    
+    private string SetLobbySize(Player player, params string[] args)
+    {
+        return "";
+    }
+    
+    private string SetLobbyProperties(Player player, params string[] args)
+    {
+        return "";
+    }
+    
+    private string MovePlayer(Player player, params string[] args)
+    {
+        return "";
+    }
+    
+    private string TransferHost(Player player, params string[] args)
+    {
+        return "";
+    }
+    
+    private string ClearHost(Player player, params string[] args)
+    {
+        return "";
+    }
+    
+    private string AbortMatch(Player player, params string[] args)
+    {
+        return "";
+    }
+    
+    private string MovePlayerToTeam(Player player, params string[] args)
+    {
+        return "";
+    }
+    
+    private string ChangeBeatmap(Player player, params string[] args)
+    {
+        return "";
+    }
+    
+    private string ChangeMods(Player player, params string[] args)
+    {
+        return "";
+    }
+    
+    private string StartMatch(Player player, params string[] args)
+    {
+        return "";
+    }
+    
+    private string StartTimer(Player player, params string[] args)
+    {
+        return "";
+    }
+    
+    private string AbortTimer(Player player, params string[] args)
+    {
+        return "";
+    }
+    
+    private string KickPlayer(Player player, params string[] args)
+    {
+        return "";
+    }
+    
+    private string BanPlayer(Player player, params string[] args)
+    {
+        return "";
+    }
+    
+    private string AddReferee(Player player, params string[] args)
+    {
+        return "";
+    }
+    
+    private string RemoveReferee(Player player, params string[] args)
+    {
+        return "";
+    }
+    
+    private string ClearReferees(Player player, params string[] args)
+    {
+        return "";
+    }
+    
+    private string ListReferees(Player player, params string[] args)
+    {
+        return "";
+    }
+    
+    private string CloseLobby(Player player, params string[] args)
     {
         return "";
     }

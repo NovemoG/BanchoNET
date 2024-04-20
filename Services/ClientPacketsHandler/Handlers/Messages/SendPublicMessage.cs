@@ -7,16 +7,16 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private Task SendPublicMessage(Player player, BinaryReader br)
+	private async Task SendPublicMessage(Player player, BinaryReader br)
 	{
 		var message = br.ReadOsuMessage();
 
-		if (player.Silenced) return Task.CompletedTask;
+		if (player.Silenced) return;
 
 		var txt = message.Content.Trim();
-		if (txt == string.Empty) return Task.CompletedTask;
+		if (txt == string.Empty) return;
 		
-		if (_ignoredChannels.Contains(message.Destination)) return Task.CompletedTask;
+		if (_ignoredChannels.Contains(message.Destination)) return;
 		
 		Channel? channel;
 		switch (message.Destination)
@@ -27,13 +27,13 @@ public partial class ClientPacketsHandler
 
 				if (player.IsSpectating) spectatorId = player.Spectating!.Id;
 				else if (player.HasSpectators) spectatorId = player.Id;
-				else return Task.CompletedTask;
+				else return;
 			
 				channel = _session.GetChannel($"#s_{spectatorId}", true);
 				break;
 			}
 			case "#multiplayer" when player.Lobby == null:
-				return Task.CompletedTask;
+				return;
 			case "#multiplayer":
 				channel = player.Lobby.Chat;
 				break;
@@ -43,13 +43,13 @@ public partial class ClientPacketsHandler
 		}
 
 		if (channel == null) //TODO log
-			return Task.CompletedTask;
+			return;
 
 		if (!channel.PlayerInChannel(player))
-			return Task.CompletedTask;
+			return;
 
 		if (!channel.CanPlayerWrite(player))
-			return Task.CompletedTask;
+			return;
 
 		if (txt.Length > 2000)
 		{
@@ -62,7 +62,7 @@ public partial class ClientPacketsHandler
 
 		if (txt.StartsWith(AppSettings.CommandPrefix))
 		{
-			var response = commands.Execute(txt, player);
+			var response = await commands.Execute(txt, player);
 			
 			if (response != "")
 				channel.SendBotMessage(response);
@@ -88,6 +88,5 @@ public partial class ClientPacketsHandler
 		}
 		
 		player.LastActivityTime = DateTime.Now;
-		return Task.CompletedTask;
 	}
 }

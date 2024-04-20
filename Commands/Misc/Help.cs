@@ -11,7 +11,7 @@ public partial class CommandProcessor
     [Command("help",
         Privileges.Verified,
         "Shows a list of all available commands or displays detailed description of a given command.")]
-    private string Help(CommandParameters parameters, params string[] args)
+    private Task<string> Help(CommandParameters parameters, params string[] args)
     {
         if (args.Length > 0
             && CommandsMap.TryGetValue(args[0], out var command)
@@ -20,23 +20,22 @@ public partial class CommandProcessor
             var description = command.Attribute.BriefDescription + command.Attribute.DetailedDescription;
             
             if (command.Attribute.Aliases == null)
-                return description;
+                return Task.FromResult(description);
 
-            var aliases = command.Attribute.Aliases.Aggregate("", (current, alias) => current + $"{AppSettings.CommandPrefix}{alias}, ");
-            return description + "\nAliases/shortcuts: " + aliases[..^2];
+            var aliases = command.Attribute.Aliases.Aggregate("", (current, alias) => current + $"{_prefix}{alias}, ");
+            return Task.FromResult(description + "\nAliases/shortcuts: " + aliases[..^2]);
         }
 
         if (args.Length == 0)
         {
-            return CommandsMap
+            return Task.FromResult(CommandsMap
                 .DistinctBy(c => c.Value.Method)
                 .Where(c => parameters.Player.Privileges.HasAnyPrivilege(c.Value.Attribute.Privileges))
                 .OrderBy(c => c.Key)
                 .Aggregate("Here is a list of available commands [name - description and usage]:\n",
-                    (current, c) =>
-                        current + $"{AppSettings.CommandPrefix}{c.Key} - {c.Value.Attribute.BriefDescription}\n")[..^1];
+                    (current, c) => current + $"{_prefix}{c.Key} - {c.Value.Attribute.BriefDescription}\n")[..^1]);
         }
 
-        return $"Command not found. Please use '{AppSettings.CommandPrefix}help' to see all available commands.";
+        return Task.FromResult($"Command not found. Please use '{_prefix}help' to see all available commands.");
     }
 }

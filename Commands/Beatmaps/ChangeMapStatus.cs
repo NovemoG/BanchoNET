@@ -12,15 +12,15 @@ public partial class CommandProcessor
         "\nAvailable statuses: loved, qualified, approved, ranked, pending/unrank (does the same)" +
         "\nmrs - ranks whole set",
         ["mrs"])]
-    private static string ChangeMapStatus(CommandParameters parameters, params string[] args)
+    private async Task<string> ChangeMapStatus(CommandParameters parameters, params string[] args)
     {
         if (args.Length == 0 && parameters.CommandBase != "mrs")
-            return "No parameter provided. Use '!help map' for more information.";
+            return $"No parameter(s) provided. Use '{_prefix}help map' for more information.";
         
         return "";
     }
 
-    private static string ChangeStatus()
+    private string ChangeStatus()
     {
         return "";
     }

@@ -12,16 +12,16 @@ public partial class CommandProcessor
         "Reloads given collection/configuration. Syntax: reload <collection>",
         "\nAvailable options: commands",
         ["r"])]
-    private string Reload(CommandParameters parameters, params string[] args)
+    private Task<string> Reload(CommandParameters parameters, params string[] args)
     {
         if (args.Length == 0)
-            return "No parameter provided. Available options are: commands";
+            return Task.FromResult($"No parameter provided. Use '{_prefix}help reload' for more information.");
         
-        return args[0] switch
+        return Task.FromResult(args[0] switch
         {
             "commands" => ReloadCommandsCollection(),
-            _ => "Invalid parameter provided. Available options are: commands"
-        };
+            _ => $"Invalid parameter provided. Use '{_prefix}help reload' for more information."
+        });
     }
 
     private static string ReloadCommandsCollection()
