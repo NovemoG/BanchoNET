@@ -27,7 +27,7 @@ public static class Regexes
 			RegexOptions.RightToLeft | RegexOptions.Compiled);
 		
 		NowPlaying = new Regex(
-			@$"^\x01ACTION is (?:playing|editing|watching|listening to) \[https://osu\.(?:{AppSettings.Domain.Replace(".", "\\.")}|ppy\.sh)/beatmapsets/(?<sid>\d{{1,10}})#/?(?:osu|taiko|fruits|mania)?/(?<bid>\d{{1,10}})/? .+\](?<mods>(?: (?:-|\+|~|\|)\w+(?:~|\|)?)+)?\x01$",
+			@$"^\x01ACTION is (?:playing|editing|watching|listening to) \[https://osu\.(?:{AppSettings.Domain.Replace(".", "\\.")}|ppy\.sh)/beatmapsets/(?<sid>\d{{1,10}})#/?(?:osu|taiko|fruits|mania)?/(?<bid>\d{{1,10}})/? .+\](?: <(?<mode_vn>Taiko|CatchTheBeat|osu!mania)>)?(?<mods>(?: (?:-|\+|~|\|)\w+(?:~|\|)?)+)?\x01$",
 			RegexOptions.Compiled);
 	}
 

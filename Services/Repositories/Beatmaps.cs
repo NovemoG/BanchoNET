@@ -9,12 +9,54 @@ public class BeatmapsRepository(BanchoDbContext dbContext, BeatmapHandler beatma
 {
 	private readonly BanchoSession _session = BanchoSession.Instance;
 
+	/// <summary>
+	/// Updates Playcount and Passcount of a beatmap in database
+	/// </summary>
+	/// <param name="beatmap"></param>
 	public async Task UpdateBeatmapStats(Beatmap beatmap)
 	{
 		await dbContext.Beatmaps.Where(b => b.MapId == beatmap.MapId)
 		                .ExecuteUpdateAsync(p => 
 			                p.SetProperty(b => b.Plays, beatmap.Plays)
 			                 .SetProperty(b => b.Passes, beatmap.Passes));
+	}
+
+	/// <summary>
+	/// Changes beatmap status in cache and database
+	/// </summary>
+	/// <param name="targetStatus">Target status to which the current one will be changed</param>
+	/// <param name="beatmapId">Id of a beatmap to update</param>
+	/// <param name="setId">Id of a set to update</param>
+	/// <returns>Number of maps that were affected</returns>
+	public async Task<int> ChangeBeatmapStatus(
+		BeatmapStatus targetStatus,
+		int beatmapId = -1,
+		int setId = -1)
+	{
+		if (setId > -1)
+		{
+			var cachedSet = _session.GetBeatmapSet(setId);
+
+			if (cachedSet != null)
+				foreach (var map in cachedSet.Beatmaps)
+					map.Status = targetStatus;
+			
+			return await dbContext.Beatmaps.Where(b => b.SetId == setId)
+				.ExecuteUpdateAsync(p => p.SetProperty(b => b.Status, (int)targetStatus));
+		}
+
+		if (beatmapId <= -1) return 0;
+		
+		var cachedMap = _session.GetBeatmap(mapId: beatmapId);
+		if (cachedMap != null)
+		{
+			cachedMap.Status = targetStatus;
+			cachedMap = _session.GetBeatmap(beatmapMD5: cachedMap.MD5);
+			cachedMap!.Status = targetStatus; //Map exists because we got it by id
+		}
+			
+		return await dbContext.Beatmaps.Where(b => b.MapId == beatmapId)
+				.ExecuteUpdateAsync(p => p.SetProperty(b => b.Status, (int)targetStatus));
 	}
 	
 	public async Task<Beatmap?> GetBeatmap(int mapId = -1, int setId = -1, string beatmapMD5 = "")

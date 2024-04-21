@@ -32,6 +32,12 @@ public static class PlayerExtensions
 
 		return (ClientPrivileges)retPriv;
 	}
+	
+	public static bool CanUseCommand(this Player player, Privileges requiredPrivileges)
+	{
+		return player.Privileges.HasAnyPrivilege(requiredPrivileges) &&
+		       player.Privileges.CompareHighestPrivileges(requiredPrivileges);
+	}
 
 	/// <summary>
 	/// Sends a message directly to this player. If channel is provided, it will be sent to that channel instead.
@@ -147,7 +153,7 @@ public static class PlayerExtensions
 		{
 			Console.WriteLine($"[PlayerExtensions] Match \"{lobby.Name}\" is empty, removing.");
 
-			lobby.StartTimer?.Stop();
+			lobby.Timer?.Stop();
 
 			Session.RemoveLobby(lobby);
 

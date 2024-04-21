@@ -15,4 +15,15 @@ public static class GameModeExtensions
 
 		return gameMode;
 	}
+	
+	public static GameMode FromRegexMatch(this string mode)
+	{
+		return mode switch
+		{
+			"Taiko" => GameMode.VanillaTaiko,
+			"CatchTheBeat" => GameMode.VanillaCatch,
+			"osu!mania" => GameMode.VanillaMania,
+			_ => GameMode.VanillaStd
+		};
+	}
 }

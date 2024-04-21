@@ -1,6 +1,5 @@
 ﻿using BanchoNET.Attributes;
-using BanchoNET.Models;
-using BanchoNET.Objects.Players;
+using BanchoNET.Objects.Multiplayer;
 using BanchoNET.Objects.Privileges;
 using BanchoNET.Utils;
 
@@ -8,6 +7,8 @@ namespace BanchoNET.Commands;
 
 public partial class CommandProcessor
 {
+    private MultiplayerLobby _lobby;
+    
     [Command("mp",
         Privileges.Verified,
         "A set of commands to manage your multiplayer lobby. List of commands available under 'mp help' or 'help mp' command.",
@@ -44,173 +45,248 @@ public partial class CommandProcessor
         "\nmp listrefs - Lists all referees in the lobby" +
         "\nmp close - Disbands current lobby." +
         "\nParameters inside of [] are optional.")]
-    private async Task<string> Multiplayer(CommandParameters parameters, params string[] args)
+    private async Task<string> Multiplayer(params string[] args)
     {
-        var player = parameters.Player;
         var prefix = AppSettings.CommandPrefix;
         
         if (args.Length == 0)
             return $"No parameter(s) provided. Check available options using '{prefix}mp help' or '{prefix}help mp'.";
 
-        if (player.Lobby == null && args[0] is not ("help" or "create"))
+        if (_playerCtx.Lobby == null && args[0] is not ("help" or "create"))
             return "You're not in a multiplayer lobby. Use 'mp create [<name>] [<password>]' to create one.";
+
+        if (_playerCtx.Lobby != null && _playerCtx.Lobby.Chat != _channelCtx)
+            return "";
+
+        _lobby = _playerCtx.Lobby!;
 
         return args[0] switch
         {
-            "help" => await Help(new CommandParameters
-            {
-                Player = player
-            }, "mp"),
-            "create" => CreateMultiplayerLobby(player, args[1..]),
-            "invite" => InviteToLobby(player, args[1..]),
-            "name" => ChangeLobbyName(player, args[1..]),
-            "password" => ChangeLobbyPassword(player, args[1..]),
-            "lock" => LockLobby(player, args[1..]),
-            "unlock" => UnlockLobby(player, args[1..]),
-            "size" => SetLobbySize(player, args[1..]),
-            "set" => SetLobbyProperties(player, args[1..]),
-            "move" => MovePlayer(player, args[1..]),
-            "host" => TransferHost(player, args[1..]),
-            "clearhost" => ClearHost(player, args[1..]),
-            "abort" => AbortMatch(player, args[1..]),
-            "team" => MovePlayerToTeam(player, args[1..]),
-            "map" => ChangeBeatmap(player, args[1..]),
-            "mods" => ChangeMods(player, args[1..]),
-            "start" => StartMatch(player, args[1..]),
-            "timer" => StartTimer(player, args[1..]),
-            "aborttimer" => AbortTimer(player, args[1..]),
-            "kick" => KickPlayer(player, args[1..]),
-            "ban" => BanPlayer(player, args[1..]),
-            "addref" => AddReferee(player, args[1..]),
-            "removeref" => RemoveReferee(player, args[1..]),
-            "clearrefs" => ClearReferees(player, args[1..]),
-            "listrefs" => ListReferees(player, args[1..]),
-            "close" => CloseLobby(player, args[1..]),
+            "help" => await Help("mp"),
+            "create" => await CreateMultiplayerLobby(args[1..]),
+            "invite" => InviteToLobby(args[1..]),
+            "name" => ChangeLobbyName(args[1..]),
+            "password" => ChangeLobbyPassword(args[1..]),
+            "lock" => LockLobby(args[1..]),
+            "unlock" => UnlockLobby(args[1..]),
+            "size" => SetLobbySize(args[1..]),
+            "set" => SetLobbyProperties(args[1..]),
+            "move" => MovePlayer(args[1..]),
+            "host" => TransferHost(args[1..]),
+            "clearhost" => ClearHost(args[1..]),
+            "abort" => AbortMatch(args[1..]),
+            "team" => MovePlayerToTeam(args[1..]),
+            "map" => ChangeBeatmap(args[1..]),
+            "mods" => ChangeMods(args[1..]),
+            "start" => StartMatch(args[1..]),
+            "timer" => StartTimer(args[1..]),
+            "aborttimer" => AbortTimer(),
+            "kick" => KickPlayer(args[1..]),
+            "ban" => BanPlayer(args[1..]),
+            "addref" => AddReferee(args[1..]),
+            "removeref" => RemoveReferee(args[1..]),
+            "clearrefs" => ClearReferees(args[1..]),
+            "listrefs" => ListReferees(args[1..]),
+            "close" => CloseLobby(args[1..]),
             _ => $"Invalid parameter provided. Check available options using '{prefix}mp help' or '{prefix}help mp'."
         };
     }
 
-    private string CreateMultiplayerLobby(Player player, params string[] args)
+    private async Task<string> CreateMultiplayerLobby(params string[] args)
+    {
+        if (_playerCtx.Lobby != null)
+            return "";
+        
+        var lobby = new MultiplayerLobby
+        {
+            Name = args.Length == 1 ? args[0] : $"{_playerCtx.Username}'s match",
+            Password = args.Length == 2 ? args[1] : "",
+            HostId = _playerCtx.Id,
+            Freemods = true,
+            BeatmapId = _playerCtx.Status.BeatmapId,
+            BeatmapMD5 = _playerCtx.Status.BeatmapMD5,
+            BeatmapName = "",
+            Seed = Random.Shared.Next(),
+            Slots =
+            {
+                [0] = new MultiplayerSlot
+                {
+                    Player = _playerCtx,
+                    Status = SlotStatus.NotReady
+                }
+            }
+        };
+
+        foreach (var slot in lobby.Slots[1..])
+            slot.Status = SlotStatus.Open;
+        
+        MultiplayerExtensions.CreateLobby(lobby, _playerCtx, await multiplayer.GetMatchId());
+        
+        return "";
+    }
+    
+    private string InviteToLobby(params string[] args)
+    {
+        if (args.Length == 0)
+            return $"No username provided. Use '{_prefix}mp invite <username>'.";
+
+        var target = _session.GetPlayer(username: args[0]);
+        if (target == null)
+            return $"{args[0]} is either offline or you misspelled the username.";
+        
+        MultiplayerExtensions.InviteToLobby(_playerCtx, target);
+        
+        return $"Invite sent to {target.Username}.";
+    }
+    
+    private string ChangeLobbyName(params string[] args)
     {
         return "";
     }
     
-    private string InviteToLobby(Player player, params string[] args)
+    private string ChangeLobbyPassword(params string[] args)
     {
         return "";
     }
     
-    private string ChangeLobbyName(Player player, params string[] args)
+    private string LockLobby(params string[] args)
     {
         return "";
     }
     
-    private string ChangeLobbyPassword(Player player, params string[] args)
+    private string UnlockLobby(params string[] args)
     {
         return "";
     }
     
-    private string LockLobby(Player player, params string[] args)
+    private string SetLobbySize(params string[] args)
     {
         return "";
     }
     
-    private string UnlockLobby(Player player, params string[] args)
+    private string SetLobbyProperties(params string[] args)
     {
         return "";
     }
     
-    private string SetLobbySize(Player player, params string[] args)
+    private string MovePlayer(params string[] args)
     {
         return "";
     }
     
-    private string SetLobbyProperties(Player player, params string[] args)
+    private string TransferHost(params string[] args)
     {
         return "";
     }
     
-    private string MovePlayer(Player player, params string[] args)
+    private string ClearHost(params string[] args)
     {
         return "";
     }
     
-    private string TransferHost(Player player, params string[] args)
+    private string AbortMatch(params string[] args)
     {
         return "";
     }
     
-    private string ClearHost(Player player, params string[] args)
+    private string MovePlayerToTeam(params string[] args)
     {
         return "";
     }
     
-    private string AbortMatch(Player player, params string[] args)
+    private string ChangeBeatmap(params string[] args)
     {
         return "";
     }
     
-    private string MovePlayerToTeam(Player player, params string[] args)
+    private string ChangeMods(params string[] args)
     {
         return "";
     }
     
-    private string ChangeBeatmap(Player player, params string[] args)
+    private string StartMatch(params string[] args)
+    {
+        if (!_lobby.Refs.Contains(_playerCtx.Id))
+            return "";
+        
+        if (_lobby.BeatmapId < 0)
+            return "No beatmap is selected.";
+        
+        if (_lobby.InProgress)
+            return "Match is already in progress.";
+        
+        var seconds = args.Length == 0 ? 30 : uint.Parse(args[0]);
+        
+        //TODO should this overwrite current timer or display this message?
+        if (_lobby.Timer != null)
+            return "Timer is already running.";
+        
+        _lobby.Timer = new LobbyTimer(_lobby, seconds, true);
+        _lobby.ReadyAllPlayers();
+        
+        return "";
+    }
+    
+    private string StartTimer(params string[] args)
+    {
+        if (!_lobby.Refs.Contains(_playerCtx.Id))
+            return "";
+        
+        var seconds = args.Length == 0 ? 30 : uint.Parse(args[0]);
+        
+        //TODO should this overwrite current timer or display this message?
+        if (_lobby.Timer != null)
+            return "Timer is already running.";
+        
+        _lobby.Timer = new LobbyTimer(_lobby, seconds);
+        
+        return "";
+    }
+    
+    private string AbortTimer()
+    {
+        if (!_lobby.Refs.Contains(_playerCtx.Id))
+            return "";
+        
+        if (_lobby.Timer == null)
+            return "No timer is running.";
+        
+        _lobby.Timer.Stop();
+        
+        return "Aborted current timer.";
+    }
+    
+    private string KickPlayer(params string[] args)
     {
         return "";
     }
     
-    private string ChangeMods(Player player, params string[] args)
+    private string BanPlayer(params string[] args)
     {
         return "";
     }
     
-    private string StartMatch(Player player, params string[] args)
+    private string AddReferee(params string[] args)
     {
         return "";
     }
     
-    private string StartTimer(Player player, params string[] args)
+    private string RemoveReferee(params string[] args)
     {
         return "";
     }
     
-    private string AbortTimer(Player player, params string[] args)
+    private string ClearReferees(params string[] args)
     {
         return "";
     }
     
-    private string KickPlayer(Player player, params string[] args)
+    private string ListReferees(params string[] args)
     {
         return "";
     }
     
-    private string BanPlayer(Player player, params string[] args)
-    {
-        return "";
-    }
-    
-    private string AddReferee(Player player, params string[] args)
-    {
-        return "";
-    }
-    
-    private string RemoveReferee(Player player, params string[] args)
-    {
-        return "";
-    }
-    
-    private string ClearReferees(Player player, params string[] args)
-    {
-        return "";
-    }
-    
-    private string ListReferees(Player player, params string[] args)
-    {
-        return "";
-    }
-    
-    private string CloseLobby(Player player, params string[] args)
+    private string CloseLobby(params string[] args)
     {
         return "";
     }

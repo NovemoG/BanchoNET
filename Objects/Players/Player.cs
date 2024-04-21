@@ -43,6 +43,8 @@ public class Player
 	public List<Channel> Channels { get; }
 	public List<Player> Spectators { get; }
 	
+	public LastNp? LastNp { get; set; }
+	
 	//public Club Club { get; set; }
 	//public int ClubPrivileges { get; set; }
 
