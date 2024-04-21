@@ -108,9 +108,9 @@ public static class MultiplayerExtensions
 		return lobby.Slots.First(s => s.Player?.Id == lobby.HostId);
 	}
 
-	public static MultiplayerSlot GetPlayerSlot(this MultiplayerLobby lobby, Player player)
+	public static MultiplayerSlot? GetPlayerSlot(this MultiplayerLobby lobby, Player player)
 	{
-		return lobby.Slots.First(s => s.Player == player);
+		return lobby.Slots.FirstOrDefault(s => s.Player == player);
 	}
 
 	public static int GetPlayerSlotId(this MultiplayerLobby lobby, Player player)

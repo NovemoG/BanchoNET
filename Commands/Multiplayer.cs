@@ -281,7 +281,24 @@ public partial class CommandProcessor
     
     private string KickPlayer(params string[] args)
     {
-        return "";
+        if (!_lobby.Refs.Contains(_playerCtx.Id))
+            return "";
+        
+        if (args.Length == 0)
+            return "No username provided. Use 'mp kick <username>'.";
+        
+        var target = _session.GetPlayer(username: args[0]);
+        if (target == null)
+            return $"{args[0]} is either offline or you misspelled the username.";
+        
+        var slot = _lobby.GetPlayerSlot(target);
+        if (slot == null)
+            return $"{target.Username} is not in the lobby.";
+        slot.Player?.JoinLobby();
+        slot.Player?.JoinChannel(_session.GetChannel("#lobby")!);
+        slot.Player?.LeaveMatch();
+        
+        return $"Player {target.Username} has been kicked.";
     }
     
     private string BanPlayer(params string[] args)
