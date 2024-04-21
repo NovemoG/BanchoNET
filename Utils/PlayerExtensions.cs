@@ -265,6 +265,18 @@ public static class PlayerExtensions
 		return player.Blocked.Contains(targetId);
 	}
 
+	public static void JoinLobby(this Player player)
+	{
+		player.InLobby = true;
+
+		foreach (var lobby in Session.Lobbies)
+		{
+			using var newMatchPacket = new ServerPackets();
+			newMatchPacket.NewMatch(lobby);
+			player.Enqueue(newMatchPacket.GetContent());
+		}
+	}
+
 	public static bool JoinChannel(this Player player, Channel channel)
 	{
 		if (channel.PlayerInChannel(player) ||

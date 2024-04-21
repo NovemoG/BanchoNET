@@ -10,7 +10,7 @@ public partial class CommandProcessor
     private readonly string[] _validStatuses = ["love", "qualify", "approve", "rank", "unrank"];
     
     [Command("map",
-        Privileges.Nominator,
+        Privileges.Nominator | Privileges.Administrator,
         "Changes the status of previously /np'd map. Syntax: map <status> <map/set>",
         "\nAvailable statuses: love, qualify, approve, rank, unrank" +
         "\nmrs - ranks whole set",

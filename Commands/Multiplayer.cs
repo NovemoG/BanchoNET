@@ -7,7 +7,7 @@ namespace BanchoNET.Commands;
 
 public partial class CommandProcessor
 {
-    private MultiplayerLobby _lobby;
+    private MultiplayerLobby _lobby = null!;
     
     [Command("mp",
         Privileges.Verified,
@@ -84,7 +84,7 @@ public partial class CommandProcessor
             "addref" => await AddReferee(args[1..]),
             "rmref" => await RemoveReferee(args[1..]),
             "listrefs" => ListReferees(),
-            "close" => CloseLobby(args[1..]),
+            "close" => CloseLobby(),
             _ => $"Invalid parameter provided. Check available options using '{prefix}mp help' or '{prefix}help mp'."
         };
     }
@@ -303,7 +303,7 @@ public partial class CommandProcessor
 
             if (player == _playerCtx)
             {
-                _lobby.Chat.SendBotMessage("You can't add yourself as referee.");
+                _lobby.Chat.SendBotMessage("You're already a referee.");
                 continue;
             }
             if (player == null)
@@ -313,7 +313,7 @@ public partial class CommandProcessor
             }
             if (_lobby.Refs.Contains(player.Id))
             {
-                _lobby.Chat.SendBotMessage($"Player {player.Username} is already referee.");
+                _lobby.Chat.SendBotMessage($"{player.Username} is already a referee.");
                 continue;
             }
             _lobby.Refs.Add(player.Id);
@@ -347,22 +347,40 @@ public partial class CommandProcessor
             }
             if (!_lobby.Refs.Contains(player.Id))
             {
-                _lobby.Chat.SendBotMessage($"Player {player.Username} is not referee.");
+                _lobby.Chat.SendBotMessage($"{player.Username} is not a referee.");
                 continue;
             }
             _lobby.Refs.Remove(player.Id);
             count++;
         }
         Console.WriteLine($"[AddReferee] {_playerCtx.Username} removed {count} players as referee(s). in lobby with id {_lobby.Id}.");
-        return $"Removed {count} players as referee(s).";
+        return $"Removed {count} players from referees.";
     }
     
     private string ListReferees()
     {
         return $"{string.Join(", ", _lobby.Refs.Select(id => players.GetPlayerOrOffline(id).Result!.Username))}";
     }
-    private string CloseLobby(params string[] args)
+    
+    private string CloseLobby()
     {
+        if (!_lobby.Refs.Contains(_playerCtx.Id))
+            return "";
+        
+        if (_lobby.InProgress)
+            return "Can't close match that is already in progress.";
+
+        var lobbyChannel = _session.GetChannel("#lobby")!;
+        
+        foreach (var slot in _lobby.Slots)
+        {
+            if (slot.Player == null) continue;
+            
+            slot.Player.JoinLobby();
+            slot.Player?.JoinChannel(lobbyChannel);
+            slot.Player?.LeaveMatch();
+        }
+        
         return "";
     }
 }
