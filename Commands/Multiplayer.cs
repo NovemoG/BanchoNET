@@ -1,4 +1,5 @@
 ﻿using BanchoNET.Attributes;
+using BanchoNET.Objects;
 using BanchoNET.Objects.Multiplayer;
 using BanchoNET.Objects.Privileges;
 using BanchoNET.Utils;
@@ -74,7 +75,7 @@ public partial class CommandProcessor
             "clearhost" => ClearHost(args[1..]),
             "abort" => AbortMatch(args[1..]),
             "team" => MovePlayerToTeam(args[1..]),
-            "map" => ChangeBeatmap(args[1..]),
+            "map" => await ChangeBeatmap(args[1..]),
             "mods" => ChangeMods(args[1..]),
             "start" => StartMatch(args[1..]),
             "timer" => StartTimer(args[1..]),
@@ -217,14 +218,84 @@ public partial class CommandProcessor
         return "";
     }
     
-    private string ChangeBeatmap(params string[] args)
+    private async Task<string> ChangeBeatmap(params string[] args)
     {
+
+        if (!_lobby.Refs.Contains(_playerCtx.Id))
+            return "";
+        
+        if (args.Length == 0)
+            return "No beatmap ID provided. Use 'mp map <mapid> [<gamemode>]'.";
+        
+        var beatmapId = int.Parse(args[0]);
+        var gameMode = args.Length == 2 ? (GameMode)int.Parse(args[1]) : GameMode.VanillaStd;
+        
+        var beatmap = await beatmaps.GetBeatmap(beatmapId);
+        if (beatmap == null)
+            return "Beatmap not found.";
+        
+        _lobby.BeatmapId = beatmapId;
+        _lobby.BeatmapMD5 = beatmap.MD5;
+        _lobby.BeatmapName = beatmap.FullName();
+        _lobby.Mode = gameMode;
+        
+        _lobby.EnqueueState();
+        
         return "";
     }
     
     private string ChangeMods(params string[] args)
     {
-        return "";
+        if (!_lobby.Refs.Contains(_playerCtx.Id))
+            return "";
+        
+        var result = Mods.None;
+        var freeMods = false;
+        
+        //TODO: add mods shortcuts and check for correct mods combinations
+        foreach (var modName in args)
+        {
+            if (modName.Equals("nomod", StringComparison.CurrentCultureIgnoreCase))
+            {
+                _lobby.Mods = Mods.None;
+                break;
+            }
+
+            if (modName.Equals("freemod", StringComparison.CurrentCultureIgnoreCase))
+            {
+                _lobby.Freemods = true;
+                freeMods = true;
+                continue;
+            }
+
+            if (Enum.TryParse(modName, true, out Mods mod))
+            {
+                if (mod is Mods.TouchDevice or Mods.ScoreV2 or Mods.TargetPractice
+                    or Mods.LastMod) continue;
+                
+                if (_lobby.Mode != GameMode.VanillaMania) if ((int)mod > 16384) continue;
+
+                result |= mod;
+            }
+            else _lobby.Chat.SendBotMessage($"Invalid mod: {modName}");
+        }
+        
+        
+        _lobby.Mods = result;
+        _lobby.EnqueueState();
+
+        switch (result)
+        {
+            case Mods.None when freeMods:
+                _lobby.Freemods = true;
+                return "Removed all mods and enabled freemods.";
+            case Mods.None:
+                return "Removed all mods.";
+            default:
+                return $"Changed mods to: {string.Join(", ", Enum.GetValues(typeof(Mods))
+                    .OfType<Mods>()
+                    .Where(m => result.HasMod(m))).Replace("None, ", "") + (freeMods ? " (Freemods)" : "")}";
+        }
     }
     
     private string StartMatch(params string[] args)
@@ -383,9 +454,6 @@ public partial class CommandProcessor
     {
         if (!_lobby.Refs.Contains(_playerCtx.Id))
             return "";
-        
-        if (_lobby.InProgress)
-            return "Can't close match that is already in progress.";
 
         var lobbyChannel = _session.GetChannel("#lobby")!;
         
