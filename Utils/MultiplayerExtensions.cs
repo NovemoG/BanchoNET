@@ -52,7 +52,7 @@ public static class MultiplayerExtensions
 		matchChannel.SendBotMessage($"Match created by {player.Username} {lobby.MPLinkEmbed()}");
 		Console.WriteLine($"[CreateMatch] {player.Username} created a match with ID {lobby.LobbyId}, in-game ID: {lobby.Id}.");
 	}
-
+	
 	public static void InviteToLobby(Player player, Player? target)
 	{
 		if (target == null) return;

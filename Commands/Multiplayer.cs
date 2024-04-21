@@ -39,9 +39,7 @@ public partial class CommandProcessor
         "\nmp kick <username> - Kicks the player from the lobby" +
         "\nmp ban <username> - Bans the player from the lobby" +
         "\nmp addref <username> [<username>] ... - Adds a referee to the lobby." +
-        "\nmp removeref <username> [<username>] ... - Removes a referee from the lobby." +
-        "\nmp clearrefs - Removes all referees from the lobby (aside of creator)." +
-        "\n        Only the creator of the lobby can manage referees." +
+        "\nmp rmref <username> [<username>] ... - Removes a referee from the lobby." +
         "\nmp listrefs - Lists all referees in the lobby" +
         "\nmp close - Disbands current lobby." +
         "\nParameters inside of [] are optional.")]
@@ -83,10 +81,9 @@ public partial class CommandProcessor
             "aborttimer" => AbortTimer(),
             "kick" => KickPlayer(args[1..]),
             "ban" => BanPlayer(args[1..]),
-            "addref" => AddReferee(args[1..]),
-            "removeref" => RemoveReferee(args[1..]),
-            "clearrefs" => ClearReferees(args[1..]),
-            "listrefs" => ListReferees(args[1..]),
+            "addref" => await AddReferee(args[1..]),
+            "rmref" => await RemoveReferee(args[1..]),
+            "listrefs" => ListReferees(),
             "close" => CloseLobby(args[1..]),
             _ => $"Invalid parameter provided. Check available options using '{prefix}mp help' or '{prefix}help mp'."
         };
@@ -141,12 +138,38 @@ public partial class CommandProcessor
     
     private string ChangeLobbyName(params string[] args)
     {
-        return "";
+        if (!_lobby.Refs.Contains(_playerCtx.Id))
+            return "";
+        if (args.Length == 0)
+            return $"No name provided. Use '{_prefix}mp name <name>'.";
+        
+        _lobby.Name = args[0];
+        _lobby.EnqueueState();
+        
+        Console.WriteLine($"[ChangeLobbyName] {_playerCtx.Username} changed the match name to {args[0]} in lobby with id {_lobby.Id}.");
+        
+        return $"Match name changed to {args[0]}";
     }
     
     private string ChangeLobbyPassword(params string[] args)
     {
-        return "";
+        if (!_lobby.Refs.Contains(_playerCtx.Id))
+            return "";
+        if (args.Length == 0)
+        {
+            _lobby.Password = "";
+            _lobby.EnqueueState();
+            return "Password removed.";
+        }
+
+        if (args[0].Length < 4)
+            return "Password must be at least 4 characters long.";
+        
+        _lobby.Password = args[0];
+        _lobby.EnqueueState();
+        
+        Console.WriteLine($"[ChangeLobbyPassword] {_playerCtx.Username} changed match password to {args[0]} in lobby with id {_lobby.Id}.");
+        return $"Match password changed to {args[0]}.";
     }
     
     private string LockLobby(params string[] args)
@@ -266,24 +289,77 @@ public partial class CommandProcessor
         return "";
     }
     
-    private string AddReferee(params string[] args)
+    private async Task<string> AddReferee(params string[] args)
     {
-        return "";
+        if (!_lobby.Refs.Contains(_playerCtx.Id))
+            return "";
+        if (args.Length == 0)
+            return "No referee(s) provided. Use 'mp addref <username> [<username>] ...'.";
+
+        int count = 0;
+        foreach (var username in args)
+        {
+            var player = await players.GetPlayerOrOffline(username);
+
+            if (player == _playerCtx)
+            {
+                _lobby.Chat.SendBotMessage("You can't add yourself as referee.");
+                continue;
+            }
+            if (player == null)
+            {
+                _lobby.Chat.SendBotMessage($"{username} doesn't exist");
+                continue;
+            }
+            if (_lobby.Refs.Contains(player.Id))
+            {
+                _lobby.Chat.SendBotMessage($"Player {player.Username} is already referee.");
+                continue;
+            }
+            _lobby.Refs.Add(player.Id);
+            count++;
+        }
+        Console.WriteLine($"[AddReferee] {_playerCtx.Username} added {count} players as referee(s). in lobby with id {_lobby.Id}.");
+        return $"Added {count} players as referee(s).";
     }
     
-    private string RemoveReferee(params string[] args)
+    private async Task<string> RemoveReferee(params string[] args)
     {
-        return "";
+        if (!_lobby.Refs.Contains(_playerCtx.Id))
+            return "";
+        if (args.Length == 0)
+            return "No referee(s) provided. Use 'mp rmref <username> [<username>] ...'.";
+
+        int count = 0;
+        foreach (var username in args)
+        {
+            var player = await players.GetPlayerOrOffline(username);
+            
+            if (player == _playerCtx)
+            {
+                _lobby.Chat.SendBotMessage("You can't remove yourself from referees.");
+                continue;
+            }
+            if (player == null)
+            {
+                _lobby.Chat.SendBotMessage($"{username} doesn't exist");
+                continue;
+            }
+            if (!_lobby.Refs.Contains(player.Id))
+            {
+                _lobby.Chat.SendBotMessage($"Player {player.Username} is not referee.");
+                continue;
+            }
+            _lobby.Refs.Remove(player.Id);
+            count++;
+        }
+        Console.WriteLine($"[AddReferee] {_playerCtx.Username} removed {count} players as referee(s). in lobby with id {_lobby.Id}.");
+        return $"Removed {count} players as referee(s).";
     }
     
-    private string ClearReferees(params string[] args)
+    private string ListReferees()
     {
-        return "";
-    }
-    
-    private string ListReferees(params string[] args)
-    {
-        return "";
+        return $"{string.Join(", ", _lobby.Refs.Select(id => players.GetPlayerOrOffline(id).Result!.Username))}";
     }
     
     private string CloseLobby(params string[] args)

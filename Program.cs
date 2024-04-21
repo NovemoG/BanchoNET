@@ -208,7 +208,7 @@ public class Program
 			PasswordHash = "1",
 			Country = "a2",
 			LastActivityTime = DateTime.Now.AddYears(100),
-			Privileges = (int)(Privileges.Verified | Privileges.Staff),
+			Privileges = (int)(Privileges.Verified | Privileges.Staff | Privileges.Unrestricted),
 		});
 		db.SaveChanges();
 		

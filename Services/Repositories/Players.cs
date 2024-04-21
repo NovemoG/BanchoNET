@@ -50,6 +50,15 @@ public class PlayersRepository
 
 		return dbPlayer == null ? null : new Player(dbPlayer);
 	}
+	public async Task<Player?> GetPlayerOrOffline(int id)
+	{
+		var sessionPlayer = _session.GetPlayer(id: id);
+		if (sessionPlayer != null) return sessionPlayer;
+		
+		var dbPlayer = await _dbContext.Players.FirstOrDefaultAsync(p => p.Id == id);
+
+		return dbPlayer == null ? null : new Player(dbPlayer);
+	}
 	
 	public async Task UpdateLatestActivity(Player player)
 	{
