@@ -182,6 +182,13 @@ public static class PlayerExtensions
 		player.Lobby = null;
 	}
 
+	public static void LeaveMatchToLobby(this Player player, Channel lobbyChannel)
+	{
+		player.JoinLobby();
+		player.JoinChannel(lobbyChannel);
+		player.LeaveMatch();
+	}
+
 	public static void AddSpectator(this Player host, Player target)
 	{
 		var channelName = $"#s_{host.Id}";

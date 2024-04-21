@@ -26,7 +26,7 @@ public partial class CommandProcessor
         var username = args[0];
         var priv = args[1].ToLower();
         
-        if (!Enum.TryParse(priv.FirstCharToUpper(), out Privileges privilege))
+        if (!Enum.TryParse(priv, true, out Privileges privilege))
             return $"Invalid privilege provided. Available privileges: {string.Join(", ", _validPrivileges)}.";
         
         if (_playerCtx.Privileges.GetHighestPrivilege() < privilege)
@@ -65,7 +65,7 @@ public partial class CommandProcessor
         if (_playerCtx.SafeName == username.MakeSafe())
             return "You can't remove your own privileges.";
         
-        if (!Enum.TryParse(priv.FirstCharToUpper(), out Privileges privilege))
+        if (!Enum.TryParse(priv, true, out Privileges privilege))
             return $"Invalid privilege provided. Available privileges: {string.Join(", ", _validPrivileges)}.";
         
         if (_playerCtx.Privileges.GetHighestPrivilege() <= privilege)

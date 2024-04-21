@@ -81,7 +81,7 @@ public partial class CommandProcessor
             "timer" => StartTimer(args[1..]),
             "aborttimer" => AbortTimer(),
             "kick" => KickPlayer(args[1..]),
-            "ban" => BanPlayer(args[1..]),
+            "ban" => await BanPlayer(args[1..]),
             "addref" => await AddReferee(args[1..]),
             "rmref" => await RemoveReferee(args[1..]),
             "listrefs" => ListReferees(),
@@ -141,6 +141,7 @@ public partial class CommandProcessor
     {
         if (!_lobby.Refs.Contains(_playerCtx.Id))
             return "";
+        
         if (args.Length == 0)
             return $"No name provided. Use '{_prefix}mp name <name>'.";
         
@@ -156,6 +157,7 @@ public partial class CommandProcessor
     {
         if (!_lobby.Refs.Contains(_playerCtx.Id))
             return "";
+        
         if (args.Length == 0)
         {
             _lobby.Password = "";
@@ -220,12 +222,11 @@ public partial class CommandProcessor
     
     private async Task<string> ChangeBeatmap(params string[] args)
     {
-
         if (!_lobby.Refs.Contains(_playerCtx.Id))
             return "";
         
         if (args.Length == 0)
-            return "No beatmap ID provided. Use 'mp map <mapid> [<gamemode>]'.";
+            return $"No beatmap ID provided. Use '{_prefix}mp map <mapid> [<gamemode>]'.";
         
         var beatmapId = int.Parse(args[0]);
         var gameMode = args.Length == 2 ? (GameMode)int.Parse(args[1]) : GameMode.VanillaStd;
@@ -252,34 +253,47 @@ public partial class CommandProcessor
         var result = Mods.None;
         var freeMods = false;
         
-        //TODO: add mods shortcuts and check for correct mods combinations
         foreach (var modName in args)
         {
-            if (modName.Equals("nomod", StringComparison.CurrentCultureIgnoreCase))
+            if (ModsMap.Map.TryGetValue(modName.ToLower(), out var modMap))
             {
-                _lobby.Mods = Mods.None;
-                break;
-            }
+                if (modMap == Mods.None)
+                {
+                    _lobby.Mods = Mods.None;
+                    break;
+                }
+                
+                if (_lobby.Mode != GameMode.VanillaMania)
+                    if (modMap > Mods.Perfect) continue;
 
-            if (modName.Equals("freemod", StringComparison.CurrentCultureIgnoreCase))
+                result |= modMap;
+            }
+            else if (Enum.TryParse(modName, true, out Mods modParse))
+            {
+                if (modParse == Mods.None)
+                {
+                    _lobby.Mods = Mods.None;
+                    break;
+                }
+                
+                if (modParse is Mods.TouchDevice or Mods.ScoreV2 or Mods.TargetPractice or Mods.LastMod)
+                    continue;
+                
+                if (_lobby.Mode != GameMode.VanillaMania)
+                    if (modParse > Mods.Perfect) continue;
+
+                result |= modParse;
+            }
+            else _lobby.Chat.SendBotMessage($"Invalid mod: {modName}");
+            
+            if (modName.Equals("fm", StringComparison.CurrentCultureIgnoreCase)
+                || modName.Equals("freemod", StringComparison.CurrentCultureIgnoreCase)
+                || modName.Equals("freemods", StringComparison.CurrentCultureIgnoreCase))
             {
                 _lobby.Freemods = true;
                 freeMods = true;
-                continue;
             }
-
-            if (Enum.TryParse(modName, true, out Mods mod))
-            {
-                if (mod is Mods.TouchDevice or Mods.ScoreV2 or Mods.TargetPractice
-                    or Mods.LastMod) continue;
-                
-                if (_lobby.Mode != GameMode.VanillaMania) if ((int)mod > 16384) continue;
-
-                result |= mod;
-            }
-            else _lobby.Chat.SendBotMessage($"Invalid mod: {modName}");
         }
-        
         
         _lobby.Mods = result;
         _lobby.EnqueueState();
@@ -292,9 +306,7 @@ public partial class CommandProcessor
             case Mods.None:
                 return "Removed all mods.";
             default:
-                return $"Changed mods to: {string.Join(", ", Enum.GetValues(typeof(Mods))
-                    .OfType<Mods>()
-                    .Where(m => result.HasMod(m))).Replace("None, ", "") + (freeMods ? " (Freemods)" : "")}";
+                return $"Changed mods to: {result.ToString()}";
         }
     }
     
@@ -309,7 +321,7 @@ public partial class CommandProcessor
         if (_lobby.InProgress)
             return "Match is already in progress.";
         
-        var seconds = args.Length == 0 ? 30 : uint.Parse(args[0]);
+        var seconds = args.Length == 0 ? 10 : uint.Parse(args[0]);
         
         //TODO should this overwrite current timer or display this message?
         if (_lobby.Timer != null)
@@ -327,6 +339,9 @@ public partial class CommandProcessor
             return "";
         
         var seconds = args.Length == 0 ? 30 : uint.Parse(args[0]);
+
+        if (seconds == 0)
+            return "";
         
         //TODO should this overwrite current timer or display this message?
         if (_lobby.Timer != null)
@@ -356,33 +371,57 @@ public partial class CommandProcessor
             return "";
         
         if (args.Length == 0)
-            return "No username provided. Use 'mp kick <username>'.";
+            return $"No username provided. Use '{_prefix}mp kick <username>'.";
         
-        var target = _session.GetPlayer(username: args[0]);
-        if (target == null)
-            return $"{args[0]} is either offline or you misspelled the username.";
-        
-        var slot = _lobby.GetPlayerSlot(target);
+        var slot = _lobby.GetPlayerSlot(args[0]);
         if (slot == null)
-            return $"{target.Username} is not in the lobby.";
-        slot.Player?.JoinLobby();
-        slot.Player?.JoinChannel(_session.GetChannel("#lobby")!);
-        slot.Player?.LeaveMatch();
+            return $"{args[0]} is not in the lobby.";
         
-        return $"Player {target.Username} has been kicked.";
+        var player = slot.Player!;
+        
+        player.LeaveMatchToLobby(_session.GetChannel("#lobby")!);
+        player.SendBotMessage("You've been kicked from the lobby.");
+        
+        return $"{slot.Player!.Username} has been kicked.";
     }
     
-    private string BanPlayer(params string[] args)
+    private async Task<string> BanPlayer(params string[] args)
     {
-        return "";
+        if (!_lobby.Refs.Contains(_playerCtx.Id))
+            return "";
+        
+        if (args.Length == 0)
+            return $"No username provided. Use '{_prefix}mp ban <username>'.";
+        
+        var target = await players.GetPlayerOrOffline(username: args[0]);
+        if (target == null)
+            return $"Player {args[0]} does not exist.";
+        
+        if (_lobby.BannedPlayers.Contains(target.Id))
+            return $"{target.Username} is already banned.";
+
+        _lobby.Refs.Remove(target.Id);
+        _lobby.BannedPlayers.Add(target.Id);
+
+        var slot = _lobby.GetPlayerSlot(target);
+        if (slot != null)
+        {
+            var player = slot.Player!;
+            
+            player.LeaveMatchToLobby(_session.GetChannel("#lobby")!);
+            player.SendBotMessage("You've been banned from the lobby.");
+        }
+        
+        return $"{target.Username} has been banned.";
     }
     
     private async Task<string> AddReferee(params string[] args)
     {
         if (!_lobby.Refs.Contains(_playerCtx.Id))
             return "";
+        
         if (args.Length == 0)
-            return "No referee(s) provided. Use 'mp addref <username> [<username>] ...'.";
+            return $"No referee(s) provided. Use '{_prefix}mp addref <username> [<username>] ...'.";
 
         int count = 0;
         foreach (var username in args)
@@ -396,7 +435,7 @@ public partial class CommandProcessor
             }
             if (player == null)
             {
-                _lobby.Chat.SendBotMessage($"{username} doesn't exist");
+                _lobby.Chat.SendBotMessage($"Player {username} doesn't exist");
                 continue;
             }
             if (_lobby.Refs.Contains(player.Id))
@@ -415,8 +454,9 @@ public partial class CommandProcessor
     {
         if (!_lobby.Refs.Contains(_playerCtx.Id))
             return "";
+        
         if (args.Length == 0)
-            return "No referee(s) provided. Use 'mp rmref <username> [<username>] ...'.";
+            return $"No referee(s) provided. Use '{_prefix}mp rmref <username> [<username>] ...'.";
 
         var count = 0;
         foreach (var username in args)
@@ -430,7 +470,7 @@ public partial class CommandProcessor
             }
             if (player == null)
             {
-                _lobby.Chat.SendBotMessage($"{username} doesn't exist");
+                _lobby.Chat.SendBotMessage($"Player {username} doesn't exist");
                 continue;
             }
             if (!_lobby.Refs.Contains(player.Id))
@@ -458,13 +498,7 @@ public partial class CommandProcessor
         var lobbyChannel = _session.GetChannel("#lobby")!;
         
         foreach (var slot in _lobby.Slots)
-        {
-            if (slot.Player == null) continue;
-            
-            slot.Player.JoinLobby();
-            slot.Player?.JoinChannel(lobbyChannel);
-            slot.Player?.LeaveMatch();
-        }
+            slot.Player?.LeaveMatchToLobby(lobbyChannel);
         
         return "";
     }

@@ -112,6 +112,12 @@ public static class MultiplayerExtensions
 	{
 		return lobby.Slots.FirstOrDefault(s => s.Player == player);
 	}
+	
+	public static MultiplayerSlot? GetPlayerSlot(this MultiplayerLobby lobby, string username)
+	{
+		return lobby.Slots.FirstOrDefault(s =>
+			s.Player != null && s.Player.Username.Equals(username, StringComparison.CurrentCultureIgnoreCase));
+	}
 
 	public static int GetPlayerSlotId(this MultiplayerLobby lobby, Player player)
 	{

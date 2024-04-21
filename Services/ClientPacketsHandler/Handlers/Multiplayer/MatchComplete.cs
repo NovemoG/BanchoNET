@@ -14,7 +14,7 @@ public partial class ClientPacketsHandler
 
 		var slots = lobby.Slots;
 		
-		var slot = lobby.GetPlayerSlot(player);
+		var slot = lobby.GetPlayerSlot(player)!;
 		slot.Status = SlotStatus.Complete;
         
 		if (slots.Any(s => s.Status == SlotStatus.Playing))

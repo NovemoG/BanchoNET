@@ -30,6 +30,7 @@ public class MultiplayerLobby
 	public int HostId { get; set; }
 	public int CreatorId { get; set; } //TODO
 	public List<int> Refs { get; set; } = []; //TODO full ref support
+	public List<int> BannedPlayers { get; set; } = [];
 	public Mods Mods { get; set; }
 	public bool Freemods { get; set; }
 	public int BeatmapId { get; set; }

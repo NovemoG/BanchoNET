@@ -12,7 +12,7 @@ public partial class ClientPacketsHandler
 		var lobby = player.Lobby;
 		if (lobby == null) return Task.CompletedTask;
 
-		var slot = lobby.GetPlayerSlot(player);
+		var slot = lobby.GetPlayerSlot(player)!;
 		slot.Loaded = true;
 
 		if (!lobby.Slots.Any(s => s is { Status: SlotStatus.Playing, Loaded: false }))

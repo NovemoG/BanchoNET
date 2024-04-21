@@ -17,7 +17,7 @@ public partial class ClientPacketsHandler
 			if (player.Id == lobby.HostId)
 				lobby.Mods = mods & Mods.SpeedChangingMods;
 
-			lobby.GetPlayerSlot(player).Mods = mods & ~Mods.SpeedChangingMods;
+			lobby.GetPlayerSlot(player)!.Mods = mods & ~Mods.SpeedChangingMods;
 		}
 		else
 		{

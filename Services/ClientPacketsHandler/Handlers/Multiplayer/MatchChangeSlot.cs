@@ -17,7 +17,7 @@ public partial class ClientPacketsHandler
 		var targetSlot = lobby.Slots[slotId];
 		if (targetSlot.Status != SlotStatus.Open) return Task.CompletedTask;
 
-		var slot = lobby.GetPlayerSlot(player);
+		var slot = lobby.GetPlayerSlot(player)!;
 
 		targetSlot.CopyStatusFrom(slot);
 		slot.Reset();

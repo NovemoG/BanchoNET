@@ -11,7 +11,7 @@ public partial class ClientPacketsHandler
 		var lobby = player.Lobby;
 		if (lobby == null) return Task.CompletedTask;
 
-		var slot = lobby.GetPlayerSlot(player);
+		var slot = lobby.GetPlayerSlot(player)!;
 		slot.Status = SlotStatus.Ready;
 		lobby.EnqueueState(false);
 

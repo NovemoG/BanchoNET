@@ -30,6 +30,12 @@ public class LobbyTimer
         uint secondsToFinish,
         bool startGame = false)
     {
+        if (startGame && secondsToFinish == 0)
+        {
+            lobby.Chat.SendBotMessage("Good luck, have fun!");
+            lobby.Start();
+        }
+        
         _lobby = lobby;
         _secondsToFinish = secondsToFinish;
         _startGame = startGame;
@@ -75,14 +81,15 @@ public class LobbyTimer
     {
         _secondsToFinish--;
         
-        var secondsLeft = _timerAlerts[_timerAlertIndex];
-        if (_secondsToFinish == secondsLeft)
+        if (_secondsToFinish != 0)
         {
+            var secondsLeft = _timerAlerts[_timerAlertIndex];
+            if (_secondsToFinish != secondsLeft) return;
+            
             _lobby.Chat.SendBotMessage(string.Format(_alertMessage, secondsLeft));
             _timerAlertIndex = Math.Max(_timerAlertIndex++, 8);
+            return;
         }
-        
-        if (_secondsToFinish != 0) return;
         
         if (_startGame)
         {
