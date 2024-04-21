@@ -330,7 +330,7 @@ public partial class CommandProcessor
         if (args.Length == 0)
             return "No referee(s) provided. Use 'mp rmref <username> [<username>] ...'.";
 
-        int count = 0;
+        var count = 0;
         foreach (var username in args)
         {
             var player = await players.GetPlayerOrOffline(username);
@@ -361,7 +361,6 @@ public partial class CommandProcessor
     {
         return $"{string.Join(", ", _lobby.Refs.Select(id => players.GetPlayerOrOffline(id).Result!.Username))}";
     }
-    
     private string CloseLobby(params string[] args)
     {
         return "";
