@@ -9,6 +9,7 @@ namespace BanchoNET.Commands;
 public partial class CommandProcessor
 {
     private MultiplayerLobby _lobby = null!;
+    private readonly List<string> _freemodAliases = ["fm", "freemod", "freemods"];
     
     [Command("mp",
         Privileges.Verified,
@@ -164,9 +165,6 @@ public partial class CommandProcessor
             _lobby.EnqueueState();
             return "Password removed.";
         }
-
-        if (args[0].Length < 4)
-            return "Password must be at least 4 characters long.";
         
         _lobby.Password = args[0];
         _lobby.EnqueueState();
@@ -181,7 +179,6 @@ public partial class CommandProcessor
             return "";
         
         _lobby.IsLocked = true;
-        _lobby.EnqueueState();
         
         return "Locked the lobby.";
     }
@@ -192,14 +189,41 @@ public partial class CommandProcessor
             return "";
         
         _lobby.IsLocked = false;
-        _lobby.EnqueueState();
         
         return "Unlocked the lobby.";
     }
     
     private string SetLobbySize(params string[] args)
     {
-        return "";
+        if (!_lobby.Refs.Contains(_playerCtx.Id))
+            return "";
+        
+        if (args.Length == 0)
+            return $"Not enough parameters provided. Use '{_prefix}mp size <size>'.";
+        
+        var size = args.Length == 1 ? int.Parse(args[0]) : _lobby.Slots.Count(s => s.Status != SlotStatus.Locked);
+        
+        if (size is < 1 or > 16)
+            return "Invalid size provided. Available slots: 1-16.";
+        
+        for (var i = 0; i < size; i++)
+        {
+            var slot = _lobby.Slots[i];
+
+            slot.Status = slot.Status != SlotStatus.Locked ? slot.Status : SlotStatus.Open;
+        }
+
+        for (var i = size - 1; i < _lobby.Slots.Length; i++)
+        {
+            var slot = _lobby.Slots[i];
+            
+            if ((slot.Status & SlotStatus.PlayerInSlot) != 0)
+                slot.Player!.LeaveMatchToLobby(_session.GetChannel("#lobby")!);
+        }
+        
+        _lobby.EnqueueState();
+
+        return $"Changed size to: {size}";
     }
     
     private string SetLobbyProperties(params string[] args)
@@ -212,20 +236,18 @@ public partial class CommandProcessor
         
         var teamMode = int.Parse(args[0]);
         var scoreMode = args.Length > 1 ? int.Parse(args[1]) : (int)_lobby.Type;
-        var size = args.Length > 2 ? int.Parse(args[2]) : _lobby.Slots.Length;
         
-        if (teamMode < 0 || teamMode > 3)
+        if (teamMode is < 0 or > 3)
             return "Invalid team mode provided. Available modes: 0, 1, 2, 3.";
         
-        if (scoreMode < 0 || scoreMode > 3)
+        if (scoreMode is < 0 or > 3)
             return "Invalid score mode provided. Available modes: 0, 1, 2, 3.";
-        
-        if (size < 1 || size > 16)
-            return "Invalid size provided. Available sizes: 1-16.";
 
         _lobby.Type = (LobbyType)teamMode;
         _lobby.WinCondition = (WinCondition)scoreMode;
-        SetLobbySize(args[2]);
+        
+        if (args.Length == 3)
+            SetLobbySize(args[2]);
         
         _lobby.EnqueueState();
         return $"Changed lobby properties to: Team mode: {_lobby.Type}, Score mode: {_lobby.WinCondition}, Size: {args[2]}.";
@@ -385,7 +407,6 @@ public partial class CommandProcessor
         {
             if (ModsMap.Map.TryGetValue(modName.ToLower(), out var modMap))
             {
-                
                 if (modMap == Mods.None)
                 {
                     _lobby.Mods = Mods.None;
@@ -399,32 +420,29 @@ public partial class CommandProcessor
             }
             else if (Enum.TryParse(modName, true, out Mods modParse))
             {
-
-                
                 if (modParse == Mods.None)
                 {
                     _lobby.Mods = Mods.None;
                     break;
                 }
-                
+
                 if (_lobby.Mode != GameMode.VanillaMania)
-                    if (modParse > Mods.Perfect) continue;
+                    if (modParse > Mods.Perfect)
+                        continue;
 
                 result |= modParse;
             }
             else _lobby.Chat.SendBotMessage($"Invalid mod: {modName}");
-
-            if (modName.Equals("fm", StringComparison.CurrentCultureIgnoreCase)
-                || modName.Equals("freemod", StringComparison.CurrentCultureIgnoreCase)
-                || modName.Equals("freemods", StringComparison.CurrentCultureIgnoreCase))
+            
+            if (_freemodAliases.Any(a => a.Equals(modName, StringComparison.CurrentCultureIgnoreCase)))
             {
                 _lobby.Freemods = true;
                 freeMods = true;
             }
         }
         
-        if ((result & (Mods.TouchDevice | Mods.ScoreV2 | Mods.TargetPractice | Mods.LastMod | Mods.Autoplay)) != 0)
-            result &= ~(Mods.TouchDevice | Mods.ScoreV2 | Mods.TargetPractice | Mods.LastMod | Mods.Autoplay);
+        if ((result & Mods.InvalidMods) != 0)
+            result &= ~Mods.InvalidMods;
         
         _lobby.Mods = result;
         _lobby.EnqueueState();

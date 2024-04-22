@@ -38,4 +38,5 @@ public enum Mods
 	Mirror = 2 << 29,
 	
 	SpeedChangingMods = DoubleTime | NightCore | HalfTime,
+	InvalidMods = TouchDevice | ScoreV2 | TargetPractice | LastMod | Autoplay
 }

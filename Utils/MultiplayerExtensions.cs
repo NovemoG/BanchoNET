@@ -81,7 +81,7 @@ public static class MultiplayerExtensions
 	public static void UnreadyPlayers(this MultiplayerLobby lobby, SlotStatus expectedStatus = SlotStatus.Ready)
 	{
 		foreach (var slot in lobby.Slots)
-			if (slot.Status == expectedStatus)
+			if ((slot.Status & expectedStatus) != 0)
 				slot.Status = SlotStatus.NotReady;
 	}
 
@@ -162,8 +162,8 @@ public static class MultiplayerExtensions
 		lobby.InProgress = false;
 		lobby.ResetPlayersLoadedStatuses();
 		
-		lobby.UnreadyPlayers(SlotStatus.Playing);
-		lobby.UnreadyPlayers();
+		lobby.UnreadyPlayers(SlotStatus.Playing | SlotStatus.Ready);
+		//lobby.UnreadyPlayers();
 		
 		using var matchEndPacket = new ServerPackets();
 		matchEndPacket.MatchAbort();
