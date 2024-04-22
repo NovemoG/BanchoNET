@@ -157,7 +157,7 @@ public static class MultiplayerExtensions
 		lobby.EnqueueState();
 	}
 	
-	public static void End(this MultiplayerLobby lobby, bool toLobby = true)
+	public static void End(this MultiplayerLobby lobby)
 	{
 		lobby.InProgress = false;
 		lobby.ResetPlayersLoadedStatuses();
@@ -167,7 +167,7 @@ public static class MultiplayerExtensions
 		
 		using var matchEndPacket = new ServerPackets();
 		matchEndPacket.MatchAbort();
-		lobby.Enqueue(matchEndPacket.GetContent(), null, toLobby);
+		lobby.Enqueue(matchEndPacket.GetContent());
 		lobby.EnqueueState();
 	}
 
