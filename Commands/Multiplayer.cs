@@ -52,7 +52,7 @@ public partial class CommandProcessor
         if (args.Length == 0)
             return $"No parameter(s) provided. Check available options using '{prefix}mp help' or '{prefix}help mp'.";
 
-        if (_playerCtx.Lobby == null && args[0] is not ("help" or "create"))
+        if (_playerCtx.Lobby == null && args[0].ToLower() is not ("help" or "create"))
             return "You're not in a multiplayer lobby. Use 'mp create [<name>] [<password>]' to create one.";
 
         if (_playerCtx.Lobby != null && _playerCtx.Lobby.Chat != _channelCtx)
@@ -65,8 +65,10 @@ public partial class CommandProcessor
             "help" => await Help("mp"),
             "create" => await CreateMultiplayerLobby(args[1..]),
             "invite" => InviteToLobby(args[1..]),
+            "i" => InviteToLobby(args[1..]),
             "name" => ChangeLobbyName(args[1..]),
             "password" => ChangeLobbyPassword(args[1..]),
+            "p" => ChangeLobbyPassword(args[1..]),
             "lock" => LockLobby(),
             "unlock" => UnlockLobby(),
             "size" => SetLobbySize(args[1..]),
@@ -74,13 +76,15 @@ public partial class CommandProcessor
             "move" => MovePlayer(args[1..]),
             "host" => TransferHost(args[1..]),
             "clearhost" => ClearHost(),
-            "abort" => AbortMatch(args[1..]),
+            "ch" => ClearHost(),
+            "abort" => AbortMatch(),
             "team" => MovePlayerToTeam(args[1..]),
             "map" => await ChangeBeatmap(args[1..]),
             "mods" => ChangeMods(args[1..]),
             "start" => StartMatch(args[1..]),
             "timer" => StartTimer(args[1..]),
             "aborttimer" => AbortTimer(),
+            "at" => AbortTimer(),
             "kick" => KickPlayer(args[1..]),
             "ban" => await BanPlayer(args[1..]),
             "addref" => await AddReferee(args[1..]),
@@ -95,16 +99,17 @@ public partial class CommandProcessor
     {
         if (_playerCtx.Lobby != null)
             return "";
-        
+
         var lobby = new MultiplayerLobby
         {
             Name = args.Length == 1 ? args[0] : $"{_playerCtx.Username}'s match",
             Password = args.Length == 2 ? args[1] : "",
             HostId = _playerCtx.Id,
+            CreatorId = _playerCtx.Id,
             Freemods = true,
             BeatmapId = _playerCtx.Status.BeatmapId,
             BeatmapMD5 = _playerCtx.Status.BeatmapMD5,
-            BeatmapName = "",
+            BeatmapName = await beatmaps.GetBeatmapFullName(mapId: _playerCtx.Status.BeatmapId),
             Seed = Random.Shared.Next(),
             Slots =
             {
@@ -201,7 +206,6 @@ public partial class CommandProcessor
         if (args.Length == 0)
             return $"Not enough parameters provided. Use '{_prefix}mp size <size>'.";
         
-        
         if (!int.TryParse(args[0], out var size)) 
             return "Invalid size provided. Available slots: 1-16.";
         
@@ -233,7 +237,6 @@ public partial class CommandProcessor
     
     private string SetLobbyProperties(params string[] args)
     {
-        
         if (!_lobby.Refs.Contains(_playerCtx.Id))
             return "";
         
@@ -247,8 +250,6 @@ public partial class CommandProcessor
         if (args.Length >= 2)
             if (!int.TryParse(args[1], out scoreMode)) 
                 scoreMode = (int)_lobby.WinCondition;
-            
-        
         
         if (teamMode is < 0 or > 3)
             return "Invalid team mode provided. Available modes: 0, 1, 2, 3.";
@@ -292,18 +293,18 @@ public partial class CommandProcessor
             var temp = newSlot.Copy();
             
             newSlot.CopyStatusFrom(oldSlot);
-            oldSlot.CopyStatusFrom(temp);
-            
             newSlot.Status = SlotStatus.NotReady;
+            
+            oldSlot.CopyStatusFrom(temp);
             oldSlot.Status = SlotStatus.NotReady;
-
         }
         else
         {
             newSlot.CopyStatusFrom(oldSlot);
+            newSlot.Status = SlotStatus.NotReady;
+            
             oldSlot.Player = null;
             oldSlot.Status = SlotStatus.Open;
-            newSlot.Status = SlotStatus.NotReady;
         }
         
         _lobby.EnqueueState();
@@ -335,13 +336,14 @@ public partial class CommandProcessor
     {
         if (!_lobby.Refs.Contains(_playerCtx.Id))
             return "";
+        
         _lobby.HostId = -1;
         _lobby.EnqueueState();
         
         return "Removed host.";
     }
     
-    private string AbortMatch(params string[] args)
+    private string AbortMatch()
     {
         if (!_lobby.Refs.Contains(_playerCtx.Id))
             return "";
@@ -368,8 +370,8 @@ public partial class CommandProcessor
         var slot = _lobby.GetPlayerSlot(username: args[0]);
         if (slot == null)
             return $"{args[0]} is not in the lobby.";
-    
-        List<string> availableTeams = new() {"blue", "red"};
+
+        List<string> availableTeams = ["blue", "red"];
         
         if (!availableTeams.Contains(args[1].ToLower()))
             return $"Invalid team provided. Available teams: {string.Join(", ", availableTeams)}";
@@ -384,7 +386,7 @@ public partial class CommandProcessor
         slot.Status = SlotStatus.NotReady;
         _lobby.EnqueueState();
         
-        return $"Moved {args[0]} to {slot.Team} team.";
+        return $"Moved {slot.Player!.Username} to {slot.Team} team.";
     }
     
     private async Task<string> ChangeBeatmap(params string[] args)
@@ -398,7 +400,9 @@ public partial class CommandProcessor
         if (!int.TryParse(args[0], out var beatmapId))
             return "Beatmap not found.";
         
-        var gameMode = args.Length == 2 && int.TryParse(args[1], out var mode) ? (GameMode)mode : GameMode.VanillaStd;
+        var gameMode = args.Length == 2 && int.TryParse(args[1], out var mode)
+            ? (GameMode)mode
+            : GameMode.VanillaStd;
         
         var beatmap = await beatmaps.GetBeatmap(beatmapId);
         if (beatmap == null)
@@ -433,7 +437,8 @@ public partial class CommandProcessor
                 }
                 
                 if (_lobby.Mode != GameMode.VanillaMania)
-                    if (modMap > Mods.Perfect) continue;
+                    if (modMap > Mods.Perfect)
+                        continue;
 
                 result |= modMap;
             }
@@ -489,7 +494,7 @@ public partial class CommandProcessor
         if (_lobby.InProgress)
             return "Match is already in progress.";
         
-        var seconds = args.Length == 0 ? 10 : uint.TryParse(args[0], out var s) ? s : 10;
+        var seconds = args.Length == 0? 10 : uint.TryParse(args[0], out var s) ? s : 10;
         
         //TODO should this overwrite current timer or display this message?
         if (_lobby.Timer != null)
@@ -646,10 +651,17 @@ public partial class CommandProcessor
                 _lobby.Chat.SendBotMessage($"{player.Username} is not a referee.");
                 continue;
             }
+            if (_lobby.CreatorId == player.Id)
+            {
+                _lobby.Chat.SendBotMessage("Can't remove creator of the lobby.");
+                continue;
+            }
+            
             _lobby.Refs.Remove(player.Id);
             count++;
         }
-        Console.WriteLine($"[AddReferee] {_playerCtx.Username} removed {count} players as referee(s). in lobby with id {_lobby.Id}.");
+        
+        Console.WriteLine($"[AddReferee] {_playerCtx.Username} removed {count} players from referees. In lobby with id {_lobby.Id}.");
         return $"Removed {count} players from referees.";
     }
     

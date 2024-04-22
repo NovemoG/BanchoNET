@@ -40,6 +40,7 @@ public static class MultiplayerExtensions
 			Instance = true
 		};
 
+		lobby.Id = Session.GetFreeMatchId();
 		lobby.LobbyId = lobbyId;
 		lobby.Chat = matchChannel; 
 		lobby.Refs.Add(player.Id);
@@ -176,7 +177,6 @@ public static class MultiplayerExtensions
 		lobby.ResetPlayersLoadedStatuses();
 		
 		lobby.UnreadyPlayers(SlotStatus.Playing | SlotStatus.Ready);
-		//lobby.UnreadyPlayers();
 		
 		using var matchEndPacket = new ServerPackets();
 		matchEndPacket.MatchAbort();
@@ -192,6 +192,7 @@ public static class MultiplayerExtensions
 	{
 		lobby.Chat.EnqueueToPlayers(data, immune);
 		
+		//TODO maybe change it to account for players that are in a lobby but not in a lobby channel
 		var lobbyChannel = Session.GetChannel("#lobby")!;
 		if (toLobby && lobbyChannel.Players.Count > 0)
 			lobbyChannel.EnqueueToPlayers(data);

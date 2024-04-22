@@ -10,7 +10,7 @@ public partial class CommandProcessor
         Privileges.Staff,
         "Reloads given collection/configuration. Syntax: reload <collection>",
         "\nAvailable options: commands",
-        ["r"])]
+        ["rl"])]
     private Task<string> Reload(params string[] args)
     {
         if (args.Length == 0)

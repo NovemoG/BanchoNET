@@ -1,6 +1,7 @@
 ﻿using BanchoNET.Models;
 using BanchoNET.Models.Dtos;
 using BanchoNET.Objects.Beatmaps;
+using BanchoNET.Utils;
 using Microsoft.EntityFrameworkCore;
 
 namespace BanchoNET.Services.Repositories;
@@ -12,7 +13,7 @@ public class BeatmapsRepository(BanchoDbContext dbContext, BeatmapHandler beatma
 	/// <summary>
 	/// Updates Playcount and Passcount of a beatmap in database
 	/// </summary>
-	/// <param name="beatmap"></param>
+	/// <param name="beatmap">Beatmap for which to update stats</param>
 	public async Task UpdateBeatmapStats(Beatmap beatmap)
 	{
 		await dbContext.Beatmaps.Where(b => b.MapId == beatmap.MapId)
@@ -57,6 +58,13 @@ public class BeatmapsRepository(BanchoDbContext dbContext, BeatmapHandler beatma
 			
 		return await dbContext.Beatmaps.Where(b => b.MapId == beatmapId)
 				.ExecuteUpdateAsync(p => p.SetProperty(b => b.Status, (int)targetStatus));
+	}
+
+	public async Task<string> GetBeatmapFullName(int mapId = -1, string beatmapMD5 = "")
+	{
+		var map = await GetBeatmap(mapId: mapId, beatmapMD5: beatmapMD5);
+		
+		return map == null ? "" : map.FullName();
 	}
 	
 	public async Task<Beatmap?> GetBeatmap(int mapId = -1, int setId = -1, string beatmapMD5 = "")

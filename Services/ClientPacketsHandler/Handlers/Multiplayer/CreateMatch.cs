@@ -10,7 +10,7 @@ public partial class ClientPacketsHandler
 	private async Task CreateMatch(Player player, BinaryReader br)
 	{
 		var matchData = br.ReadOsuMatch();
-		matchData.Id = _session.GetFreeMatchId();
+		matchData.CreatorId = matchData.HostId;
 		
 		if (player.Restricted)
 		{

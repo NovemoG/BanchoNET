@@ -58,7 +58,7 @@ public static class PlayerExtensions
 		player.Enqueue(messagePacket.GetContent());
 	}
 
-	public static void SendBotMessage(this Player player, string message)
+	public static void SendBotMessage(this Player player, string message, string destination = "")
 	{
 		var bot = Session.BanchoBot;
 		
@@ -67,7 +67,7 @@ public static class PlayerExtensions
 		{
 			Sender = bot.Username,
 			Content = message,
-			Destination = player.Username,
+			Destination = string.IsNullOrEmpty(destination) ? player.Username : destination,
 			SenderId = bot.Id
 		});
 		player.Enqueue(messagePacket.GetContent());
@@ -173,8 +173,8 @@ public static class PlayerExtensions
 				firstOccupiedSlot.Player.Enqueue(matchTransferPacket.GetContent());
 			}
 
-			if (lobby.Refs.Remove(player.Id))
-				lobby.Chat.SendBotMessage($"{player.Username} removed from match referees.");
+			if (lobby.CreatorId != player.Id && lobby.Refs.Remove(player.Id))
+				lobby.Chat.SendBotMessage($"Removed {player.Username} from match referees.");
 			
 			lobby.EnqueueState();
 		}

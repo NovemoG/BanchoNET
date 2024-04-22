@@ -158,7 +158,7 @@ public partial class OsuController
                     && (score.Misses > 0 || beatmap.MaxCombo - score.MaxCombo > 15))
                 {
                     var fcPP = AkatsukiPpMethods.ComputeNoMissesScorePp(
-                        Storage.GetBeatmapPath(beatmap.MapId),
+                        beatmap.MapId,
                         score,
                         beatmap.MaxCombo);
 					
@@ -176,7 +176,7 @@ public partial class OsuController
         }
         
         score.Player = player;
-        await scores.InsertScore(score, beatmap.MD5, player);
+        player.RecentScore = await scores.InsertScore(score, beatmap.MD5, player);
 
         if (score.Passed)
         {

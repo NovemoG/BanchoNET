@@ -1,6 +1,7 @@
 ﻿using BanchoNET.Models.Dtos;
 using BanchoNET.Objects.Channels;
 using BanchoNET.Objects.Multiplayer;
+using BanchoNET.Objects.Scores;
 using BanchoNET.Packets;
 using BanchoNET.Utils;
 using static BanchoNET.Objects.Privileges.Privileges;
@@ -44,6 +45,7 @@ public class Player
 	public List<Player> Spectators { get; }
 	
 	public LastNp? LastNp { get; set; }
+	public Score? RecentScore { get; set; }
 	
 	//public Club Club { get; set; }
 	//public int ClubPrivileges { get; set; }

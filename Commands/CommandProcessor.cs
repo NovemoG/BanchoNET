@@ -11,6 +11,7 @@ public partial class CommandProcessor(
     ScoresRepository scores,
     PlayersRepository players,
     BeatmapsRepository beatmaps,
+    BeatmapHandler beatmapHandler,
     MultiplayerRepository multiplayer)
 {
     private readonly string _prefix = AppSettings.CommandPrefix;

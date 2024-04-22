@@ -13,7 +13,7 @@ public class ScoresRepository(BanchoDbContext dbContext)
 {
     private static bool OrderByPp(GameMode mode) => mode >= GameMode.RelaxStd || AppSettings.SortLeaderboardByPP;
 	
-    public async Task InsertScore(Score score, string beatmapMD5, Player player)
+    public async Task<Score> InsertScore(Score score, string beatmapMD5, Player player)
     {
         var dbScore = await dbContext.Scores.AddAsync(new ScoreDto
         {
@@ -43,17 +43,24 @@ public class ScoresRepository(BanchoDbContext dbContext)
         await dbContext.SaveChangesAsync();
 
         score.Id = dbScore.Entity.Id;
+
+        return new Score(dbScore.Entity);
     }
 
-    public async Task<Score?> GetScore(string checksum)
+    public async Task<ScoreDto?> GetScore(string checksum)
     {
         if (!string.IsNullOrEmpty(checksum))
-        {
-            var score = await dbContext.Scores.FirstOrDefaultAsync(s => s.OnlineChecksum == checksum);
-            return score == null ? null : new Score(score);
-        }
+            return await dbContext.Scores.FirstOrDefaultAsync(s => s.OnlineChecksum == checksum);
 
         return null;
+    }
+
+    public async Task<Score?> GetPlayerRecentScore(int playerId)
+    {
+        var score = await dbContext.Scores.OrderByDescending(s => s.PlayTime)
+            .FirstOrDefaultAsync(s => s.PlayerId == playerId);
+
+        return score == null ? null : new Score(score);
     }
 
     public async Task SetScoresStatuses(Score? previousScore, Score? previousWithMods)

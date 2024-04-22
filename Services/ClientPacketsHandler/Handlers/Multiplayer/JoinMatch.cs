@@ -45,6 +45,7 @@ public partial class ClientPacketsHandler
 		player.LastActivityTime = DateTime.Now;
 		player.JoinMatch(lobby, password);
 
+		player.SendBotMessage($"Match created by {player.Username} {lobby.MPLinkEmbed()}", "#multiplayer");
 		return Task.CompletedTask;
 	}
 }
