@@ -5,12 +5,12 @@ namespace BanchoNET.Controllers.OsuApi;
 
 public partial class OsuController
 {
-	[HttpGet("/web/osu-getfriends.php")]
+	[HttpGet("osu-getfriends.php")]
 	public async Task<IActionResult> BanchoHttpHandler(
 		[FromQuery(Name = "u")] string username,
 		[FromQuery(Name = "h")] string passwordMD5)
 	{
-		var player = await _bancho.GetPlayerFromLogin(username, passwordMD5);
+		var player = await players.GetPlayerFromLogin(username, passwordMD5);
 		if (player == null)
 			return Unauthorized("auth fail");
 		

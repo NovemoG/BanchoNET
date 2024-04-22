@@ -7,7 +7,6 @@ public enum Privileges
 	Unrestricted = 1 << 0,
 	Verified = 1 << 1,
 	Supporter = 1 << 2,
-	Alumni = 1 << 3,
 	TourneyManager = 1 << 4,
 	Nominator = 1 << 5,
 	Moderator = 1 << 6,

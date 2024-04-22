@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.Reflection;
 
 namespace BanchoNET.Utils;
 
@@ -8,93 +9,104 @@ public static class AppSettings
     {
         Domain = Environment.GetEnvironmentVariable("DOMAIN")!;
         
-        var banchoNetVersion = Environment.GetEnvironmentVariable("BANCHONET_VERSION");
+        var dataPath = Environment.GetEnvironmentVariable("DATA_PATH");
+        DataPath = string.IsNullOrEmpty(dataPath)
+            ? "/home/user/BanchoNET/.data"
+            : dataPath;
+        
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!)
+            .AddJsonFile("appsettings.json")
+            .AddJsonFile("appsettings.Development.json", true)
+            .Build();
+        
+        var banchoNetVersion = configuration["Config:BanchoNETVersion"];
         BanchoNETVersion = string.IsNullOrEmpty(banchoNetVersion)
-            ? "0.2"
+            ? "0.6"
             : banchoNetVersion;
         
-        var disallowOldClients = Environment.GetEnvironmentVariable("DISALLOW_OLD_CLIENTS");
+        var disallowOldClients = configuration["Config:DisallowOldClients"];
         DisallowOldClients = string.IsNullOrEmpty(disallowOldClients)
                              || bool.Parse(disallowOldClients);
         
-        var sortLeaderboardByPP = Environment.GetEnvironmentVariable("SORT_LEADERBOARD_BY_PP");
-        SortLeaderboardByPP = string.IsNullOrEmpty(sortLeaderboardByPP)
-                              || bool.Parse(sortLeaderboardByPP);
-        
-        var scoresOnLeaderboard = Environment.GetEnvironmentVariable("SCORES_ON_LEADERBOARD");
-        ScoresOnLeaderboard = string.IsNullOrEmpty(scoresOnLeaderboard)
-            ? 50
-            : int.Parse(scoresOnLeaderboard);
-        
-        var submitByPP = Environment.GetEnvironmentVariable("SUBMIT_BY_PP");
-        SubmitByPP = string.IsNullOrEmpty(submitByPP)
-                     || bool.Parse(submitByPP);
-
-        var scoreInNotification = Environment.GetEnvironmentVariable("DISPLAY_SCORE_IN_NOTIFICATION");
-        DisplayScoreInNotification = string.IsNullOrEmpty(scoreInNotification)
-                                     || bool.Parse(scoreInNotification);
-	    
-        var ppInNotification = Environment.GetEnvironmentVariable("DISPLAY_PP_IN_NOTIFICATION");
-        DisplayPPInNotification = string.IsNullOrEmpty(ppInNotification)
-                                  || bool.Parse(ppInNotification);
-        
-        var menuIconUrl = Environment.GetEnvironmentVariable("MENU_ICON_URL");
-        MenuIconUrl = string.IsNullOrEmpty(menuIconUrl)
-            ? ""
-            : menuIconUrl;
-        
-        var menuOnclickUrl = Environment.GetEnvironmentVariable("MENU_ONCLICK_URL");
-        MenuOnclickUrl = string.IsNullOrEmpty(menuOnclickUrl)
-            ? ""
-            : menuOnclickUrl;
-
-        var banchoBotName = Environment.GetEnvironmentVariable("BANCHO_BOT_NAME");
+        var banchoBotName = configuration["Config:BanchoBotName"];
         BanchoBotName = string.IsNullOrEmpty(banchoBotName)
             ? "Bancho Bot"
             : banchoBotName;
-        
-        var disallowedNames = Environment.GetEnvironmentVariable("DISALLOWED_NAMES");
+
+        var disallowedNames = configuration["Config:DisallowedNames"];
         DisallowedNames = ImmutableList.Create(string.IsNullOrEmpty(disallowedNames)
-            ? ["vaxei,mrekk,cookiezi"]
-            : disallowedNames.Split(","));
-
-        var searchEndpoints = Environment.GetEnvironmentVariable("OSU_DIRECT_SEARCH_ENDPOINTS");
-        OsuDirectSearchEndpoints = ImmutableList.Create(string.IsNullOrEmpty(searchEndpoints)
-            ? ["https://osu.direct/api/search"]
-            : searchEndpoints.Split(","));
-
-        var downloadEndpoint = Environment.GetEnvironmentVariable("OSU_DIRECT_DOWNLOAD_ENDPOINT");
-        OsuDirectDownloadEndpoint = string.IsNullOrEmpty(downloadEndpoint)
-            ? "https://osu.direct/d"
-            : downloadEndpoint;
+            ? [""]
+            : disallowedNames.ToLower().Split(","));
         
         //TODO make it more customizable (use string.Format or something to allow usage of some variables)
-        var welcomeMessage = Environment.GetEnvironmentVariable("WELCOME_MESSAGE");
+        var welcomeMessage = configuration["Config:WelcomeMessage"];
         WelcomeMessage = string.IsNullOrEmpty(welcomeMessage)
-            ? $"Welcome to {Domain}!"
+            ? $"Welcome to {Domain}!\nRunning BanchoNET v{BanchoNETVersion}"
             : welcomeMessage;
         
-        var firstLoginMessage = Environment.GetEnvironmentVariable("FIRST_LOGIN_MESSAGE");
+        var firstLoginMessage = configuration["Config:FirstLoginMessage"];
         FirstLoginMessage = string.IsNullOrEmpty(firstLoginMessage)
             ? $"Welcome to {Domain}!"
             : firstLoginMessage;
         
-        var restrictedMessage = Environment.GetEnvironmentVariable("RESTRICTED_MESSAGE");
+        var restrictedMessage = configuration["Config:RestrictedMessage"];
         RestrictedMessage = string.IsNullOrEmpty(restrictedMessage)
-            ? "You've been restricted. You can't access any online features on this server until restrictions are lifted. Please contact support for more information"
+            ? "You've been restricted. You can't access any online features on this server until restrictions are lifted.\nPlease contact support for more information"
             : restrictedMessage;
+        
+        var sortLeaderboardByPP = configuration["Config:SortLeaderboardByPP"];
+        SortLeaderboardByPP = string.IsNullOrEmpty(sortLeaderboardByPP)
+                              || bool.Parse(sortLeaderboardByPP);
+        
+        var scoresOnLeaderboard = configuration["Config:ScoresOnLeaderboard"];
+        ScoresOnLeaderboard = string.IsNullOrEmpty(scoresOnLeaderboard)
+            ? 50
+            : int.Parse(scoresOnLeaderboard);
+        
+        var submitByPP = configuration["Config:SubmitByPP"];
+        SubmitByPP = string.IsNullOrEmpty(submitByPP)
+                     || bool.Parse(submitByPP);
 
-        var versionFetchHours = Environment.GetEnvironmentVariable("VERSION_FETCH_HOURS_DELAY");
+        var ppInNotification = configuration["Config:DisplayPPInNotification"];
+        DisplayPPInNotification = string.IsNullOrEmpty(ppInNotification)
+                                  || bool.Parse(ppInNotification);
+        
+        var scoreInNotification = configuration["Config:DisplayScoreInNotification"];
+        DisplayScoreInNotification = string.IsNullOrEmpty(scoreInNotification)
+                                     || bool.Parse(scoreInNotification);
+        
+        var menuIconUrl = configuration["Config:DisplayScoreInNotification"];
+        MenuIconUrl = string.IsNullOrEmpty(menuIconUrl)
+            ? ""
+            : menuIconUrl;
+        
+        var menuOnclickUrl = configuration["Config:DisplayScoreInNotification"];
+        MenuOnclickUrl = string.IsNullOrEmpty(menuOnclickUrl)
+            ? ""
+            : menuOnclickUrl;
+
+        var searchEndpoints = configuration["Config:OsuDirectSearchEndpoints"];
+        OsuDirectSearchEndpoints = ImmutableList.Create(string.IsNullOrEmpty(searchEndpoints)
+            ? ["https://osu.direct/api/search"]
+            : searchEndpoints.Split(","));
+
+        var downloadEndpoint = configuration["Config:OsuDirectDownloadEndpoint"];
+        OsuDirectDownloadEndpoint = string.IsNullOrEmpty(downloadEndpoint)
+            ? "https://osu.direct/d"
+            : downloadEndpoint;
+
+        var commandPrefix = configuration["Config:CommandPrefix"];
+        CommandPrefix = string.IsNullOrEmpty(commandPrefix)
+            ? "!"
+            : commandPrefix;
+        
+        var versionFetchHours = configuration["Config:VersionFetchHoursDelay"];
         VersionFetchHoursDelay = string.IsNullOrEmpty(versionFetchHours)
             ? 1
             : int.Parse(versionFetchHours);
 
-        var commandPrefix = Environment.GetEnvironmentVariable("COMMAND_PREFIX");
-        CommandPrefix = string.IsNullOrEmpty(commandPrefix)
-            ? "!"
-            : commandPrefix;
-
-        var osuApiKey = Environment.GetEnvironmentVariable("OSU_API_KEY");
+        var osuApiKey = configuration["Config:OsuApiKey"];
         OsuApiKey = string.IsNullOrEmpty(osuApiKey)
             ? ""
             : osuApiKey;
@@ -110,6 +122,7 @@ public static class AppSettings
     public static readonly bool DisplayScoreInNotification;
     public static readonly string MenuIconUrl;
     public static readonly string MenuOnclickUrl;
+    public static readonly string DataPath;
     public static readonly string BanchoBotName;
     public static readonly ImmutableList<string> DisallowedNames;
     public static readonly ImmutableList<string> OsuDirectSearchEndpoints;

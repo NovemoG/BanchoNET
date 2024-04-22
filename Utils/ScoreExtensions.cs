@@ -1,6 +1,7 @@
 ﻿using AkatsukiPp;
 using BanchoNET.Models.Dtos;
 using BanchoNET.Objects;
+using BanchoNET.Objects.Beatmaps;
 using BanchoNET.Objects.Scores;
 
 namespace BanchoNET.Utils;
@@ -108,6 +109,12 @@ public static class ScoreExtensions
         return acc;
     }
 
+    public static float CalculateCompletion(this Score score, Beatmap beatmap)
+    {
+        return (float)(score.Count300 + score.Count100 + score.Count50 + score.Misses)
+            / (beatmap.NotesCount + beatmap.SlidersCount + beatmap.SpinnersCount) * 100f;
+    }
+
     public static void CalculatePerformance(this Score score, int beatmapId)
     {
         if (score.Mods.HasMod(Mods.NightCore))
@@ -203,5 +210,21 @@ public static class ScoreExtensions
                     prevBestWithMods.Status = SubmissionStatus.Submitted;
             }
         }
+    }
+
+    public static string ModeToString(this Score score)
+    {
+        return score.Mode switch
+        {
+            GameMode.VanillaStd => "vn!std",
+            GameMode.VanillaTaiko => "vn!taiko",
+            GameMode.VanillaCatch => "vn!catch",
+            GameMode.VanillaMania => "vn!mania",
+            GameMode.RelaxStd => "rx!std",
+            GameMode.RelaxTaiko => "rx!taiko",
+            GameMode.RelaxCatch => "rx!catch",
+            GameMode.AutopilotStd => "ap!std",
+            _ => throw new ArgumentOutOfRangeException($"Invalid score mode? ({score.Mode})")
+        };
     }
 }

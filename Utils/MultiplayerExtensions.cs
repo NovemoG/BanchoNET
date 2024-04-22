@@ -1,4 +1,5 @@
 ﻿using BanchoNET.Objects;
+using BanchoNET.Objects.Channels;
 using BanchoNET.Objects.Multiplayer;
 using BanchoNET.Objects.Players;
 using BanchoNET.Packets;
@@ -8,9 +9,7 @@ namespace BanchoNET.Utils;
 
 public static class MultiplayerExtensions
 {
-	public static readonly int[] StartTimerAlerts = [
-		60, 30, 15, 10, 5, 4, 3, 2, 1
-	];
+	private static readonly BanchoSession Session = BanchoSession.Instance;
 	
 	public static string MPLinkEmbed(this MultiplayerLobby lobby)
 	{
@@ -31,6 +30,45 @@ public static class MultiplayerExtensions
 	{
 		return $"https://osu.{AppSettings.Domain}/b/{lobby.BeatmapId} {lobby.BeatmapName}";
 	}
+
+	public static void CreateLobby(MultiplayerLobby lobby, Player player, int lobbyId)
+	{
+		var matchChannel = new Channel($"#multi_{lobby.Id}")
+		{
+			Description = "This multiplayer's channel.",
+			AutoJoin = false,
+			Instance = true
+		};
+
+		lobby.Id = Session.GetFreeMatchId();
+		lobby.LobbyId = lobbyId;
+		lobby.Chat = matchChannel; 
+		lobby.Refs.Add(player.Id);
+		
+		Session.InsertLobby(lobby);
+		Session.InsertChannel(matchChannel);
+
+		player.JoinMatch(lobby, lobby.Password);
+		
+		matchChannel.SendBotMessage($"Match created by {player.Username} {lobby.MPLinkEmbed()}");
+		Console.WriteLine($"[CreateMatch] {player.Username} created a match with ID {lobby.LobbyId}, in-game ID: {lobby.Id}.");
+	}
+	
+	public static void InviteToLobby(Player player, Player? target)
+	{
+		if (target == null) return;
+		if (target.IsBot)
+		{
+			player.SendBotMessage("I'm too busy right now! Maybe later \ud83d\udc7c");
+			return;
+		}
+
+		using var invitePacket = new ServerPackets();
+		invitePacket.MatchInvite(player, target.Username);
+		target.Enqueue(invitePacket.GetContent());
+		
+		Console.WriteLine($"[MatchInvite] {player.Username} invited {target.Username} to their match.");
+	}
 	
 	public static void ResetPlayersLoadedStatuses(this MultiplayerLobby lobby)
 	{
@@ -44,7 +82,7 @@ public static class MultiplayerExtensions
 	public static void UnreadyPlayers(this MultiplayerLobby lobby, SlotStatus expectedStatus = SlotStatus.Ready)
 	{
 		foreach (var slot in lobby.Slots)
-			if (slot.Status == expectedStatus)
+			if ((slot.Status & expectedStatus) != 0)
 				slot.Status = SlotStatus.NotReady;
 	}
 
@@ -65,15 +103,34 @@ public static class MultiplayerExtensions
 		slot.Team = other.Team;
 		slot.Mods = other.Mods;
 	}
+	
+	public static MultiplayerSlot Copy(this MultiplayerSlot slot)
+	{
+		return new MultiplayerSlot
+		{
+			Player = slot.Player,
+			Status = slot.Status,
+			Team = slot.Team,
+			Mods = slot.Mods,
+			Loaded = slot.Loaded,
+			Skipped = slot.Skipped
+		};
+	}
 
 	public static MultiplayerSlot GetHostSlot(this MultiplayerLobby lobby)
 	{
 		return lobby.Slots.First(s => s.Player?.Id == lobby.HostId);
 	}
-
-	public static MultiplayerSlot GetPlayerSlot(this MultiplayerLobby lobby, Player player)
+	
+	public static MultiplayerSlot? GetPlayerSlot(this MultiplayerLobby lobby, Player player)
 	{
-		return lobby.Slots.First(s => s.Player == player);
+		return lobby.Slots.FirstOrDefault(s => s.Player == player);
+	}
+	
+	public static MultiplayerSlot? GetPlayerSlot(this MultiplayerLobby lobby, string username)
+	{
+		return lobby.Slots.FirstOrDefault(s =>
+			s.Player != null && s.Player.Username.Equals(username, StringComparison.CurrentCultureIgnoreCase));
 	}
 
 	public static int GetPlayerSlotId(this MultiplayerLobby lobby, Player player)
@@ -83,6 +140,13 @@ public static class MultiplayerExtensions
 				return i;
 
 		return -1;
+	}
+	
+	public static void ReadyAllPlayers(this MultiplayerLobby lobby)
+	{
+		foreach (var slot in lobby.Slots)
+			if (slot.Status == SlotStatus.NotReady)
+				slot.Status = SlotStatus.Ready;
 	}
 
 	public static void Start(this MultiplayerLobby lobby)
@@ -106,6 +170,19 @@ public static class MultiplayerExtensions
 		lobby.Enqueue(matchStartPacket.GetContent(), noMapPlayerIds, false);
 		lobby.EnqueueState();
 	}
+	
+	public static void End(this MultiplayerLobby lobby)
+	{
+		lobby.InProgress = false;
+		lobby.ResetPlayersLoadedStatuses();
+		
+		lobby.UnreadyPlayers(SlotStatus.Playing | SlotStatus.Ready);
+		
+		using var matchEndPacket = new ServerPackets();
+		matchEndPacket.MatchAbort();
+		lobby.Enqueue(matchEndPacket.GetContent());
+		lobby.EnqueueState();
+	}
 
 	public static void Enqueue(
 		this MultiplayerLobby lobby,
@@ -115,7 +192,8 @@ public static class MultiplayerExtensions
 	{
 		lobby.Chat.EnqueueToPlayers(data, immune);
 		
-		var lobbyChannel = BanchoSession.Instance.GetChannel("#lobby")!;
+		//TODO maybe change it to account for players that are in a lobby but not in a lobby channel
+		var lobbyChannel = Session.GetChannel("#lobby")!;
 		if (toLobby && lobbyChannel.Players.Count > 0)
 			lobbyChannel.EnqueueToPlayers(data);
 	}
@@ -128,7 +206,7 @@ public static class MultiplayerExtensions
 			lobby.Chat.EnqueueToPlayers(updatePacket.GetContent());
 		}
 		
-		var lobbyChannel = BanchoSession.Instance.GetChannel("#lobby")!;
+		var lobbyChannel = Session.GetChannel("#lobby")!;
 		if (toLobby && lobbyChannel.Players.Count > 0)
 		{
 			using var updatePacket = new ServerPackets();

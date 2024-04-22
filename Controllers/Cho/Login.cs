@@ -40,16 +40,16 @@ public partial class ChoController
 			responseData.PlayerId(-5);
 			return responseData.GetContentResult();
 		}
-
-		if (AppSettings.DisallowOldClients)
+		
+		if (!AppSettings.DisallowOldClients)
 		{
 			var clientStream = loginData.OsuVersion.Stream;
 			if (clientStream is "stable" or "beta") clientStream += "40";
 			
 			//TODO this changelog doesnt provide version info for tourney/dev client
 			
-			Console.WriteLine($"[Login] Login osu version: {loginData.OsuVersion.Date}, server osu version: {_version.GetLatestVersion(clientStream).Date}");
-			if (loginData.OsuVersion > _version.GetLatestVersion(clientStream))
+			Console.WriteLine($"[Login] Login osu version: {loginData.OsuVersion.Date}, server osu version: {version.GetLatestVersion(clientStream).Date}");
+			if (loginData.OsuVersion > version.GetLatestVersion(clientStream))
 			{
 				Response.Headers["cho-token"] = "client-too-old";
                 
@@ -90,7 +90,7 @@ public partial class ChoController
 			_session.LogoutPlayer(player);
 		}
 		
-		var userInfo = await _bancho.FetchPlayerInfo(loginName: loginData.Username);
+		var userInfo = await players.FetchPlayerInfo(loginName: loginData.Username);
 		if (userInfo == null)
 		{
 			Response.Headers["cho-token"] = "unknown-username";
@@ -123,13 +123,13 @@ public partial class ChoController
 			return responseData.GetContentResult();
 		}
 
-		await _bancho.InsertLoginData(
+		await client.InsertLoginData(
 			userInfo.Id,
-			_geoloc.GetIp(Request.Headers),
+			geoloc.GetIp(Request.Headers),
 			loginData.OsuVersion.Date,
 			loginData.OsuVersion.Stream);
 
-		var bannedUsersHashes = await _bancho.TryInsertClientHashes(userInfo.Id,
+		var bannedUsersHashes = await client.TryInsertClientHashes(userInfo.Id,
 			loginData.OsuPathMD5,
 			loginData.AdaptersMD5,
 			loginData.UninstallMD5,
@@ -153,8 +153,8 @@ public partial class ChoController
 		}
 		//TODO assign club
 		
-		var geoloc = await _geoloc.GetGeoloc(Request.Headers);
-		if (geoloc == null)
+		var geoloc1 = await geoloc.GetGeoloc(Request.Headers);
+		if (geoloc1 == null)
 		{
 			Response.Headers["cho-token"] = "login-failed";
 			
@@ -166,7 +166,7 @@ public partial class ChoController
 		
 		player = new Player(userInfo, Guid.NewGuid(), DateTime.Now, loginData.TimeZone)
 		{
-			Geoloc = geoloc.Value,
+			Geoloc = geoloc1.Value,
 			ClientDetails = new ClientDetails
 			{
 				OsuVersion = loginData.OsuVersion,
@@ -175,12 +175,12 @@ public partial class ChoController
 				UninstallMD5 = loginData.UninstallMD5,
 				DiskSignatureMD5 = loginData.DiskSignatureMD5,
 				Adapters = loginData.AdaptersString.Split('.')[..^1].ToList(),
-				IpAddress = _geoloc.GetIp(Request.Headers)
+				IpAddress = geoloc.GetIp(Request.Headers)
 			}
 		};
 
 		if (userInfo.Country == "xx")
-			await _bancho.UpdatePlayerCountry(player, geoloc.Value.Country.Acronym);
+			await players.UpdatePlayerCountry(player, geoloc1.Value.Country.Acronym);
 		
 		using var loginPackets = new ServerPackets();
 
@@ -214,8 +214,8 @@ public partial class ChoController
 		
 		loginPackets.MainMenuIcon(AppSettings.MenuIconUrl, AppSettings.MenuOnclickUrl);
 		
-		await _bancho.FetchPlayerStats(player);
-		await _bancho.FetchPlayerRelationships(player);
+		await players.FetchPlayerStats(player);
+		await players.FetchPlayerRelationships(player);
 
 		loginPackets.FriendsList(player.Friends);
 		loginPackets.SilenceEnd(player.RemainingSilence);
@@ -231,7 +231,7 @@ public partial class ChoController
 			
 			if (!player.Privileges.HasPrivilege(Privileges.Verified))
 			{
-				await _bancho.AddPlayerPrivileges(player, Privileges.Verified);
+				await players.ModifyPlayerPrivileges(player, Privileges.Verified, false);
 
 				loginPackets.SendMessage(new Message
 				{

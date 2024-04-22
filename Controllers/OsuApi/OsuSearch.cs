@@ -8,7 +8,7 @@ namespace BanchoNET.Controllers.OsuApi;
 
 public partial class OsuController
 {
-    [HttpGet("/web/osu-search.php")]
+    [HttpGet("osu-search.php")]
     public async Task<IActionResult> OsuSearch(
         [FromQuery(Name = "u")] string username,
         [FromQuery(Name = "h")] string passwordMD5,
@@ -17,7 +17,7 @@ public partial class OsuController
         [FromQuery(Name = "m")] int mode,
         [FromQuery(Name = "p")] int pageNumber)
     {
-        if (await _bancho.GetPlayerFromLogin(username, passwordMD5) == null)
+        if (await players.GetPlayerFromLogin(username, passwordMD5) == null)
             return Unauthorized("auth fail");
         
         var parameters = HttpUtility.ParseQueryString(string.Empty); //TODO might change if direct suddenly stops working
@@ -47,7 +47,7 @@ public partial class OsuController
             
             Console.WriteLine($"osu!direct request uri: {uriBuilder.Uri}");
 
-            var response = await _httpClient.GetAsync(uriBuilder.Uri);
+            var response = await httpClient.GetAsync(uriBuilder.Uri);
 
             responseJson = await response.Content.ReadAsStringAsync();
             statusCode = (int)response.StatusCode;
@@ -77,6 +77,7 @@ public partial class OsuController
             var beatmapsString = mapset.Beatmaps.Aggregate("",
                 (current, map) => current + $"{map.DiffName.Replace('|', 'I')} [{map.DifficultyRating:F2}⭐]@{map.Mode},")[..^1];
             
+            //TODO replace 10.0 with actual rating
             returnResponse.Add($"{mapset.SetId}.osz|{mapset.Artist}|{mapset.Title}|{mapset.Creator}|{mapset.RankedStatus}|10.0|{mapset.LastUpdate}|{mapset.SetId}|0|{hasVideo}|0|0|0|{beatmapsString}");
         }
         

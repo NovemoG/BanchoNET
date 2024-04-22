@@ -32,6 +32,12 @@ public static class PlayerExtensions
 
 		return (ClientPrivileges)retPriv;
 	}
+	
+	public static bool CanUseCommand(this Player player, Privileges requiredPrivileges)
+	{
+		return player.Privileges.HasAnyPrivilege(requiredPrivileges) &&
+		       player.Privileges.CompareHighestPrivileges(requiredPrivileges);
+	}
 
 	/// <summary>
 	/// Sends a message directly to this player. If channel is provided, it will be sent to that channel instead.
@@ -52,7 +58,7 @@ public static class PlayerExtensions
 		player.Enqueue(messagePacket.GetContent());
 	}
 
-	public static void SendBotMessage(this Player player, string message)
+	public static void SendBotMessage(this Player player, string message, string destination = "")
 	{
 		var bot = Session.BanchoBot;
 		
@@ -61,7 +67,7 @@ public static class PlayerExtensions
 		{
 			Sender = bot.Username,
 			Content = message,
-			Destination = player.Username,
+			Destination = string.IsNullOrEmpty(destination) ? player.Username : destination,
 			SenderId = bot.Id
 		});
 		player.Enqueue(messagePacket.GetContent());
@@ -147,7 +153,7 @@ public static class PlayerExtensions
 		{
 			Console.WriteLine($"[PlayerExtensions] Match \"{lobby.Name}\" is empty, removing.");
 
-			lobby.StartTimer?.Stop();
+			lobby.Timer?.Stop();
 
 			Session.RemoveLobby(lobby);
 
@@ -167,13 +173,20 @@ public static class PlayerExtensions
 				firstOccupiedSlot.Player.Enqueue(matchTransferPacket.GetContent());
 			}
 
-			if (lobby.Refs.Remove(player.Id))
-				lobby.Chat.SendBotMessage($"{player.Username} removed from match referees.");
+			if (lobby.CreatorId != player.Id && lobby.Refs.Remove(player.Id))
+				lobby.Chat.SendBotMessage($"Removed {player.Username} from match referees.");
 			
 			lobby.EnqueueState();
 		}
 
 		player.Lobby = null;
+	}
+
+	public static void LeaveMatchToLobby(this Player player, Channel lobbyChannel)
+	{
+		player.JoinLobby();
+		player.JoinChannel(lobbyChannel);
+		player.LeaveMatch();
 	}
 
 	public static void AddSpectator(this Player host, Player target)
@@ -257,6 +270,18 @@ public static class PlayerExtensions
 	public static bool BlockedByPlayer(this Player player, int targetId)
 	{
 		return player.Blocked.Contains(targetId);
+	}
+
+	public static void JoinLobby(this Player player)
+	{
+		player.InLobby = true;
+
+		foreach (var lobby in Session.Lobbies)
+		{
+			using var newMatchPacket = new ServerPackets();
+			newMatchPacket.NewMatch(lobby);
+			player.Enqueue(newMatchPacket.GetContent());
+		}
 	}
 
 	public static bool JoinChannel(this Player player, Channel channel)

@@ -1,11 +1,12 @@
 ﻿using System.Net;
+using BanchoNET.Models;
 using BanchoNET.Models.Dtos;
 using BanchoNET.Objects.Privileges;
 using Microsoft.EntityFrameworkCore;
 
-namespace BanchoNET.Services;
+namespace BanchoNET.Services.Repositories;
 
-public partial class BanchoHandler
+public class ClientRepository(BanchoDbContext dbContext)
 {
 	public async Task InsertLoginData(
 		int playerId,
@@ -13,7 +14,7 @@ public partial class BanchoHandler
 		DateTime osuVersion,
 		string stream)
 	{
-		var storedLogin = await _dbContext.PlayerLogins
+		var storedLogin = await dbContext.PlayerLogins
               .FirstOrDefaultAsync(pl => 
                   pl.PlayerId == playerId && 
                   pl.Ip == ip.ToString());
@@ -23,11 +24,11 @@ public partial class BanchoHandler
 			storedLogin.OsuVersion = osuVersion;
 			storedLogin.ReleaseStream = stream;
 			storedLogin.LoginTime = DateTime.Now;
-			await _dbContext.SaveChangesAsync();
+			await dbContext.SaveChangesAsync();
 			return;
 		}
 		
-		await _dbContext.PlayerLogins.AddAsync(new LoginDto
+		await dbContext.PlayerLogins.AddAsync(new LoginDto
 		{
 			PlayerId = playerId,
 			Ip = ip.ToString(),
@@ -35,7 +36,7 @@ public partial class BanchoHandler
 			ReleaseStream = stream,
 			LoginTime = DateTime.Now
 		});
-		await _dbContext.SaveChangesAsync();
+		await dbContext.SaveChangesAsync();
 	}
 
 	public async Task<bool> TryInsertClientHashes(
@@ -50,24 +51,24 @@ public partial class BanchoHandler
 		
 		if (runningUnderWine)
 		{
-			var hashes = await _dbContext.ClientHashes.Include(ch => ch.Player)
+			var hashes = await dbContext.ClientHashes.Include(ch => ch.Player)
 			                             .Where(ch => ((Privileges)ch.Player.Privileges & Privileges.Unrestricted) !=
-			                                          Privileges.Unrestricted &&
-			                                          ch.Uninstall == uninstall)
+			                                          Privileges.Unrestricted
+			                                          && ch.Uninstall == uninstall)
 			                             .ToListAsync();
 
 			bannedHashes = hashes.Count;
 		}
 		else
 		{
-			var hashes = await _dbContext
+			var hashes = await dbContext
 			                   .ClientHashes.Include(ch => ch.Player)
 			                   .Where(ch =>
 				                   ((Privileges)ch.Player.Privileges & Privileges.Unrestricted) !=
-				                   Privileges.Unrestricted &&
-				                   ch.Uninstall == uninstall &&
-				                   ch.Adapters == adapters &&
-				                   ch.DiskSerial == diskSerial)
+				                   Privileges.Unrestricted
+				                   && ch.Uninstall == uninstall
+				                   && ch.Adapters == adapters
+				                   && ch.DiskSerial == diskSerial)
 			                   .ToListAsync();
 
 			bannedHashes = hashes.Count;
@@ -79,29 +80,29 @@ public partial class BanchoHandler
 
 		if (runningUnderWine)
 		{
-			storedHash = await _dbContext.ClientHashes
+			storedHash = await dbContext.ClientHashes
                  .FirstOrDefaultAsync(ch =>
-                     ch.PlayerId == playerId &&
-                     ch.Uninstall == uninstall);
+                     ch.PlayerId == playerId
+                     && ch.Uninstall == uninstall);
 		}
 		else
 		{
-			storedHash = await _dbContext.ClientHashes
+			storedHash = await dbContext.ClientHashes
                  .FirstOrDefaultAsync(ch =>
-                     ch.PlayerId == playerId &&
-                     ch.Uninstall == uninstall &&
-                     ch.Adapters == adapters &&
-                     ch.DiskSerial == diskSerial);
+                     ch.PlayerId == playerId
+                     && ch.Uninstall == uninstall
+                     && ch.Adapters == adapters
+                     && ch.DiskSerial == diskSerial);
 		}
 
 		if (storedHash != null)
 		{
 			storedHash.LatestTime = DateTime.Now;
-			await _dbContext.SaveChangesAsync();
+			await dbContext.SaveChangesAsync();
 			return false;
 		}
 		
-		await _dbContext.ClientHashes.AddAsync(new ClientHashesDto
+		await dbContext.ClientHashes.AddAsync(new ClientHashesDto
 		{
 			PlayerId = playerId,
 			OsuPath = osuPath,
@@ -110,7 +111,7 @@ public partial class BanchoHandler
 			DiskSerial = diskSerial,
 			LatestTime = DateTime.Now
 		});
-		await _dbContext.SaveChangesAsync();
+		await dbContext.SaveChangesAsync();
 
 		return false;
 	}

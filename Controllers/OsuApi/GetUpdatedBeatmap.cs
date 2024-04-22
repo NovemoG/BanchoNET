@@ -4,7 +4,7 @@ namespace BanchoNET.Controllers.OsuApi;
 
 public partial class OsuController
 {
-	[HttpGet("/web/maps/{mapFilename}")]
+	[HttpGet("maps/{mapFilename}")]
 	public IActionResult GetUpdatedBeatmap(
 		string mapFilename,
 		[FromHeader(Name = "host")] string host)

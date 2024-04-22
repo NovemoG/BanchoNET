@@ -32,6 +32,7 @@
 
     <ItemGroup>
       <Folder Include="Cache\" />
+      <Folder Include="Commands\Scores\" />
       <Folder Include="Logger\" />
     </ItemGroup>
 

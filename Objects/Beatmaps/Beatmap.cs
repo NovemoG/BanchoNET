@@ -32,6 +32,7 @@ public class Beatmap
 	public int TotalLength { get; set; }
 	public int MaxCombo { get; set; }
 	public bool StatusFrozen { get; set; }
+	public bool HasVideo { get; set; }
 	public long Plays { get; set; }
 	public long Passes { get; set; }
 	
@@ -63,6 +64,7 @@ public class Beatmap
 		LastUpdate = DateTime.Parse(apiBeatmap.LastUpdate);
 		TotalLength = apiBeatmap.TotalLength;
 		MaxCombo = apiBeatmap.MaxCombo;
+		HasVideo = apiBeatmap.Video;
 		Bpm = apiBeatmap.Bpm;
 		Cs = apiBeatmap.DiffSize;
 		Ar = apiBeatmap.DiffApproach;
@@ -90,6 +92,7 @@ public class Beatmap
 		LastUpdate = DateTime.Parse(apiBeatmap.LastUpdate);
 		TotalLength = int.Parse(apiBeatmap.TotalLength);
 		MaxCombo = int.Parse(apiBeatmap.MaxCombo);
+		HasVideo = apiBeatmap.Video == "1";
 		Bpm = float.Parse(apiBeatmap.Bpm);
 		Cs = float.Parse(apiBeatmap.DiffSize);
 		Ar = float.Parse(apiBeatmap.DiffApproach);
@@ -122,6 +125,7 @@ public class Beatmap
 		TotalLength = beatmapDto.TotalLength;
 		MaxCombo = beatmapDto.MaxCombo;
 		StatusFrozen = beatmapDto.Frozen;
+		HasVideo = beatmapDto.HasVideo;
 		Plays = beatmapDto.Plays;
 		Passes = beatmapDto.Passes;
 		Bpm = beatmapDto.Bpm;

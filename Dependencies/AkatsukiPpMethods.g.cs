@@ -2,6 +2,7 @@
 #pragma warning disable CS8981
 using System;
 using System.Runtime.InteropServices;
+using BanchoNET.Models.Dtos;
 using BanchoNET.Objects;
 using BanchoNET.Objects.Scores;
 using BanchoNET.Utils;
@@ -32,7 +33,7 @@ namespace AkatsukiPp
             );
         }
 
-        public static float ComputeNoMissesScorePp(string osuFilePath, Score score, int maxCombo)
+        public static float ComputeNoMissesScorePp(int mapId, Score score, int maxCombo)
         {
             var acc = ScoreExtensions.CalculateAccuracy(
                 score.Mode,
@@ -45,8 +46,35 @@ namespace AkatsukiPp
                 score.Katus);
             
             return (float)ComputePp(
-                osuFilePath,
+                Storage.GetBeatmapPath(mapId),
                 (byte)score.Mode.AsVanilla(),
+                (uint)score.Mods,
+                new UIntPtr((uint)maxCombo),
+                acc,
+                new UIntPtr((uint)(score.Count300 + score.Misses)),
+                new UIntPtr((uint)score.Gekis),
+                new UIntPtr((uint)score.Count100),
+                new UIntPtr((uint)score.Katus),
+                new UIntPtr((uint)score.Count50),
+                new UIntPtr((uint)0)
+            );
+        }
+        
+        public static float ComputeNoMissesScorePp(int mapId, ScoreDto score, int maxCombo)
+        {
+            var acc = ScoreExtensions.CalculateAccuracy(
+                (GameMode)score.Mode,
+                (Mods)score.Mods,
+                score.Count300 + score.Misses,
+                score.Count100,
+                score.Count50,
+                0,
+                score.Gekis,
+                score.Katus);
+            
+            return (float)ComputePp(
+                Storage.GetBeatmapPath(mapId),
+                score.Mode,
                 (uint)score.Mods,
                 new UIntPtr((uint)maxCombo),
                 acc,

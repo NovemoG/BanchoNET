@@ -1,4 +1,5 @@
-﻿using BanchoNET.Models.Dtos;
+﻿using BanchoNET.Models;
+using BanchoNET.Models.Dtos;
 using BanchoNET.Objects;
 using BanchoNET.Objects.Players;
 using BanchoNET.Objects.Privileges;
@@ -8,10 +9,30 @@ using BanchoNET.Utils;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
 
-namespace BanchoNET.Services;
+namespace BanchoNET.Services.Repositories;
 
-public partial class BanchoHandler
+public class PlayersRepository
 {
+	private readonly BanchoSession _session = BanchoSession.Instance;
+	private readonly BanchoDbContext _dbContext;
+	private readonly IDatabase _redis;
+
+	public PlayersRepository(BanchoDbContext dbContext, IConnectionMultiplexer redis)
+	{
+		_dbContext = dbContext;
+		_redis = redis.GetDatabase();
+	}
+	
+	public async Task<bool> EmailTaken(string email)
+	{
+		return await _dbContext.Players.AnyAsync(p => p.Email == email);
+	}
+	
+	public async Task<bool> UsernameTaken(string username)
+	{
+		return await _dbContext.Players.AnyAsync(p => p.SafeName == username.MakeSafe());
+	}
+
 	public async Task<Player?> GetPlayerFromLogin(string username, string pwdMD5)
 	{
 		var player = await GetPlayerOrOffline(username);
@@ -24,9 +45,17 @@ public partial class BanchoHandler
 	{
 		var sessionPlayer = _session.GetPlayer(username: username);
 		if (sessionPlayer != null) return sessionPlayer;
+		
+		var dbPlayer = await _dbContext.Players.FirstOrDefaultAsync(p => p.SafeName == username.MakeSafe());
 
-		username = username.MakeSafe();
-		var dbPlayer = await _dbContext.Players.FirstOrDefaultAsync(p => p.SafeName == username);
+		return dbPlayer == null ? null : new Player(dbPlayer);
+	}
+	public async Task<Player?> GetPlayerOrOffline(int id)
+	{
+		var sessionPlayer = _session.GetPlayer(id: id);
+		if (sessionPlayer != null) return sessionPlayer;
+		
+		var dbPlayer = await _dbContext.Players.FirstOrDefaultAsync(p => p.Id == id);
 
 		return dbPlayer == null ? null : new Player(dbPlayer);
 	}
@@ -55,16 +84,10 @@ public partial class BanchoHandler
 			return await _dbContext.Players.FindAsync(id);
 
 		if (username != "")
-		{
-			username = username.MakeSafe();
-			return await _dbContext.Players.FirstOrDefaultAsync(p => p.SafeName == username);
-		}
+			return await _dbContext.Players.FirstOrDefaultAsync(p => p.SafeName == username.MakeSafe());
 		
 		if (loginName != "")
-		{
-			loginName = loginName.MakeSafe();
-			return await _dbContext.Players.FirstOrDefaultAsync(p => p.LoginName == loginName);
-		}
+			return await _dbContext.Players.FirstOrDefaultAsync(p => p.LoginName == loginName.MakeSafe());
 
 		return null;
 	}
@@ -155,9 +178,12 @@ public partial class BanchoHandler
 		}
 	}
 	
-	public async Task AddPlayerPrivileges(Player player, Privileges privileges)
+	public async Task ModifyPlayerPrivileges(Player player, Privileges privileges, bool remove)
 	{
-		player.Privileges |= privileges;
+		if (remove)
+			player.Privileges &= ~privileges;
+		else
+			player.Privileges |= privileges;
 		
 		await _dbContext.Players.Where(p => p.Id == player.Id)
 		               .ExecuteUpdateAsync(p => 

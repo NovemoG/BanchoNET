@@ -114,7 +114,7 @@ public sealed class BanchoSession
 		if (_passwordHashes.TryGetValue(passwordHash, out var md5))
 			return md5 == passwordMD5;
 
-		if (!BCrypt.Net.BCrypt.Verify(passwordMD5, passwordHash)) 
+		if (!BCrypt.Net.BCrypt.Verify(passwordMD5, passwordHash))
 			return false;
 		
 		_passwordHashes.TryAdd(passwordHash, passwordMD5);
@@ -194,12 +194,14 @@ public sealed class BanchoSession
 
 		if (username != string.Empty)
 		{
+			username = username.MakeSafe();
+			
 			sessionPlayer = GetBot(username: username);
 			if (sessionPlayer != null) return sessionPlayer;
-			sessionPlayer = _bots.Values.FirstOrDefault(p => p.Username == username);
+			sessionPlayer = _bots.Values.FirstOrDefault(p => p.SafeName == username);
 			if (sessionPlayer != null) return sessionPlayer;
-			sessionPlayer = _players.Values.FirstOrDefault(r => r.Username == username);
-			return sessionPlayer ?? _restricted.Values.FirstOrDefault(b => b.Username == username);
+			sessionPlayer = _players.Values.FirstOrDefault(r => r.SafeName == username);
+			return sessionPlayer ?? _restricted.Values.FirstOrDefault(b => b.SafeName == username);
 		}
 
 		if (token != Guid.Empty)
@@ -215,7 +217,7 @@ public sealed class BanchoSession
 	{
 		if (id <= 0)
 			return username != string.Empty
-				? _bots.Values.FirstOrDefault(p => p.Username == username)
+				? _bots.Values.FirstOrDefault(p => p.SafeName == username.MakeSafe())
 				: null;
 		
 		_bots.TryGetValue(id, out var sessionPlayer);
@@ -323,8 +325,7 @@ public sealed class BanchoSession
 	
 	public void RemoveLobby(MultiplayerLobby lobby)
 	{
-		var removed = _multiplayerLobbies.TryRemove(lobby.Id, out _);
-		
+		_multiplayerLobbies.TryRemove(lobby.Id, out _);
 		Console.WriteLine($"[BanchoSession] Removing lobby with id: {lobby.Id}");
 	}
 

@@ -1,4 +1,5 @@
-﻿using BanchoNET.Models.Dtos;
+﻿using BanchoNET.Models;
+using BanchoNET.Models.Dtos;
 using BanchoNET.Objects;
 using BanchoNET.Objects.Beatmaps;
 using BanchoNET.Objects.Players;
@@ -6,15 +7,15 @@ using BanchoNET.Objects.Scores;
 using BanchoNET.Utils;
 using Microsoft.EntityFrameworkCore;
 
-namespace BanchoNET.Services;
+namespace BanchoNET.Services.Repositories;
 
-public partial class BanchoHandler
+public class ScoresRepository(BanchoDbContext dbContext)
 {
     private static bool OrderByPp(GameMode mode) => mode >= GameMode.RelaxStd || AppSettings.SortLeaderboardByPP;
 	
-    public async Task InsertScore(Score score, string beatmapMD5, Player player)
+    public async Task<Score> InsertScore(Score score, string beatmapMD5, Player player)
     {
-        var dbScore = await _dbContext.Scores.AddAsync(new ScoreDto
+        var dbScore = await dbContext.Scores.AddAsync(new ScoreDto
         {
             BeatmapMD5 = beatmapMD5,
             PP = score.PP,
@@ -39,30 +40,37 @@ public partial class BanchoHandler
             OnlineChecksum = score.ClientChecksum,
             IsRestricted = player.Restricted
         });
-        await _dbContext.SaveChangesAsync();
+        await dbContext.SaveChangesAsync();
 
         score.Id = dbScore.Entity.Id;
+
+        return new Score(dbScore.Entity);
     }
 
-    public async Task<Score?> GetScore(string checksum)
+    public async Task<ScoreDto?> GetScore(string checksum)
     {
         if (!string.IsNullOrEmpty(checksum))
-        {
-            var score = await _dbContext.Scores.FirstOrDefaultAsync(s => s.OnlineChecksum == checksum);
-            return score == null ? null : new Score(score);
-        }
+            return await dbContext.Scores.FirstOrDefaultAsync(s => s.OnlineChecksum == checksum);
 
         return null;
+    }
+
+    public async Task<Score?> GetPlayerRecentScore(int playerId)
+    {
+        var score = await dbContext.Scores.OrderByDescending(s => s.PlayTime)
+            .FirstOrDefaultAsync(s => s.PlayerId == playerId);
+
+        return score == null ? null : new Score(score);
     }
 
     public async Task SetScoresStatuses(Score? previousScore, Score? previousWithMods)
     {
         if (previousScore != null)
-            await _dbContext.Scores.Where(s => s.Id == previousScore.Id).ExecuteUpdateAsync(s => 
+            await dbContext.Scores.Where(s => s.Id == previousScore.Id).ExecuteUpdateAsync(s => 
                 s.SetProperty(u => u.Status, (int)previousScore.Status));
 
         if (previousWithMods != null)
-            await _dbContext.Scores.Where(s => s.Id == previousWithMods.Id).ExecuteUpdateAsync(s =>
+            await dbContext.Scores.Where(s => s.Id == previousWithMods.Id).ExecuteUpdateAsync(s =>
                 s.SetProperty(u => u.Status, (int)previousWithMods.Status));
     }
     
@@ -71,11 +79,11 @@ public partial class BanchoHandler
         string beatmapMD5,
         GameMode mode)
     {
-        var score = await _dbContext.Scores.FirstOrDefaultAsync(
-            s => s.PlayerId == player.Id &&
-                 s.BeatmapMD5 == beatmapMD5 &&
-                 s.Mode == (int)mode &&
-                 s.Status == (int)SubmissionStatus.Best);
+        var score = await dbContext.Scores.FirstOrDefaultAsync(
+            s => s.PlayerId == player.Id
+                 && s.BeatmapMD5 == beatmapMD5
+                 && s.Mode == (int)mode
+                 && s.Status == (int)SubmissionStatus.Best);
 
         return score == null ? null : new Score(score);
     }
@@ -86,23 +94,23 @@ public partial class BanchoHandler
         GameMode mode,
         Mods mods)
     {
-        var response = await _dbContext.Scores.FirstOrDefaultAsync(
-            s => s.PlayerId == player.Id &&
-                 s.BeatmapMD5 == beatmapMD5 &&
-                 s.Mode == (int)mode &&
-                 s.Mods == (int)mods &&
-                 s.Status >= (int)SubmissionStatus.BestWithMods);
+        var response = await dbContext.Scores.FirstOrDefaultAsync(
+            s => s.PlayerId == player.Id
+                 && s.BeatmapMD5 == beatmapMD5
+                 && s.Mode == (int)mode
+                 && s.Mods == (int)mods
+                 && s.Status >= (int)SubmissionStatus.BestWithMods);
 
         return response == null ? null : new Score(response);
     }
 	
     public async Task<ScoreDto?> GetBestBeatmapScore(Beatmap beatmap, GameMode mode)
     {
-        return await _dbContext.Scores.Include(s => s.Player)
-            .Where(s => s.BeatmapMD5 == beatmap.MD5 &&
-                        s.Mode == (int)mode &&
-                        s.Status == (int)SubmissionStatus.Best &&
-                        (s.Player.Privileges & 1) == 1)
+        return await dbContext.Scores.Include(s => s.Player)
+            .Where(s => s.BeatmapMD5 == beatmap.MD5
+                        && s.Mode == (int)mode
+                        && s.Status == (int)SubmissionStatus.Best
+                        && (s.Player.Privileges & 1) == 1)
             .OrderByDescending(s => OrderByPp(mode) ? s.PP : s.Score)
             .FirstOrDefaultAsync();
     }
@@ -113,7 +121,7 @@ public partial class BanchoHandler
         bool withMods,
         Mods mods = Mods.None)
     {
-        score.LeaderboardPosition = await _dbContext.Scores
+        score.LeaderboardPosition = await dbContext.Scores
             .Include(s => s.Player)
             .Where(s => s.BeatmapMD5 == beatmap.MD5 
                         && s.Mode == (int)score.Mode
@@ -143,7 +151,7 @@ public partial class BanchoHandler
         var withFriendsList = type == LeaderboardType.Friends;
         var friendIds = withFriendsList ? player.Friends.ToHashSet() : [];
 		
-        var result = await _dbContext.Scores.AsNoTracking()
+        var result = await dbContext.Scores.AsNoTracking()
              .Include(s => s.Player)
              .Where(s => s.BeatmapMD5 == beatmapMD5 
                          && s.Mode == (int)mode 
