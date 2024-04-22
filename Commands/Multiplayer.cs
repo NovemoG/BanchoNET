@@ -201,7 +201,9 @@ public partial class CommandProcessor
         if (args.Length == 0)
             return $"Not enough parameters provided. Use '{_prefix}mp size <size>'.";
         
-        var size = args.Length == 1 ? int.Parse(args[0]) : _lobby.Slots.Count(s => s.Status != SlotStatus.Locked);
+        
+        if (!int.TryParse(args[0], out var size)) 
+            return "Invalid size provided. Available slots: 1-16.";
         
         if (size is < 1 or > 16)
             return "Invalid size provided. Available slots: 1-16.";
@@ -213,12 +215,15 @@ public partial class CommandProcessor
             slot.Status = slot.Status != SlotStatus.Locked ? slot.Status : SlotStatus.Open;
         }
 
-        for (var i = size - 1; i < _lobby.Slots.Length; i++)
+        for (var i = size; i < _lobby.Slots.Length; i++)
         {
             var slot = _lobby.Slots[i];
             
             if ((slot.Status & SlotStatus.PlayerInSlot) != 0)
                 slot.Player!.LeaveMatchToLobby(_session.GetChannel("#lobby")!);
+            
+            slot.Reset();
+            slot.Status = SlotStatus.Locked;
         }
         
         _lobby.EnqueueState();
@@ -228,14 +233,22 @@ public partial class CommandProcessor
     
     private string SetLobbyProperties(params string[] args)
     {
+        
         if (!_lobby.Refs.Contains(_playerCtx.Id))
             return "";
         
         if (args.Length == 0)
             return $"Not enough parameters provided. Use '{_prefix}mp set <teammode> [<scoremode>] [<size>]'.";
+
+        if (!int.TryParse(args[0], out var teamMode)) 
+            return "Invalid team mode provided. Available modes: 0, 1, 2, 3.";
+
+        var scoreMode = (int)_lobby.WinCondition;
+        if (args.Length >= 2)
+            if (!int.TryParse(args[1], out scoreMode)) 
+                scoreMode = (int)_lobby.WinCondition;
+            
         
-        var teamMode = int.Parse(args[0]);
-        var scoreMode = args.Length > 1 ? int.Parse(args[1]) : (int)_lobby.Type;
         
         if (teamMode is < 0 or > 3)
             return "Invalid team mode provided. Available modes: 0, 1, 2, 3.";
@@ -250,7 +263,7 @@ public partial class CommandProcessor
             SetLobbySize(args[2]);
         
         _lobby.EnqueueState();
-        return $"Changed lobby properties to: Team mode: {_lobby.Type}, Score mode: {_lobby.WinCondition}, Size: {args[2]}.";
+        return $"Changed lobby properties to: Team mode: {_lobby.Type}, Score mode: {_lobby.WinCondition}, Size: {_lobby.Slots.Count(s => s.Status != SlotStatus.Locked)}.";
     }
     
     private string MovePlayer(params string[] args)
@@ -264,8 +277,11 @@ public partial class CommandProcessor
         var oldSlot = _lobby.GetPlayerSlot(username: args[0]);
         if (oldSlot == null)
             return $"{args[0]} is not in the lobby.";
-        
-        var newSlotNumber = int.Parse(args[1]) - 1;
+
+        if (!int.TryParse(args[1], out var newSlotNumber))
+            return "Invalid slot number provided.";
+
+        newSlotNumber--;
         if (newSlotNumber < 0 || newSlotNumber >= _lobby.Slots.Length)
             return "Invalid slot number provided.";
         
@@ -273,13 +289,14 @@ public partial class CommandProcessor
 
         if (newSlot.Player != null)
         {
-            var oldPlayer = newSlot.Player!;
+            var temp = newSlot.Copy();
+            
             newSlot.CopyStatusFrom(oldSlot);
-            oldSlot.CopyStatusFrom(newSlot);
-            oldSlot.Player = oldPlayer;
-            newSlot.Player = oldSlot.Player;
-            oldSlot.Status = SlotStatus.NotReady;
+            oldSlot.CopyStatusFrom(temp);
+            
             newSlot.Status = SlotStatus.NotReady;
+            oldSlot.Status = SlotStatus.NotReady;
+
         }
         else
         {
@@ -377,9 +394,11 @@ public partial class CommandProcessor
         
         if (args.Length == 0)
             return $"No beatmap ID provided. Use '{_prefix}mp map <mapid> [<gamemode>]'.";
+
+        if (!int.TryParse(args[0], out var beatmapId))
+            return "Beatmap not found.";
         
-        var beatmapId = int.Parse(args[0]);
-        var gameMode = args.Length == 2 ? (GameMode)int.Parse(args[1]) : GameMode.VanillaStd;
+        var gameMode = args.Length == 2 && int.TryParse(args[1], out var mode) ? (GameMode)mode : GameMode.VanillaStd;
         
         var beatmap = await beatmaps.GetBeatmap(beatmapId);
         if (beatmap == null)
@@ -470,7 +489,7 @@ public partial class CommandProcessor
         if (_lobby.InProgress)
             return "Match is already in progress.";
         
-        var seconds = args.Length == 0 ? 10 : uint.Parse(args[0]);
+        var seconds = args.Length == 0 ? 10 : uint.TryParse(args[0], out var s) ? s : 10;
         
         //TODO should this overwrite current timer or display this message?
         if (_lobby.Timer != null)
@@ -487,7 +506,7 @@ public partial class CommandProcessor
         if (!_lobby.Refs.Contains(_playerCtx.Id))
             return "";
         
-        var seconds = args.Length == 0 ? 30 : uint.Parse(args[0]);
+        var seconds = args.Length == 0 ? 10 : uint.TryParse(args[0], out var s) ? s : 10;
 
         if (seconds == 0)
             return "";

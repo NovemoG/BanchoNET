@@ -102,6 +102,19 @@ public static class MultiplayerExtensions
 		slot.Team = other.Team;
 		slot.Mods = other.Mods;
 	}
+	
+	public static MultiplayerSlot Copy(this MultiplayerSlot slot)
+	{
+		return new MultiplayerSlot
+		{
+			Player = slot.Player,
+			Status = slot.Status,
+			Team = slot.Team,
+			Mods = slot.Mods,
+			Loaded = slot.Loaded,
+			Skipped = slot.Skipped
+		};
+	}
 
 	public static MultiplayerSlot GetHostSlot(this MultiplayerLobby lobby)
 	{
