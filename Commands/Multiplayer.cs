@@ -257,6 +257,7 @@ public partial class CommandProcessor
         {
             if (ModsMap.Map.TryGetValue(modName.ToLower(), out var modMap))
             {
+                
                 if (modMap == Mods.None)
                 {
                     _lobby.Mods = Mods.None;
@@ -270,14 +271,13 @@ public partial class CommandProcessor
             }
             else if (Enum.TryParse(modName, true, out Mods modParse))
             {
+
+                
                 if (modParse == Mods.None)
                 {
                     _lobby.Mods = Mods.None;
                     break;
                 }
-                
-                if (modParse is Mods.TouchDevice or Mods.ScoreV2 or Mods.TargetPractice or Mods.LastMod)
-                    continue;
                 
                 if (_lobby.Mode != GameMode.VanillaMania)
                     if (modParse > Mods.Perfect) continue;
@@ -285,7 +285,7 @@ public partial class CommandProcessor
                 result |= modParse;
             }
             else _lobby.Chat.SendBotMessage($"Invalid mod: {modName}");
-            
+
             if (modName.Equals("fm", StringComparison.CurrentCultureIgnoreCase)
                 || modName.Equals("freemod", StringComparison.CurrentCultureIgnoreCase)
                 || modName.Equals("freemods", StringComparison.CurrentCultureIgnoreCase))
@@ -294,6 +294,9 @@ public partial class CommandProcessor
                 freeMods = true;
             }
         }
+        
+        if ((result & (Mods.TouchDevice | Mods.ScoreV2 | Mods.TargetPractice | Mods.LastMod | Mods.Autoplay)) != 0)
+                result &= ~(Mods.TouchDevice | Mods.ScoreV2 | Mods.TargetPractice | Mods.LastMod | Mods.Autoplay);
         
         _lobby.Mods = result;
         _lobby.EnqueueState();
