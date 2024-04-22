@@ -107,7 +107,7 @@ public static class MultiplayerExtensions
 	{
 		return lobby.Slots.First(s => s.Player?.Id == lobby.HostId);
 	}
-
+	
 	public static MultiplayerSlot? GetPlayerSlot(this MultiplayerLobby lobby, Player player)
 	{
 		return lobby.Slots.FirstOrDefault(s => s.Player == player);
@@ -127,7 +127,7 @@ public static class MultiplayerExtensions
 
 		return -1;
 	}
-
+	
 	public static void ReadyAllPlayers(this MultiplayerLobby lobby)
 	{
 		foreach (var slot in lobby.Slots)
@@ -154,6 +154,20 @@ public static class MultiplayerExtensions
 		using var matchStartPacket = new ServerPackets();
 		matchStartPacket.MatchStart(lobby);
 		lobby.Enqueue(matchStartPacket.GetContent(), noMapPlayerIds, false);
+		lobby.EnqueueState();
+	}
+	
+	public static void End(this MultiplayerLobby lobby, bool toLobby = true)
+	{
+		lobby.InProgress = false;
+		lobby.ResetPlayersLoadedStatuses();
+		
+		lobby.UnreadyPlayers(SlotStatus.Playing);
+		lobby.UnreadyPlayers();
+		
+		using var matchEndPacket = new ServerPackets();
+		matchEndPacket.MatchAbort();
+		lobby.Enqueue(matchEndPacket.GetContent(), null, toLobby);
 		lobby.EnqueueState();
 	}
 

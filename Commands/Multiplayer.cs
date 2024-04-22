@@ -66,13 +66,13 @@ public partial class CommandProcessor
             "invite" => InviteToLobby(args[1..]),
             "name" => ChangeLobbyName(args[1..]),
             "password" => ChangeLobbyPassword(args[1..]),
-            "lock" => LockLobby(args[1..]),
-            "unlock" => UnlockLobby(args[1..]),
+            "lock" => LockLobby(),
+            "unlock" => UnlockLobby(),
             "size" => SetLobbySize(args[1..]),
             "set" => SetLobbyProperties(args[1..]),
             "move" => MovePlayer(args[1..]),
             "host" => TransferHost(args[1..]),
-            "clearhost" => ClearHost(args[1..]),
+            "clearhost" => ClearHost(),
             "abort" => AbortMatch(args[1..]),
             "team" => MovePlayerToTeam(args[1..]),
             "map" => await ChangeBeatmap(args[1..]),
@@ -175,14 +175,26 @@ public partial class CommandProcessor
         return $"Match password changed to {args[0]}.";
     }
     
-    private string LockLobby(params string[] args)
+    private string LockLobby()
     {
-        return "";
+        if (!_lobby.Refs.Contains(_playerCtx.Id))
+            return "";
+        
+        _lobby.IsLocked = true;
+        _lobby.EnqueueState();
+        
+        return "Locked the lobby.";
     }
     
-    private string UnlockLobby(params string[] args)
+    private string UnlockLobby()
     {
-        return "";
+        if (!_lobby.Refs.Contains(_playerCtx.Id))
+            return "";
+        
+        _lobby.IsLocked = false;
+        _lobby.EnqueueState();
+        
+        return "Unlocked the lobby.";
     }
     
     private string SetLobbySize(params string[] args)
@@ -192,32 +204,148 @@ public partial class CommandProcessor
     
     private string SetLobbyProperties(params string[] args)
     {
-        return "";
+        if (!_lobby.Refs.Contains(_playerCtx.Id))
+            return "";
+        
+        if (args.Length == 0)
+            return $"Not enough parameters provided. Use '{_prefix}mp set <teammode> [<scoremode>] [<size>]'.";
+        
+        var teamMode = int.Parse(args[0]);
+        var scoreMode = args.Length > 1 ? int.Parse(args[1]) : (int)_lobby.Type;
+        var size = args.Length > 2 ? int.Parse(args[2]) : _lobby.Slots.Length;
+        
+        if (teamMode < 0 || teamMode > 3)
+            return "Invalid team mode provided. Available modes: 0, 1, 2, 3.";
+        
+        if (scoreMode < 0 || scoreMode > 3)
+            return "Invalid score mode provided. Available modes: 0, 1, 2, 3.";
+        
+        if (size < 1 || size > 16)
+            return "Invalid size provided. Available sizes: 1-16.";
+
+        _lobby.Type = (LobbyType)teamMode;
+        _lobby.WinCondition = (WinCondition)scoreMode;
+        SetLobbySize(args[2]);
+        
+        _lobby.EnqueueState();
+        return $"Changed lobby properties to: Team mode: {_lobby.Type}, Score mode: {_lobby.WinCondition}, Size: {args[2]}.";
     }
     
     private string MovePlayer(params string[] args)
     {
-        return "";
+        if (!_lobby.Refs.Contains(_playerCtx.Id))
+            return "";
+        
+        if (args.Length < 2)
+            return $"Not enough parameters provided. Use '{_prefix}mp move <username> <slot>'.";
+        
+        var oldSlot = _lobby.GetPlayerSlot(username: args[0]);
+        if (oldSlot == null)
+            return $"{args[0]} is not in the lobby.";
+        
+        var newSlotNumber = int.Parse(args[1]) - 1;
+        if (newSlotNumber < 0 || newSlotNumber >= _lobby.Slots.Length)
+            return "Invalid slot number provided.";
+        
+        var newSlot = _lobby.Slots[newSlotNumber];
+
+        if (newSlot.Player != null)
+        {
+            var oldPlayer = newSlot.Player!;
+            newSlot.CopyStatusFrom(oldSlot);
+            oldSlot.CopyStatusFrom(newSlot);
+            oldSlot.Player = oldPlayer;
+            newSlot.Player = oldSlot.Player;
+            oldSlot.Status = SlotStatus.NotReady;
+            newSlot.Status = SlotStatus.NotReady;
+        }
+        else
+        {
+            newSlot.CopyStatusFrom(oldSlot);
+            oldSlot.Player = null;
+            oldSlot.Status = SlotStatus.Open;
+            newSlot.Status = SlotStatus.NotReady;
+        }
+        
+        _lobby.EnqueueState();
+        
+        return $"Moved {args[0]} to slot {args[1]}.";
     }
     
     private string TransferHost(params string[] args)
     {
-        return "";
+        if (!_lobby.Refs.Contains(_playerCtx.Id))
+            return "";   
+        
+        if (args.Length == 0)
+            return $"No username provided. Use '{_prefix}mp host <username>'.";
+        
+        var slot = _lobby.GetPlayerSlot(args[0]);
+        if (slot == null)
+            return $"{args[0]} is not in the lobby.";
+        
+        var target = slot.Player!;
+        _lobby.HostId = target.Id;
+        
+        _lobby.EnqueueState();
+        
+        return $"Changed host to {target.Username}.";
     }
     
-    private string ClearHost(params string[] args)
+    private string ClearHost()
     {
-        return "";
+        if (!_lobby.Refs.Contains(_playerCtx.Id))
+            return "";
+        _lobby.HostId = -1;
+        _lobby.EnqueueState();
+        
+        return "Removed host.";
     }
     
     private string AbortMatch(params string[] args)
     {
-        return "";
+        if (!_lobby.Refs.Contains(_playerCtx.Id))
+            return "";
+
+        if (!_lobby.InProgress)
+            return "Match is not in progress.";
+        
+        _lobby.End();
+        
+        return "Aborted the match.";
     }
     
     private string MovePlayerToTeam(params string[] args)
     {
-        return "";
+        if (!_lobby.Refs.Contains(_playerCtx.Id))
+            return "";
+
+        if (_lobby.Type is not (LobbyType.TeamVS or LobbyType.TagTeamVS))
+            return "This command is only available in team-based lobbies.";
+        
+        if (args.Length < 2)
+            return $"Not enough parameters provided. Use '{_prefix}mp team <username> <team>'.";
+        
+        var slot = _lobby.GetPlayerSlot(username: args[0]);
+        if (slot == null)
+            return $"{args[0]} is not in the lobby.";
+    
+        List<string> availableTeams = new() {"blue", "red"};
+        
+        if (!availableTeams.Contains(args[1].ToLower()))
+            return $"Invalid team provided. Available teams: {string.Join(", ", availableTeams)}";
+
+        slot.Team = args[1].ToLower() switch
+        {
+            "blue" => LobbyTeams.Blue,
+            "red" => LobbyTeams.Red,
+            _ => LobbyTeams.Neutral
+        };
+        
+        slot.Status = SlotStatus.NotReady;
+        _lobby.EnqueueState();
+        
+        return $"Moved {args[0]} to {slot.Team} team.";
     }
     
     private async Task<string> ChangeBeatmap(params string[] args)
@@ -296,7 +424,7 @@ public partial class CommandProcessor
         }
         
         if ((result & (Mods.TouchDevice | Mods.ScoreV2 | Mods.TargetPractice | Mods.LastMod | Mods.Autoplay)) != 0)
-                result &= ~(Mods.TouchDevice | Mods.ScoreV2 | Mods.TargetPractice | Mods.LastMod | Mods.Autoplay);
+            result &= ~(Mods.TouchDevice | Mods.ScoreV2 | Mods.TargetPractice | Mods.LastMod | Mods.Autoplay);
         
         _lobby.Mods = result;
         _lobby.EnqueueState();
