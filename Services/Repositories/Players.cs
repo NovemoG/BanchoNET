@@ -33,6 +33,34 @@ public class PlayersRepository
 		return await _dbContext.Players.AnyAsync(p => p.SafeName == username.MakeSafe());
 	}
 
+	public async Task AddFriend(Player player, int targetId)
+	{
+		if (player.Friends.Contains(targetId))
+			return;
+		
+		player.Friends.Add(targetId);
+		
+		await _dbContext.Relationships.AddAsync(new RelationshipDto
+		{
+			PlayerId = player.Id,
+			TargetId = targetId,
+			Relation = (byte)Relations.Friend
+		});
+		await _dbContext.SaveChangesAsync();
+	}
+	
+	public async Task RemoveFriend(Player player, int targetId)
+	{
+		if (!player.Friends.Contains(targetId))
+			return;
+		
+		player.Friends.Remove(targetId);
+
+		await _dbContext.Relationships
+			.Where(r => r.PlayerId == player.Id && r.TargetId == targetId)
+			.ExecuteDeleteAsync();
+	}
+
 	public async Task<Player?> GetPlayerFromLogin(string username, string pwdMD5)
 	{
 		var player = await GetPlayerOrOffline(username);

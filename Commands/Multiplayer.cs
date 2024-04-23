@@ -15,9 +15,9 @@ public partial class CommandProcessor
         Privileges.Verified,
         "A set of commands to manage your multiplayer lobby. List of commands available under 'mp help' or 'help mp' command.",
         "\nmp create [<name>] [<password>] - Creates a multiplayer lobby with a given name." +
-        "\nmp invite <username> - Invites a player with a given username to your current multiplayer lobby." +
+        "\nmp invite/i <username> - Invites a player with a given username to your current multiplayer lobby." +
         "\nmp name <name> - Changes the name of your current multiplayer lobby." +
-        "\nmp password [<password>] - Changes the password of your current multiplayer lobby. If <password> is not " +
+        "\nmp password/p [<password>] - Changes the password of your current multiplayer lobby. If <password> is not " +
         "provided it will be removed." +
         "\nmp lock - Locks the lobby so that players can’t change their team and slot." +
         "\nmp unlock - Reverses the above." +
@@ -27,7 +27,7 @@ public partial class CommandProcessor
         "\n        0: Score, 1: Accuracy, 2: Combo, 3: Score V2" +
         "\nmp move <username> <slot> - Moves a player within the lobby to the specified 1-indexed slot." +
         "\nmp host <username> - Transfers host to the player." +
-        "\nmp clearhost - Clears the lobby host." +
+        "\nmp clearhost/ch - Clears the lobby host." +
         "\nmp abort - Aborts the match." +
         "\nmp team <username> <color> - Moves a player to the specified team." +
         "\nmp map <mapid> [<gamemode>] - Changes the beatmap and gamemode of the lobby." +
@@ -36,7 +36,7 @@ public partial class CommandProcessor
         "\nmp start [<seconds>] - Starts the match after a set time (in seconds) or instantaneously (if used by host " +
         "or all players are ready) if time is not present." +
         "\nmp timer [<seconds>] - Begins a countdown timer. Default is 30s." +
-        "\nmp aborttimer - Stops the current timer (both normal timers and match start timer)" +
+        "\nmp aborttimer/at - Stops the current timer (both normal timers and match start timer)" +
         "\nTimer announcements occur every minute, 30s, 15s, 10s, 5s and earlier." +
         "\nmp kick <username> - Kicks the player from the lobby" +
         "\nmp ban <username> - Bans the player from the lobby" +
@@ -183,7 +183,7 @@ public partial class CommandProcessor
         if (!_lobby.Refs.Contains(_playerCtx.Id))
             return "";
         
-        _lobby.IsLocked = true;
+        _lobby.Locked = true;
         
         return "Locked the lobby.";
     }
@@ -193,7 +193,7 @@ public partial class CommandProcessor
         if (!_lobby.Refs.Contains(_playerCtx.Id))
             return "";
         
-        _lobby.IsLocked = false;
+        _lobby.Locked = false;
         
         return "Unlocked the lobby.";
     }

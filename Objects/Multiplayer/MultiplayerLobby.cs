@@ -44,6 +44,6 @@ public class MultiplayerLobby
 	public int Seed { get; set; }
 	public Channel Chat { get; set; }
 	public MultiplayerSlot[] Slots { get; set; }
-	public bool IsLocked { get; set; }
+	public bool Locked { get; set; }
 	public LobbyTimer? Timer { get; set; }
 }

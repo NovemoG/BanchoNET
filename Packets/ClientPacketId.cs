@@ -35,8 +35,8 @@ public enum ClientPacketId : short
 	ChannelJoin = 63,
 	BeatmapInfoRequest = 68, //TODO
 	MatchTransferHost = 70,
-	FriendAdd = 73, //TODO
-	FriendRemove = 74, //TODO
+	FriendAdd = 73,
+	FriendRemove = 74,
 	MatchChangeTeam = 77,
 	ChannelPart = 78,
 	ReceiveUpdates = 79,
