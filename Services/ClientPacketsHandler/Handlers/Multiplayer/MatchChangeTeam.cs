@@ -10,6 +10,7 @@ public partial class ClientPacketsHandler
 	{
 		var lobby = player.Lobby;
 		if (lobby == null) return Task.CompletedTask;
+		if (lobby.Locked) return Task.CompletedTask;
 
 		var slot = lobby.GetPlayerSlot(player)!;
 		slot.Team = slot.Team == LobbyTeams.Blue ? LobbyTeams.Red : LobbyTeams.Blue;

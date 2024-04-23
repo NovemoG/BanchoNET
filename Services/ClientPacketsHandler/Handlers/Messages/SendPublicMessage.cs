@@ -64,8 +64,7 @@ public partial class ClientPacketsHandler
 		{
 			var response = await commands.Execute(txt, player, channel);
 			
-			if (response != "")
-				channel.SendBotMessage(response);
+			player.SendBotMessage(response, channel.Name);
 		}
 		else
 		{

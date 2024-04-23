@@ -49,8 +49,6 @@ public static class MultiplayerExtensions
 		Session.InsertChannel(matchChannel);
 
 		player.JoinMatch(lobby, lobby.Password);
-		
-		matchChannel.SendBotMessage($"Match created by {player.Username} {lobby.MPLinkEmbed()}");
 		Console.WriteLine($"[CreateMatch] {player.Username} created a match with ID {lobby.LobbyId}, in-game ID: {lobby.Id}.");
 	}
 	

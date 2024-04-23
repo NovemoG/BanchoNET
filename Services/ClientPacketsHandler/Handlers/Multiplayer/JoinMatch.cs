@@ -41,6 +41,15 @@ public partial class ClientPacketsHandler
 			player.Enqueue(joinFailPacket.GetContent());
 			return Task.CompletedTask;
 		}
+
+		if (lobby.BannedPlayers.Contains(player.Id))
+		{
+			using var joinFailPacket = new ServerPackets();
+			joinFailPacket.MatchJoinFail();
+			joinFailPacket.Notification("You are banned from joining this lobby.");
+			player.Enqueue(joinFailPacket.GetContent());
+			return Task.CompletedTask;
+		}
 		
 		player.LastActivityTime = DateTime.Now;
 		player.JoinMatch(lobby, password);

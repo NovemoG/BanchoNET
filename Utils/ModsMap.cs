@@ -1,7 +1,7 @@
 ﻿using System.Collections.Immutable;
 using BanchoNET.Objects;
 
-namespace BanchoNET.Commands;
+namespace BanchoNET.Utils;
 
 public static class ModsMap
 {

@@ -8,8 +8,9 @@ using BanchoNET.Services;
 namespace BanchoNET.Utils;
 
 public static class PlayerExtensions
-{ 
+{
 	private static readonly BanchoSession Session = BanchoSession.Instance;
+	private static readonly Player BanchoBot = Session.BanchoBot;
 	private static readonly Dictionary<Privileges, ClientPrivileges> ClientPrivilegesMap = new()
 	{
 		{ Privileges.Unrestricted, ClientPrivileges.Player },
@@ -58,17 +59,21 @@ public static class PlayerExtensions
 		player.Enqueue(messagePacket.GetContent());
 	}
 
+	/// <summary>
+	/// 
+	/// </summary>
+	/// <param name="player"></param>
+	/// <param name="message"></param>
+	/// <param name="destination">(optional) </param>
 	public static void SendBotMessage(this Player player, string message, string destination = "")
 	{
-		var bot = Session.BanchoBot;
-		
 		using var messagePacket = new ServerPackets();
 		messagePacket.SendMessage(new Message
 		{
-			Sender = bot.Username,
+			Sender = BanchoBot.Username,
 			Content = message,
 			Destination = string.IsNullOrEmpty(destination) ? player.Username : destination,
-			SenderId = bot.Id
+			SenderId = BanchoBot.Id
 		});
 		player.Enqueue(messagePacket.GetContent());
 	}
@@ -133,6 +138,8 @@ public static class PlayerExtensions
 		joinSuccessPacket.MatchJoinSuccess(lobby);
 		player.Enqueue(joinSuccessPacket.GetContent());
 		lobby.EnqueueState();
+		
+		player.SendBotMessage($"Match created by {player.Username} {lobby.MPLinkEmbed()}", "#multiplayer");
 	}
 	
 	public static void LeaveMatch(this Player player)

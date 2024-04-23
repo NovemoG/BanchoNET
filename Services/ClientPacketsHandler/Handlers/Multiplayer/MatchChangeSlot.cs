@@ -12,6 +12,7 @@ public partial class ClientPacketsHandler
 		var lobby = player.Lobby;
 		
 		if (lobby == null) return Task.CompletedTask;
+		if (lobby.Locked) return Task.CompletedTask;
 		if (slotId is < 0 or > 15) return Task.CompletedTask;
 
 		var targetSlot = lobby.Slots[slotId];
