@@ -64,6 +64,7 @@ public partial class ClientPacketsHandler
 		{
 			var response = await commands.Execute(txt, player, channel);
 			
+			//TODO maybe show responses in multiplayer lobby for everyone?
 			player.SendBotMessage(response, channel.Name);
 		}
 		else

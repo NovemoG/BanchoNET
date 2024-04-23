@@ -39,6 +39,7 @@ public partial class CommandProcessor
         var modsString = score.Mods.ToShortString();
         
         return $"{_playerCtx.Username}'s recent score on {beatmap.Embed()}{(modsString.Length > 0 ? $" +{modsString}" : "")}" +
-               $"\n[{score.ModeToString()}] | {score.PP:F2}pp {(fcPP > 0 ? $"(if fc: {fcPP:F2}pp) " : "")}| {completionString}";
+               $"\n[{score.ModeToString()}] | x{score.MaxCombo}/{beatmap.MaxCombo} | {score.PP:F2}pp " +
+               $"{(fcPP > 0 ? $"(if fc: {fcPP:F2}pp) " : "")}| {completionString}";
     }
 }
