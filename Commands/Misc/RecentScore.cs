@@ -12,17 +12,17 @@ public partial class CommandProcessor
         Privileges.Unrestricted,
         "Displays your most recent score in chat.",
         aliases: ["r"])]
-    private async Task<string> RecentScore(params string[] args)
+    private async Task<(bool, string)> RecentScore(params string[] args)
     {
         var score = _playerCtx.RecentScore ?? await scores.GetPlayerRecentScore(_playerCtx.Id);
         if (score == null)
-            return "No recent scores.";
+            return (true, "No recent scores.");
 
         _playerCtx.RecentScore = score;
         
         var beatmap = await beatmaps.GetBeatmap(beatmapMD5: score.BeatmapMD5!);
         if (beatmap == null)
-            return "Beatmap not found.";
+            return (true, "Beatmap not found.");
         
         var fcPP = 0.0f;
         if (await beatmapHandler.EnsureLocalBeatmapFile(beatmap.MapId, beatmap.MD5))
@@ -37,9 +37,10 @@ public partial class CommandProcessor
         }
 
         var modsString = score.Mods.ToShortString();
-        
-        return $"{_playerCtx.Username}'s recent score on {beatmap.Embed()}{(modsString.Length > 0 ? $" +{modsString}" : "")}" +
-               $"\n[{score.ModeToString()}] | x{score.MaxCombo}/{beatmap.MaxCombo} | {score.PP:F2}pp " +
-               $"{(fcPP > 0 ? $"(if fc: {fcPP:F2}pp) " : "")}| {completionString}";
+
+        return (false,
+            $"{_playerCtx.Username}'s recent score on {beatmap.Embed()}{(modsString.Length > 0 ? $" +{modsString}" : "")}" +
+            $"\n[{score.ModeToString()}] | x{score.MaxCombo}/{beatmap.MaxCombo} | {score.PP:F2}pp " +
+            $"{(fcPP > 0 ? $"(if fc: {fcPP:F2}pp) " : "")}| {completionString}");
     }
 }

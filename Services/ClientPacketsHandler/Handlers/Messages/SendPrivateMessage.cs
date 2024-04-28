@@ -70,10 +70,10 @@ public partial class ClientPacketsHandler
 		{
 			if (txt.StartsWith(AppSettings.CommandPrefix))
 			{
-				var response = await commands.Execute(txt, player);
+				var command = await commands.Execute(txt, player);
 			
-				if (response != "")
-					player.SendMessage(response, target);
+				if (!string.IsNullOrEmpty(command.Response))
+					player.SendMessage(command.Response, target);
 			}
 			else
 			{

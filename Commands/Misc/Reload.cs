@@ -11,15 +11,15 @@ public partial class CommandProcessor
         "Reloads given collection/configuration. Syntax: reload <collection>",
         "\nAvailable options: commands",
         ["rl"])]
-    private Task<string> Reload(params string[] args)
+    private Task<(bool, string)> Reload(params string[] args)
     {
         if (args.Length == 0)
-            return Task.FromResult("No parameter provided. Available options: commands");
+            return Task.FromResult((true, "No parameter provided. Available options: commands"));
         
         return Task.FromResult(args[0] switch
         {
-            "commands" => ReloadCommandsCollection(),
-            _ => "Invalid parameter provided. Available options: commands."
+            "commands" => (true, ReloadCommandsCollection()),
+            _ => (true, "Invalid parameter provided. Available options: commands.")
         });
     }
 

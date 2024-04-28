@@ -42,6 +42,8 @@ public class BeatmapsRepository(BanchoDbContext dbContext, BeatmapHandler beatma
 				foreach (var map in cachedSet.Beatmaps)
 					map.Status = targetStatus;
 			
+			//TODO should this also (if status set to ranked) update statuses of all scores on maps in set?
+			
 			return await dbContext.Beatmaps.Where(b => b.SetId == setId)
 				.ExecuteUpdateAsync(p => p.SetProperty(b => b.Status, (int)targetStatus));
 		}

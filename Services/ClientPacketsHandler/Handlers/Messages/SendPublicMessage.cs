@@ -61,39 +61,68 @@ public partial class ClientPacketsHandler
 		}
 
 		if (txt.StartsWith(AppSettings.CommandPrefix))
-		{
-			var response = await commands.Execute(txt, player, channel);
-			
-			//TODO maybe show responses in multiplayer lobby for everyone?
-			player.SendBotMessage(response, channel.Name);
-		}
+			await SendCommandMessage(txt, message, player, channel);
 		else
-		{
-			var npMatch = Regexes.NowPlaying.Match(txt);
-
-			if (npMatch.Success)
-			{
-				var modeGroup = npMatch.Groups["mode_vn"];
-
-				player.LastNp = new LastNp
-				{
-					BeatmapId = int.Parse(npMatch.Groups["bid"].Value),
-					SetId = int.Parse(npMatch.Groups["sid"].Value),
-					Mode = modeGroup.Success
-						? modeGroup.Value.FromRegexMatch()
-						: player.Status.Mode
-				};
-			}
-			
-			channel.SendMessage(new Message
-			{
-				Sender = player.Username,
-				Content = txt,
-				Destination = message.Destination,
-				SenderId = player.Id
-			});
-		}
+			SendNpMessage(txt, message, player, channel);
 		
 		player.LastActivityTime = DateTime.Now;
+	}
+
+	private async Task SendCommandMessage(
+		string txt,
+		Message message,
+		Player player,
+		Channel channel)
+	{
+		var command = await commands.Execute(txt, player, channel);
+			
+		if (!string.IsNullOrEmpty(command.Response))
+		{
+			if (command.ToPlayer)
+				player.SendBotMessage(command.Response, channel.Name);
+			else
+			{
+				channel.SendMessage(new Message
+				{
+					Sender = player.Username,
+					Content = txt,
+					Destination = message.Destination,
+					SenderId = player.Id
+				});
+				channel.SendBotMessage(command.Response);
+			}
+		}
+	}
+
+	private void SendNpMessage(
+		string txt,
+		Message message,
+		Player player,
+		Channel channel)
+	{
+		var npMatch = Regexes.NowPlaying.Match(txt);
+
+		if (npMatch.Success)
+		{
+			var modeGroup = npMatch.Groups["mode_vn"];
+
+			//TODO store beatmap instead if used more than once
+			player.LastNp = new LastNp
+			{
+				BeatmapId = int.Parse(npMatch.Groups["bid"].Value),
+				SetId = int.Parse(npMatch.Groups["sid"].Value),
+				Mode = modeGroup.Success
+					? modeGroup.Value.FromRegexMatch()
+					: player.Status.Mode
+			};
+		}
+			
+		channel.SendMessage(new Message
+		{
+			Sender = player.Username,
+			Content = txt,
+			Destination = message.Destination,
+			SenderId = player.Id
+		});
 	}
 }

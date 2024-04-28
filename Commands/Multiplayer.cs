@@ -44,54 +44,54 @@ public partial class CommandProcessor
         "\nmp rmref <username> [<username>] ... - Removes a referee from the lobby." +
         "\nmp listrefs - Lists all referees in the lobby" +
         "\nmp close - Disbands current lobby." +
-        "\nParameters inside of [] are optional.")]
-    private async Task<string> Multiplayer(params string[] args)
+        "\nYou can use these commands only in multiplayer lobby. Parameters inside of [] are optional.")]
+    private async Task<(bool, string)> Multiplayer(params string[] args)
     {
         var prefix = AppSettings.CommandPrefix;
         
         if (args.Length == 0)
-            return $"No parameter(s) provided. Check available options using '{prefix}mp help' or '{prefix}help mp'.";
+            return (true, $"No parameter(s) provided. Check available options using '{prefix}mp help' or '{prefix}help mp'.");
 
         if (_playerCtx.Lobby == null && args[0].ToLower() is not ("help" or "create"))
-            return "You're not in a multiplayer lobby. Use 'mp create [<name>] [<password>]' to create one.";
+            return (true, "You're not in a multiplayer lobby. Use 'mp create [<name>] [<password>]' to create one.");
 
         if (_playerCtx.Lobby != null && _playerCtx.Lobby.Chat != _channelCtx)
-            return "";
+            return (true, "");
 
         _lobby = _playerCtx.Lobby!;
 
         return args[0] switch
         {
-            "help" => await Help("mp"),
-            "create" => await CreateMultiplayerLobby(args[1..]),
-            "invite" => InviteToLobby(args[1..]),
-            "i" => InviteToLobby(args[1..]),
-            "name" => ChangeLobbyName(args[1..]),
-            "password" => ChangeLobbyPassword(args[1..]),
-            "p" => ChangeLobbyPassword(args[1..]),
-            "lock" => LockLobby(),
-            "unlock" => UnlockLobby(),
-            "size" => SetLobbySize(args[1..]),
-            "set" => SetLobbyProperties(args[1..]),
-            "move" => MovePlayer(args[1..]),
-            "host" => TransferHost(args[1..]),
-            "clearhost" => ClearHost(),
-            "ch" => ClearHost(),
-            "abort" => AbortMatch(),
-            "team" => MovePlayerToTeam(args[1..]),
-            "map" => await ChangeBeatmap(args[1..]),
-            "mods" => ChangeMods(args[1..]),
-            "start" => StartMatch(args[1..]),
-            "timer" => StartTimer(args[1..]),
-            "aborttimer" => AbortTimer(),
-            "at" => AbortTimer(),
-            "kick" => KickPlayer(args[1..]),
-            "ban" => await BanPlayer(args[1..]),
-            "addref" => await AddReferee(args[1..]),
-            "rmref" => await RemoveReferee(args[1..]),
-            "listrefs" => ListReferees(),
-            "close" => CloseLobby(),
-            _ => $"Invalid parameter provided. Check available options using '{prefix}mp help' or '{prefix}help mp'."
+            "help" => (true, await Help("mp")),
+            "create" => (true, await CreateMultiplayerLobby(args[1..])),
+            "invite" => (false, InviteToLobby(args[1..])),
+            "i" => (false, InviteToLobby(args[1..])),
+            "name" => (false, ChangeLobbyName(args[1..])),
+            "password" => (false, ChangeLobbyPassword(args[1..])),
+            "p" => (false, ChangeLobbyPassword(args[1..])),
+            "lock" => (false, LockLobby()),
+            "unlock" => (false, UnlockLobby()),
+            "size" => (false, SetLobbySize(args[1..])),
+            "set" => (false, SetLobbyProperties(args[1..])),
+            "move" => (false, MovePlayer(args[1..])),
+            "host" => (false, TransferHost(args[1..])),
+            "clearhost" => (false, ClearHost()),
+            "ch" => (false, ClearHost()),
+            "abort" => (false, AbortMatch()),
+            "team" => (false, MovePlayerToTeam(args[1..])),
+            "map" => (false, await ChangeBeatmap(args[1..])),
+            "mods" => (false, ChangeMods(args[1..])),
+            "start" => (false, StartMatch(args[1..])),
+            "timer" => (false, StartTimer(args[1..])),
+            "aborttimer" => (false, AbortTimer()),
+            "at" => (false, AbortTimer()),
+            "kick" => (false, KickPlayer(args[1..])),
+            "ban" => (false, await BanPlayer(args[1..])),
+            "addref" => (false, await AddReferee(args[1..])),
+            "rmref" => (false, await RemoveReferee(args[1..])),
+            "listrefs" => (false, ListReferees()),
+            "close" => (false, CloseLobby()),
+            _ => (true, $"Invalid parameter provided. Check available options using '{prefix}mp help' or '{prefix}help mp'.")
         };
     }
 
