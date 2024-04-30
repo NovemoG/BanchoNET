@@ -11,6 +11,7 @@ public partial class ClientPacketsHandler(
 	PlayersRepository players,
 	MultiplayerRepository multiplayer,
 	BeatmapsRepository beatmaps,
+	MessagesRepository messages,
 	CommandProcessor commands)
 {
 	private readonly BanchoSession _session = BanchoSession.Instance;

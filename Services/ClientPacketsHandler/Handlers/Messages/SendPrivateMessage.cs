@@ -55,8 +55,12 @@ public partial class ClientPacketsHandler
 
 		if (_session.Bots.FirstOrDefault(b => b.Username == target.Username) == null)
 		{
+			var read = false;
 			if (target.Online)
+			{
 				target.SendMessage(txt, player);
+				read = true;
+			}
 			else
 			{
 				using var msgPacket = new ServerPackets();
@@ -64,7 +68,8 @@ public partial class ClientPacketsHandler
 				player.Enqueue(msgPacket.GetContent());
 			}
 			
-			//TODO add to db
+			await messages.AddMessage(player.Id, target.Id, txt, read);
+			
 		}
 		else
 		{
