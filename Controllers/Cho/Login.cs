@@ -268,11 +268,31 @@ public partial class ChoController
 		
 		_session.AppendPlayer(player);
 		
+		var unreadMessages = await messages.GetUnreadMessages(player.Id);
+
+		if (unreadMessages.Count > 0)
+		{
+			loginPackets.Notification("You have unread messages. Please check them in the chat.");
+			
+			foreach (var message in unreadMessages)
+			{
+				loginPackets.SendMessage(new Message
+				{
+					Sender = message.Sender.Username,
+					Content = message.Message,
+					Destination = player.Username,
+					SenderId = message.SenderId
+				});
+				await messages.MarkMessageAsRead(message.Id);
+			}
+		}
+		
+		
+		
 		//TODO note some statistics maybe?
 		
 		//TODO logger message
 		Console.WriteLine($"[Login] {player.Username} Logged in");
-		
 		Response.Headers["cho-token"] = player.Token.ToString();
 		
 		return loginPackets.GetContentResult();

@@ -22,4 +22,22 @@ public class MessagesRepository(BanchoDbContext dbContext)
         });
         await dbContext.SaveChangesAsync();
     }
+    
+    public async Task<List<MessageDto>> GetUnreadMessages(int playerId)
+    {
+        return await dbContext.Messages
+            .Include(m => m.Sender)
+            .Include(m => m.Receiver)
+            .Where(m => m.ReceiverId == playerId && !m.Read).ToListAsync();
+    }
+    
+    public async Task MarkMessageAsRead(int messageId)
+    {
+        var message = await dbContext.Messages.FirstOrDefaultAsync(m => m.Id == messageId);
+        if (message != null)
+        {
+            message.Read = true;
+            await dbContext.SaveChangesAsync();
+        }
+    }
 }

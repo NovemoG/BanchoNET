@@ -13,7 +13,8 @@ public partial class ChoController(
 	OsuVersionService version,
 	PlayersRepository players,
 	ClientRepository client,
-	ClientPacketsHandler clientPackets)
+	ClientPacketsHandler clientPackets,
+	MessagesRepository messages)
 	: ControllerBase
 {
 	private readonly BanchoSession _session = BanchoSession.Instance;
