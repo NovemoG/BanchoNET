@@ -4,7 +4,23 @@ public class OsuVersion
 {
 	public DateTime Date { get; init; }
 	public int Revision { get; init; }
-	public string Stream { get; init; }
+	public string Stream { get; init; } = null!;
+
+	public static OsuVersion Parse(string stream, string version)
+	{
+		var split = version.Split('.');
+		return new OsuVersion
+		{
+			Date = DateTime.ParseExact(split[0][..8], "yyyyMMdd", null),
+			Revision = split.Length > 1 ? int.Parse(split[1]) : 0,
+			Stream = stream
+		};
+	}
+
+	public override string ToString()
+	{
+		return $"{Date:yyyyMMdd}.{Revision}";
+	}
 
 	#region Comparison Operators
 

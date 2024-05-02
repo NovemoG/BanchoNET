@@ -11,7 +11,7 @@ public partial class CommandProcessor
     [Command("recent",
         Privileges.Unrestricted,
         "Displays your most recent score in chat.",
-        aliases: ["r"])]
+        aliases: ["rs"])]
     private async Task<(bool, string)> RecentScore(params string[] args)
     {
         var score = _playerCtx.RecentScore ?? await scores.GetPlayerRecentScore(_playerCtx.Id);

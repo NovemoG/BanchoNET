@@ -29,4 +29,5 @@ public static class Storage
 	
 	public static string GetBeatmapPath(int beatmapId) => Path.Combine(BeatmapsPath, $"{beatmapId}.osu");
 	public static string GetReplayPath(long scoreId) => Path.Combine(ReplaysPath, $"{scoreId}.osr");
+	public static string GetMajorOsuVersionFilePath() => Path.Combine(BasePath, "major_osu_versions.txt");
 }
