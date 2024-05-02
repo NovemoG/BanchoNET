@@ -17,13 +17,14 @@ Go to the [Projects](https://github.com/orgs/NovemoG/projects/1) section to see 
 - Player registration (currently only in-game)
 - Online users listing and statuses
 - Multiplayer lobbies
-- Global/Country reanking leaderboards
+- Global/Country ranking leaderboards
 - In-game leaderboards
 - Spectating
+- osu!Direct
+- Server commands
 
 ## In development
 - Clubs (clans)
-- osu!Direct
 - Beatmap submission
 - Custom commands
 - Website
