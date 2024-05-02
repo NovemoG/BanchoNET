@@ -182,7 +182,7 @@ public partial class OsuController
         {
             if (replayFile.Length >= 24)
             {
-                await using var fileStream = new FileStream(Storage.GetReplayPath(score.Id!.Value), FileMode.Create, FileAccess.ReadWrite);
+                await using var fileStream = new FileStream(Storage.GetReplayPath(score.Id), FileMode.Create, FileAccess.ReadWrite);
                 await replayFile.CopyToAsync(fileStream);
             }
             else
@@ -209,7 +209,7 @@ public partial class OsuController
         var previousBest = score.PreviousBest;
         if (previousBest != null) await scores.SetScoreLeaderboardPosition(beatmap, previousBest, false);
         
-        await RecalculatePlayerStats(beatmap, stats, player, score, previousBest);
+        await RecalculatePlayerStats(beatmap, stats, player, score, previousBest, bestWithMods);
         await players.UpdatePlayerStats(player, score.Mode);
 
         if (!player.Restricted)
@@ -285,48 +285,88 @@ public partial class OsuController
         ModeStats stats,
         Player player,
         Score score,
-        Score? previousBest)
+        Score? previousBest,
+        Score? bestWithMods)
     {
-        if (score.Passed && beatmap.HasLeaderboard() && beatmap.Status != BeatmapStatus.Qualified)
+        if (score.Passed && beatmap.Status != BeatmapStatus.Qualified && beatmap.HasLeaderboard())
         {
             if (score.MaxCombo > stats.MaxCombo)
                 stats.MaxCombo = score.MaxCombo;
             
-            if (score.Mods != /*previousBest.Mods*/Mods.None)
+            Console.WriteLine(previousBest?.Id);
+            Console.WriteLine(bestWithMods?.Id);
+            
+            switch (beatmap.AwardsPP())
             {
-                //TODO problem is that even if our score's mod combination is
-                //TODO unique that score is put in database before we access it here
-                //TODO so this condition: score.Grade == previousBestWithMods.Grade
-                //TODO is always true
-                
-                /*var previousBestWithMods =
-                    await _bancho.GetPlayerBestScoreOnLeaderboard(player, beatmap, score.Mode, true, score.Mods, false);*/
-            }
-
-            if (beatmap.AwardsPP() && score.Status == SubmissionStatus.Best)
-            {
-                var additionalRankedScore = score.TotalScore;
-                if (previousBest != null)
+                case true when score.Status == SubmissionStatus.Best:
                 {
-                    additionalRankedScore -= previousBest.TotalScore;
+                    var additionalRankedScore = score.TotalScore;
 
-                    if (score.Grade != previousBest.Grade)
+                    if (previousBest != null)
                     {
+                        additionalRankedScore -= previousBest.TotalScore;
+                        
+                        if (previousBest.Mods != bestWithMods?.Mods)
+                        {
+                            //if our previous best score does not have the same mods as our best score with mods,
+                            //we always add 1 to our overall grade count because it's a new mod combo
+                            if (score.Grade >= Grade.A)
+                                stats.Grades[score.Grade] += 1;
+                            
+                            //if our score has the same mods as our previous best score, we remove 1 from our
+                            //overall grade count because it is not a new mod combo
+                            if (score.Mods == previousBest.Mods)
+                                if (previousBest.Grade >= Grade.A)
+                                    stats.Grades[previousBest.Grade] -= 1;
+                        }
+                        else
+                        {
+                            //if our previous best score has the same mods as our best score with mods, we only
+                            //compare grades between those scores because previousBest and bestWithMods are the same
+                            if (score.Grade != bestWithMods.Grade)
+                            {
+                                if (score.Grade >= Grade.A)
+                                    stats.Grades[score.Grade] += 1;
+
+                                if (bestWithMods.Grade >= Grade.A)
+                                    stats.Grades[bestWithMods.Grade] -= 1;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        //no scores to compare with, just add 1
+                        if (score.Grade >= Grade.A)
+                            stats.Grades[score.Grade] += 1;
+                    }
+
+                    stats.RankedScore += additionalRankedScore;
+				
+                    await players.RecalculatePlayerTopScores(player, score.Mode);
+                    await players.UpdatePlayerRank(player, score.Mode);
+                    break;
+                }
+                case true when score.Status == SubmissionStatus.BestWithMods:
+                {
+                    if (bestWithMods != null)
+                    {
+                        //if our score is not best or submitted, we compare with our bestWithMods
+                        if (score.Grade == bestWithMods.Grade) return;
+            
                         if (score.Grade >= Grade.A)
                             stats.Grades[score.Grade] += 1;
 
-                        if (previousBest.Grade >= Grade.A)
-                            stats.Grades[score.Grade] -= 1;
+                        if (bestWithMods.Grade >= Grade.A)
+                            stats.Grades[bestWithMods.Grade] -= 1;
                     }
+                    else
+                    {
+                        //no previous best scores with mods, just add 1
+                        if (score.Grade >= Grade.A)
+                            stats.Grades[score.Grade] += 1;
+                    }
+                    break;
                 }
-                else
-                if (score.Grade >= Grade.A)
-                    stats.Grades[score.Grade] += 1;
-
-                stats.RankedScore += additionalRankedScore;
-				
-                await players.RecalculatePlayerTopScores(player, score.Mode);
-                await players.UpdatePlayerRank(player, score.Mode);
             }
         }
     }

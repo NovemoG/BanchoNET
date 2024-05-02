@@ -7,7 +7,7 @@ namespace BanchoNET.Objects.Scores;
 
 public class Score
 {
-	public long? Id { get; set; }
+	public long Id { get; set; }
 	public string? BeatmapMD5 { get; set; }
 	public Beatmap? Beatmap { get; set; }
 	public int PlayerId { get; set; }

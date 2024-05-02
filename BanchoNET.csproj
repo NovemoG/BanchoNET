@@ -34,6 +34,7 @@
       <Folder Include="Cache\" />
       <Folder Include="Commands\Scores\" />
       <Folder Include="Logger\" />
+      <Folder Include="Migrations\" />
     </ItemGroup>
 
     <ItemGroup>
