@@ -36,25 +36,25 @@ public class BeatmapsRepository(BanchoDbContext dbContext, BeatmapHandler beatma
 	{
 		if (setId > -1)
 		{
-			var cachedSet = _session.GetBeatmapSet(setId);
-
+			var cachedSet = await GetBeatmapSet(setId);
 			if (cachedSet != null)
+			{
 				foreach (var map in cachedSet.Beatmaps)
 					map.Status = targetStatus;
-			
-			return await dbContext.Beatmaps.Where(b => b.SetId == setId)
-				.ExecuteUpdateAsync(p => p.SetProperty(b => b.Status, (int)targetStatus));
+				
+				return await dbContext.Beatmaps.Where(b => b.SetId == setId)
+					.ExecuteUpdateAsync(p => p.SetProperty(b => b.Status, (int)targetStatus));
+			}
 		}
 
 		if (beatmapId <= -1) return 0;
 		
-		var cachedMap = _session.GetBeatmap(mapId: beatmapId);
-		if (cachedMap != null)
-		{
-			cachedMap.Status = targetStatus;
-			cachedMap = _session.GetBeatmap(beatmapMD5: cachedMap.MD5);
-			cachedMap!.Status = targetStatus; //Map exists because we got it by id
-		}
+		var cachedMap = await GetBeatmap(mapId: beatmapId);
+		if (cachedMap == null) return 0;
+		
+		cachedMap.Status = targetStatus;
+		cachedMap = _session.GetBeatmap(beatmapMD5: cachedMap.MD5);
+		cachedMap!.Status = targetStatus; //Map exists because we got it by id
 			
 		return await dbContext.Beatmaps.Where(b => b.MapId == beatmapId)
 				.ExecuteUpdateAsync(p => p.SetProperty(b => b.Status, (int)targetStatus));
@@ -257,10 +257,10 @@ public class BeatmapsRepository(BanchoDbContext dbContext, BeatmapHandler beatma
 			Ar = beatmap.Ar,
 			Od = beatmap.Od,
 			Hp = beatmap.Hp,
-			StarRating = currentBeatmap.StarRating,
-			NotesCount = currentBeatmap.NotesCount,
-			SlidersCount = currentBeatmap.SlidersCount,
-			SpinnersCount = currentBeatmap.SpinnersCount
+			StarRating = beatmap.StarRating,
+			NotesCount = beatmap.NotesCount,
+			SlidersCount = beatmap.SlidersCount,
+			SpinnersCount = beatmap.SpinnersCount
 		};
 	}
 }

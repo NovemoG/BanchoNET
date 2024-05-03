@@ -122,7 +122,7 @@ public static class PlayerExtensions
 			return;
 		}
 		
-		player.LeaveChannel(Session.GetChannel("#lobby")!);
+		player.LeaveChannel(Session.LobbyChannel);
 
 		if (lobby.Type is LobbyType.TeamVS or LobbyType.TagTeamVS)
 			slot.Team = LobbyTeams.Red;
@@ -184,7 +184,7 @@ public static class PlayerExtensions
 	public static void LeaveMatchToLobby(this Player player)
 	{
 		player.JoinLobby();
-		player.JoinChannel(Session.GetChannel("#lobby")!);
+		player.JoinChannel(Session.LobbyChannel);
 		player.LeaveMatch();
 	}
 
