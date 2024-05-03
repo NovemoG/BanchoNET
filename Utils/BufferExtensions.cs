@@ -200,30 +200,12 @@ public static class BufferExtensions
 		bw.Write(modeStats.Rank);
 		bw.Write(modePP);
 	}
-	
-	//TODO make it modifiable by user(?)
-	private static readonly List<(Activity Activity, string Description)> BotStatuses =
-	[
-		(Activity.Afk, "looking for source.."),
-		(Activity.Editing, "the source code.."),
-		(Activity.Editing, "server's website.."),
-		(Activity.Modding, "your requests.."),
-		(Activity.Watching, "over all of you.."),
-		(Activity.Watching, "over the server.."),
-		(Activity.Testing, "my will to live.."),
-		(Activity.Testing, "your patience.."),
-		(Activity.Submitting, "scores to database.."),
-		(Activity.Submitting, "a pull request.."),
-		(Activity.OsuDirect, "updating maps..")
-	];
 
 	public static void WriteBotStats(this BinaryWriter bw, Player player)
 	{
-		var status = BotStatuses[Random.Shared.Next(0, BotStatuses.Count)];
-		
 		bw.Write(player.Id);
-		bw.Write((byte)status.Activity);
-		bw.WriteOsuString(status.Description);
+		bw.Write((byte)player.Status.Activity);
+		bw.WriteOsuString(player.Status.ActivityDescription);
 		bw.WriteOsuString("");
 		bw.Write((int)0);
 		bw.Write((byte)0);

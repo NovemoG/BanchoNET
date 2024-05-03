@@ -1,4 +1,4 @@
-﻿using System.Text;
+﻿using System.Diagnostics;
 using BanchoNET.Models;
 using BanchoNET.Objects;
 using BanchoNET.Utils;
@@ -28,7 +28,10 @@ public class OsuVersionService
     
     public async Task FetchOsuVersion()
     {
-        Console.WriteLine($"[{GetType().Name}] fetching osu versions execution date: {DateTime.Now}");
+        Console.WriteLine($"[{GetType().Name}] Fetching osu versions execution date: {DateTime.Now}");
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
+        
         foreach (var clientStream in _streams)
         {
             var response = await _client.GetAsync($"{OsuApiV2ChangelogUrl}?stream={clientStream.Key}");
@@ -41,13 +44,6 @@ public class OsuVersionService
             var changelog = JsonConvert.DeserializeObject<ClientBuildVersions>(content);
             foreach (var build in changelog!.Builds) //Can't be null because we check for valid content length
             {
-                /*_streams[clientStream.Key] = new OsuVersion
-                {
-                    Date = DateTime.ParseExact(build.Version[..8], "yyyyMMdd", null),
-                    Revision = build.Version.Contains('.') ? int.Parse(build.Version[9..]) : 0,
-                    Stream = clientStream.Key
-                };*/
-
                 _streams[clientStream.Key] = OsuVersion.Parse(clientStream.Key, build.Version);
                 
                 if (build.ChangelogEntries.Any(entry => entry.Major)) break;
@@ -59,6 +55,9 @@ public class OsuVersionService
         if (!File.Exists(filePath))
         {
             await WriteToFile();
+            
+            stopwatch.Stop();
+            Console.WriteLine($"[{GetType().Name}] Fetching osu versions execution time: {stopwatch.Elapsed}");
             return;
         }
         
@@ -86,6 +85,9 @@ public class OsuVersionService
             Console.WriteLine($"[{GetType().Name}] Caching updated versions");
             await WriteToFile();
         }
+        
+        stopwatch.Stop();
+        Console.WriteLine($"[{GetType().Name}] Fetching osu versions execution time: {stopwatch.Elapsed}");
     }
     
     public OsuVersion GetLatestVersion(string stream)

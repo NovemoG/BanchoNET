@@ -11,8 +11,12 @@ namespace BanchoNET.Services;
 
 public sealed class BanchoSession
 {
+	#region Instance
+
 	private static readonly Lazy<BanchoSession> Lazy = new(() => new BanchoSession());
 	public static BanchoSession Instance => Lazy.Value;
+
+	#endregion
 	
 	#region Players
 	
@@ -136,13 +140,6 @@ public sealed class BanchoSession
 		
 		if (!_players.TryRemove(player.Id, out _))
 			Console.WriteLine($"[{GetType().Name}] Failed to remove {player.Id} from session");
-
-		Console.Write($"[{GetType().Name}] Players left: {_players.Count}, names: ");
-		foreach (var user in _players)
-		{
-			Console.Write($"{user.Value.Username}, ");
-		}
-		Console.Write('\n');
 
 		return true;
 	}

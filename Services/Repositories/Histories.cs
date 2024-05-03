@@ -52,8 +52,6 @@ public class HistoriesRepository
 
     public async Task AddMatchAction(int matchId, ActionEntry entry, bool creation = false)
     {
-        var fieldName = creation ? "CreationActions" : "";
-        
         var filter = Builders<MultiplayerMatch>.Filter.Eq("MatchId", matchId);
         var builder = creation
             ? Builders<MultiplayerMatch>.Update.Push("CreationActions", entry)
@@ -81,9 +79,10 @@ public class HistoriesRepository
         await _rankHistories.InsertOneAsync(history);
     }
     
-    public async Task UpdateRankHistory(int playerId, ValueEntry entry)
+    public async Task UpdateRankHistory(int playerId, byte mode, ValueEntry entry)
     {
-        var filter = Builders<RankHistory>.Filter.Eq("PlayerId", playerId);
+        var filter = Builders<RankHistory>.Filter.Eq("PlayerId", playerId)
+                     & Builders<RankHistory>.Filter.Eq("Mode", mode);
         var update = Builders<RankHistory>.Update.Push("Entries", entry);
 
         var result = await _rankHistories.UpdateOneAsync(filter, update);
@@ -92,9 +91,10 @@ public class HistoriesRepository
             Console.WriteLine("[Histories] Player not found in rank history");
     }
     
-    public async Task UpdatePeakRank(int playerId, ValueEntry peakRank)
+    public async Task UpdatePeakRank(int playerId, byte mode, ValueEntry peakRank)
     {
-        var filter = Builders<RankHistory>.Filter.Eq("PlayerId", playerId);
+        var filter = Builders<RankHistory>.Filter.Eq("PlayerId", playerId)
+                     & Builders<RankHistory>.Filter.Eq("Mode", mode);
         var update = Builders<RankHistory>.Update.Set("PeakRank", peakRank);
         
         var result = await _rankHistories.UpdateOneAsync(filter, update);
@@ -108,9 +108,10 @@ public class HistoriesRepository
         await _replayViewsHistories.InsertOneAsync(history);
     }
     
-    public async Task UpdateReplayHistory(int replayId, ValueEntry entry)
+    public async Task UpdateReplayHistory(int replayId, byte mode, ValueEntry entry)
     {
-        var filter = Builders<ReplayViewsHistory>.Filter.Eq("PlayerId", replayId);
+        var filter = Builders<ReplayViewsHistory>.Filter.Eq("PlayerId", replayId)
+                     & Builders<ReplayViewsHistory>.Filter.Eq("Mode", mode);
         var update = Builders<ReplayViewsHistory>.Update.Push("Entries", entry);
         
         var result = await _replayViewsHistories.UpdateOneAsync(filter, update);
@@ -124,9 +125,10 @@ public class HistoriesRepository
         await _playCountHistories.InsertOneAsync(history);
     }
     
-    public async Task UpdatePlayCountHistory(int beatmapId, ValueEntry entry)
+    public async Task UpdatePlayCountHistory(int beatmapId, byte mode, ValueEntry entry)
     {
-        var filter = Builders<PlayCountHistory>.Filter.Eq("PlayerId", beatmapId);
+        var filter = Builders<PlayCountHistory>.Filter.Eq("PlayerId", beatmapId)
+                     & Builders<PlayCountHistory>.Filter.Eq("Mode", mode);
         var update = Builders<PlayCountHistory>.Update.Push("Entries", entry);
         
         var result = await _playCountHistories.UpdateOneAsync(filter, update);

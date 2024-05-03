@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BanchoNET.Models;
 
-public class BanchoDbContext(DbContextOptions<BanchoDbContext> options) : DbContext(options)
+public sealed class BanchoDbContext(DbContextOptions<BanchoDbContext> options) : DbContext(options)
 {
 	public DbSet<PlayerDto> Players { get; init; } = null!;
 	public DbSet<StatsDto> Stats { get; init; } = null!;
@@ -12,7 +12,6 @@ public class BanchoDbContext(DbContextOptions<BanchoDbContext> options) : DbCont
 	public DbSet<ScoreDto> Scores { get; init; } = null!;
 	public DbSet<LoginDto> PlayerLogins { get; init; } = null!;
 	public DbSet<ClientHashesDto> ClientHashes { get; init; } = null!;
-	public DbSet<MultiplayerMatchDto> MultiplayerMatches { get; init; } = null!;
 	public DbSet<MessageDto> Messages { get; init; } = null!;
 	public DbSet<ChannelDto> Channels { get; init; } = null!;
 }

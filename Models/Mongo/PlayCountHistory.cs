@@ -11,5 +11,6 @@ public class PlayCountHistory
     public ObjectId Id { get; set; }
     
     public int PlayerId { get; set; }
+    public byte Mode { get; set; }
     public List<ValueEntry> Entries { get; set; } = null!;
 }

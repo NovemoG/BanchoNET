@@ -15,6 +15,7 @@ using dotenv.net;
 using Hangfire;
 using Hangfire.MySql;
 using Microsoft.EntityFrameworkCore;
+using MySql.Data.MySqlClient;
 using StackExchange.Redis;
 using static System.Data.IsolationLevel;
 using IsolationLevel = System.Transactions.IsolationLevel;
@@ -56,7 +57,6 @@ public class Program
 			"HANGFIRE_HOST",
 			"HANGFIRE_PORT",
 			"HANGFIRE_USER",
-			"HANGFIRE_DB",
 			"REDIS_HOST",
 			"REDIS_PORT",
 			"MONGO_HOST",
@@ -83,7 +83,6 @@ public class Program
 			HangfirePort = Environment.GetEnvironmentVariable("HANGFIRE_PORT")!,
 			HangfireUser = Environment.GetEnvironmentVariable("HANGFIRE_USER")!,
 			HangfirePass = Environment.GetEnvironmentVariable("HANGFIRE_PASS")!,
-			HangfireDb = Environment.GetEnvironmentVariable("HANGFIRE_DB")!,
 			RedisHost = Environment.GetEnvironmentVariable("REDIS_HOST")!,
 			RedisPort = Environment.GetEnvironmentVariable("REDIS_PORT")!,
 			RedisPass = Environment.GetEnvironmentVariable("REDIS_PASS")!,
@@ -97,8 +96,11 @@ public class Program
 			$"server={dbConnections.MysqlHost};" +
 			$"port={dbConnections.MysqlPort};" +
 			$"user={dbConnections.MysqlUser};" +
-			$"password={dbConnections.MysqlPass};" +
-			$"database={dbConnections.MysqlDb};";
+			$"password={dbConnections.MysqlPass};";
+		
+		EnsureHangfireDatabaseExists(mySqlConnectionString);
+
+		mySqlConnectionString += $"database={dbConnections.MysqlDb};";
 
 		var hangfirePass = dbConnections.HangfirePass;
 		var hangfireConnectionString =
@@ -106,8 +108,8 @@ public class Program
 			$"port={dbConnections.HangfirePort};" +
 			$"user={dbConnections.HangfireUser};" +
 			$"{(string.IsNullOrEmpty(hangfirePass) ? "" : $"password={hangfirePass};")}" +
-			$"database={dbConnections.HangfireDb};" +
-			$"Allow User Variables=True";
+			$"database=hangfire;" +
+			$"Allow User Variables=True";;
 		
 		var redisConnectionString = 
 			$"{dbConnections.RedisHost}:{dbConnections.RedisPort}," +
@@ -143,7 +145,7 @@ public class Program
 			$"{dbConnections.MongoHost}:{dbConnections.MongoPort}";
 		
 		#endregion
-			
+		
 		builder.Services.AddHangfire(config =>
 		{
 			config.UseStorage(new MySqlStorage(hangfireConnectionString, new MySqlStorageOptions
@@ -164,6 +166,7 @@ public class Program
 		builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConnectionString));
 		builder.Services.AddSingleton(new HistoriesRepository(mongoConnectionString));
 		builder.Services.AddSingleton<OsuVersionService>();
+		builder.Services.AddSingleton<BackgroundTasks>();
 		builder.Services.AddDbContext<BanchoDbContext>(options =>
 		{
 			options.UseMySQL(mySqlConnectionString);
@@ -210,6 +213,8 @@ public class Program
 			Console.ForegroundColor = ConsoleColor.White;
 		}
 		
+		EnsureDatabaseExists(app.Services.CreateScope());
+		
 		InitBanchoBot(app.Services.CreateScope());
 		InitChannels(app.Services.CreateScope());
 		
@@ -219,6 +224,7 @@ public class Program
 		InitRedis(app.Services.CreateScope(), dbConnections.RedisHost, dbConnections.RedisPort);
 		
 		app.Services.GetRequiredService<OsuVersionService>().FetchOsuVersion().Wait();
+		app.Services.GetRequiredService<BackgroundTasks>().InitTasks().Wait();
 
 		#endregion
 		
@@ -226,6 +232,31 @@ public class Program
 		Console.WriteLine($"[Init] Initialization took: {initStopwatch.Elapsed}");
 		
 		app.Run();
+	}
+
+	private static void EnsureHangfireDatabaseExists(string connectionString)
+	{
+		Console.WriteLine("[Init] Checking if Hangfire database exists.");
+		
+		using var connection = new MySqlConnection(connectionString);
+		using var command = connection.CreateCommand();
+		
+		connection.Open();
+		command.CommandText = "CREATE DATABASE IF NOT EXISTS `hangfire`";
+		command.ExecuteNonQuery();
+	}
+	
+	private static void EnsureDatabaseExists(IServiceScope scope)
+	{
+		var db = scope.ServiceProvider.GetRequiredService<BanchoDbContext>();
+
+		Console.WriteLine("[Init] Checking if database exists.");
+		
+		var created = db.Database.EnsureCreated();
+
+		Console.WriteLine(created
+			? "[Init] Database couldn't be found and was created."
+			: "[Init] Database already exists, creation was skipped.");
 	}
 	
 	private static void InitBanchoBot(IServiceScope scope)
