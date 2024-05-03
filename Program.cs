@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 using BanchoNET.Commands;
 using BanchoNET.Models;
 using BanchoNET.Models.Dtos;
@@ -58,6 +59,8 @@ public class Program
 			"HANGFIRE_DB",
 			"REDIS_HOST",
 			"REDIS_PORT",
+			"MONGO_HOST",
+			"MONGO_PORT",
 		};
 		
 		var missing = false;
@@ -83,17 +86,61 @@ public class Program
 			HangfireDb = Environment.GetEnvironmentVariable("HANGFIRE_DB")!,
 			RedisHost = Environment.GetEnvironmentVariable("REDIS_HOST")!,
 			RedisPort = Environment.GetEnvironmentVariable("REDIS_PORT")!,
-			RedisPass = Environment.GetEnvironmentVariable("REDIS_PASS")!
+			RedisPass = Environment.GetEnvironmentVariable("REDIS_PASS")!,
+			MongoHost = Environment.GetEnvironmentVariable("MONGO_HOST")!,
+			MongoPort = Environment.GetEnvironmentVariable("MONGO_PORT")!,
+			MongoUser = Environment.GetEnvironmentVariable("MONGO_USER")!,
+			MongoPass = Environment.GetEnvironmentVariable("MONGO_PASS")!,
 		};
 		
 		var mySqlConnectionString = 
-			$"server={dbConnections.MysqlHost};port={dbConnections.MysqlPort};user={dbConnections.MysqlUser};password={dbConnections.MysqlPass};database={dbConnections.MysqlDb};";
-		//TODO: String builder for password in Hangfire connection string
-		var hangfireConnectionString = 
-			$"server={dbConnections.HangfireHost};port={dbConnections.HangfirePort};user={dbConnections.HangfireUser};database={dbConnections.HangfireDb};Allow User Variables=True";
+			$"server={dbConnections.MysqlHost};" +
+			$"port={dbConnections.MysqlPort};" +
+			$"user={dbConnections.MysqlUser};" +
+			$"password={dbConnections.MysqlPass};" +
+			$"database={dbConnections.MysqlDb};";
+
+		var hangfirePass = dbConnections.HangfirePass;
+		var hangfireConnectionString =
+			$"server={dbConnections.HangfireHost};" +
+			$"port={dbConnections.HangfirePort};" +
+			$"user={dbConnections.HangfireUser};" +
+			$"{(string.IsNullOrEmpty(hangfirePass) ? "" : $"password={hangfirePass};")}" +
+			$"database={dbConnections.HangfireDb};" +
+			$"Allow User Variables=True";
 		
 		var redisConnectionString = 
-			$"{dbConnections.RedisHost}:{dbConnections.RedisPort},password={dbConnections.RedisPass},allowAdmin=true";
+			$"{dbConnections.RedisHost}:{dbConnections.RedisPort}," +
+			$"password={dbConnections.RedisPass}," +
+			$"allowAdmin=true";
+
+		var credentials = true;
+		var mongoUser = dbConnections.MongoUser;
+		var mongoPass = dbConnections.MongoPass;
+		if (string.IsNullOrEmpty(mongoUser)
+		    && !string.IsNullOrEmpty(mongoPass))
+		{
+			Console.WriteLine("[Init] You specified password but left username empty for MongoDB. Ignoring password.");
+			credentials = false;
+		}
+		else if (string.IsNullOrEmpty(mongoUser)
+		         && string.IsNullOrEmpty(mongoPass))
+		{
+			Console.WriteLine("[Init] No credentials specified for MongoDB.");
+			credentials = false;
+		}
+		else
+		{
+			mongoUser = EscapeMongoCharacters(mongoUser);
+			mongoPass = string.IsNullOrEmpty(mongoPass)
+				? ""
+				: EscapeMongoCharacters(mongoPass);
+		}
+		
+		var mongoConnectionString =
+			$"mongodb://" +
+			$"{(credentials ? $"{mongoUser}:{mongoPass}@" : "")}" +
+			$"{dbConnections.MongoHost}:{dbConnections.MongoPort}";
 		
 		#endregion
 			
@@ -115,6 +162,7 @@ public class Program
 		builder.Services.AddControllers();
 		
 		builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConnectionString));
+		builder.Services.AddSingleton(new HistoriesRepository(mongoConnectionString));
 		builder.Services.AddSingleton<OsuVersionService>();
 		builder.Services.AddDbContext<BanchoDbContext>(options =>
 		{
@@ -284,5 +332,13 @@ public class Program
 		
 		stopwatch.Stop();
 		Console.WriteLine($"[Init] Redis leaderboards updated in {stopwatch.ElapsedMilliseconds}ms");
+	}
+	
+	private static string EscapeMongoCharacters(string input)
+	{
+		return Regex.Replace(
+			Uri.EscapeDataString(input),
+			@"[$:/?$[\]@]",
+			m => Uri.HexEscape(Convert.ToChar(m.Value[0].ToString())));
 	}
 }

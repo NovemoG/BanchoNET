@@ -17,4 +17,9 @@ public class DbConnectionsModel
     public string RedisHost { get; set; } = null!;
     public string RedisPort { get; set; } = null!;
     public string RedisPass { get; set; } = null!;
+    
+    public string MongoHost { get; set; } = null!;
+    public string MongoPort { get; set; } = null!;
+    public string MongoUser { get; set; } = null!;
+    public string MongoPass { get; set; } = null!;
 }

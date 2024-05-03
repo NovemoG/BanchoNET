@@ -144,8 +144,8 @@ public class BeatmapsRepository(BanchoDbContext dbContext, BeatmapHandler beatma
 		if (beatmapSet == null)
 		{
 			var dbBeatmaps = await dbContext.Beatmaps
-			                                 .Where(b => b.SetId == setId)
-			                                 .ToListAsync();
+				.Where(b => b.SetId == setId)
+				.ToListAsync();
 
 			if (dbBeatmaps.Count == 0)
 			{
