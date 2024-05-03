@@ -227,8 +227,6 @@ public partial class ChoController
 		{
 			loginPackets.OtherPlayers(player);
 			
-			//TODO check for offline messages
-			
 			if (!player.Privileges.HasPrivilege(Privileges.Verified))
 			{
 				await players.ModifyPlayerPrivileges(player, Privileges.Verified, false);
@@ -269,7 +267,6 @@ public partial class ChoController
 		_session.AppendPlayer(player);
 		
 		var unreadMessages = await messages.GetUnreadMessages(player.Id);
-
 		if (unreadMessages.Count > 0)
 		{
 			loginPackets.Notification("You have unread messages. Please check them in the chat.");
@@ -287,11 +284,6 @@ public partial class ChoController
 			}
 		}
 		
-		
-		
-		//TODO note some statistics maybe?
-		
-		//TODO logger message
 		Console.WriteLine($"[Login] {player.Username} Logged in");
 		Response.Headers["cho-token"] = player.Token.ToString();
 		

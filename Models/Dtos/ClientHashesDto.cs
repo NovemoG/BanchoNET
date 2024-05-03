@@ -7,8 +7,7 @@ namespace BanchoNET.Models.Dtos;
 [PrimaryKey(nameof(Id))]
 public class ClientHashesDto
 {
-	[Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-	public int Id { get; set; }
+	[Key] public int Id { get; set; }
 	
 	[Column(TypeName = "CHAR"), StringLength(32), Unicode(false)]
 	public string OsuPath { get; set; }

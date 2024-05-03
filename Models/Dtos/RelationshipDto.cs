@@ -9,8 +9,7 @@ namespace BanchoNET.Models.Dtos;
 [PrimaryKey(nameof(Id))]
 public class RelationshipDto
 {
-	[Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-	public uint Id { get; set; }
+	[Key] public uint Id { get; set; }
 	
 	public int PlayerId { get; set; }
 	public int TargetId { get; set; }

@@ -224,7 +224,7 @@ public partial class CommandProcessor
             var slot = _lobby.Slots[i];
             
             if ((slot.Status & SlotStatus.PlayerInSlot) != 0)
-                slot.Player!.LeaveMatchToLobby(_session.GetChannel("#lobby")!);
+                slot.Player!.LeaveMatchToLobby();
             
             slot.Reset();
             slot.Status = SlotStatus.Locked;
@@ -496,9 +496,11 @@ public partial class CommandProcessor
         
         var seconds = args.Length == 0? 10 : uint.TryParse(args[0], out var s) ? s : 10;
         
-        //TODO should this overwrite current timer or display this message?
         if (_lobby.Timer != null)
-            return "Timer is already running.";
+        {
+            _lobby.Timer.Stop();
+            _lobby.Chat.SendBotMessage("Updating current timer.");
+        }
         
         _lobby.Timer = new LobbyTimer(_lobby, seconds, true);
         _lobby.ReadyAllPlayers();
@@ -516,9 +518,11 @@ public partial class CommandProcessor
         if (seconds == 0)
             return "";
         
-        //TODO should this overwrite current timer or display this message?
         if (_lobby.Timer != null)
-            return "Timer is already running.";
+        {
+            _lobby.Timer.Stop();
+            _lobby.Chat.SendBotMessage("Updating current timer.");
+        }
         
         _lobby.Timer = new LobbyTimer(_lobby, seconds);
         
@@ -552,7 +556,7 @@ public partial class CommandProcessor
         
         var player = slot.Player!;
         
-        player.LeaveMatchToLobby(_session.GetChannel("#lobby")!);
+        player.LeaveMatchToLobby();
         player.SendBotMessage("You've been kicked from the lobby.");
         
         return $"{slot.Player!.Username} has been kicked.";
@@ -581,7 +585,7 @@ public partial class CommandProcessor
         {
             var player = slot.Player!;
             
-            player.LeaveMatchToLobby(_session.GetChannel("#lobby")!);
+            player.LeaveMatchToLobby();
             player.SendBotMessage("You've been banned from the lobby.");
         }
         
@@ -674,11 +678,9 @@ public partial class CommandProcessor
     {
         if (!_lobby.Refs.Contains(_playerCtx.Id))
             return "";
-
-        var lobbyChannel = _session.GetChannel("#lobby")!;
         
         foreach (var slot in _lobby.Slots)
-            slot.Player?.LeaveMatchToLobby(lobbyChannel);
+            slot.Player?.LeaveMatchToLobby();
         
         return "";
     }

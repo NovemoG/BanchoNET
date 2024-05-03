@@ -114,18 +114,15 @@ public static class PlayerExtensions
 				return;
 			}
 		}
-		else
-			slot = lobby.Slots[0];
+		else slot = lobby.Slots[0];
 
 		if (!player.JoinChannel(lobby.Chat))
 		{
 			Console.WriteLine($"[PlayerExtensions] {player.Username} failed to join {lobby.Chat.IdName}");
 			return;
 		}
-
-		var lobbyChannel = Session.GetChannel("#lobby")!;
-		if (player.Channels.Contains(lobbyChannel)) 
-			player.LeaveChannel(lobbyChannel);
+		
+		player.LeaveChannel(Session.GetChannel("#lobby")!);
 
 		if (lobby.Type is LobbyType.TeamVS or LobbyType.TagTeamVS)
 			slot.Team = LobbyTeams.Red;
@@ -161,13 +158,8 @@ public static class PlayerExtensions
 			Console.WriteLine($"[PlayerExtensions] Match \"{lobby.Name}\" is empty, removing.");
 
 			lobby.Timer?.Stop();
-
 			Session.RemoveLobby(lobby);
-
-			var lobbyChannel = Session.GetChannel("#lobby")!;
-			using var matchDisposePacket = new ServerPackets();
-			matchDisposePacket.DisposeMatch(lobby);
-			lobbyChannel.EnqueueToPlayers(matchDisposePacket.GetContent());
+			lobby.EnqueueDispose();
 		}
 		else
 		{
@@ -189,10 +181,10 @@ public static class PlayerExtensions
 		player.Lobby = null;
 	}
 
-	public static void LeaveMatchToLobby(this Player player, Channel lobbyChannel)
+	public static void LeaveMatchToLobby(this Player player)
 	{
 		player.JoinLobby();
-		player.JoinChannel(lobbyChannel);
+		player.JoinChannel(Session.GetChannel("#lobby")!);
 		player.LeaveMatch();
 	}
 
@@ -324,7 +316,8 @@ public static class PlayerExtensions
 	{
 		if (!channel.PlayerInChannel(player))
 		{
-			Console.WriteLine($"[PlayerExtensions] {player.Username} tried to leave {channel.IdName} without being in it");
+			Console.WriteLine($"[PlayerExtensions] {player.Username} tried to leave {channel.IdName} without being " +
+			                  $"in it (most of the times it's a false positive).");
 			return;
 		}
 		

@@ -42,7 +42,7 @@ public partial class ClientPacketsHandler
 				break;
 		}
 
-		if (channel == null) //TODO log
+		if (channel == null)
 			return;
 
 		if (!channel.PlayerInChannel(player))

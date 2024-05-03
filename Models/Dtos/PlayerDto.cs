@@ -14,8 +14,7 @@ namespace BanchoNET.Models.Dtos;
 [PrimaryKey(nameof(Id))]
 public class PlayerDto
 {
-	[Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-	public int Id { get; set; }
+	[Key] public int Id { get; set; }
 	
 	[MaxLength(16), Unicode(false)]
 	public string Username { get; set; }

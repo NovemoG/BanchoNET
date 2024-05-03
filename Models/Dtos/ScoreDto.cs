@@ -14,8 +14,7 @@ namespace BanchoNET.Models.Dtos;
 [PrimaryKey(nameof(Id))]
 public class ScoreDto
 {
-	[Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-	public long Id { get; set; }
+	[Key] public long Id { get; set; }
 	
 	[Column(TypeName = "CHAR(32)"), Unicode(false)]
 	public string BeatmapMD5 { get; set; }

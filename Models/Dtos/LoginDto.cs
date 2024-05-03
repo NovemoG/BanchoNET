@@ -7,8 +7,7 @@ namespace BanchoNET.Models.Dtos;
 [PrimaryKey(nameof(Id))]
 public class LoginDto
 {
-	[Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-	public int Id { get; set; }
+	[Key] public int Id { get; set; }
 	
 	[MaxLength(45), Unicode(false)]
 	public string Ip { get; set; }

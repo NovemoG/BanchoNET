@@ -11,8 +11,7 @@ namespace BanchoNET.Models.Dtos;
 [PrimaryKey(nameof(MapId))]
 public class BeatmapDto
 {
-	[Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)] 
-	public int MapId { get; set; }
+	[Key] public int MapId { get; set; }
 	public int SetId { get; set; }
 	public bool Private { get; set; }
 	

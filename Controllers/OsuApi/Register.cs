@@ -36,7 +36,11 @@ public partial class OsuController
 			Field = "username",
 			Messages = ["Username already taken by other player."]
 		});
-		//TODO disallowed usernames
+		if (AppSettings.DisallowedNames.Contains(username)) errors.Add(new ErrorDetails
+		{
+			Field = "username",
+			Messages = ["Username is disallowed."]
+		});
 		
 		if (!Regexes.Email.Match(email).Success) errors.Add(new ErrorDetails
 		{

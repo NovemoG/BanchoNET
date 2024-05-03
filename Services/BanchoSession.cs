@@ -14,12 +14,13 @@ public sealed class BanchoSession
 	private static readonly Lazy<BanchoSession> Lazy = new(() => new BanchoSession());
 	public static BanchoSession Instance => Lazy.Value;
 	
-	#region PlayersCollections
+	#region Players
 	
 	public Player BanchoBot => _bots[1];
 	
 	private readonly ConcurrentDictionary<int, Player> _players = [];
 	public IEnumerable<Player> Players => _players.Values;
+	public IEnumerable<Player> PlayersInLobby => Players.Where(p => p.InLobby);
 	
 	private readonly ConcurrentDictionary<int, Player> _restricted = [];
 	public IEnumerable<Player> Restricted => _restricted.Values;
@@ -44,6 +45,8 @@ public sealed class BanchoSession
 	private readonly List<Channel> _spectatorChannels = [];
 	private readonly List<Channel> _channels = [];
 	public IEnumerable<Channel> Channels => _channels;
+	
+	//TODO cache #lobby channel or change list to dictionary
 
 	#endregion
 

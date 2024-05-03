@@ -24,8 +24,6 @@ public partial class CommandProcessor(
     private Player _playerCtx = null!;
     private Channel? _channelCtx;
     private string _commandBase = null!;
-    
-    //TODO support creating custom commands (idk what can be possible)
 
     /// <summary>
     /// Executes a command from a given string.

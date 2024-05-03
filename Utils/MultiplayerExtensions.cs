@@ -182,6 +182,16 @@ public static class MultiplayerExtensions
 		lobby.EnqueueState();
 	}
 
+	public static void EnqueueDispose(this MultiplayerLobby lobby)
+	{
+		using var matchDisposePacket = new ServerPackets();
+		matchDisposePacket.DisposeMatch(lobby);
+		var data = matchDisposePacket.GetContent();
+		
+		foreach (var player in Session.PlayersInLobby)
+			player.Enqueue(data);
+	}
+
 	public static void Enqueue(
 		this MultiplayerLobby lobby,
 		byte[] data,
@@ -190,26 +200,27 @@ public static class MultiplayerExtensions
 	{
 		lobby.Chat.EnqueueToPlayers(data, immune);
 		
-		//TODO maybe change it to account for players that are in a lobby but not in a lobby channel
-		var lobbyChannel = Session.GetChannel("#lobby")!;
-		if (toLobby && lobbyChannel.Players.Count > 0)
-			lobbyChannel.EnqueueToPlayers(data);
+		if (!toLobby) return;
+		
+		foreach (var player in Session.PlayersInLobby)
+			player.Enqueue(data);
 	}
 
 	public static void EnqueueState(this MultiplayerLobby lobby, bool toLobby = true)
 	{
-		using (var updatePacket = new ServerPackets())
+		using (var updatePacketT = new ServerPackets())
 		{
-			updatePacket.UpdateMatch(lobby, true);
-			lobby.Chat.EnqueueToPlayers(updatePacket.GetContent());
+			updatePacketT.UpdateMatch(lobby, true);
+			lobby.Chat.EnqueueToPlayers(updatePacketT.GetContent());
 		}
+
+		if (!toLobby) return;
+
+		using var updatePacketF = new ServerPackets();
+		updatePacketF.UpdateMatch(lobby, false);
+		var data = updatePacketF.GetContent();
 		
-		var lobbyChannel = Session.GetChannel("#lobby")!;
-		if (toLobby && lobbyChannel.Players.Count > 0)
-		{
-			using var updatePacket = new ServerPackets();
-			updatePacket.UpdateMatch(lobby, false);
-			lobbyChannel.EnqueueToPlayers(updatePacket.GetContent());
-		}
+		foreach (var player in Session.PlayersInLobby)
+			player.Enqueue(data);
 	}
 }

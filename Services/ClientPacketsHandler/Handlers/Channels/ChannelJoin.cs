@@ -15,10 +15,7 @@ public partial class ClientPacketsHandler
 		var channel = _session.GetChannel(channelName);
 
 		if (channel == null || !player.JoinChannel(channel))
-		{
-			//TODO log
 			Console.WriteLine($"[ChannelJoin] {player} failed to join {channelName}");
-		}
 		
 		player.LastActivityTime = DateTime.Now;
 		return Task.CompletedTask;

@@ -31,7 +31,7 @@ public class MessagesRepository(BanchoDbContext dbContext)
             .Where(m => m.ReceiverId == playerId && !m.Read).ToListAsync();
     }
     
-    public async Task MarkMessageAsRead(int messageId)
+    public async Task MarkMessageAsRead(long messageId)
     {
         var message = await dbContext.Messages.FirstOrDefaultAsync(m => m.Id == messageId);
         if (message != null)
