@@ -124,7 +124,7 @@ public partial class CommandProcessor
         foreach (var slot in lobby.Slots[1..])
             slot.Status = SlotStatus.Open;
         
-        MultiplayerExtensions.CreateLobby(lobby, _playerCtx, await multiplayer.GetMatchId());
+        MultiplayerExtensions.CreateLobby(lobby, _playerCtx, await histories.GetMatchId());
         
         return "";
     }

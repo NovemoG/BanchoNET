@@ -1,6 +1,6 @@
 ﻿namespace BanchoNET.Objects.Players;
 
-public enum Activity
+public enum Activity : byte
 {
 	Idle = 0,
 	Afk = 1,

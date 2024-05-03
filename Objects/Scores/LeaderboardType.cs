@@ -1,6 +1,6 @@
 ﻿namespace BanchoNET.Objects.Scores;
 
-public enum LeaderboardType
+public enum LeaderboardType : byte
 {
 	Local,
 	Top,

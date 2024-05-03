@@ -14,5 +14,5 @@ public class ScoresEntry
     public string BeatmapName { get; set; } = null!; // full name
     
     public List<ScoreEntry> Values { get; set; } = null!;
-    public List<ActionEntry> Actions { get; set; } = null!; // Actions are displayed after the map is finished
+    public List<ActionEntry> Actions { get; set; } = null!; // Actions are displayed after the map finished
 }

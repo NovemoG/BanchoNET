@@ -170,7 +170,6 @@ public class Program
 		});
 		builder.Services.AddScoped<BeatmapsRepository>();
 		builder.Services.AddScoped<ClientRepository>();
-		builder.Services.AddScoped<MultiplayerRepository>();
 		builder.Services.AddScoped<MessagesRepository>();
 		builder.Services.AddScoped<PlayersRepository>();
 		builder.Services.AddScoped<ScoresRepository>();

@@ -30,7 +30,7 @@ public partial class ClientPacketsHandler
 			return;
 		}
 		
-		MultiplayerExtensions.CreateLobby(matchData, player, await multiplayer.GetMatchId());
+		MultiplayerExtensions.CreateLobby(matchData, player, await histories.GetMatchId());
 		player.LastActivityTime = DateTime.Now;
 	}
 }

@@ -1,6 +1,6 @@
 ﻿namespace BanchoNET.Objects.Multiplayer;
 
-public enum LobbyType
+public enum LobbyType : byte
 {
 	HeadToHead,
 	TagCoop,

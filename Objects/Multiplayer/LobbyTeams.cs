@@ -1,6 +1,6 @@
 ﻿namespace BanchoNET.Objects.Multiplayer;
 
-public enum LobbyTeams
+public enum LobbyTeams : byte
 {
 	Neutral,
 	Blue,

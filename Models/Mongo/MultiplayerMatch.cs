@@ -6,9 +6,11 @@ namespace BanchoNET.Models.Mongo;
 public class MultiplayerMatch
 {
     [BsonId]
-    [BsonRepresentation(BsonType.Int32)]
-    public int Id { get; set; }
+    [BsonIgnoreIfDefault]
+    [BsonRepresentation(BsonType.ObjectId)]
+    public ObjectId Id { get; set; }
     
+    public int MatchId { get; set; }
     public string Name { get; set; } = null!;
     public List<ActionEntry> CreationActions { get; set; } = null!;
     public List<ScoresEntry> Scores { get; set; } = null!;

@@ -9,7 +9,7 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler(
 	PlayersRepository players,
-	MultiplayerRepository multiplayer,
+	HistoriesRepository histories,
 	BeatmapsRepository beatmaps,
 	MessagesRepository messages,
 	CommandProcessor commands)
