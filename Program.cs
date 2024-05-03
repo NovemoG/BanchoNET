@@ -3,6 +3,7 @@ using BanchoNET.Commands;
 using BanchoNET.Models;
 using BanchoNET.Models.Dtos;
 using BanchoNET.Objects;
+using BanchoNET.Objects.Channels;
 using BanchoNET.Objects.Players;
 using BanchoNET.Objects.Privileges;
 using BanchoNET.Services;
@@ -219,8 +220,37 @@ public class Program
 	private static void InitChannels(IServiceScope scope)
 	{
 		var db = scope.ServiceProvider.GetRequiredService<BanchoDbContext>();
-		
-		//TODO get channels and add them to BanchoSession collection
+		var session = BanchoSession.Instance;
+
+		if (!db.Channels.Any())
+		{
+			Console.WriteLine("[Init] No channels found in database, creating default ones.");
+			
+			foreach (var channel in ChannelExtensions.DefaultChannels)
+			{
+				db.Channels.Add(new ChannelDto
+				{
+					Name = channel.Name,
+					Description = channel.Description,
+					Hidden = channel.Hidden,
+					AutoJoin = channel.AutoJoin,
+					ReadOnly = channel.ReadOnly,
+					ReadPrivileges = (int)channel.ReadPrivileges,
+					WritePrivileges = (int)channel.WritePrivileges
+				});
+				
+				session.InsertChannel(channel);
+			}
+
+			db.SaveChanges();
+		}
+		else
+		{
+			Console.WriteLine("[Init] Loading channels from database.");
+			
+			foreach (var channel in db.Channels.ToList())
+				session.InsertChannel(new Channel(channel));
+		}
 	}
 
 	private static void InitRedis(IServiceScope scope, string redisHost, string redisPort)

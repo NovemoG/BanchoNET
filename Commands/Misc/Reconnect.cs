@@ -1,5 +1,6 @@
 ﻿using BanchoNET.Attributes;
 using BanchoNET.Objects.Privileges;
+using BanchoNET.Utils;
 
 namespace BanchoNET.Commands;
 
@@ -11,8 +12,20 @@ public partial class CommandProcessor
         "If you don't have enough permissions this command can only be used to reconnect yourself,\n" +
         "otherwise you can reconnect any player by providing their username.",
         ["rc"])]
-    private async Task<string> Reconnect(params string[] args)
+    private Task<string> Reconnect(params string[] args)
     {
-        return "";
+        if (args.Length == 0)
+            _session.LogoutPlayer(_playerCtx);
+
+        if (args.Length != 1 || !_playerCtx.CanUseCommand(Privileges.Administrator))
+            return Task.FromResult("Not enough privileges to reconnect other players.");
+        
+        var targetPlayer = _session.GetPlayer(username: args[0]);
+        if (targetPlayer == null)
+            return Task.FromResult("Target player not found.");
+            
+        _session.LogoutPlayer(targetPlayer);
+
+        return Task.FromResult($"{targetPlayer.Username} has been reconnected.");
     }
 }

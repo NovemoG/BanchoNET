@@ -3,7 +3,6 @@ using System.Net;
 using BanchoNET.Objects.Beatmaps;
 using BanchoNET.Objects.Multiplayer;
 using BanchoNET.Objects.Players;
-using BanchoNET.Objects.Privileges;
 using BanchoNET.Packets;
 using BanchoNET.Utils;
 using Channel = BanchoNET.Objects.Channels.Channel;
@@ -43,53 +42,7 @@ public sealed class BanchoSession
 	#region Channels
 
 	private readonly List<Channel> _spectatorChannels = [];
-	private readonly List<Channel> _channels =
-	[
-		new Channel("#osu")
-		{
-			Description = "Main osu! chatroom",
-			AutoJoin = true,
-			Hidden = false,
-			ReadOnly = false,
-			Instance = false,
-			ReadPrivileges = ClientPrivileges.Player,
-			WritePrivileges = ClientPrivileges.Player,
-			Players = []
-		},
-		new Channel("#lobby")
-		{
-			Description = "Multiplayer chatroom",
-			AutoJoin = false,
-			Hidden = false,
-			ReadOnly = false,
-			Instance = false,
-			ReadPrivileges = ClientPrivileges.Player,
-			WritePrivileges = ClientPrivileges.Player,
-			Players = []
-		},
-		new Channel("#announce")
-		{
-			Description = "Multiplayer chatroom",
-			AutoJoin = false,
-			Hidden = false,
-			ReadOnly = false,
-			Instance = false,
-			ReadPrivileges = ClientPrivileges.Player,
-			WritePrivileges = ClientPrivileges.Player,
-			Players = []
-		},
-		new Channel("#staff")
-		{
-			Description = "osu! staff chatroom",
-			AutoJoin = false,
-			Hidden = true,
-			ReadOnly = false,
-			Instance = false,
-			ReadPrivileges = ClientPrivileges.Owner,
-			WritePrivileges = ClientPrivileges.Owner,
-			Players = []
-		},
-	];
+	private readonly List<Channel> _channels = [];
 	public IEnumerable<Channel> Channels => _channels;
 
 	#endregion

@@ -25,8 +25,27 @@ public static class EnumExtensions
 
 		return (Privileges)last;
 	}
+	
+	public static ClientPrivileges GetHighestPrivilege(this ClientPrivileges privilege)
+	{
+		var value = (uint)privilege;
+		var last = value;
+
+		while (value != 0)
+		{
+			last = value;
+			value &= value - 1;
+		}
+
+		return (ClientPrivileges)last;
+	}
 
 	public static bool CompareHighestPrivileges(this Privileges privilege, Privileges privilege2)
+	{
+		return privilege.GetHighestPrivilege() >= privilege2.GetHighestPrivilege();
+	}
+	
+	public static bool CompareHighestPrivileges(this ClientPrivileges privilege, ClientPrivileges privilege2)
 	{
 		return privilege.GetHighestPrivilege() >= privilege2.GetHighestPrivilege();
 	}

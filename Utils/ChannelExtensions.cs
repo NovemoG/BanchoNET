@@ -1,5 +1,7 @@
-﻿using BanchoNET.Objects.Channels;
+﻿using System.Collections.Immutable;
+using BanchoNET.Objects.Channels;
 using BanchoNET.Objects.Players;
+using BanchoNET.Objects.Privileges;
 using BanchoNET.Packets;
 using BanchoNET.Services;
 
@@ -9,6 +11,49 @@ public static class ChannelExtensions
 {
 	private static readonly BanchoSession Session = BanchoSession.Instance;
 	
+	public static readonly ImmutableList<Channel> DefaultChannels = ImmutableList.Create(
+		new Channel("#osu")
+		{
+			Description = "Main osu! chatroom",
+			AutoJoin = true,
+			Hidden = false,
+			ReadOnly = false,
+			Instance = false,
+			ReadPrivileges = ClientPrivileges.Player,
+			WritePrivileges = ClientPrivileges.Player,
+		},
+		new Channel("#lobby")
+		{
+			Description = "Multiplayer chatroom",
+			AutoJoin = false,
+			Hidden = false,
+			ReadOnly = false,
+			Instance = false,
+			ReadPrivileges = ClientPrivileges.Player,
+			WritePrivileges = ClientPrivileges.Player,
+		},
+		new Channel("#announce")
+		{
+			Description = "Multiplayer chatroom",
+			AutoJoin = false,
+			Hidden = false,
+			ReadOnly = false,
+			Instance = false,
+			ReadPrivileges = ClientPrivileges.Player,
+			WritePrivileges = ClientPrivileges.Player,
+		},
+		new Channel("#staff")
+		{
+			Description = "osu! staff chatroom",
+			AutoJoin = false,
+			Hidden = true,
+			ReadOnly = false,
+			Instance = false,
+			ReadPrivileges = ClientPrivileges.Owner,
+			WritePrivileges = ClientPrivileges.Owner,
+		}
+	);
+	
 	public static bool PlayerInChannel(this Channel channel, Player player)
 	{
 		return channel.Players.Any(p => p.Id == player.Id);
@@ -16,12 +61,12 @@ public static class ChannelExtensions
 	
 	public static bool CanPlayerRead(this Channel channel, Player player)
 	{
-		return player.ToBanchoPrivileges().HasPrivilege(channel.ReadPrivileges);
+		return player.ToBanchoPrivileges().CompareHighestPrivileges(channel.ReadPrivileges);
 	}
 
 	public static bool CanPlayerWrite(this Channel channel, Player player)
 	{
-		return player.ToBanchoPrivileges().HasPrivilege(channel.WritePrivileges);
+		return player.ToBanchoPrivileges().CompareHighestPrivileges(channel.WritePrivileges);
 	}
 
 	public static void SendMessage(this Channel channel, Message message, bool toSelf = false)

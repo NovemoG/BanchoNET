@@ -14,4 +14,5 @@ public class BanchoDbContext(DbContextOptions<BanchoDbContext> options) : DbCont
 	public DbSet<ClientHashesDto> ClientHashes { get; init; } = null!;
 	public DbSet<MultiplayerMatchDto> MultiplayerMatches { get; init; } = null!;
 	public DbSet<MessageDto> Messages { get; init; } = null!;
+	public DbSet<ChannelDto> Channels { get; init; } = null!;
 }
