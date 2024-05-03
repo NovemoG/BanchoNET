@@ -6,6 +6,7 @@ A dotnet implementation of [osu!](https://osu.ppy.sh)bancho server.
 
 - ASP.NET Core (.NET 8)
 - MYSQL (MariaDB)
+- MongoDB
 - Redis
 - Docker (soon™)
 
@@ -34,8 +35,9 @@ Go to the [Projects](https://github.com/orgs/NovemoG/projects/1) section to see 
 ### Prerequisites
 
 * Dotnet SDK 8.0
-* MariaDB server
-* Nginx server
+* MariaDB Server
+* MongoDB Server
+* Nginx Server
 
 ### Building
 
