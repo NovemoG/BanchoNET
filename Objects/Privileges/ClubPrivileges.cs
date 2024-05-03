@@ -1,9 +1,9 @@
 ﻿namespace BanchoNET.Objects.Privileges;
 
 [Flags]
-public enum ClubPrivileges
+public enum ClubPrivileges : byte
 {
-	MEMBER = 1,
-	OFFICER = 2,
-	OWNER = 3
+	Member = 1,
+	Officer = 2,
+	Owner = 3
 }

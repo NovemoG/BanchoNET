@@ -32,21 +32,34 @@ public sealed class BanchoSession
 
 	#region Beatmaps
 
-	private readonly ConcurrentDictionary<int, BeatmapSet> _beatmapSetsCache = [];
-	private readonly ConcurrentDictionary<string, Beatmap> _beatmapMD5Cache = [];
-	private readonly ConcurrentDictionary<int, Beatmap> _beatmapIdCache = [];
-	private readonly List<string> _notSubmittedBeatmaps = [];
-	private readonly List<string> _needUpdateBeatmaps = [];
+	private readonly ConcurrentDictionary<int, BeatmapSet> _beatmapSetsCache = []; // setId -> BeatmapSet
+	private readonly ConcurrentDictionary<string, Beatmap> _beatmapMD5Cache = []; // MD5 -> Beatmap
+	private readonly ConcurrentDictionary<int, Beatmap> _beatmapIdCache = []; // mapId -> Beatmap
+	private readonly List<string> _notSubmittedBeatmaps = []; //MD5s
+	private readonly List<string> _needUpdateBeatmaps = []; //MD5s
 
 	#endregion
 	
 	#region Channels
 
-	private readonly List<Channel> _spectatorChannels = [];
-	private readonly List<Channel> _channels = [];
-	public IEnumerable<Channel> Channels => _channels;
-	
-	//TODO cache #lobby channel or change list to dictionary
+	private readonly ConcurrentDictionary<string, Channel> _spectatorChannels = [];
+	private readonly ConcurrentDictionary<string, Channel> _channels = [];
+	public IEnumerable<Channel> Channels => _channels.Values;
+
+	public Channel LobbyChannel
+	{
+		get
+		{
+			if (_channels.TryGetValue("#lobby", out var lobby))
+				return lobby;
+			
+			Console.WriteLine("[Session] Couldn't find '#lobby' channel, creating a default one.");
+
+			lobby = ChannelExtensions.DefaultChannels.First(c => c.IdName == "#lobby");
+			_channels.TryAdd("#lobby", lobby);
+			return lobby;
+		}
+	}
 
 	#endregion
 
@@ -182,14 +195,24 @@ public sealed class BanchoSession
 	
 	public Channel? GetChannel(string name, bool spectator = false)
 	{
-		return spectator ? _spectatorChannels.FirstOrDefault(c => c.IdName == name) 
-			: _channels.FirstOrDefault(c => c.IdName == name);
+		if (spectator)
+		{
+			if (_spectatorChannels.TryGetValue(name, out var channel))
+				return channel;
+		}
+		else
+		{
+			if (_channels.TryGetValue(name, out var channel))
+				return channel;
+		}
+
+		return null;
 	}
 	
 	public void InsertChannel(Channel channel, bool spectator = false)
 	{
-		if (spectator) _spectatorChannels.Add(channel);
-		else _channels.Add(channel);
+		if (spectator) _spectatorChannels.TryAdd(channel.IdName, channel);
+		else _channels.TryAdd(channel.IdName, channel);
 	}
 
 	public Beatmap? GetBeatmap(string beatmapMD5 = "", int mapId = -1)

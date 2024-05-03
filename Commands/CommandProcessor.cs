@@ -12,7 +12,7 @@ public partial class CommandProcessor(
     PlayersRepository players,
     BeatmapsRepository beatmaps,
     BeatmapHandler beatmapHandler,
-    MultiplayerRepository multiplayer)
+    HistoriesRepository histories)
 {
     private readonly string _prefix = AppSettings.CommandPrefix;
     private readonly int _prefixLength = AppSettings.CommandPrefix.Length;

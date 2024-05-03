@@ -1,6 +1,6 @@
 ﻿namespace BanchoNET.Objects.Beatmaps;
 
-public enum BeatmapStatus
+public enum BeatmapStatus : sbyte
 {
 	Unknown = -2,
 	NotSubmitted = -1,

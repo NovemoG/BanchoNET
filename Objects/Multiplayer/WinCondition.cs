@@ -1,6 +1,6 @@
 ﻿namespace BanchoNET.Objects.Multiplayer;
 
-public enum WinCondition
+public enum WinCondition : byte
 {
 	Score,
 	Accuracy,
