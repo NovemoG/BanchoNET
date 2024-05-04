@@ -312,15 +312,14 @@ public class PlayersRepository
 	/// <returns>List of player IDs with expired supporter</returns>
 	public async Task<List<int>> GetPlayersWithExpiredSupporter()
 	{
-		var playerIds = await _dbContext.Players
-			.Where(p => p.RemainingSupporter < DateTime.Now)
-			.Select(p => p.Id)
-			.ToListAsync();
+		var query = _dbContext.Players.Where(p => p.RemainingSupporter < DateTime.Now.Subtract(TimeSpan.FromDays(2)));
+		
+		// Saving IDs before update
+		var playerIds = await query.Select(p => p.Id).ToListAsync();
 
-		await _dbContext.Players.Where(p => p.RemainingSupporter < DateTime.Now)
-			.ExecuteUpdateAsync(s =>
-				s.SetProperty(p => p.RemainingSupporter, DateTime.MinValue)
-					.SetProperty(p => p.Privileges, e => e.Privileges & ~(int)Privileges.Supporter));
+		// Updating supporter status
+		await query.ExecuteUpdateAsync(s => s.SetProperty(p => p.RemainingSupporter, DateTime.MinValue)
+			.SetProperty(p => p.Privileges, e => e.Privileges & ~(int)Privileges.Supporter));
 		
 		return playerIds;
 	}

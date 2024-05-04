@@ -7,14 +7,20 @@ using Hangfire;
 
 namespace BanchoNET.Services;
 
-public class BackgroundTasks
+public class BackgroundTasks(IServiceScopeFactory scopeFactory)
 {
     private readonly BanchoSession _session = BanchoSession.Instance;
-    private readonly IServiceScopeFactory _scopeFactory;
 
-    public BackgroundTasks(IServiceScopeFactory scopeFactory)
+    public BackgroundTasks() : this(null!) { }
+
+    public async Task InitTasks()
     {
-        _scopeFactory = scopeFactory;
+        Console.WriteLine($"[{GetType().Name}] Initiating background tasks, execution date: {DateTime.Now}");
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
+
+        UpdateBotStatus();
+        await CheckExpiringSupporters();
         
         RecurringJob.AddOrUpdate(
             "updateBotStatus",
@@ -30,18 +36,6 @@ public class BackgroundTasks
             "checkSupporters",
             () => CheckExpiringSupporters(),
             "*/30 * * * *"); // every 30 minutes
-    }
-    
-    public BackgroundTasks() : this(null!) { }
-
-    public async Task InitTasks()
-    {
-        Console.WriteLine($"[{GetType().Name}] Initiating background tasks, execution date: {DateTime.Now}");
-        var stopwatch = new Stopwatch();
-        stopwatch.Start();
-
-        UpdateBotStatus();
-        await CheckExpiringSupporters();
         
         stopwatch.Stop();
         Console.WriteLine($"[{GetType().Name}] Initiating background tasks, execution time: {stopwatch.Elapsed}");
@@ -51,18 +45,22 @@ public class BackgroundTasks
     {
         Console.WriteLine($"[{GetType().Name}] Deleting old scores...");
         
-        await using var scope = _scopeFactory.CreateAsyncScope();
+        await using var scope = scopeFactory.CreateAsyncScope();
         var scores = scope.ServiceProvider.GetRequiredService<ScoresRepository>();
 
         var deletedScores = await scores.DeleteOldScores();
-        Console.WriteLine($"[{GetType().Name}] Deleted {deletedScores} scores.");
+
+        foreach (var id in deletedScores)
+            File.Delete(Storage.GetReplayPath(id));
+        
+        Console.WriteLine($"[{GetType().Name}] Deleted {deletedScores.Count} replays.");
     }
 
     public async Task CheckExpiringSupporters()
     {
         Console.WriteLine($"[{GetType().Name}] Updating expiring supporters privileges...");
         
-        await using var scope = _scopeFactory.CreateAsyncScope();
+        await using var scope = scopeFactory.CreateAsyncScope();
         var players = scope.ServiceProvider.GetRequiredService<PlayersRepository>();
         
         var expiredSupporters = await players.GetPlayersWithExpiredSupporter();
@@ -85,6 +83,8 @@ public class BackgroundTasks
 
     public void UpdateBotStatus()
     {
+        Console.WriteLine("yettggds");
+        
         var random = new Random();
         var botStatuses = AppSettings.BotStatuses;
 

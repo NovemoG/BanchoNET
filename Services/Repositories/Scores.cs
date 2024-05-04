@@ -175,12 +175,18 @@ public class ScoresRepository(BanchoDbContext dbContext)
     /// <summary>
     /// Deletes all scores with status not flagged as best older than 2 days from when the method was used.
     /// </summary>
-    /// <returns>Number of scores deleted</returns>
-    public async Task<int> DeleteOldScores()
+    /// <returns>List of IDs of scores that were affected.</returns>
+    public async Task<List<long>> DeleteOldScores()
     {
-        return await dbContext.Scores
-            .Where(s => s.PlayTime < DateTime.Now.Subtract(TimeSpan.FromDays(2))
-                        && s.Status < (int)SubmissionStatus.BestWithMods)
-            .ExecuteDeleteAsync();
+        var query = dbContext.Scores.Where(s => s.PlayTime < DateTime.Now.Subtract(TimeSpan.FromDays(2))
+                                                && s.Status < (int)SubmissionStatus.BestWithMods);
+
+        // Saving IDs of scores that are not failed (we don't store failed scores replays)
+        var scoreIds = await query.Where(s => s.Status != (int)SubmissionStatus.Failed).Select(s => s.Id).ToListAsync();
+
+        // Deleting scores
+        await query.ExecuteDeleteAsync();
+        
+        return scoreIds;
     }
 }
