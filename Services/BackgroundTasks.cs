@@ -13,9 +13,9 @@ public class BackgroundTasks(IServiceScopeFactory scopeFactory)
 
     public BackgroundTasks() : this(null!) { }
 
-    public async Task InitTasks()
+    public async Task Init()
     {
-        Console.WriteLine($"[{GetType().Name}] Initiating background tasks, execution date: {DateTime.Now}");
+        Console.WriteLine($"[Init] Initiating background tasks, execution date: {DateTime.Now}");
         var stopwatch = new Stopwatch();
         stopwatch.Start();
 
@@ -38,7 +38,7 @@ public class BackgroundTasks(IServiceScopeFactory scopeFactory)
             "*/30 * * * *"); // every 30 minutes
         
         stopwatch.Stop();
-        Console.WriteLine($"[{GetType().Name}] Initiating background tasks, execution time: {stopwatch.Elapsed}");
+        Console.WriteLine($"[Init] Initiating background tasks, execution time: {stopwatch.Elapsed}");
     }
 
     public async Task DeleteUnnecessaryScores()
@@ -83,8 +83,6 @@ public class BackgroundTasks(IServiceScopeFactory scopeFactory)
 
     public void UpdateBotStatus()
     {
-        Console.WriteLine("yettggds");
-        
         var random = new Random();
         var botStatuses = AppSettings.BotStatuses;
 

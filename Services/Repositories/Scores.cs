@@ -178,8 +178,8 @@ public class ScoresRepository(BanchoDbContext dbContext)
     /// <returns>List of IDs of scores that were affected.</returns>
     public async Task<List<long>> DeleteOldScores()
     {
-        var query = dbContext.Scores.Where(s => s.PlayTime < DateTime.Now.Subtract(TimeSpan.FromDays(2))
-                                                && s.Status < (int)SubmissionStatus.BestWithMods);
+        var date = DateTime.Now - TimeSpan.FromDays(2);
+        var query = dbContext.Scores.Where(s => s.PlayTime < date && s.Status < (int)SubmissionStatus.BestWithMods);
 
         // Saving IDs of scores that are not failed (we don't store failed scores replays)
         var scoreIds = await query.Where(s => s.Status != (int)SubmissionStatus.Failed).Select(s => s.Id).ToListAsync();

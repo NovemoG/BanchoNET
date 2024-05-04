@@ -37,6 +37,9 @@ public partial class CommandProcessor
         if (player == null)
             return "Player not found. Make sure you provided correct username.";
         
+        if (player.IsBot)
+            return "Dummy, you can't modify bot's privileges \ud83d\udc7c.";
+        
         if (player.Privileges.HasPrivilege(privilege))
             return $"{player.Username} already has this privilege.";
             
@@ -75,6 +78,9 @@ public partial class CommandProcessor
 
         if (player == null)
             return "Player not found. Make sure you provided correct username.";
+        
+        if (player.IsBot)
+            return "Dummy, you can't modify bot's privileges \ud83d\udc7c.";
         
         if (_playerCtx.Privileges.CompareHighestPrivileges(player.Privileges))
             return $"{player.Username} has a privilege that is higher or equal in rank.";

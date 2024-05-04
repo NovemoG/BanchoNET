@@ -312,7 +312,7 @@ public class PlayersRepository
 	/// <returns>List of player IDs with expired supporter</returns>
 	public async Task<List<int>> GetPlayersWithExpiredSupporter()
 	{
-		var query = _dbContext.Players.Where(p => p.RemainingSupporter < DateTime.Now.Subtract(TimeSpan.FromDays(2)));
+		var query = _dbContext.Players.Where(p => p.RemainingSupporter < DateTime.Now);
 		
 		// Saving IDs before update
 		var playerIds = await query.Select(p => p.Id).ToListAsync();

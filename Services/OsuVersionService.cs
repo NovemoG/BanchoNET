@@ -18,8 +18,10 @@ public class OsuVersionService
         {"cuttingedge", new OsuVersion()},
     };
 
-    public OsuVersionService()
+    public async Task Init()
     {
+        await FetchOsuVersion();
+        
         RecurringJob.AddOrUpdate(
             "fetchOsuVersion",
             () => FetchOsuVersion(),

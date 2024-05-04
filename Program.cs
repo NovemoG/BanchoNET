@@ -223,8 +223,8 @@ public class Program
 		// redis leaderboards on startup
 		InitRedis(app.Services.CreateScope(), dbConnections.RedisHost, dbConnections.RedisPort);
 		
-		app.Services.GetRequiredService<OsuVersionService>().FetchOsuVersion().Wait();
-		app.Services.GetRequiredService<BackgroundTasks>().InitTasks().Wait();
+		app.Services.GetRequiredService<OsuVersionService>().Init().Wait();
+		app.Services.GetRequiredService<BackgroundTasks>().Init().Wait();
 
 		#endregion
 		
@@ -266,6 +266,10 @@ public class Program
 		var dbBanchoBot = db.Players.FirstOrDefault(p => p.Id == 1);
 		if (dbBanchoBot != null)
 		{
+			dbBanchoBot.RemainingSupporter = DateTime.Now.AddYears(100);
+			dbBanchoBot.LastActivityTime = DateTime.Now.AddYears(100);
+			db.SaveChanges();
+			
 			BanchoSession.Instance.AppendBot(new Player(dbBanchoBot));
 			return;
 		}

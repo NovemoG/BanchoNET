@@ -23,6 +23,7 @@ public partial class CommandProcessor
         var targetPlayer = _session.GetPlayer(username: args[0]);
         if (targetPlayer == null)
             return Task.FromResult("Target player not found.");
+        
         if (targetPlayer.IsBot)
             return Task.FromResult("Dummy, you can't reconnect a bot \ud83d\udc7c.");
             
