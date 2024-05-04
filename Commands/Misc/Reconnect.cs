@@ -17,7 +17,7 @@ public partial class CommandProcessor
         if (args.Length == 0)
             _session.LogoutPlayer(_playerCtx);
 
-        if (args.Length != 1 || !_playerCtx.CanUseCommand(Privileges.Administrator))
+        if (args.Length == 1 && !_playerCtx.CanUseCommand(Privileges.Administrator))
             return Task.FromResult("Not enough privileges to reconnect other players.");
         
         var targetPlayer = _session.GetPlayer(username: args[0]);

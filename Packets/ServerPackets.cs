@@ -446,7 +446,7 @@ public partial class ServerPackets : IDisposable
 	/// </summary>
 	public void SilenceEnd(int delta)
 	{
-		WritePacketData(ServerPacketId.UserSilenced, new PacketData(delta, DataType.Int));
+		WritePacketData(ServerPacketId.SilenceEnd, new PacketData(delta, DataType.Int));
 	}
 
 	/// <summary>

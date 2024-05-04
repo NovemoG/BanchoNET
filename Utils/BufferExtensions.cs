@@ -37,7 +37,7 @@ public static class BufferExtensions
 	/// Reads osu! list of 32 bit integers with length encoded as 16 bit integer
 	/// </summary>
 	/// <returns>List of integer values</returns>
-	public static List<int> ReadOsuList32(this BinaryReader br)
+	public static List<int> ReadOsuListInt32(this BinaryReader br)
 	{
 		var returnList = new List<int>();
 		var length = br.ReadUInt16();
@@ -198,7 +198,7 @@ public static class BufferExtensions
 		bw.Write(modeStats.PlayCount);
 		bw.Write(modeStats.TotalScore);
 		bw.Write(modeStats.Rank);
-		bw.Write(modePP);
+		bw.Write((short)modePP);
 	}
 
 	public static void WriteBotStats(this BinaryWriter bw, Player player)
@@ -222,7 +222,7 @@ public static class BufferExtensions
 	{
 		bw.Write(player.Id);
 		bw.WriteOsuString(player.Username);
-		bw.Write(player.TimeZone + 24);
+		bw.Write((byte)player.TimeZone + 24);
 		bw.Write((byte)player.Geoloc.Country.Numeric);
 		bw.Write((byte)((int)player.ToBanchoPrivileges() | ((int)player.Status.Mode.AsVanilla() << 5)));
 		bw.Write(player.Geoloc.Longitude);
@@ -232,9 +232,11 @@ public static class BufferExtensions
 
 	public static void WriteBotPresence(this BinaryWriter bw, Player player)
 	{
+		var timezone = TimeZoneInfo.Local.GetUtcOffset(DateTime.UtcNow);
+		
 		bw.Write(player.Id);
 		bw.WriteOsuString(player.Username);
-		bw.Write((byte)1);
+		bw.Write((byte)timezone.Hours + 24);
 		bw.Write((byte)245);
 		bw.Write((byte)31);
 		bw.Write(6669.420f);

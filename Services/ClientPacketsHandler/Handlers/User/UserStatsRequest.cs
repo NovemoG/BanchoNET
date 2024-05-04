@@ -8,7 +8,7 @@ public partial class ClientPacketsHandler
 {
 	private Task UserStatsRequest(Player player, BinaryReader br)
 	{
-		var ids = br.ReadOsuList32();
+		var ids = br.ReadOsuListInt32();
 		
 		using var statsPacket = new ServerPackets();
 

@@ -11,6 +11,9 @@ public partial class ClientPacketsHandler
 		var lobbyId = br.ReadInt32();
 		var password = br.ReadOsuString();
 		
+		if (lobbyId is < 0 or > ushort.MaxValue)
+			return Task.CompletedTask;
+		
 		if (player.Restricted)
 		{
 			using var joinFailPacket = new ServerPackets();

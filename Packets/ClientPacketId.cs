@@ -33,7 +33,7 @@ public enum ClientPacketId : short
 	MatchHasBeatmap = 59,
 	MatchSkipRequest = 60,
 	ChannelJoin = 63,
-	BeatmapInfoRequest = 68, //TODO
+	BeatmapInfoRequest = 68,
 	MatchTransferHost = 70,
 	FriendAdd = 73,
 	FriendRemove = 74,
@@ -45,10 +45,10 @@ public enum ClientPacketId : short
 	UserStatsRequest = 85,
 	MatchInvite = 87,
 	MatchChangePassword = 90,
-	TournamentMatchInfoRequest = 93, //TODO
-	UserPresenceRequest = 97, //TODO
-	UserPresenceRequestAll = 98, //TODO
-	ToggleBlockNonFriendDms = 99, //TODO
-	TournamentJoinMatchChannel = 108, //TODO
-	TournamentLeaveMatchChannel = 109, //TODO
+	TournamentMatchInfoRequest = 93,
+	UserPresenceRequest = 97,
+	UserPresenceRequestAll = 98,
+	ToggleBlockNonFriendDms = 99,
+	TournamentJoinMatchChannel = 108,
+	TournamentLeaveMatchChannel = 109,
 }
