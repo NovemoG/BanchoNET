@@ -171,4 +171,16 @@ public class ScoresRepository(BanchoDbContext dbContext)
         
         return result;
     }
+    
+    /// <summary>
+    /// Deletes all scores with status not flagged as best older than 2 days from when the method was used.
+    /// </summary>
+    /// <returns>Number of scores deleted</returns>
+    public async Task<int> DeleteOldScores()
+    {
+        return await dbContext.Scores
+            .Where(s => s.PlayTime < DateTime.Now.Subtract(TimeSpan.FromDays(2))
+                        && s.Status < (int)SubmissionStatus.BestWithMods)
+            .ExecuteDeleteAsync();
+    }
 }

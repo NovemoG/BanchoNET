@@ -218,7 +218,7 @@ public partial class ChoController
 		await players.FetchPlayerRelationships(player);
 
 		loginPackets.FriendsList(player.Friends);
-		loginPackets.SilenceEnd(player.RemainingSilence);
+		loginPackets.SilenceEnd(Math.Max(0, (int)(player.RemainingSilence - DateTime.Now).TotalSeconds));
 		loginPackets.UserPresence(player);
 		loginPackets.UserStats(player);
 

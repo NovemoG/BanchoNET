@@ -49,11 +49,11 @@ public class ScoreDto
 	
 	[Column(TypeName = "CHAR(32)"), Unicode(false)]
 	public string OnlineChecksum { get; set; }
+
+	//TODO
+	public bool IsRestricted { get; set; }
 	
 	[ForeignKey("PlayerId")]
 	public PlayerDto Player { get; set; } = null!;
 	public int PlayerId { get; set; }
-	
-	//TODO
-	public bool IsRestricted { get; set; }
 }

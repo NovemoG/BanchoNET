@@ -32,8 +32,11 @@ public class BeatmapDto
 	[MaxLength(16), Unicode(false)]
 	public string Creator { get; set; }
 	
+	[Column(TypeName = "DATETIME")]
 	public DateTime SubmitDate { get; set; }
+	[Column(TypeName = "DATETIME")]
 	public DateTime LastUpdate { get; set; }
+	
 	public int TotalLength { get; set; }
 	public int MaxCombo { get; set; }
 	public bool Frozen { get; set; }

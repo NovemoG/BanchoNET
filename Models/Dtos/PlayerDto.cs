@@ -30,8 +30,11 @@ public class PlayerDto
 	[Column(TypeName = "CHAR(2)"), Unicode(false)]
 	public string Country { get; set; }
 	public int Privileges { get; set; }
-	public int RemainingSilence { get; set; }
-	public int RemainingSupporter { get; set; }
+	
+	[Column(TypeName = "DATETIME")]
+	public DateTime RemainingSilence { get; set; }
+	[Column(TypeName = "DATETIME")]
+	public DateTime RemainingSupporter { get; set; }
 	
 	[Column(TypeName = "DATETIME")]
 	public DateTime CreationTime { get; set; }

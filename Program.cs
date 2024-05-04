@@ -287,6 +287,8 @@ public class Program
 			Email = "ban@cho.bot",
 			PasswordHash = "1",
 			Country = "a2",
+			RemainingSupporter = DateTime.Now.AddYears(100),
+			CreationTime = DateTime.Now,
 			LastActivityTime = DateTime.Now.AddYears(100),
 			Privileges = (int)(Privileges.Verified | Privileges.Staff | Privileges.Unrestricted),
 		});

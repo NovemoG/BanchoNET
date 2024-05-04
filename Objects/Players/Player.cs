@@ -26,8 +26,8 @@ public class Player
 	public Geoloc Geoloc { get; set; }
 	public sbyte TimeZone { get; set; }
 	public bool PmFriendsOnly { get; set; }
-	public int RemainingSilence { get; set; }
-	public int RemainingSupporter { get; set; }
+	public DateTime RemainingSilence { get; set; }
+	public DateTime RemainingSupporter { get; set; }
 	public DateTime LoginTime { get; set; }
 	public DateTime LastActivityTime { get; set; }
 	public string? AwayMessage { get; set; }
@@ -52,7 +52,8 @@ public class Player
 
 	public bool Online => Token != Guid.Empty;
 	public bool InMatch => Lobby != null;
-	public bool Silenced => RemainingSilence > 0;
+	public bool Silenced => RemainingSilence > DateTime.Now;
+	public bool Supporter => RemainingSupporter > DateTime.Now;
 	public bool Restricted => !Privileges.HasPrivilege(Unrestricted);
 	public bool IsSpectating => Spectating != null;
 	public bool HasSpectators => Spectators.Count > 0;

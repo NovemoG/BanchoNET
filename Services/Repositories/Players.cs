@@ -306,6 +306,25 @@ public class PlayersRepository
 		await _dbContext.SaveChangesAsync();
 	}
 
+	/// <summary>
+	/// Returns a list of player IDs with expired supporter status and updates their privileges.
+	/// </summary>
+	/// <returns>List of player IDs with expired supporter</returns>
+	public async Task<List<int>> GetPlayersWithExpiredSupporter()
+	{
+		var playerIds = await _dbContext.Players
+			.Where(p => p.RemainingSupporter < DateTime.Now)
+			.Select(p => p.Id)
+			.ToListAsync();
+
+		await _dbContext.Players.Where(p => p.RemainingSupporter < DateTime.Now)
+			.ExecuteUpdateAsync(s =>
+				s.SetProperty(p => p.RemainingSupporter, DateTime.MinValue)
+					.SetProperty(p => p.Privileges, e => e.Privileges & ~(int)Privileges.Supporter));
+		
+		return playerIds;
+	}
+
 	private async Task<int> GetPlayerGlobalRank(GameMode mode, int playerId)
 	{
 		return (int)(await _redis.SortedSetRankAsync($"bancho:leaderboard:{(byte)mode}", playerId, Order.Descending))! + 1;
