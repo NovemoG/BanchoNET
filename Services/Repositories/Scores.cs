@@ -179,13 +179,21 @@ public class ScoresRepository(BanchoDbContext dbContext)
     public async Task<List<long>> DeleteOldScores()
     {
         var date = DateTime.Now - TimeSpan.FromDays(2);
-        var query = dbContext.Scores.Where(s => s.PlayTime < date && s.Status < (int)SubmissionStatus.BestWithMods);
 
         // Saving IDs of scores that are not failed (we don't store failed scores replays)
-        var scoreIds = await query.Where(s => s.Status != (int)SubmissionStatus.Failed).Select(s => s.Id).ToListAsync();
-
+        var scoreIds = await dbContext.Scores
+            .Where(s => s.PlayTime < date
+                        && s.Status == (int)SubmissionStatus.Submitted)
+            .Select(s => s.Id)
+            .ToListAsync();
+        
         // Deleting scores
-        await query.ExecuteDeleteAsync();
+#pragma warning disable EF1002
+        var affected = await dbContext.Database.ExecuteSqlRawAsync(
+            $"DELETE FROM Scores WHERE PlayTime < TIMESTAMP(\"{date:yyyy-MM-dd}\", \"{date:HH:mm:ss}\") " +
+            $"AND Status < {(int)SubmissionStatus.BestWithMods}");
+#pragma warning restore EF1002
+        Console.WriteLine($"[BackgroundTasks] Deleted {affected} scores.");
         
         return scoreIds;
     }

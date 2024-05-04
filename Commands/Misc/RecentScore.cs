@@ -10,11 +10,25 @@ public partial class CommandProcessor
 {
     [Command("recent",
         Privileges.Unrestricted,
-        "Displays your most recent score in chat.",
+        "Displays your (or provided player's) most recent score in chat. Syntax: recent [<username>]",
         aliases: ["rs"])]
     private async Task<(bool, string)> RecentScore(params string[] args)
     {
-        var score = _playerCtx.RecentScore ?? await scores.GetPlayerRecentScore(_playerCtx.Id);
+        Score? score;
+        if (args.Length == 1)
+        {
+            var player = await players.GetPlayerOrOffline(args[0]);
+            
+            if (player == null)
+                return (true, "Player not found. Make sure you provided correct username.");
+            
+            if (player.IsBot)
+                return (true, "Sadly, bots can't play the game \ud83d\ude2d.");
+            
+            score = player.RecentScore ?? await scores.GetPlayerRecentScore(player.Id);
+        }
+        else score = _playerCtx.RecentScore ?? await scores.GetPlayerRecentScore(_playerCtx.Id);
+        
         if (score == null)
             return (true, "No recent scores.");
 
