@@ -34,7 +34,7 @@ public static class ChannelExtensions
 		},
 		new Channel("#announce")
 		{
-			Description = "Multiplayer chatroom",
+			Description = "Chatroom for announcements about scores and maps",
 			AutoJoin = false,
 			Hidden = false,
 			ReadOnly = false,

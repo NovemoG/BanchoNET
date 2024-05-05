@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BanchoNET.Models.Dtos;
 
-[Index(nameof(TargetId), IsUnique = true)]
+[Index(nameof(TargetId))]
 [Index(nameof(Relation))]
 [PrimaryKey(nameof(Id))]
 public class RelationshipDto

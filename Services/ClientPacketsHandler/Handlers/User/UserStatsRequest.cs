@@ -12,27 +12,16 @@ public partial class ClientPacketsHandler
 		
 		using var statsPacket = new ServerPackets();
 
-		for (var i = ids.Count - 1; i >= 0; i--)
+		for (var i = 0; i < ids.Count; i++)
 		{
-			var id = ids[i];
-
-			var user = _session.GetPlayer(id: id);
+			var user = _session.GetPlayer(id: ids[i]);
 			if (user == null) continue;
 			
-			if (user.IsBot)
-			{
-				statsPacket.BotStats(user);
-				ids.RemoveAt(i);
-			}
-			else
-			{
-				statsPacket.UserStats(user);
-				ids.RemoveAt(i);
-			}
+			if (user.IsBot) statsPacket.BotStats(user);
+			else statsPacket.UserStats(user);
 		}
 
 		player.Enqueue(statsPacket.GetContent());
-		player.LastActivityTime = DateTime.Now;
 		
 		return Task.CompletedTask;
 	}

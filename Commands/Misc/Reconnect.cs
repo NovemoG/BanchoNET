@@ -25,7 +25,7 @@ public partial class CommandProcessor
             return Task.FromResult("Target player not found.");
         
         if (targetPlayer.IsBot)
-            return Task.FromResult("Dummy, you can't reconnect a bot \ud83d\udc7c.");
+            return Task.FromResult("Dummy, you can't reconnect a bot \ud83d\udc7c");
             
         _session.LogoutPlayer(targetPlayer);
 

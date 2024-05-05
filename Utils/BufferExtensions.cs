@@ -206,7 +206,7 @@ public static class BufferExtensions
 		bw.Write(player.Id);
 		bw.Write((byte)player.Status.Activity);
 		bw.WriteOsuString(player.Status.ActivityDescription);
-		bw.WriteOsuString("");
+		bw.WriteOsuString(null);
 		bw.Write((int)0);
 		bw.Write((byte)0);
 		bw.Write((int)0);
@@ -222,7 +222,7 @@ public static class BufferExtensions
 	{
 		bw.Write(player.Id);
 		bw.WriteOsuString(player.Username);
-		bw.Write((byte)player.TimeZone + 24);
+		bw.Write((byte)(player.TimeZone + 24));
 		bw.Write((byte)player.Geoloc.Country.Numeric);
 		bw.Write((byte)((int)player.ToBanchoPrivileges() | ((int)player.Status.Mode.AsVanilla() << 5)));
 		bw.Write(player.Geoloc.Longitude);
@@ -236,7 +236,7 @@ public static class BufferExtensions
 		
 		bw.Write(player.Id);
 		bw.WriteOsuString(player.Username);
-		bw.Write((byte)timezone.Hours + 24);
+		bw.Write((byte)(timezone.Hours + 24));
 		bw.Write((byte)245);
 		bw.Write((byte)31);
 		bw.Write(6669.420f);

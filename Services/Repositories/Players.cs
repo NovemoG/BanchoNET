@@ -292,6 +292,13 @@ public class PlayersRepository
 
 		var playerId = player.Entity.Id;
 		
+		await _dbContext.Relationships.AddAsync(new RelationshipDto
+		{
+			PlayerId = playerId,
+			TargetId = 1,
+			Relation = (byte)Relations.Friend
+		});
+		
 		var scoreDtos = new StatsDto[8];
 		for (byte i = 0; i < scoreDtos.Length; i++)
 		{
