@@ -1,5 +1,6 @@
 ﻿using BanchoNET.Models;
 using BanchoNET.Models.Dtos;
+using BanchoNET.Models.Mongo;
 using BanchoNET.Objects;
 using BanchoNET.Objects.Players;
 using BanchoNET.Objects.Privileges;
@@ -16,11 +17,16 @@ public class PlayersRepository
 	private readonly BanchoSession _session = BanchoSession.Instance;
 	private readonly BanchoDbContext _dbContext;
 	private readonly IDatabase _redis;
-
-	public PlayersRepository(BanchoDbContext dbContext, IConnectionMultiplexer redis)
+	private readonly HistoriesRepository _histories;
+	
+	public PlayersRepository(
+		BanchoDbContext dbContext,
+		IConnectionMultiplexer redis,
+		HistoriesRepository histories)
 	{
 		_dbContext = dbContext;
 		_redis = redis.GetDatabase();
+		_histories = histories;
 	}
 	
 	public async Task<bool> EmailTaken(string email)
@@ -71,7 +77,7 @@ public class PlayersRepository
 	
 	public async Task<Player?> GetPlayerOrOffline(string username)
 	{
-		var sessionPlayer = _session.GetPlayer(username: username);
+		var sessionPlayer = _session.GetPlayerByName(username);
 		if (sessionPlayer != null) return sessionPlayer;
 		
 		var dbPlayer = await _dbContext.Players.FirstOrDefaultAsync(p => p.SafeName == username.MakeSafe());
@@ -80,7 +86,7 @@ public class PlayersRepository
 	}
 	public async Task<Player?> GetPlayerOrOffline(int id)
 	{
-		var sessionPlayer = _session.GetPlayer(id: id);
+		var sessionPlayer = _session.GetPlayerById(id);
 		if (sessionPlayer != null) return sessionPlayer;
 		
 		var dbPlayer = await _dbContext.Players.FirstOrDefaultAsync(p => p.Id == id);
@@ -128,8 +134,6 @@ public class PlayersRepository
 		{
 			var mode = (GameMode)stat.Mode;
 			
-			await _redis.SortedSetAddAsync($"bancho:leaderboard:{(byte)mode}", player.Id, stat.PP);
-			
 			player.Stats[mode] = new ModeStats
 			{
 				TotalScore = stat.TotalScore,
@@ -169,6 +173,7 @@ public class PlayersRepository
 			RankedScore = stats.RankedScore,
 			PP = stats.PP,
 			Accuracy = stats.Accuracy,
+			PeakRank = stats.PeakRank,
 			PlayCount = stats.PlayCount,
 			PlayTime = stats.PlayTime,
 			MaxCombo = stats.MaxCombo,
@@ -186,6 +191,15 @@ public class PlayersRepository
 		};
 		_dbContext.Update(dbStats);
 		await _dbContext.SaveChangesAsync();
+
+		await _histories.UpdateLatestPlayCountHistory(
+			player.Id,
+			(byte)mode,
+			new ValueEntry
+			{
+				Value = stats.PlayCount,
+				Date = DateTime.Now
+			});
 	}
 	
 	public async Task FetchPlayerRelationships(Player player)
@@ -269,10 +283,35 @@ public class PlayersRepository
 				return;
 		}
 
+		var prevRank = stats.Rank;
 		stats.Rank = await GetPlayerGlobalRank(mode, player.Id);
+
+		if (stats.Rank != prevRank)
+		{
+			await _histories.UpdateLatestRankHistory(
+				player.Id,
+				(byte)mode,
+				new ValueEntry
+				{
+					Value = stats.Rank,
+					Date = DateTime.Now
+				});
+		}
+		if (stats.Rank > stats.PeakRank)
+		{
+			stats.PeakRank = stats.Rank;
+			await _histories.UpdatePeakRank(
+				player.Id,
+				(byte)mode,
+				new ValueEntry
+				{
+					Value = stats.PeakRank,
+					Date = DateTime.Now
+				});
+		}
 	}
 	
-	public async Task CreatePlayer(string name, string email, string pwdHash, string country)
+	public async Task CreatePlayer(string name, string email, string passwordHash, string country)
 	{
 		var playerDto = new PlayerDto
 		{
@@ -280,7 +319,7 @@ public class PlayersRepository
 			LoginName = name.MakeSafe(),
 			SafeName = name.MakeSafe(),
 			Email = email,
-			PasswordHash = pwdHash,
+			PasswordHash = passwordHash,
 			Privileges = 1,
 			Country = country,
 			CreationTime = DateTime.Now,
@@ -302,15 +341,56 @@ public class PlayersRepository
 		var scoreDtos = new StatsDto[8];
 		for (byte i = 0; i < scoreDtos.Length; i++)
 		{
+			var mode = i == 7 ? (byte)(i + 1) : i;
+			
 			scoreDtos[i] = new StatsDto
 			{
 				PlayerId = playerId,
-				Mode = i == 7 ? (byte)(i + 1) : i
+				Mode = mode
 			};
+			
+			await _redis.SortedSetAddAsync($"bancho:leaderboard:{mode}", playerId, 0);
+
+			var rank = new ValueEntry
+			{
+				Value = await GetPlayerGlobalRank((GameMode)mode, playerId),
+				Date = DateTime.Now
+			};
+			await _histories.InsertRankHistory(new RankHistory
+			{
+				PlayerId = playerId,
+				Mode = mode,
+				PeakRank = rank,
+				Entries = [rank]
+			});
+
+			await _histories.InsertReplaysHistory(new ReplayViewsHistory
+			{
+				PlayerId = playerId,
+				Mode = mode,
+				Entries = [new ValueEntry { Value = 0, Date = DateTime.Now }]
+			});
+
+			await _histories.InsertPlayCountHistory(new PlayCountHistory
+			{
+				PlayerId = playerId,
+				Mode = mode,
+				Entries = [new ValueEntry { Value = 0, Date = DateTime.Now }]
+			});
 		}
 
 		await _dbContext.Stats.AddRangeAsync(scoreDtos);
 		await _dbContext.SaveChangesAsync();
+	}
+
+	/// <summary>
+	/// Returns the total count of players that are not restricted.
+	/// </summary>
+	public async Task<int> TotalPlayerCount()
+	{
+		return await _dbContext.Players
+			.Where(p => (p.Privileges & 1) == 1)
+			.CountAsync();
 	}
 
 	/// <summary>

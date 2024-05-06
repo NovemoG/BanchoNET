@@ -10,7 +10,7 @@ public class HistoriesRepository
     private readonly IMongoCollection<RankHistory> _rankHistories;
     private readonly IMongoCollection<ReplayViewsHistory> _replayViewsHistories;
     private readonly IMongoCollection<PlayCountHistory> _playCountHistories;
-    
+
     public HistoriesRepository(string connectionString)
     {
         var mongoClient = new MongoClient(connectionString);
@@ -33,7 +33,22 @@ public class HistoriesRepository
         _replayViewsHistories = mongoDatabase.GetCollection<ReplayViewsHistory>("replayViewsHistories");
         _playCountHistories = mongoDatabase.GetCollection<PlayCountHistory>("playCountHistories");
     }
+
+    private static FilterDefinition<MultiplayerMatch>? MatchFilter(int matchId) =>
+        Builders<MultiplayerMatch>.Filter.Eq("MatchId", matchId);
+
+    private static FilterDefinition<RankHistory> RankFilter(int playerId, byte mode) =>
+        Builders<RankHistory>.Filter.Eq("PlayerId", playerId)
+        & Builders<RankHistory>.Filter.Eq("Mode", mode);
     
+    private static FilterDefinition<ReplayViewsHistory> ReplayFilter(int playerId, byte mode) =>
+        Builders<ReplayViewsHistory>.Filter.Eq("PlayerId", playerId)
+        & Builders<ReplayViewsHistory>.Filter.Eq("Mode", mode);
+    
+    private static FilterDefinition<PlayCountHistory> PlayCountFilter(int playerId, byte mode) =>
+        Builders<PlayCountHistory>.Filter.Eq("PlayerId", playerId)
+        & Builders<PlayCountHistory>.Filter.Eq("Mode", mode);
+
     public async Task InsertMatchHistory(MultiplayerMatch history)
     {
         await _multiplayerMatches.InsertOneAsync(history);
@@ -46,18 +61,16 @@ public class HistoriesRepository
 
     public async Task<MultiplayerMatch> GetMultiplayerMatch(int matchId)
     {
-        var filter = Builders<MultiplayerMatch>.Filter.Eq("MatchId", matchId);
-        return await _multiplayerMatches.Find(filter).SingleAsync();
+        return await _multiplayerMatches.Find(MatchFilter(matchId)).SingleAsync();
     }
 
     public async Task AddMatchAction(int matchId, ActionEntry entry, bool creation = false)
     {
-        var filter = Builders<MultiplayerMatch>.Filter.Eq("MatchId", matchId);
         var builder = creation
             ? Builders<MultiplayerMatch>.Update.Push("CreationActions", entry)
             : Builders<MultiplayerMatch>.Update.Push<ActionEntry>(p => p.Scores.Last().Actions, entry);
         
-        var result = await _multiplayerMatches.UpdateOneAsync(filter, builder);
+        var result = await _multiplayerMatches.UpdateOneAsync(MatchFilter(matchId), builder);
         
         if (result.MatchedCount == 0)
             Console.WriteLine("[Histories] Match not found in multiplayer history");
@@ -65,10 +78,9 @@ public class HistoriesRepository
     
     public async Task AddMatchScores(int matchId, ScoresEntry entry)
     {
-        var filter = Builders<MultiplayerMatch>.Filter.Eq("MatchId", matchId);
         var update = Builders<MultiplayerMatch>.Update.Push("Scores", entry);
         
-        var result = await _multiplayerMatches.UpdateOneAsync(filter, update);
+        var result = await _multiplayerMatches.UpdateOneAsync(MatchFilter(matchId), update);
         
         if (result.MatchedCount == 0)
             Console.WriteLine("[Histories] Match not found in multiplayer history");
@@ -78,43 +90,80 @@ public class HistoriesRepository
     {
         await _rankHistories.InsertOneAsync(history);
     }
-    
-    public async Task UpdateRankHistory(int playerId, byte mode, ValueEntry entry)
-    {
-        var filter = Builders<RankHistory>.Filter.Eq("PlayerId", playerId)
-                     & Builders<RankHistory>.Filter.Eq("Mode", mode);
-        var update = Builders<RankHistory>.Update.Push("Entries", entry);
 
+    public async Task<List<ValueEntry>> GetRankHistory(int playerId, byte mode)
+    {
+        var result = await _rankHistories.Find(RankFilter(playerId, mode)).SingleAsync();
+        
+        List<ValueEntry> entries =
+        [
+            result.PeakRank
+        ];
+        entries.AddRange(result.Entries);
+        
+        return entries;
+    }
+    
+    public async Task AddRankHistory(int playerId, byte mode, ValueEntry entry)
+    {
+        var filter = RankFilter(playerId, mode);
+        var update = Builders<RankHistory>.Update.Push("Entries", entry);
+        
+        var history = await _rankHistories.Find(filter).SingleAsync();
+        if (history.Entries.Count == 90)
+        {
+            var pop = Builders<RankHistory>.Update.PopFirst("Entries");
+            
+            await _rankHistories.UpdateOneAsync(filter, pop);
+        }
+        
         var result = await _rankHistories.UpdateOneAsync(filter, update);
         
         if (result.MatchedCount == 0)
             Console.WriteLine("[Histories] Player not found in rank history");
+    }
+
+    public async Task UpdateLatestRankHistory(int playerId, byte mode, ValueEntry entry)
+    {
+        var filter = RankFilter(playerId, mode);
+        
+        var update = Builders<RankHistory>.Update.PopLast("Entries");
+        var result = await _rankHistories.UpdateOneAsync(filter, update);
+        
+        if (result.MatchedCount == 0)
+            Console.WriteLine("[Histories] Player not found in rank history");
+
+        update = Builders<RankHistory>.Update.Push("Entries", entry);
+        await _rankHistories.UpdateOneAsync(filter, update);
     }
     
     public async Task UpdatePeakRank(int playerId, byte mode, ValueEntry peakRank)
     {
-        var filter = Builders<RankHistory>.Filter.Eq("PlayerId", playerId)
-                     & Builders<RankHistory>.Filter.Eq("Mode", mode);
         var update = Builders<RankHistory>.Update.Set("PeakRank", peakRank);
         
-        var result = await _rankHistories.UpdateOneAsync(filter, update);
+        var result = await _rankHistories.UpdateOneAsync(RankFilter(playerId, mode), update);
         
         if (result.MatchedCount == 0)
             Console.WriteLine("[Histories] Player not found in rank history");
     }
     
-    public async Task InsertReplayHistory(ReplayViewsHistory history)
+    public async Task InsertReplaysHistory(ReplayViewsHistory history)
     {
         await _replayViewsHistories.InsertOneAsync(history);
     }
     
-    public async Task UpdateReplayHistory(int replayId, byte mode, ValueEntry entry)
+    public async Task<List<ValueEntry>> GetReplaysHistory(int playerId, byte mode)
     {
-        var filter = Builders<ReplayViewsHistory>.Filter.Eq("PlayerId", replayId)
-                     & Builders<ReplayViewsHistory>.Filter.Eq("Mode", mode);
+        var result = await _replayViewsHistories.Find(ReplayFilter(playerId, mode)).SingleAsync();
+        
+        return result.Entries;
+    }
+    
+    public async Task AddReplaysHistory(int playerId, byte mode, ValueEntry entry)
+    {
         var update = Builders<ReplayViewsHistory>.Update.Push("Entries", entry);
         
-        var result = await _replayViewsHistories.UpdateOneAsync(filter, update);
+        var result = await _replayViewsHistories.UpdateOneAsync(ReplayFilter(playerId, mode), update);
         
         if (result.MatchedCount == 0)
             Console.WriteLine("[Histories] Player not found in views history");
@@ -125,16 +174,35 @@ public class HistoriesRepository
         await _playCountHistories.InsertOneAsync(history);
     }
     
-    public async Task UpdatePlayCountHistory(int beatmapId, byte mode, ValueEntry entry)
+    public async Task<List<ValueEntry>> GetPlayCountHistory(int playerId, byte mode)
     {
-        var filter = Builders<PlayCountHistory>.Filter.Eq("PlayerId", beatmapId)
-                     & Builders<PlayCountHistory>.Filter.Eq("Mode", mode);
+        var result = await _playCountHistories.Find(PlayCountFilter(playerId, mode)).SingleAsync();
+        
+        return result.Entries;
+    }
+    
+    public async Task AddPlayCountHistory(int playerId, byte mode, ValueEntry entry)
+    {
         var update = Builders<PlayCountHistory>.Update.Push("Entries", entry);
         
-        var result = await _playCountHistories.UpdateOneAsync(filter, update);
+        var result = await _playCountHistories.UpdateOneAsync(PlayCountFilter(playerId, mode), update);
         
         if (result.MatchedCount == 0)
             Console.WriteLine("[Histories] Player not found in play count history");
+    }
+    
+    public async Task UpdateLatestPlayCountHistory(int playerId, byte mode, ValueEntry entry)
+    {
+        var filter = PlayCountFilter(playerId, mode);
+        
+        var update = Builders<PlayCountHistory>.Update.PopLast("Entries");
+        var result = await _playCountHistories.UpdateOneAsync(filter, update);
+        
+        if (result.MatchedCount == 0)
+            Console.WriteLine("[Histories] Player not found in rank history");
+
+        update = Builders<PlayCountHistory>.Update.Push("Entries", entry);
+        await _playCountHistories.UpdateOneAsync(filter, update);
     }
 
     private static bool CollectionExists(IMongoDatabase db, string name)

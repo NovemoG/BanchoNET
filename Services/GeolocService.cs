@@ -8,8 +8,6 @@ namespace BanchoNET.Services;
 
 public class GeolocService(HttpClient httpClient)
 {
-	private readonly BanchoSession _session = BanchoSession.Instance;
-	
 	public async Task<Geoloc?> GetGeoloc(IHeaderDictionary headers)
 	{
 		var geoloc = FromCloudflare(headers);
@@ -33,11 +31,9 @@ public class GeolocService(HttpClient httpClient)
 			if (forwarded.Length > 1)
 				ipString = forwarded[0];
 		}
-		else
-			ipString = headers["X-Real-IP"].ToString();
-		
-		var ip = _session.GetCachedIp(ipString);
-		return ip ?? _session.CacheIp(ipString);
+		else ipString = headers["X-Real-IP"].ToString();
+
+		return IPAddress.Parse(ipString);
 	}
 
 	private Geoloc? FromCloudflare(IHeaderDictionary headers)

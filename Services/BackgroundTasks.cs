@@ -1,9 +1,11 @@
 ﻿using System.Diagnostics;
+using BanchoNET.Models.Mongo;
 using BanchoNET.Objects.Privileges;
 using BanchoNET.Packets;
 using BanchoNET.Services.Repositories;
 using BanchoNET.Utils;
 using Hangfire;
+using StackExchange.Redis;
 
 namespace BanchoNET.Services;
 
@@ -18,7 +20,7 @@ public class BackgroundTasks(IServiceScopeFactory scopeFactory)
         Console.WriteLine($"[Init] Initiating background tasks, execution date: {DateTime.Now}");
         var stopwatch = new Stopwatch();
         stopwatch.Start();
-
+         
         UpdateBotStatus();
         await CheckExpiringSupporters();
         
@@ -28,18 +30,115 @@ public class BackgroundTasks(IServiceScopeFactory scopeFactory)
             $"*/{AppSettings.BotStatusUpdateInterval} * * * *"); // every x minutes
         
         RecurringJob.AddOrUpdate(
+            "checkSupporters",
+            () => CheckExpiringSupporters(),
+            "*/30 * * * *"); // every 30 minutes
+        
+        RecurringJob.AddOrUpdate(
+            "deleteScores",
+            () => AppendPlayerRankHistory(),
+            "0 0 * * *"); // every day at midnight
+        
+        RecurringJob.AddOrUpdate(
             "deleteScores",
             () => DeleteUnnecessaryScores(),
             "0 0 */2 * *"); // every 2 days at midnight
         
         RecurringJob.AddOrUpdate(
             "checkSupporters",
-            () => CheckExpiringSupporters(),
-            "*/30 * * * *"); // every 30 minutes
+            () => ClearPasswordsCache(),
+            "0 0 1 * *"); // every 1st day of the month at midnight
+        
+        RecurringJob.AddOrUpdate(
+            "deleteScores",
+            () => AppendPlayerMonthlyHistory(),
+            "0 0 1 * *"); // every 1st day of the month at midnight
         
         stopwatch.Stop();
         Console.WriteLine($"[Init] Initiating background tasks, execution time: {stopwatch.Elapsed}");
     }
+
+    public void ClearPasswordsCache()
+    {
+        Console.WriteLine($"[{GetType().Name}] Clearing passwords cache.");
+        
+        _session.ClearPasswordsCache();
+    }
+
+    #region Rank History
+
+    public async Task AppendPlayerRankHistory()
+    {
+        Console.WriteLine($"[{GetType().Name}] Appending players' daily rank history, execution date: {DateTime.Now})");
+        
+        await Parallel.ForAsync(0, 8, async (i, _) => await ProcessRankHistory((byte)i));
+        
+        Console.WriteLine($"[{GetType().Name}] Finished updating players' rank history, finish date: {DateTime.Now}");
+    }
+
+    private async Task ProcessRankHistory(byte mode)
+    {
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var players = scope.ServiceProvider.GetRequiredService<PlayersRepository>();
+        var redis = scope.ServiceProvider.GetRequiredService<IConnectionMultiplexer>().GetDatabase();
+        var histories = scope.ServiceProvider.GetRequiredService<HistoriesRepository>();
+        
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
+
+        var playerCount = await players.TotalPlayerCount();
+        const int limit = 10_000;
+        
+        mode = mode == 7 ? (byte)(mode + 1) : mode;
+        var key = $"bancho:leaderboard:{mode}";
+            
+        var iter = 0;
+        for (int j = 0; j < playerCount; j += limit)
+        {
+            var ranks = await redis.SortedSetRangeByRankWithScoresAsync(
+                key: key,
+                start: j,
+                stop: limit + iter * j - 1,
+                order: Order.Descending);
+                
+            for (int k = 0; k < ranks.Length; k++)
+            {
+                var playerId = int.Parse(ranks[k].Element!);
+
+                await histories.AddRankHistory(
+                    playerId,
+                    mode,
+                    new ValueEntry
+                    {
+                        Value = j + k + 1,
+                        Date = DateTime.Now
+                    });
+            }
+                
+            iter++;
+        }
+        
+        stopwatch.Stop();
+        Console.WriteLine($"[{GetType().Name}] Finished updating daily rank history for mode {mode}, execution time: {stopwatch.Elapsed}");
+    }
+
+    #endregion
+
+    #region Monthly History
+
+    public async Task AppendPlayerMonthlyHistory()
+    {
+        Console.WriteLine($"[{GetType().Name}] Appending players' monthly history, execution date: {DateTime.Now})");
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
+        
+        
+        
+        stopwatch.Stop();
+        Console.WriteLine($"[{GetType().Name}] Finished updating monthly history, execution time: {stopwatch.Elapsed}");
+    }
+
+    #endregion
 
     public async Task DeleteUnnecessaryScores()
     {
@@ -67,7 +166,7 @@ public class BackgroundTasks(IServiceScopeFactory scopeFactory)
 
         foreach (var supporter in expiredSupporters)
         {
-            var player = _session.GetPlayer(id: supporter);
+            var player = _session.GetPlayerById(supporter);
             if (player == null) continue;
             
             player.Privileges &= ~Privileges.Supporter;

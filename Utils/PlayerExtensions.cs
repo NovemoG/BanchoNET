@@ -238,7 +238,7 @@ public static class PlayerExtensions
 		host.Spectators.Add(target);
 		target.Spectating = host;
 		
-		Console.WriteLine($"{target.Username} is now spectating {host.Username}");
+		Console.WriteLine($"[PlayerExtensions] {target.Username} is now spectating {host.Username}");
 	}
 	
 	public static void RemoveSpectator(this Player host, Player target)
@@ -269,7 +269,7 @@ public static class PlayerExtensions
 		spectatorLeftPacket.SpectatorLeft(target.Id);
 		host.Enqueue(spectatorLeftPacket.GetContent());
 		
-		Console.WriteLine($"{target.Username} is no longer spectating {host.Username}");
+		Console.WriteLine($"[PlayerExtensions] {target.Username} is no longer spectating {host.Username}");
 	}
 
 	public static bool BlockedByPlayer(this Player player, int targetId)
@@ -307,7 +307,7 @@ public static class PlayerExtensions
 		using var channelInfoPacket = new ServerPackets();
 		channelInfoPacket.ChannelInfo(channel);
 		var bytes = channelInfoPacket.GetContent();
-
+		
 		if (channel.Instance)
 			foreach (var user in channel.Players)
 				user.Enqueue(bytes);

@@ -73,7 +73,7 @@ public partial class ChoController
 			return responseData.GetContentResult();
 		}
 
-		var player = _session.GetPlayer(username: loginData.Username);
+		var player = _session.GetPlayerByName(loginData.Username);
 		if (player != null && loginData.OsuVersion.Stream != "tourney")
 		{
 			Console.WriteLine($"[{GetType().Name}] Login time difference: {DateTime.Now - player.LastActivityTime}");

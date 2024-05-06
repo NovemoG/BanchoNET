@@ -15,7 +15,7 @@ public partial class ClientPacketsHandler
 
 		foreach (var id in ids)
 		{
-			var user = _session.GetPlayer(id: id);
+			var user = _session.GetPlayerById(id);
 			if (user == null) continue;
 			
 			if (user.IsBot) statsPacket.BotStats(user);

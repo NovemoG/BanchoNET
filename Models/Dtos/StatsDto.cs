@@ -19,6 +19,7 @@ public class StatsDto
 	[Column(TypeName = "FLOAT(6,3)")]
 	public float Accuracy { get; set; }
 	
+	public int PeakRank { get; set; }
 	public int PlayCount { get; set; }
 	public int PlayTime { get; set; }
 	public int MaxCombo { get; set; }

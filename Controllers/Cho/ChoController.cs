@@ -22,11 +22,11 @@ public partial class ChoController(
 	[HttpPost("/")]
 	public async Task<IActionResult> BanchoHandler()
 	{
-		var osuToken = Request.Headers["osu-token"];
+		var osuToken = Request.Headers["osu-token"].ToString();
 		if (string.IsNullOrEmpty(osuToken))
 			return await Login();
 
-		var player = _session.GetPlayer(token: new Guid(osuToken!));
+		var player = _session.GetPlayerByToken(new Guid(osuToken));
 		if (player == null)
 		{
 			using var restartData = new ServerPackets();

@@ -23,8 +23,12 @@ public static class AppSettings
         
         var banchoNetVersion = configuration["Config:BanchoNETVersion"];
         BanchoNETVersion = string.IsNullOrEmpty(banchoNetVersion)
-            ? "0.6"
+            ? "0.9"
             : banchoNetVersion;
+        
+        var debug = configuration["Config:Debug"];
+        Debug = string.IsNullOrEmpty(debug)
+                             || bool.Parse(debug);
         
         var disallowOldClients = configuration["Config:DisallowOldClients"];
         DisallowOldClients = string.IsNullOrEmpty(disallowOldClients)
@@ -32,13 +36,8 @@ public static class AppSettings
         
         var banchoBotName = configuration["Config:BanchoBotName"];
         BanchoBotName = string.IsNullOrEmpty(banchoBotName)
-            ? "Bancho Bot"
+            ? "BanchoBot"
             : banchoBotName;
-
-        var statusInterval = configuration["Config:BotStatusUpdateInterval"];
-        BotStatusUpdateInterval = string.IsNullOrEmpty(statusInterval)
-            ? 5
-            : int.Parse(statusInterval);
         
         var disallowedNames = configuration["Config:DisallowedNames"];
         DisallowedNames = ImmutableList.Create(string.IsNullOrEmpty(disallowedNames)
@@ -131,8 +130,13 @@ public static class AppSettings
             ? "!"
             : commandPrefix;
         
-        var versionFetchHours = configuration["Config:VersionFetchHoursDelay"];
-        VersionFetchHoursDelay = string.IsNullOrEmpty(versionFetchHours)
+        var statusInterval = configuration["Config:BotStatusUpdateInterval"];
+        BotStatusUpdateInterval = string.IsNullOrEmpty(statusInterval)
+            ? 5
+            : int.Parse(statusInterval);
+        
+        var versionFetchHours = configuration["Config:VersionFetchHoursInterval"];
+        VersionFetchHoursInterval = string.IsNullOrEmpty(versionFetchHours)
             ? 1
             : int.Parse(versionFetchHours);
 
@@ -143,6 +147,7 @@ public static class AppSettings
     }
 
     public static readonly string Domain;
+    public static readonly bool Debug;
     public static readonly string BanchoNETVersion;
     public static readonly bool DisallowOldClients;
     public static readonly bool SortLeaderboardByPP;
@@ -154,7 +159,6 @@ public static class AppSettings
     public static readonly string MenuOnclickUrl;
     public static readonly string DataPath;
     public static readonly string BanchoBotName;
-    public static readonly int BotStatusUpdateInterval;
     public static readonly ImmutableList<string> DisallowedNames;
     public static readonly ImmutableList<string> OsuDirectSearchEndpoints;
     public static readonly ImmutableList<(Activity Activity, string Description)> BotStatuses;
@@ -162,7 +166,8 @@ public static class AppSettings
     public static readonly string WelcomeMessage;
     public static readonly string FirstLoginMessage;
     public static readonly string RestrictedMessage;
-    public static readonly int VersionFetchHoursDelay;
+    public static readonly int BotStatusUpdateInterval;
+    public static readonly int VersionFetchHoursInterval;
     public static readonly string CommandPrefix;
     public static readonly string OsuApiKey;
 }

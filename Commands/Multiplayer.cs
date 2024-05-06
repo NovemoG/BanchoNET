@@ -109,7 +109,7 @@ public partial class CommandProcessor
             HostId = _playerCtx.Id,
             CreatorId = _playerCtx.Id,
             Freemods = true,
-            BeatmapId = beatmap?.MapId ?? 0,
+            BeatmapId = beatmap?.MapId ?? -1,
             BeatmapMD5 = beatmap?.MD5 ?? "",
             BeatmapName = beatmap?.FullName() ?? "",
             Seed = Random.Shared.Next(),
@@ -128,7 +128,7 @@ public partial class CommandProcessor
         if (args.Length == 0)
             return $"No username provided. Use '{_prefix}mp invite <username>'.";
 
-        var target = _session.GetPlayer(username: args[0]);
+        var target = _session.GetPlayerByName(args[0]);
         if (target == null)
             return $"{args[0]} is either offline or you misspelled the username.";
         

@@ -20,17 +20,22 @@ public sealed class BanchoSession
 	
 	#region Players
 	
-	public Player BanchoBot => _bots[1];
+	public Player BanchoBot => _botsById[1];
 	
-	private readonly ConcurrentDictionary<int, Player> _players = [];
-	public IEnumerable<Player> Players => _players.Values;
+	private readonly ConcurrentDictionary<Guid, Player> _playersByToken = [];
+	private readonly ConcurrentDictionary<string, Player> _playersByUsername = [];
+	private readonly ConcurrentDictionary<int, Player> _playersById = [];
+	public IEnumerable<Player> Players => _playersById.Values;
 	public IEnumerable<Player> PlayersInLobby => Players.Where(p => p.InLobby);
+
+	private readonly ConcurrentDictionary<Guid, Player> _restrictedByToken = [];
+	private readonly ConcurrentDictionary<string, Player> _restrictedByUsername = [];
+	private readonly ConcurrentDictionary<int, Player> _restrictedById = [];
+	public IEnumerable<Player> Restricted => _restrictedById.Values;
 	
-	private readonly ConcurrentDictionary<int, Player> _restricted = [];
-	public IEnumerable<Player> Restricted => _restricted.Values;
-	
-	private readonly ConcurrentDictionary<int, Player> _bots = [];
-	public IEnumerable<Player> Bots => _bots.Values;
+	private readonly ConcurrentDictionary<string, Player> _botsByUsername = [];
+	private readonly ConcurrentDictionary<int, Player> _botsById = [];
+	public IEnumerable<Player> Bots => _botsById.Values;
 
 	#endregion
 
@@ -73,10 +78,11 @@ public sealed class BanchoSession
 	public IEnumerable<MultiplayerLobby> Lobbies => _multiplayerLobbies.Values;
 	
 	private readonly ConcurrentDictionary<string, string> _passwordHashes = [];
-	private readonly ConcurrentDictionary<string, IPAddress> _ipCache = [];
 
 	#endregion
 
+	public void ClearPasswordsCache() => _passwordHashes.Clear();
+	
 	public void InsertPasswordHash(string passwordMD5, string passwordHash)
 	{
 		_passwordHashes.TryAdd(passwordHash, passwordMD5);
@@ -93,30 +99,29 @@ public sealed class BanchoSession
 		_passwordHashes.TryAdd(passwordHash, passwordMD5);
 		return true;
 	}
-
-	public IPAddress? GetCachedIp(string ipString)
-	{
-		_ipCache.TryGetValue(ipString, out var ip);
-		return ip;
-	}
-
-	public IPAddress CacheIp(string ipString)
-	{
-		var ip = IPAddress.Parse(ipString);
-		_ipCache.TryAdd(ipString, ip);
-		return ip;
-	}
 	
 	public void AppendBot(Player bot)
 	{
 		bot.IsBot = true;
-		_bots.TryAdd(bot.Id, bot);
+		
+		_botsById.TryAdd(bot.Id, bot);
+		_botsByUsername.TryAdd(bot.Username.MakeSafe(), bot);
 	}
 	
 	public void AppendPlayer(Player player)
 	{
-		if (player.Restricted) _restricted.TryAdd(player.Id, player);
-		else _players.TryAdd(player.Id, player);
+		if (player.Restricted)
+		{
+			_restrictedByToken.TryAdd(player.Token, player);
+			_restrictedByUsername.TryAdd(player.Username.MakeSafe(), player);
+			_restrictedById.TryAdd(player.Id, player);
+		}
+		else
+		{
+			_playersByToken.TryAdd(player.Token, player);
+			_playersByUsername.TryAdd(player.Username.MakeSafe(), player);
+			_playersById.TryAdd(player.Id, player);
+		}
 	}
 
 	public bool LogoutPlayer(Player player)
@@ -137,57 +142,54 @@ public sealed class BanchoSession
 			logoutPacket.Logout(player.Id);
 			EnqueueToPlayers(logoutPacket.GetContent());
 		}
-		
-		if (!_players.TryRemove(player.Id, out _))
-			Console.WriteLine($"[{GetType().Name}] Failed to remove {player.Id} from session");
+
+		if (!_playersById.TryRemove(player.Id, out _)
+		    || !_playersByUsername.TryRemove(player.Username.MakeSafe(), out _)
+		    || !_playersByToken.TryRemove(player.Token, out _))
+		{
+			Console.WriteLine($"[{GetType().Name}] Failed to remove {player.Username} from session");
+		}
 
 		return true;
 	}
-	
-	public Player? GetPlayer(int id = 0, string username = "", Guid token = new())
+
+	public Player? GetPlayerById(int id)
 	{
-		Player? sessionPlayer;
+		if (id < 1) return null;
+
+		_playersById.TryGetValue(id, out var sessionPlayer);
+		if (sessionPlayer != null) return sessionPlayer;
 		
-		if (id > 0)
-		{
-			sessionPlayer = GetBot(id);
-			if (sessionPlayer != null) return sessionPlayer;
-			_players.TryGetValue(id, out sessionPlayer);
-			if (sessionPlayer != null) return sessionPlayer;
-			_restricted.TryGetValue(id, out sessionPlayer);
-			return sessionPlayer;
-		}
-
-		if (username != string.Empty)
-		{
-			username = username.MakeSafe();
-			
-			sessionPlayer = GetBot(username: username);
-			if (sessionPlayer != null) return sessionPlayer;
-			sessionPlayer = _bots.Values.FirstOrDefault(p => p.SafeName == username);
-			if (sessionPlayer != null) return sessionPlayer;
-			sessionPlayer = _players.Values.FirstOrDefault(r => r.SafeName == username);
-			return sessionPlayer ?? _restricted.Values.FirstOrDefault(b => b.SafeName == username);
-		}
-
-		if (token != Guid.Empty)
-		{
-			sessionPlayer = _players.Values.FirstOrDefault(p => p.Token == token);
-			return sessionPlayer ?? _restricted.Values.FirstOrDefault(r => r.Token == token);
-		}
-
-		return null;
+		_botsById.TryGetValue(id, out sessionPlayer);
+		if (sessionPlayer != null) return sessionPlayer;
+		
+		_restrictedById.TryGetValue(id, out sessionPlayer);
+		return sessionPlayer;
 	}
 
-	private Player? GetBot(int id = 0, string username = "")
+	public Player? GetPlayerByName(string? username)
 	{
-		if (id <= 0)
-			return username != string.Empty
-				? _bots.Values.FirstOrDefault(p => p.SafeName == username.MakeSafe())
-				: null;
+		if (string.IsNullOrEmpty(username)) return null;
+
+		username = username.MakeSafe();
 		
-		_bots.TryGetValue(id, out var sessionPlayer);
+		_playersByUsername.TryGetValue(username, out var sessionPlayer);
+		if (sessionPlayer != null) return sessionPlayer;
+		
+		_botsByUsername.TryGetValue(username, out sessionPlayer);
+		if (sessionPlayer != null) return sessionPlayer;
+		
+		_restrictedByUsername.TryGetValue(username, out sessionPlayer);
 		return sessionPlayer;
+	}
+
+	public Player? GetPlayerByToken(Guid token)
+	{
+		return _playersByToken.TryGetValue(token, out var sessionPlayer)
+			? sessionPlayer
+			: _restrictedByToken.TryGetValue(token, out sessionPlayer)
+				? sessionPlayer
+				: null;
 	}
 	
 	public Channel? GetChannel(string name, bool spectator = false)
@@ -307,10 +309,10 @@ public sealed class BanchoSession
 
 	public void EnqueueToPlayers(byte[] data)
 	{
-		foreach (var player in _players.Values)
+		foreach (var player in _playersById.Values)
 			player.Enqueue(data);
 
-		foreach (var player in _restricted.Values)
+		foreach (var player in _restrictedById.Values)
 			player.Enqueue(data);
 	}
 }
