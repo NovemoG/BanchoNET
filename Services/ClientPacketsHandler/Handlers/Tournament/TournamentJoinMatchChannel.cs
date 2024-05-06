@@ -7,7 +7,7 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-    private Task TournamentMatchInfoRequest(Player player, BinaryReader br)
+    private Task TournamentJoinMatchChannel(Player player, BinaryReader br)
     {
         var matchId = br.ReadInt32();
         
@@ -21,10 +21,12 @@ public partial class ClientPacketsHandler
         if (match == null)
             return Task.CompletedTask;
 
-        using var packet = new ServerPackets();
-        packet.UpdateMatch(match, false);
-        player.Enqueue(packet.GetContent());
-        
+        if (match.GetPlayerSlot(player) != null)
+            return Task.CompletedTask;
+
+        if (player.JoinChannel(match.Chat))
+            match.TourneyClients.Add(player.Id);
+            
         return Task.CompletedTask;
     }
 }

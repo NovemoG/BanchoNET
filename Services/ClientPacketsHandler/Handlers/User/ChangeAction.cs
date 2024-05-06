@@ -33,7 +33,10 @@ public partial class ClientPacketsHandler
 
 		status.CurrentMods = mods;
 		status.Mode = mode;
-		status.BeatmapId = br.ReadInt32();
+		var beatmapId = status.BeatmapId = br.ReadInt32();
+
+		if (beatmapId > 0)
+			player.LastValidBeatmapId = beatmapId;
 		
 		using var packet = new ServerPackets();
 		packet.UserStats(player);

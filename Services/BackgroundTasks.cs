@@ -79,6 +79,8 @@ public class BackgroundTasks(IServiceScopeFactory scopeFactory)
             
             Console.WriteLine($"[{GetType().Name}] {player.Username}'s supporter status has expired.");
         }
+        
+        Console.WriteLine($"[{GetType().Name}] Supporter status has expired for {expiredSupporters.Count} players.");
     }
 
     public void UpdateBotStatus()

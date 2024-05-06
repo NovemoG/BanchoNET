@@ -36,14 +36,15 @@ public class Player
 	
 	public ClientDetails ClientDetails { get; set; }
 	public PresenceFilter PresenceFilter { get; set; }
-	public PlayerStatus Status { get; set; }
-	public Dictionary<GameMode, ModeStats> Stats { get; set; }
+	public PlayerStatus Status { get; }
+	public Dictionary<GameMode, ModeStats> Stats { get; }
 	
 	public List<int> Friends { get; }
 	public List<int> Blocked { get; }
 	public List<Channel> Channels { get; }
 	public List<Player> Spectators { get; }
 	
+	public int LastValidBeatmapId { get; set; }
 	public LastNp? LastNp { get; set; }
 	public Score? RecentScore { get; set; }
 	

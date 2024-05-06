@@ -28,8 +28,9 @@ public class MultiplayerLobby
 	public GameMode Mode { get; set; }
 	public int HostId { get; set; }
 	public int CreatorId { get; set; }
-	public List<int> Refs { get; set; } = [];
-	public List<int> BannedPlayers { get; set; } = [];
+	public List<int> Refs { get; } = [];
+	public List<int> BannedPlayers { get; } = [];
+	public List<int> TourneyClients { get; } = [];
 	public Mods Mods { get; set; }
 	public bool Freemods { get; set; }
 	public int BeatmapId { get; set; }

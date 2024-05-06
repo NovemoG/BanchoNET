@@ -306,9 +306,9 @@ public partial class ServerPackets : IDisposable
 	/// Packet id 91
 	/// </summary>
 	[Obsolete("Currently unused")]
-	public void MatchChangePassword(string newPwd)
+	public void MatchChangePassword(string newPassword)
 	{
-		WritePacketData(ServerPacketId.MatchChangePassword, new PacketData(newPwd, DataType.String));
+		WritePacketData(ServerPacketId.MatchChangePassword, new PacketData(newPassword, DataType.String));
 	}
 
 	/// <summary>

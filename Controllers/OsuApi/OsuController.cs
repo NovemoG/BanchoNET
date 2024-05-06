@@ -17,13 +17,6 @@ public partial class OsuController(
 {
     private readonly BanchoSession _session = BanchoSession.Instance;
 
-    [HttpPost("osu-error.php")]
-    public async Task<IActionResult> OsuError()
-    {
-        Console.WriteLine("OsuError");
-        return Ok("");
-    }
-
     [HttpGet("bancho_connect.php")]
     public async Task<IActionResult> BanchoConnect()
     {

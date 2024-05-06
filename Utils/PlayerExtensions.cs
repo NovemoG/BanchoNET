@@ -89,8 +89,14 @@ public static class PlayerExtensions
 			Console.WriteLine($"[PlayerExtensions] {player.Username} tried to join multiple matches.");
 			return;
 		}
-		
-		//TODO tourney clients
+
+		if (lobby.TourneyClients.Contains(player.Id))
+		{
+			using var joinFailPacket = new ServerPackets();
+			joinFailPacket.MatchJoinFail();
+			player.Enqueue(joinFailPacket.GetContent());
+			return;
+		}
 
 		MultiplayerSlot? slot;
 		if (lobby.HostId != player.Id)
@@ -153,7 +159,7 @@ public static class PlayerExtensions
 		slot.Reset(slot.Status == SlotStatus.Locked ? SlotStatus.Locked : SlotStatus.Open);
 		player.LeaveChannel(lobby.Chat);
 
-		if (lobby.Slots.All(s => s.Player == null) /*TODO check for tourney clients*/)
+		if (lobby.Slots.All(s => s.Player == null))
 		{
 			Console.WriteLine($"[PlayerExtensions] Match \"{lobby.Name}\" is empty, removing.");
 

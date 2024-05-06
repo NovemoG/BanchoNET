@@ -100,6 +100,8 @@ public partial class CommandProcessor
         if (_playerCtx.Lobby != null)
             return "";
 
+        var beatmap = await beatmaps.GetBeatmapWithId(_playerCtx.LastValidBeatmapId);
+        
         var lobby = new MultiplayerLobby
         {
             Name = args.Length == 1 ? args[0] : $"{_playerCtx.Username}'s match",
@@ -107,21 +109,13 @@ public partial class CommandProcessor
             HostId = _playerCtx.Id,
             CreatorId = _playerCtx.Id,
             Freemods = true,
-            BeatmapId = _playerCtx.Status.BeatmapId,
-            BeatmapMD5 = _playerCtx.Status.BeatmapMD5,
-            BeatmapName = await beatmaps.GetBeatmapFullName(mapId: _playerCtx.Status.BeatmapId),
+            BeatmapId = beatmap?.MapId ?? 0,
+            BeatmapMD5 = beatmap?.MD5 ?? "",
+            BeatmapName = beatmap?.FullName() ?? "",
             Seed = Random.Shared.Next(),
-            Slots =
-            {
-                [0] = new MultiplayerSlot
-                {
-                    Player = _playerCtx,
-                    Status = SlotStatus.NotReady
-                }
-            }
         };
 
-        foreach (var slot in lobby.Slots[1..])
+        foreach (var slot in lobby.Slots)
             slot.Status = SlotStatus.Open;
         
         MultiplayerExtensions.CreateLobby(lobby, _playerCtx, await histories.GetMatchId());
@@ -488,7 +482,7 @@ public partial class CommandProcessor
         if (!_lobby.Refs.Contains(_playerCtx.Id))
             return "";
         
-        if (_lobby.BeatmapId < 0)
+        if (_lobby.BeatmapId < 1)
             return "No beatmap is selected.";
         
         if (_lobby.InProgress)

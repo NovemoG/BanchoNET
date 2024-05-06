@@ -87,7 +87,7 @@ public class LobbyTimer
             if (_secondsToFinish != secondsLeft) return;
             
             _lobby.Chat.SendBotMessage(string.Format(_alertMessage, secondsLeft));
-            _timerAlertIndex = Math.Max(_timerAlertIndex++, 8);
+            _timerAlertIndex = Math.Min(++_timerAlertIndex, 8);
             return;
         }
         

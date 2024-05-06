@@ -59,13 +59,6 @@ public class BeatmapsRepository(BanchoDbContext dbContext, BeatmapHandler beatma
 		return await dbContext.Beatmaps.Where(b => b.MapId == beatmapId)
 				.ExecuteUpdateAsync(p => p.SetProperty(b => b.Status, (int)targetStatus));
 	}
-
-	public async Task<string> GetBeatmapFullName(int mapId = -1, string beatmapMD5 = "")
-	{
-		var map = await GetBeatmap(mapId: mapId, beatmapMD5: beatmapMD5);
-		
-		return map == null ? "" : map.FullName();
-	}
 	
 	public async Task<Beatmap?> GetBeatmap(int mapId = -1, int setId = -1, string beatmapMD5 = "")
 	{
