@@ -98,7 +98,7 @@ public class BackgroundTasks(IServiceScopeFactory scopeFactory)
             var ranks = await redis.SortedSetRangeByRankWithScoresAsync(
                 key: key,
                 start: i,
-                stop: limit + iter * i - 1,
+                stop: limit + iter * limit - 1,
                 order: Order.Descending);
                 
             for (int j = 0; j < ranks.Length; j++)
@@ -152,7 +152,7 @@ public class BackgroundTasks(IServiceScopeFactory scopeFactory)
         var iter = 0;
         for (int i = 0; i < playerCount; i += limit)
         {
-            var stats = await players.GetPlayerModeStatsInRange(mode, limit, iter * i);
+            var stats = await players.GetPlayerModeStatsInRange(mode, limit, iter * limit);
             
             foreach (var (playerId, playCount, replaysViewed) in stats)
             {
