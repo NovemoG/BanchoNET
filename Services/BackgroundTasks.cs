@@ -93,24 +93,24 @@ public class BackgroundTasks(IServiceScopeFactory scopeFactory)
         var key = $"bancho:leaderboard:{mode}";
             
         var iter = 0;
-        for (int j = 0; j < playerCount; j += limit)
+        for (int i = 0; i < playerCount; i += limit)
         {
             var ranks = await redis.SortedSetRangeByRankWithScoresAsync(
                 key: key,
-                start: j,
-                stop: limit + iter * j - 1,
+                start: i,
+                stop: limit + iter * i - 1,
                 order: Order.Descending);
                 
-            for (int k = 0; k < ranks.Length; k++)
+            for (int j = 0; j < ranks.Length; j++)
             {
-                var playerId = int.Parse(ranks[k].Element!);
+                var playerId = int.Parse(ranks[j].Element!);
 
                 await histories.AddRankHistory(
                     playerId,
                     mode,
                     new ValueEntry
                     {
-                        Value = j + k + 1,
+                        Value = i + j + 1,
                         Date = DateTime.Now
                     });
             }
@@ -129,13 +129,60 @@ public class BackgroundTasks(IServiceScopeFactory scopeFactory)
     public async Task AppendPlayerMonthlyHistory()
     {
         Console.WriteLine($"[{GetType().Name}] Appending players' monthly history, execution date: {DateTime.Now})");
+        
+        await Parallel.ForAsync(0, 8, async (i, _) => await ProcessMonthlyHistory((byte)i));
+        
+        Console.WriteLine($"[{GetType().Name}] Finished updating monthly history, finish date: {DateTime.Now}");
+    }
+    
+    private async Task ProcessMonthlyHistory(byte mode)
+    {
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var players = scope.ServiceProvider.GetRequiredService<PlayersRepository>();
+        var histories = scope.ServiceProvider.GetRequiredService<HistoriesRepository>();
+        
         var stopwatch = new Stopwatch();
         stopwatch.Start();
+
+        var playerCount = await players.TotalPlayerCount();
+        const int limit = 10_000;
         
+        mode = mode == 7 ? (byte)(mode + 1) : mode;
         
+        var iter = 0;
+        for (int i = 0; i < playerCount; i += limit)
+        {
+            var stats = await players.GetPlayerModeStatsInRange(mode, limit, iter * i);
+            
+            foreach (var (playerId, playCount, replaysViewed) in stats)
+            {
+                await Task.WhenAll(
+                    histories.AddPlayCountHistory(
+                        playerId,
+                        mode,
+                        new ValueEntry
+                        {
+                            Value = playCount,
+                            Date = DateTime.Now
+                        }),
+                    histories.AddReplaysHistory(
+                        playerId,
+                        mode,
+                        new ValueEntry
+                        {
+                            Value = replaysViewed,
+                            Date = DateTime.Now
+                        })
+                );
+            }
+                
+            iter++;
+        }
+
+        await players.ResetPlayersStats(mode);
         
         stopwatch.Stop();
-        Console.WriteLine($"[{GetType().Name}] Finished updating monthly history, execution time: {stopwatch.Elapsed}");
+        Console.WriteLine($"[{GetType().Name}] Finished updating monthly history for mode {mode}, execution time: {stopwatch.Elapsed}");
     }
 
     #endregion

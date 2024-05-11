@@ -11,10 +11,9 @@ public class HistoriesRepository
     private readonly IMongoCollection<ReplayViewsHistory> _replayViewsHistories;
     private readonly IMongoCollection<PlayCountHistory> _playCountHistories;
 
-    public HistoriesRepository(string connectionString)
+    public HistoriesRepository(MongoClient client)
     {
-        var mongoClient = new MongoClient(connectionString);
-        var mongoDatabase = mongoClient.GetDatabase("utopia");
+        var mongoDatabase = client.GetDatabase("utopia");
         
         if (!CollectionExists(mongoDatabase, "rankHistories"))
             mongoDatabase.CreateCollection("rankHistories");
@@ -122,20 +121,6 @@ public class HistoriesRepository
         if (result.MatchedCount == 0)
             Console.WriteLine("[Histories] Player not found in rank history");
     }
-
-    public async Task UpdateLatestRankHistory(int playerId, byte mode, ValueEntry entry)
-    {
-        var filter = RankFilter(playerId, mode);
-        
-        var update = Builders<RankHistory>.Update.PopLast("Entries");
-        var result = await _rankHistories.UpdateOneAsync(filter, update);
-        
-        if (result.MatchedCount == 0)
-            Console.WriteLine("[Histories] Player not found in rank history");
-
-        update = Builders<RankHistory>.Update.Push("Entries", entry);
-        await _rankHistories.UpdateOneAsync(filter, update);
-    }
     
     public async Task UpdatePeakRank(int playerId, byte mode, ValueEntry peakRank)
     {
@@ -189,20 +174,6 @@ public class HistoriesRepository
         
         if (result.MatchedCount == 0)
             Console.WriteLine("[Histories] Player not found in play count history");
-    }
-    
-    public async Task UpdateLatestPlayCountHistory(int playerId, byte mode, ValueEntry entry)
-    {
-        var filter = PlayCountFilter(playerId, mode);
-        
-        var update = Builders<PlayCountHistory>.Update.PopLast("Entries");
-        var result = await _playCountHistories.UpdateOneAsync(filter, update);
-        
-        if (result.MatchedCount == 0)
-            Console.WriteLine("[Histories] Player not found in rank history");
-
-        update = Builders<PlayCountHistory>.Update.Push("Entries", entry);
-        await _playCountHistories.UpdateOneAsync(filter, update);
     }
 
     private static bool CollectionExists(IMongoDatabase db, string name)

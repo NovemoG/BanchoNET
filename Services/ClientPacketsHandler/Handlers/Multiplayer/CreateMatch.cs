@@ -1,5 +1,4 @@
-﻿using BanchoNET.Objects.Channels;
-using BanchoNET.Objects.Players;
+﻿using BanchoNET.Objects.Players;
 using BanchoNET.Packets;
 using BanchoNET.Utils;
 

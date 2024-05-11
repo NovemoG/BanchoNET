@@ -15,6 +15,7 @@ using dotenv.net;
 using Hangfire;
 using Hangfire.MySql;
 using Microsoft.EntityFrameworkCore;
+using MongoDB.Driver;
 using MySql.Data.MySqlClient;
 using StackExchange.Redis;
 using static System.Data.IsolationLevel;
@@ -164,7 +165,8 @@ public class Program
 		builder.Services.AddControllers();
 		
 		builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConnectionString));
-		builder.Services.AddSingleton(new HistoriesRepository(mongoConnectionString));
+		builder.Services.AddSingleton(new MongoClient(mongoConnectionString));
+		builder.Services.AddSingleton<HistoriesRepository>();
 		builder.Services.AddSingleton<OsuVersionService>();
 		builder.Services.AddSingleton<BackgroundTasks>();
 		builder.Services.AddDbContext<BanchoDbContext>(options =>

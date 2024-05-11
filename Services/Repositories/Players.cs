@@ -191,15 +191,6 @@ public class PlayersRepository
 		};
 		_dbContext.Update(dbStats);
 		await _dbContext.SaveChangesAsync();
-
-		await _histories.UpdateLatestPlayCountHistory(
-			player.Id,
-			(byte)mode,
-			new ValueEntry
-			{
-				Value = stats.PlayCount,
-				Date = DateTime.Now
-			});
 	}
 	
 	public async Task FetchPlayerRelationships(Player player)
@@ -282,21 +273,8 @@ public class PlayersRepository
 				stats.Rank = 0;
 				return;
 		}
-
-		var prevRank = stats.Rank;
+		
 		stats.Rank = await GetPlayerGlobalRank(mode, player.Id);
-
-		if (stats.Rank != prevRank)
-		{
-			await _histories.UpdateLatestRankHistory(
-				player.Id,
-				(byte)mode,
-				new ValueEntry
-				{
-					Value = stats.Rank,
-					Date = DateTime.Now
-				});
-		}
 		if (stats.Rank > stats.PeakRank)
 		{
 			stats.PeakRank = stats.Rank;
@@ -356,31 +334,61 @@ public class PlayersRepository
 				Value = await GetPlayerGlobalRank((GameMode)mode, playerId),
 				Date = DateTime.Now
 			};
-			await _histories.InsertRankHistory(new RankHistory
-			{
-				PlayerId = playerId,
-				Mode = mode,
-				PeakRank = rank,
-				Entries = [rank]
-			});
 
-			await _histories.InsertReplaysHistory(new ReplayViewsHistory
-			{
-				PlayerId = playerId,
-				Mode = mode,
-				Entries = [new ValueEntry { Value = 0, Date = DateTime.Now }]
-			});
-
-			await _histories.InsertPlayCountHistory(new PlayCountHistory
-			{
-				PlayerId = playerId,
-				Mode = mode,
-				Entries = [new ValueEntry { Value = 0, Date = DateTime.Now }]
-			});
+			await Task.WhenAll(
+				_histories.InsertRankHistory(new RankHistory
+				{
+					PlayerId = playerId,
+					Mode = mode,
+					PeakRank = rank,
+					Entries = [rank]
+				}),
+				_histories.InsertReplaysHistory(new ReplayViewsHistory
+				{
+					PlayerId = playerId,
+					Mode = mode,
+					Entries = [new ValueEntry { Value = 0, Date = DateTime.Now }]
+				}),
+				_histories.InsertPlayCountHistory(new PlayCountHistory
+				{
+					PlayerId = playerId,
+					Mode = mode,
+					Entries = [new ValueEntry { Value = 0, Date = DateTime.Now }]
+				}));
 		}
 
 		await _dbContext.Stats.AddRangeAsync(scoreDtos);
 		await _dbContext.SaveChangesAsync();
+	}
+
+	public async Task<StatsDto?> GetPlayerModeStats(int playerId, byte mode)
+	{
+		return await _dbContext.Stats.FirstOrDefaultAsync(s => s.PlayerId == playerId && s.Mode == mode);
+	}
+	
+	/// <summary>
+	/// Returns a list of tuples that contains: player id, play count and replay views of players in a given mode.
+	/// At the same time it resets the play count and replay views of the players as it is our most recent data.
+	/// </summary>
+	public async Task<List<Tuple<int, int,int>>> GetPlayerModeStatsInRange(byte mode, int count, int skip = 0)
+	{
+		if (count % 8 != 0 || skip % 8 != 0)
+			Console.WriteLine($"[Players] Taking/Skip count should be a multiple of 8, count: {count}, skip: {skip}");
+
+		return await _dbContext.Stats
+			.Where(s => s.Mode == mode)
+			.OrderBy(s => s.PlayerId)
+			.Skip(skip)
+			.Take(count)
+			.Select(s => new Tuple<int, int, int>(s.PlayerId, s.PlayCount, s.ReplayViews))
+			.ToListAsync();
+	}
+
+	public async Task ResetPlayersStats(byte mode)
+	{
+		await _dbContext.Stats.Where(s => s.Mode == mode)
+			.ExecuteUpdateAsync(st => st.SetProperty(s => s.PlayCount, 0)
+				.SetProperty(s => s.ReplayViews, 0));
 	}
 
 	/// <summary>
@@ -413,7 +421,7 @@ public class PlayersRepository
 		return playerIds;
 	}
 
-	private async Task<int> GetPlayerGlobalRank(GameMode mode, int playerId)
+	public async Task<int> GetPlayerGlobalRank(GameMode mode, int playerId)
 	{
 		return (int)(await _redis.SortedSetRankAsync($"bancho:leaderboard:{(byte)mode}", playerId, Order.Descending))! + 1;
 	}
