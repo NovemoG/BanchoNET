@@ -70,6 +70,7 @@ public class HistoriesRepository
         Mods = 0,
         PlayerId = 0,
         TotalScore = 0,
+        Team = 0,
         Failed = false
     };
 
@@ -94,7 +95,17 @@ public class HistoriesRepository
         
         var result = await _multiplayerMatches.UpdateOneAsync(MatchFilter(matchId), builder);
         
-        if (result.MatchedCount == 0)
+        if (result.ModifiedCount == 0)
+            Console.WriteLine("[Histories] Couldn't insert action, match not found in multiplayer history");
+    }
+
+    public async Task AddMatchActions(int matchId, List<ActionEntry> entries)
+    {
+        var builder = Builders<MultiplayerMatch>.Update.PushEach("Actions", entries);
+        
+        var result = await _multiplayerMatches.UpdateOneAsync(MatchFilter(matchId), builder);
+        
+        if (result.ModifiedCount == 0)
             Console.WriteLine("[Histories] Couldn't insert action, match not found in multiplayer history");
     }
 
@@ -104,7 +115,7 @@ public class HistoriesRepository
         
         var result = await _multiplayerMatches.UpdateOneAsync(MatchFilter(matchId), update);
         
-        if (result.MatchedCount == 0)
+        if (result.ModifiedCount == 0)
             Console.WriteLine("[Histories] Couldn't insert map, match not found in multiplayer history");
     }
 
@@ -121,42 +132,23 @@ public class HistoriesRepository
             Console.WriteLine("[Histories] Couldn't delete, match not found in multiplayer history");
     }
     
-    public async Task MapCompleted(int matchId, List<ScoreDto> scores)
+    public async Task MapCompleted(int matchId, List<ScoreEntry> scores)
     {
         // idk if there is a chance that a match is completed without any scores, but this is a safety system
         // to prevent any possible errors
-        var entries = new List<ScoreEntry>([DummyScore]);
+        if (scores.Count == 0)
+            scores = [DummyScore];
 
-        if (scores.Count > 0)
-        {
-            entries = scores.Select(score => new ScoreEntry
-                {
-                    Accuracy = score.Acc,
-                    Grade = score.Grade,
-                    Gekis = score.Gekis,
-                    Count300 = score.Count300,
-                    Katus = score.Katus,
-                    Count100 = score.Count100,
-                    Count50 = score.Count50,
-                    Misses = score.Misses,
-                    MaxCombo = score.MaxCombo,
-                    Mods = score.Mods,
-                    PlayerId = score.PlayerId,
-                    TotalScore = score.Score,
-                    Failed = score.Status == 0
-                })
-                .ToList();
-        }
+        var filter = MatchFilter(matchId) &
+                     Builders<MultiplayerMatch>.Filter.ElemMatch(e => e.Scores, score => score.Values.Count == 0);
         
-        var filter = MatchFilter(matchId)
-                     & Builders<MultiplayerMatch>.Filter.ElemMatch(e => e.Scores,
-                         score => score.Values.Count == 0);
+        var update = Builders<MultiplayerMatch>.Update.Set("Scores.$.Values", scores);
         
-        var updateScores = Builders<MultiplayerMatch>.Update.Set("Scores.$.Values", entries);
+        var result = await _multiplayerMatches.UpdateOneAsync(filter, update);
         
-        var result = await _multiplayerMatches.UpdateOneAsync(filter, updateScores);
+        Console.WriteLine(result.ModifiedCount);
         
-        if (result.MatchedCount == 0)
+        if (result.ModifiedCount == 0)
             Console.WriteLine("[Histories] Couldn't update scores, match not found in multiplayer history");
     }
     
@@ -193,7 +185,7 @@ public class HistoriesRepository
         
         var result = await _rankHistories.UpdateOneAsync(filter, update);
         
-        if (result.MatchedCount == 0)
+        if (result.ModifiedCount == 0)
             Console.WriteLine("[Histories] Couldn't insert rank, player not found in rank history");
     }
     
@@ -203,7 +195,7 @@ public class HistoriesRepository
         
         var result = await _rankHistories.UpdateOneAsync(RankFilter(playerId, mode), update);
         
-        if (result.MatchedCount == 0)
+        if (result.ModifiedCount == 0)
             Console.WriteLine("[Histories] Couldn't update peak rank, player not found in rank history");
     }
     
@@ -225,7 +217,7 @@ public class HistoriesRepository
         
         var result = await _replayViewsHistories.UpdateOneAsync(ReplayFilter(playerId, mode), update);
         
-        if (result.MatchedCount == 0)
+        if (result.ModifiedCount == 0)
             Console.WriteLine("[Histories] Couldn't insert replays history, player not found in views history");
     }
     
@@ -247,7 +239,7 @@ public class HistoriesRepository
         
         var result = await _playCountHistories.UpdateOneAsync(PlayCountFilter(playerId, mode), update);
         
-        if (result.MatchedCount == 0)
+        if (result.ModifiedCount == 0)
             Console.WriteLine("[Histories] Couldn't insert play count history, player not found in play count history");
     }
 

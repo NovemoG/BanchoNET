@@ -33,17 +33,8 @@ public class LobbyTimer
         bool startGame = false,
         Func<Task>? onStart = null)
     {
-        if (startGame && secondsToFinish == 0)
-        {
-            lobby.Chat.SendBotMessage("Good luck, have fun!");
-            lobby.Start();
-            onStart?.Invoke();
-
-            return;
-        }
-        
         _lobby = lobby;
-        _secondsToFinish = secondsToFinish;
+        _secondsToFinish = secondsToFinish == 0 ? 1 : secondsToFinish; // no one is going to notice that :tf:
         _startGame = startGame;
         _alertMessage = startGame
             ? "Match starting in {0} seconds."
@@ -65,9 +56,10 @@ public class LobbyTimer
             break;
         }
         
-        _lobby.Chat.SendBotMessage(startGame
-            ? $"Match will start in {secondsToFinish} seconds."
-            : $"Countdown will end in {secondsToFinish} seconds.");
+        if (secondsToFinish > 0)
+            _lobby.Chat.SendBotMessage(startGame
+                ? $"Match will start in {secondsToFinish} seconds."
+                : $"Countdown will end in {secondsToFinish} seconds.");
         
         _timer = new Timer
         {
@@ -79,9 +71,9 @@ public class LobbyTimer
 
     public void Stop()
     {
+        _lobby.Timer = null;
         _timer.Stop();
         _timer.Dispose();
-        _lobby.Timer = null;
     }
 
     private void Tick(object? source, ElapsedEventArgs e)

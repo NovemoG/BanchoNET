@@ -1,4 +1,5 @@
 ﻿using BanchoNET.Models.Dtos;
+using BanchoNET.Models.Mongo;
 using BanchoNET.Objects.Multiplayer;
 using BanchoNET.Objects.Players;
 using BanchoNET.Packets;
@@ -18,8 +19,9 @@ public partial class ClientPacketsHandler
 		var slot = lobby.GetPlayerSlot(player)!;
 		slot.Status = SlotStatus.Complete;
 		
+		// assigning UtcNow instead of Now because the ClientTime date of score is in UTC
 		if (lobby.MapFinishDate == DateTime.MinValue)
-			lobby.MapFinishDate = DateTime.Now;
+			lobby.MapFinishDate = DateTime.UtcNow;
         
 		if (slots.Any(s => s.Status == SlotStatus.Playing))
 			return;
@@ -50,8 +52,26 @@ public partial class ClientPacketsHandler
 		lobby.Enqueue(matchCompletedPacket.GetContent(), notPlayingIds, false);
 		lobby.EnqueueState();
 		
-		if (submittedScores.Count > 0)
-			await histories.MapCompleted(lobby.LobbyId, submittedScores);
+		var scoreEntries = submittedScores.Select(score => new ScoreEntry
+			{
+				Accuracy = score.Acc,
+				Grade = score.Grade,
+				Gekis = score.Gekis,
+				Count300 = score.Count300,
+				Katus = score.Katus,
+				Count100 = score.Count100,
+				Count50 = score.Count50,
+				Misses = score.Misses,
+				MaxCombo = score.MaxCombo,
+				Mods = score.Mods,
+				PlayerId = score.PlayerId,
+				TotalScore = score.Score,
+				Failed = score.Status == 0,
+				Team = (byte)lobby.GetPlayerSlot(score.PlayerId)!.Team
+			})
+			.ToList();
+		
+		await histories.MapCompleted(lobby.LobbyId, scoreEntries);
 
 		lobby.MapFinishDate = DateTime.MinValue;
 	}

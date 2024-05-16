@@ -11,6 +11,7 @@ namespace BanchoNET.Models.Dtos;
 [Index(nameof(BeatmapMD5))]
 [Index(nameof(Mode))]
 [Index(nameof(Status))]
+[Index(nameof(PlayTime))]
 [PrimaryKey(nameof(Id))]
 public class ScoreDto
 {

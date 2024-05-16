@@ -15,4 +15,5 @@ public class ScoreEntry
     public int Count50 { get; set; }
     public int Misses { get; set; }
     public float Accuracy { get; set; }
+    public byte Team { get; set; }
 }

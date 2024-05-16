@@ -76,9 +76,9 @@ public partial class CommandProcessor
             "size" => (false, SetLobbySize(args[1..])),
             "set" => (false, SetLobbyProperties(args[1..])),
             "move" => (false, MovePlayer(args[1..])),
-            "host" => (false, TransferHost(args[1..])),
-            "clearhost" => (false, ClearHost()),
-            "ch" => (false, ClearHost()),
+            "host" => (false, await TransferHost(args[1..])),
+            "clearhost" => (false, await ClearHost()),
+            "ch" => (false, await ClearHost()),
             "abort" => (false, await AbortMatch()),
             "team" => (false, MovePlayerToTeam(args[1..])),
             "map" => (false, await ChangeBeatmap(args[1..])),
@@ -87,12 +87,12 @@ public partial class CommandProcessor
             "timer" => (false, StartTimer(args[1..])),
             "aborttimer" => (false, AbortTimer()),
             "at" => (false, AbortTimer()),
-            "kick" => (false, KickPlayer(args[1..])),
+            "kick" => (false, await KickPlayer(args[1..])),
             "ban" => (false, await BanPlayer(args[1..])),
             "addref" => (false, await AddReferee(args[1..])),
             "rmref" => (false, await RemoveReferee(args[1..])),
             "listrefs" => (false, ListReferees()),
-            "close" => (false, CloseLobby()),
+            "close" => (false, await CloseLobby()),
             _ => (true, $"Invalid parameter provided. Check available options using '{prefix}mp help' or '{prefix}help mp'.")
         };
     }
@@ -325,7 +325,7 @@ public partial class CommandProcessor
         return $"Moved {args[0]} to slot {args[1]}.";
     }
     
-    private string TransferHost(params string[] args)
+    private async Task<string> TransferHost(params string[] args)
     {
         if (!_lobby.Refs.Contains(_playerCtx.Id))
             return "";   
@@ -342,16 +342,34 @@ public partial class CommandProcessor
         
         _lobby.EnqueueState();
         
+        await histories.AddMatchAction(
+            _lobby.LobbyId,
+            new ActionEntry
+            {
+                Action = Action.HostChanged,
+                PlayerId = target.Id,
+                Date = DateTime.Now
+            });
+        
         return $"Changed host to {target.Username}.";
     }
     
-    private string ClearHost()
+    private async Task<string> ClearHost()
     {
         if (!_lobby.Refs.Contains(_playerCtx.Id))
             return "";
         
         _lobby.HostId = -1;
         _lobby.EnqueueState();
+        
+        await histories.AddMatchAction(
+            _lobby.LobbyId,
+            new ActionEntry
+            {
+                Action = Action.HostChanged,
+                PlayerId = 0,
+                Date = DateTime.Now
+            });
         
         return "Removed host.";
     }
@@ -399,7 +417,7 @@ public partial class CommandProcessor
         };
         
         slot.Status = SlotStatus.NotReady;
-        _lobby.EnqueueState();
+        _lobby.EnqueueState(false);
         
         return $"Moved {slot.Player!.Username} to {slot.Team} team.";
     }
@@ -509,7 +527,7 @@ public partial class CommandProcessor
         if (_lobby.InProgress)
             return "Match is already in progress.";
         
-        var seconds = args.Length == 0? 10 : uint.TryParse(args[0], out var s) ? s : 10;
+        var seconds = args.Length == 0 ? 10 : uint.TryParse(args[0], out var s) ? s : 10;
         
         if (_lobby.Timer != null)
         {
@@ -518,6 +536,8 @@ public partial class CommandProcessor
         }
 
         _lobby.ReadyAllPlayers();
+        _lobby.EnqueueState(false);
+        
         _lobby.Timer = new LobbyTimer(_lobby, seconds, true, async () =>
             await histories.MapStarted(
                 _lobby.LobbyId,
@@ -570,7 +590,7 @@ public partial class CommandProcessor
         return "Aborted current timer.";
     }
     
-    private string KickPlayer(params string[] args)
+    private async Task<string> KickPlayer(params string[] args)
     {
         if (!_lobby.Refs.Contains(_playerCtx.Id))
             return "";
@@ -586,6 +606,27 @@ public partial class CommandProcessor
         
         player.LeaveMatchToLobby();
         player.SendBotMessage("You've been kicked from the lobby.");
+        
+        await histories.AddMatchAction(
+            _lobby.LobbyId,
+            new ActionEntry
+            {
+                Action = Action.Left,
+                PlayerId = player.Id,
+                Date = DateTime.Now
+            });
+
+        if (_lobby.IsEmpty())
+        {
+            await histories.AddMatchAction(
+                _lobby.LobbyId,
+                new ActionEntry
+                {
+                    Action = Action.MatchDisbanded,
+                    PlayerId = player.Id,
+                    Date = DateTime.Now
+                });
+        }
         
         return $"{slot.Player!.Username} has been kicked.";
     }
@@ -702,13 +743,35 @@ public partial class CommandProcessor
         return $"{string.Join(", ", _lobby.Refs.Select(id => players.GetPlayerOrOffline(id).Result!.Username))}";
     }
     
-    private string CloseLobby()
+    private async Task<string> CloseLobby()
     {
         if (!_lobby.Refs.Contains(_playerCtx.Id))
             return "";
+
+        var actions = new List<ActionEntry>();
         
         foreach (var slot in _lobby.Slots)
-            slot.Player?.LeaveMatchToLobby();
+        {
+            if (slot.Player == null) continue;
+            
+            slot.Player.LeaveMatchToLobby();
+            
+            actions.Add(new ActionEntry
+            {
+                Action = Action.Left,
+                PlayerId = slot.Player.Id,
+                Date = DateTime.Now
+            });
+        }
+        
+        actions.Add(new ActionEntry
+        {
+            Action = Action.MatchDisbanded,
+            PlayerId = _playerCtx.Id,
+            Date = DateTime.Now
+        });
+
+        await histories.AddMatchActions(_lobby.LobbyId, actions);
         
         return "";
     }

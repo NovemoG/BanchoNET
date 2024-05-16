@@ -67,9 +67,17 @@ public class ScoresRepository(BanchoDbContext dbContext)
     {
         var date = finishDate - TimeSpan.FromSeconds(10);
         
-        return await dbContext.Scores.OrderByDescending(s => s.PlayTime)
-            .Where(s => playerIds.Contains(s.PlayerId) && s.PlayTime > date)
+        //TODO idk why this query does not return any results; raw sql works fine but with ef does not
+        var scores = await dbContext.Scores
+            .FromSqlRaw($"SELECT * FROM Scores WHERE PlayerId IN ({string.Join(", ", playerIds)}) AND PlayTime > TIMESTAMP(\"{date:yyyy-MM-dd}\", \"{date:HH:mm:ss}\")")
             .ToListAsync();
+         /*var scores = await dbContext.Scores
+            .Where(s => playerIds.Contains(s.PlayerId) && s.PlayTime > date)
+            .ToListAsync();*/
+        
+        Console.WriteLine($"Scores: {scores.Count}, date: {date}");
+
+        return scores;
     }
 
     public async Task SetScoresStatuses(Score? previousScore, Score? previousWithMods)

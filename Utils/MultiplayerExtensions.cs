@@ -130,6 +130,11 @@ public static class MultiplayerExtensions
 		return lobby.Slots.FirstOrDefault(s =>
 			s.Player != null && s.Player.Username.Equals(username, StringComparison.CurrentCultureIgnoreCase));
 	}
+	
+	public static MultiplayerSlot? GetPlayerSlot(this MultiplayerLobby lobby, int playerId)
+	{
+		return lobby.Slots.FirstOrDefault(s => s.Player != null && s.Player.Id == playerId);
+	}
 
 	public static int GetPlayerSlotId(this MultiplayerLobby lobby, Player player)
 	{
@@ -194,7 +199,7 @@ public static class MultiplayerExtensions
 
 	public static bool IsEmpty(this MultiplayerLobby lobby)
 	{
-		return lobby.Slots.All(s => s.Player == null) && lobby.Refs.Count == 0;
+		return lobby.Slots.All(s => s.Player == null) && lobby.TourneyClients.Count == 0;
 	}
 
 	public static void Enqueue(
