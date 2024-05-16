@@ -12,7 +12,7 @@ public partial class ClientPacketsHandler
         
         foreach (var id in userIds)
         {
-            var target = _session.GetPlayer(id: id);
+            var target = _session.GetPlayerById(id);
             if (target == null) continue;
             
             using var presencePacket = new ServerPackets();

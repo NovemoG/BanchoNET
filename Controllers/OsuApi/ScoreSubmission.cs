@@ -202,7 +202,7 @@ public partial class OsuController
         var prevStats = stats.Copy();
 
         stats.PlayTime += (int)MathF.Floor(score.TimeElapsed / 1000f);
-        stats.PlayCount += 1;
+        stats.PlayCount += 1; 
         stats.TotalScore += score.TotalScore;
         stats.UpdateHits(score);
         
@@ -292,9 +292,6 @@ public partial class OsuController
         {
             if (score.MaxCombo > stats.MaxCombo)
                 stats.MaxCombo = score.MaxCombo;
-            
-            Console.WriteLine(previousBest?.Id);
-            Console.WriteLine(bestWithMods?.Id);
             
             switch (beatmap.AwardsPP())
             {

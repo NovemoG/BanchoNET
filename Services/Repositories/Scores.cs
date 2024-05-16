@@ -62,6 +62,15 @@ public class ScoresRepository(BanchoDbContext dbContext)
 
         return score == null ? null : new Score(score);
     }
+    
+    public async Task<List<ScoreDto>> GetPlayersRecentScores(IEnumerable<int> playerIds, DateTime finishDate)
+    {
+        var date = finishDate - TimeSpan.FromSeconds(10);
+        
+        return await dbContext.Scores.OrderByDescending(s => s.PlayTime)
+            .Where(s => playerIds.Contains(s.PlayerId) && s.PlayTime > date)
+            .ToListAsync();
+    }
 
     public async Task SetScoresStatuses(Score? previousScore, Score? previousWithMods)
     {

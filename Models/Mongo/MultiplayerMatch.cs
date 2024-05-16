@@ -12,6 +12,6 @@ public class MultiplayerMatch
     
     public int MatchId { get; set; }
     public string Name { get; set; } = null!;
-    public List<ActionEntry> CreationActions { get; set; } = null!;
+    public List<ActionEntry> Actions { get; set; } = null!;
     public List<ScoresEntry> Scores { get; set; } = null!;
 }

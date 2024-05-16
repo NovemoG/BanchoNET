@@ -1,8 +1,10 @@
 ﻿using BanchoNET.Attributes;
+using BanchoNET.Models.Mongo;
 using BanchoNET.Objects;
 using BanchoNET.Objects.Multiplayer;
 using BanchoNET.Objects.Privileges;
 using BanchoNET.Utils;
+using Action = BanchoNET.Models.Mongo.Action;
 
 namespace BanchoNET.Commands;
 
@@ -77,7 +79,7 @@ public partial class CommandProcessor
             "host" => (false, TransferHost(args[1..])),
             "clearhost" => (false, ClearHost()),
             "ch" => (false, ClearHost()),
-            "abort" => (false, AbortMatch()),
+            "abort" => (false, await AbortMatch()),
             "team" => (false, MovePlayerToTeam(args[1..])),
             "map" => (false, await ChangeBeatmap(args[1..])),
             "mods" => (false, ChangeMods(args[1..])),
@@ -109,7 +111,7 @@ public partial class CommandProcessor
             HostId = _playerCtx.Id,
             CreatorId = _playerCtx.Id,
             Freemods = true,
-            BeatmapId = beatmap?.MapId ?? 0,
+            BeatmapId = beatmap?.MapId ?? -1,
             BeatmapMD5 = beatmap?.MD5 ?? "",
             BeatmapName = beatmap?.FullName() ?? "",
             Seed = Random.Shared.Next(),
@@ -120,6 +122,23 @@ public partial class CommandProcessor
         
         MultiplayerExtensions.CreateLobby(lobby, _playerCtx, await histories.GetMatchId());
         
+        await histories.InsertMatchHistory(new MultiplayerMatch
+        {
+            MatchId = lobby.LobbyId,
+            Name = lobby.Name,
+            Actions = [],
+            Scores = [],
+        });
+        
+        await histories.AddMatchAction(
+            lobby.LobbyId,
+            new ActionEntry
+            {
+                Action = Action.MatchCreated,
+                PlayerId = _playerCtx.Id,
+                Date = DateTime.Now
+            });
+        
         return "";
     }
     
@@ -128,7 +147,7 @@ public partial class CommandProcessor
         if (args.Length == 0)
             return $"No username provided. Use '{_prefix}mp invite <username>'.";
 
-        var target = _session.GetPlayer(username: args[0]);
+        var target = _session.GetPlayerByName(args[0]);
         if (target == null)
             return $"{args[0]} is either offline or you misspelled the username.";
         
@@ -337,7 +356,7 @@ public partial class CommandProcessor
         return "Removed host.";
     }
     
-    private string AbortMatch()
+    private async Task<string> AbortMatch()
     {
         if (!_lobby.Refs.Contains(_playerCtx.Id))
             return "";
@@ -346,6 +365,8 @@ public partial class CommandProcessor
             return "Match is not in progress.";
         
         _lobby.End();
+
+        await histories.MapAborted(_lobby.LobbyId);
         
         return "Aborted the match.";
     }
@@ -495,9 +516,22 @@ public partial class CommandProcessor
             _lobby.Timer.Stop();
             _lobby.Chat.SendBotMessage("Updating current timer.");
         }
-        
-        _lobby.Timer = new LobbyTimer(_lobby, seconds, true);
+
         _lobby.ReadyAllPlayers();
+        _lobby.Timer = new LobbyTimer(_lobby, seconds, true, async () =>
+            await histories.MapStarted(
+                _lobby.LobbyId,
+                new ScoresEntry
+                {
+                    StartDate = DateTime.Now,
+                    GameMode = (byte)_lobby.Mode,
+                    WinCondition = (byte)_lobby.WinCondition,
+                    LobbyType = (byte)_lobby.Type,
+                    LobbyMods = _lobby.Freemods ? 0 : (int)_lobby.Mods,
+                    BeatmapId = _lobby.BeatmapId,
+                    BeatmapName = _lobby.BeatmapName,
+                    Values = []
+                }));
         
         return "";
     }

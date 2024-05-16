@@ -25,7 +25,7 @@ public class OsuVersionService
         RecurringJob.AddOrUpdate(
             "fetchOsuVersion",
             () => FetchOsuVersion(),
-            $"0 */{AppSettings.VersionFetchHoursDelay} * * *"); // every x hours
+            $"0 */{AppSettings.VersionFetchHoursInterval} * * *"); // every x hours
     }
     
     public async Task FetchOsuVersion()

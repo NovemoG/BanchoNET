@@ -20,7 +20,7 @@ public partial class CommandProcessor
         if (args.Length == 1 && !_playerCtx.CanUseCommand(Privileges.Administrator))
             return Task.FromResult("Not enough privileges to reconnect other players.");
         
-        var targetPlayer = _session.GetPlayer(username: args[0]);
+        var targetPlayer = _session.GetPlayerByName(args[0]);
         if (targetPlayer == null)
             return Task.FromResult("Target player not found.");
         

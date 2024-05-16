@@ -1,4 +1,5 @@
 ﻿using BanchoNET.Objects.Players;
+using BanchoNET.Utils;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BanchoNET.Controllers.OsuApi;
@@ -27,6 +28,9 @@ public partial class OsuController
         [FromForm] int compatibility,
         [FromForm] string config)
     {
+        if (!AppSettings.Debug)
+            return Ok("");
+        
         Player? player;
         if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(passwordMD5))
         {

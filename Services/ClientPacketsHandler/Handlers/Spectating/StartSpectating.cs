@@ -9,7 +9,7 @@ public partial class ClientPacketsHandler
     private Task StartSpectating(Player player, BinaryReader br)
     {
         var targetId = br.ReadInt32();
-        var target = _session.GetPlayer(id: targetId);
+        var target = _session.GetPlayerById(targetId);
 
         if (target == null)
         {
