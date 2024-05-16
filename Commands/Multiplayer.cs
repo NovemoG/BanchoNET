@@ -79,7 +79,7 @@ public partial class CommandProcessor
             "host" => (false, TransferHost(args[1..])),
             "clearhost" => (false, ClearHost()),
             "ch" => (false, ClearHost()),
-            "abort" => (false, AbortMatch()),
+            "abort" => (false, await AbortMatch()),
             "team" => (false, MovePlayerToTeam(args[1..])),
             "map" => (false, await ChangeBeatmap(args[1..])),
             "mods" => (false, ChangeMods(args[1..])),
