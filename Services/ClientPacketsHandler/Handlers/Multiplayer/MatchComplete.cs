@@ -17,6 +17,9 @@ public partial class ClientPacketsHandler
 		
 		var slot = lobby.GetPlayerSlot(player)!;
 		slot.Status = SlotStatus.Complete;
+		
+		if (lobby.MapFinishDate == DateTime.MinValue)
+			lobby.MapFinishDate = DateTime.Now;
         
 		if (slots.Any(s => s.Status == SlotStatus.Playing))
 			return;
@@ -35,7 +38,8 @@ public partial class ClientPacketsHandler
 			await scores.GetPlayersRecentScores(
 				lobby.Slots
 					.Where(s => s.Status == SlotStatus.Complete)
-					.Select(s => s.Player!.Id)));
+					.Select(s => s.Player!.Id),
+				lobby.MapFinishDate));
 		
 		lobby.UnreadyPlayers(SlotStatus.Complete);
 		lobby.ResetPlayersLoadedStatuses();
@@ -48,5 +52,7 @@ public partial class ClientPacketsHandler
 		
 		if (submittedScores.Count > 0)
 			await histories.MapCompleted(lobby.LobbyId, submittedScores);
+
+		lobby.MapFinishDate = DateTime.MinValue;
 	}
 }

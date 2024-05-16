@@ -42,6 +42,7 @@ public class MultiplayerLobby
 	public bool InProgress { get; set; }
 	public byte Powerplay { get; set; }
 	public int Seed { get; set; }
+	public DateTime MapFinishDate { get; set; }
 	public Channel Chat { get; set; }
 	public MultiplayerSlot[] Slots { get; set; }
 	public bool Locked { get; set; }

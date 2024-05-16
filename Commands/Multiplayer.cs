@@ -356,7 +356,7 @@ public partial class CommandProcessor
         return "Removed host.";
     }
     
-    private string AbortMatch()
+    private async Task<string> AbortMatch()
     {
         if (!_lobby.Refs.Contains(_playerCtx.Id))
             return "";
@@ -365,6 +365,8 @@ public partial class CommandProcessor
             return "Match is not in progress.";
         
         _lobby.End();
+
+        await histories.MapAborted(_lobby.LobbyId);
         
         return "Aborted the match.";
     }
