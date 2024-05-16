@@ -78,7 +78,7 @@ public static class PlayerExtensions
 		player.Enqueue(messagePacket.GetContent());
 	}
 
-	public static void JoinMatch(this Player player, MultiplayerLobby lobby, string password)
+	public static bool JoinMatch(this Player player, MultiplayerLobby lobby, string password)
 	{
 		if (player.InMatch)
 		{
@@ -87,7 +87,7 @@ public static class PlayerExtensions
 			player.Enqueue(joinFailPacket.GetContent());
 			
 			Console.WriteLine($"[PlayerExtensions] {player.Username} tried to join multiple matches.");
-			return;
+			return false;
 		}
 
 		if (lobby.TourneyClients.Contains(player.Id))
@@ -95,7 +95,7 @@ public static class PlayerExtensions
 			using var joinFailPacket = new ServerPackets();
 			joinFailPacket.MatchJoinFail();
 			player.Enqueue(joinFailPacket.GetContent());
-			return;
+			return false;
 		}
 
 		MultiplayerSlot? slot;
@@ -108,7 +108,7 @@ public static class PlayerExtensions
 				player.Enqueue(joinFailPacket.GetContent());
 
 				Console.WriteLine($"[PlayerExtensions] {player.Username} tried to join {lobby.LobbyId} with incorrect password.");
-				return;
+				return false;
 			}
 
 			slot = lobby.Slots.FirstOrDefault(s => s.Status == SlotStatus.Open);
@@ -117,7 +117,7 @@ public static class PlayerExtensions
 				using var joinFailPacket = new ServerPackets();
 				joinFailPacket.MatchJoinFail();
 				player.Enqueue(joinFailPacket.GetContent());
-				return;
+				return false;
 			}
 		}
 		else slot = lobby.Slots[0];
@@ -125,7 +125,7 @@ public static class PlayerExtensions
 		if (!player.JoinChannel(lobby.Chat))
 		{
 			Console.WriteLine($"[PlayerExtensions] {player.Username} failed to join {lobby.Chat.IdName}");
-			return;
+			return false;
 		}
 		
 		player.LeaveChannel(Session.LobbyChannel);
@@ -143,14 +143,15 @@ public static class PlayerExtensions
 		lobby.EnqueueState();
 		
 		player.SendBotMessage($"Match created by {player.Username} {lobby.MPLinkEmbed()}", "#multiplayer");
+		return true;
 	}
 	
-	public static void LeaveMatch(this Player player)
+	public static bool LeaveMatch(this Player player)
 	{
 		if (!player.InMatch)
 		{
 			Console.WriteLine($"[PlayerExtensions] {player.Username} tried to leave a match without being in one.");
-			return;
+			return false;
 		}
 
 		var lobby = player.Lobby!;
@@ -159,7 +160,7 @@ public static class PlayerExtensions
 		slot.Reset(slot.Status == SlotStatus.Locked ? SlotStatus.Locked : SlotStatus.Open);
 		player.LeaveChannel(lobby.Chat);
 
-		if (lobby.Slots.All(s => s.Player == null))
+		if (lobby.IsEmpty())
 		{
 			Console.WriteLine($"[PlayerExtensions] Match \"{lobby.Name}\" is empty, removing.");
 
@@ -185,6 +186,7 @@ public static class PlayerExtensions
 		}
 
 		player.Lobby = null;
+		return true;
 	}
 
 	public static void LeaveMatchToLobby(this Player player)

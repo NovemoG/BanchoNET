@@ -370,7 +370,7 @@ public class PlayersRepository
 	/// Returns a list of tuples that contains: player id, play count and replay views of players in a given mode.
 	/// At the same time it resets the play count and replay views of the players as it is our most recent data.
 	/// </summary>
-	public async Task<List<Tuple<int, int,int>>> GetPlayerModeStatsInRange(byte mode, int count, int skip = 0)
+	public async Task<List<Tuple<int, int, int>>> GetPlayerModeStatsInRange(byte mode, int count, int skip = 0)
 	{
 		if (count % 8 != 0 || skip % 8 != 0)
 			Console.WriteLine($"[Players] Taking/Skip count should be a multiple of 8, count: {count}, skip: {skip}");

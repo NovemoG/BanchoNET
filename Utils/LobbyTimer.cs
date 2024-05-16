@@ -7,8 +7,10 @@ namespace BanchoNET.Utils;
 public class LobbyTimer
 {
     private readonly MultiplayerLobby _lobby;
-    private readonly bool _startGame;
     private readonly string _alertMessage;
+    
+    private readonly bool _startGame;
+    private readonly Func<Task>? _onStart;
     
     private readonly Timer _timer;
     private readonly uint[] _timerAlerts = [
@@ -28,12 +30,16 @@ public class LobbyTimer
     public LobbyTimer(
         MultiplayerLobby lobby,
         uint secondsToFinish,
-        bool startGame = false)
+        bool startGame = false,
+        Func<Task>? onStart = null)
     {
         if (startGame && secondsToFinish == 0)
         {
             lobby.Chat.SendBotMessage("Good luck, have fun!");
             lobby.Start();
+            onStart?.Invoke();
+
+            return;
         }
         
         _lobby = lobby;
@@ -42,6 +48,7 @@ public class LobbyTimer
         _alertMessage = startGame
             ? "Match starting in {0} seconds."
             : "Countdown will end in {0} seconds.";
+        _onStart = onStart;
         
         for (uint i = 0; i < _timerAlerts.Length; i++)
         {
@@ -95,6 +102,7 @@ public class LobbyTimer
         {
             _lobby.Chat.SendBotMessage("Good luck, have fun!");
             _lobby.Start();
+            _onStart?.Invoke();
         }
         else
         {

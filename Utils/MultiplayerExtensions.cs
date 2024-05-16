@@ -192,6 +192,11 @@ public static class MultiplayerExtensions
 			player.Enqueue(data);
 	}
 
+	public static bool IsEmpty(this MultiplayerLobby lobby)
+	{
+		return lobby.Slots.All(s => s.Player == null) && lobby.Refs.Count == 0;
+	}
+
 	public static void Enqueue(
 		this MultiplayerLobby lobby,
 		byte[] data,

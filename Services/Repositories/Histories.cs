@@ -1,4 +1,5 @@
-﻿using BanchoNET.Models.Mongo;
+﻿using BanchoNET.Models.Dtos;
+using BanchoNET.Models.Mongo;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
@@ -6,6 +7,8 @@ namespace BanchoNET.Services.Repositories;
 
 public class HistoriesRepository
 {
+    
+    
     private readonly IMongoCollection<MultiplayerMatch> _multiplayerMatches;
     private readonly IMongoCollection<RankHistory> _rankHistories;
     private readonly IMongoCollection<ReplayViewsHistory> _replayViewsHistories;
@@ -63,23 +66,49 @@ public class HistoriesRepository
         return await _multiplayerMatches.Find(MatchFilter(matchId)).SingleAsync();
     }
 
-    public async Task AddMatchAction(int matchId, ActionEntry entry, bool creation = false)
+    public async Task AddMatchAction(int matchId, ActionEntry entry)
     {
-        var builder = creation
-            ? Builders<MultiplayerMatch>.Update.Push("CreationActions", entry)
-            : Builders<MultiplayerMatch>.Update.Push<ActionEntry>(p => p.Scores.Last().Actions, entry);
+        var builder = Builders<MultiplayerMatch>.Update.Push("Actions", entry);
         
         var result = await _multiplayerMatches.UpdateOneAsync(MatchFilter(matchId), builder);
         
         if (result.MatchedCount == 0)
             Console.WriteLine("[Histories] Match not found in multiplayer history");
     }
-    
-    public async Task AddMatchScores(int matchId, ScoresEntry entry)
+
+    public async Task MapStarted(int matchId, ScoresEntry entry)
     {
         var update = Builders<MultiplayerMatch>.Update.Push("Scores", entry);
         
         var result = await _multiplayerMatches.UpdateOneAsync(MatchFilter(matchId), update);
+        
+        if (result.MatchedCount == 0)
+            Console.WriteLine("[Histories] Match not found in multiplayer history");
+    }
+
+    public async Task MapCompleted(int matchId, List<ScoreDto> scores)
+    {
+        var entries = scores.Select(score => new ScoreEntry
+            {
+                Accuracy = score.Acc,
+                Gekis = score.Gekis,
+                Count300 = score.Count300,
+                Katus = score.Katus,
+                Count100 = score.Count100,
+                Count50 = score.Count50,
+                Misses = score.Misses,
+                MaxCombo = score.MaxCombo,
+                Mods = score.Mods,
+                PlayerId = score.PlayerId,
+                TotalScore = score.Score,
+                Failed = score.Status == 0
+            })
+            .ToList();
+        
+        //TODO insert into last scores element
+        var updateScores = Builders<MultiplayerMatch>.Update.Set("Scores.Values.-1", entries);
+        
+        var result = await _multiplayerMatches.UpdateOneAsync(MatchFilter(matchId), updateScores);
         
         if (result.MatchedCount == 0)
             Console.WriteLine("[Histories] Match not found in multiplayer history");

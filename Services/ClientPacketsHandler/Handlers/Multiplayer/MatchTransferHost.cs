@@ -1,22 +1,24 @@
-﻿using BanchoNET.Objects.Players;
+﻿using BanchoNET.Models.Mongo;
+using BanchoNET.Objects.Players;
 using BanchoNET.Packets;
 using BanchoNET.Utils;
+using Action = BanchoNET.Models.Mongo.Action;
 
 namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private Task MatchTransferHost(Player player, BinaryReader br)
+	private async Task MatchTransferHost(Player player, BinaryReader br)
 	{
 		var slotId = br.ReadInt32();
 
 		var lobby = player.Lobby;
-		if (lobby == null) return Task.CompletedTask;
-		if (player.Id != lobby.HostId) return Task.CompletedTask;
-		if (slotId is < 0 or > 15) return Task.CompletedTask;
+		if (lobby == null) return;
+		if (player.Id != lobby.HostId) return;
+		if (slotId is < 0 or > 15) return;
 
 		var target = lobby.Slots[slotId].Player;
-		if (target == null) return Task.CompletedTask;
+		if (target == null) return;
 
 		lobby.HostId = target.Id;
 
@@ -24,7 +26,14 @@ public partial class ClientPacketsHandler
 		hostTransferPacket.MatchTransferHost();
 		target.Enqueue(hostTransferPacket.GetContent());
 		lobby.EnqueueState();
-		
-		return Task.CompletedTask;
+
+		await histories.AddMatchAction(
+			lobby.LobbyId,
+			new ActionEntry
+			{
+				Action = Action.HostChanged,
+				PlayerId = target.Id,
+				Date = DateTime.Now
+			});
 	}
 }

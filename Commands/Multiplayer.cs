@@ -1,8 +1,10 @@
 ﻿using BanchoNET.Attributes;
+using BanchoNET.Models.Mongo;
 using BanchoNET.Objects;
 using BanchoNET.Objects.Multiplayer;
 using BanchoNET.Objects.Privileges;
 using BanchoNET.Utils;
+using Action = BanchoNET.Models.Mongo.Action;
 
 namespace BanchoNET.Commands;
 
@@ -119,6 +121,23 @@ public partial class CommandProcessor
             slot.Status = SlotStatus.Open;
         
         MultiplayerExtensions.CreateLobby(lobby, _playerCtx, await histories.GetMatchId());
+        
+        await histories.InsertMatchHistory(new MultiplayerMatch
+        {
+            MatchId = lobby.LobbyId,
+            Name = lobby.Name,
+            Actions = [],
+            Scores = [],
+        });
+        
+        await histories.AddMatchAction(
+            lobby.LobbyId,
+            new ActionEntry
+            {
+                Action = Action.MatchCreated,
+                PlayerId = _playerCtx.Id,
+                Date = DateTime.Now
+            });
         
         return "";
     }
@@ -495,9 +514,22 @@ public partial class CommandProcessor
             _lobby.Timer.Stop();
             _lobby.Chat.SendBotMessage("Updating current timer.");
         }
-        
-        _lobby.Timer = new LobbyTimer(_lobby, seconds, true);
+
         _lobby.ReadyAllPlayers();
+        _lobby.Timer = new LobbyTimer(_lobby, seconds, true, async () =>
+            await histories.MapStarted(
+                _lobby.LobbyId,
+                new ScoresEntry
+                {
+                    StartDate = DateTime.Now,
+                    GameMode = (byte)_lobby.Mode,
+                    WinCondition = (byte)_lobby.WinCondition,
+                    LobbyType = (byte)_lobby.Type,
+                    LobbyMods = _lobby.Freemods ? 0 : (int)_lobby.Mods,
+                    BeatmapId = _lobby.BeatmapId,
+                    BeatmapName = _lobby.BeatmapName,
+                    Values = []
+                }));
         
         return "";
     }

@@ -1,10 +1,10 @@
 ﻿namespace BanchoNET.Models.Mongo;
 
-public enum Action
+public enum Action : byte
 {
     MatchCreated,
     MatchDisbanded,
     Joined,
     Left,
-    Kicked,
+    HostChanged,
 }
