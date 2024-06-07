@@ -12,6 +12,8 @@ public partial class ServerPackets : IDisposable
 	private readonly MemoryStream _dataBuffer;
 	private readonly BinaryWriter _binaryWriter;
 	
+	//TODO improve ServerPackets creation syntax
+	
 	public ServerPackets()
 	{
 		_dataBuffer = new MemoryStream();

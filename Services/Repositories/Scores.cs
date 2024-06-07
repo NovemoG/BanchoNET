@@ -67,7 +67,7 @@ public class ScoresRepository(BanchoDbContext dbContext)
     {
         var date = finishDate - TimeSpan.FromSeconds(10);
         
-        //TODO idk why this query does not return any results; raw sql works fine but with ef does not
+        //TODO idk why this query does not return any results; raw sql works fine but with ef it does not
         var scores = await dbContext.Scores
             .FromSqlRaw($"SELECT * FROM Scores WHERE PlayerId IN ({string.Join(", ", playerIds)}) AND PlayTime > TIMESTAMP(\"{date:yyyy-MM-dd}\", \"{date:HH:mm:ss}\")")
             .ToListAsync();
@@ -127,7 +127,8 @@ public class ScoresRepository(BanchoDbContext dbContext)
             .Where(s => s.BeatmapMD5 == beatmap.MD5
                         && s.Mode == (int)mode
                         && s.Status == (int)SubmissionStatus.Best
-                        && (s.Player.Privileges & 1) == 1)
+                        && (s.Player.Privileges & 1) == 1
+                        && !s.IsRestricted)
             .OrderByDescending(s => OrderByPp(mode) ? s.PP : s.Score)
             .FirstOrDefaultAsync();
     }
@@ -147,6 +148,7 @@ public class ScoresRepository(BanchoDbContext dbContext)
                             : s.Status == (int)SubmissionStatus.Best)
                         && (!withMods || s.Mods == (int)mods) 
                         && (s.Player.Privileges & 1) == 1 
+                        && !s.IsRestricted
                         && (OrderByPp(score.Mode)
                             ? score.PP < s.PP
                             : score.TotalScore < s.Score))
@@ -176,6 +178,7 @@ public class ScoresRepository(BanchoDbContext dbContext)
                              ? s.Status >= (int)SubmissionStatus.BestWithMods
                              : s.Status == (int)SubmissionStatus.Best) 
                          && (s.Player.Privileges & 1) == 1 
+                         && !s.IsRestricted
                          && (!withMods || s.Mods == (int)mods) 
                          && (!isCountry || s.Player.Country == countryCode) 
                          && (!withFriendsList || friendIds.Contains(s.PlayerId)))
@@ -187,6 +190,13 @@ public class ScoresRepository(BanchoDbContext dbContext)
                we're not knowledgeable enough to make it faster ~Cossin & foksurek*/
         
         return result;
+    }
+
+    public async Task DisableNotSubmittedBeatmapScores(string beatmapMD5)
+    {
+        await dbContext.Scores
+            .Where(s => s.BeatmapMD5 == beatmapMD5)
+            .ExecuteUpdateAsync(p => p.SetProperty(s => s.IsRestricted, true));
     }
     
     /// <summary>

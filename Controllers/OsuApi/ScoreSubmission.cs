@@ -86,8 +86,8 @@ public partial class OsuController
         catch (Exception e)
         {
             Console.WriteLine($"[ScoreSubmission] {e.Message}");
-			
-            //TODO restrict
+
+            await players.RestrictPlayer(player, "Mismatching hashes on score submission");
             return Ok("error: ban");
         }
 
@@ -189,12 +189,8 @@ public partial class OsuController
             {
                 Console.WriteLine($"[ScoreSubmission] {player.Username} submitted a replay file with invalid length.");
 
-                if (player is { Restricted: false, Online: true })
-                {
-                    //TODO restrict
-					
-                    _session.LogoutPlayer(player);
-                }
+                if (!player.Restricted)
+                    await players.RestrictPlayer(player, "Submitted score with invalid replay length");
             }
         }
 

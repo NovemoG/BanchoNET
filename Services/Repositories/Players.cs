@@ -266,8 +266,7 @@ public class PlayersRepository
 		switch (player.Restricted)
 		{
 			case false:
-				await _redis.SortedSetAddAsync($"bancho:leaderboard:{(byte)mode}", player.Id, stats.PP);
-				await _redis.SortedSetAddAsync($"bancho:leaderboard:{(byte)mode}:{country}", player.Id, stats.PP);
+				await InsertPlayerGlobalRank((byte)mode, country, player.Id, stats.PP);
 				break;
 			case true:
 				stats.Rank = 0;
@@ -365,6 +364,81 @@ public class PlayersRepository
 	{
 		return await _dbContext.Stats.FirstOrDefaultAsync(s => s.PlayerId == playerId && s.Mode == mode);
 	}
+
+	public async Task<bool> SilencePlayer(Player player, TimeSpan duration, string reason)
+	{
+		var modified = await _dbContext.Players.Where(p => p.Id == player.Id)
+			.ExecuteUpdateAsync(s => s.SetProperty(p => p.RemainingSilence, DateTime.Now + duration));
+		
+		using var silenceEndPacket = new ServerPackets();
+		silenceEndPacket.SilenceEnd((int)duration.TotalSeconds);
+		player.Enqueue(silenceEndPacket.GetContent());
+		
+		using var userSilencedPacket = new ServerPackets();
+		userSilencedPacket.UserSilenced(player.Id);
+		_session.EnqueueToPlayers(userSilencedPacket.GetContent());
+
+		if (player.InMatch)
+			player.LeaveMatch();
+
+		return modified == 1;
+	}
+	
+	public async Task<bool> UnsilencePlayer(Player player, string reason)
+	{
+		var entity = await _dbContext.Players.FirstOrDefaultAsync(p => p.Id == player.Id);
+		if (entity == null) return false;
+		
+		entity.RemainingSilence = DateTime.Now;
+		await _dbContext.SaveChangesAsync();
+		
+		using var silenceEndPacket = new ServerPackets();
+		silenceEndPacket.SilenceEnd(0);
+		player.Enqueue(silenceEndPacket.GetContent());
+
+		return true;
+	}
+
+	public async Task<bool> RestrictPlayer(Player player, string reason)
+	{
+		var entity = await _dbContext.Players.FirstOrDefaultAsync(p => p.Id == player.Id);
+		if (entity == null) return false;
+		
+		//TODO log reason to database
+		
+		entity.Privileges &= ~(int)Privileges.Unrestricted;
+		await _dbContext.SaveChangesAsync();
+
+		for (byte i = 0; i < 8; i++)
+		{
+			var mode = i == 7 ? (byte)(i + 1) : i;
+
+			await RemovePlayerGlobalRank(mode, player.Geoloc.Country.Acronym, player.Id);
+		}
+
+		_session.LogoutPlayer(player);
+
+		return true;
+	}
+
+	public async Task<bool> UnrestrictPlayer(Player player, string reason)
+	{
+		var entity = await _dbContext.Players.FirstOrDefaultAsync(p => p.Id == player.Id);
+		if (entity == null) return false;
+		
+		entity.Privileges |= (int)Privileges.Unrestricted;
+		await _dbContext.SaveChangesAsync();
+
+		if (!player.Online)
+			await FetchPlayerStats(player);
+
+		foreach (var stats in player.Stats)
+			await InsertPlayerGlobalRank((byte)stats.Key, player.Geoloc.Country.Acronym, player.Id, stats.Value.PP);
+		
+		_session.LogoutPlayer(player);
+
+		return true;
+	}
 	
 	/// <summary>
 	/// Returns a list of tuples that contains: player id, play count and replay views of players in a given mode.
@@ -424,5 +498,17 @@ public class PlayersRepository
 	public async Task<int> GetPlayerGlobalRank(GameMode mode, int playerId)
 	{
 		return (int)(await _redis.SortedSetRankAsync($"bancho:leaderboard:{(byte)mode}", playerId, Order.Descending))! + 1;
+	}
+
+	public async Task InsertPlayerGlobalRank(byte mode, string country, int playerId, ushort pp)
+	{
+		await _redis.SortedSetAddAsync($"bancho:leaderboard:{mode}", playerId, pp);
+		await _redis.SortedSetAddAsync($"bancho:leaderboard:{mode}:{country}", playerId, pp);
+	}
+
+	public async Task RemovePlayerGlobalRank(byte mode, string country, int playerId)
+	{
+		await _redis.SortedSetRemoveAsync($"bancho:leaderboard:{mode}", playerId);
+		await _redis.SortedSetRemoveAsync($"bancho:leaderboard:{mode}:{country}", playerId);
 	}
 }

@@ -6,7 +6,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BanchoNET.Services.Repositories;
 
-public class BeatmapsRepository(BanchoDbContext dbContext, BeatmapHandler beatmapHandler)
+public class BeatmapsRepository(
+	BanchoDbContext dbContext,
+	BeatmapHandler beatmapHandler,
+	ScoresRepository scores)
 {
 	private readonly BanchoSession _session = BanchoSession.Instance;
 
@@ -154,7 +157,7 @@ public class BeatmapsRepository(BanchoDbContext dbContext, BeatmapHandler beatma
 		}
 
 		if (!didApiRequest && mapId > 0)
-			if (beatmapSet.Beatmaps.All(b => b.MapId != mapId))
+			if (beatmapSet.Beatmaps.All(b => b.MapId != mapId) /*or expired (maps can be updated without md5 being changed)*/)
 				await UpdateBeatmapSet(setId);
 		
 		return beatmapSet;
@@ -179,6 +182,9 @@ public class BeatmapsRepository(BanchoDbContext dbContext, BeatmapHandler beatma
 			{
 				dbBeatmap = UpdateBeatmapDto(beatmap, dbBeatmap);
 				dbContext.Update(dbBeatmap);
+
+				if (beatmap.Status <= BeatmapStatus.NotSubmitted)
+					await scores.DisableNotSubmittedBeatmapScores(beatmap.MD5);
 			}
 			else
 			{

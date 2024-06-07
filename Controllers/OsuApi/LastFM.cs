@@ -23,9 +23,7 @@ public partial class OsuController
 
 		if ((flags & (LastFmfLags.HqAssembly | LastFmfLags.HqFile)) != 0)
 		{
-			//TODO restrict player
-			
-			//TODO logout player
+			await players.RestrictPlayer(player, "hq!osu relife");
 
 			return Ok("-3");
 		}
