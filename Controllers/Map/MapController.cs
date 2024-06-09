@@ -1,11 +1,19 @@
 using System.Web;
+using BanchoNET.Attributes;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BanchoNET.Controllers.Map;
 
 [ApiController]
+[SubdomainAuthorize(["b"])]
 public class MapController : ControllerBase
 {
+    [HttpGet("/testb")]
+    public IActionResult test()
+    {
+        return Ok("b");
+    }
+    
     [HttpGet("/thumb/{id}.jpg")]
     public IActionResult RedirectThumb(string id)
     { 

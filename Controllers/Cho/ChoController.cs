@@ -1,4 +1,5 @@
-﻿using BanchoNET.Packets;
+﻿using BanchoNET.Attributes;
+using BanchoNET.Packets;
 using BanchoNET.Services;
 using BanchoNET.Services.ClientPacketsHandler;
 using BanchoNET.Services.Repositories;
@@ -8,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace BanchoNET.Controllers.Cho;
 
 [ApiController]
+[SubdomainAuthorize(["c", "c4", "cho"])]
 public partial class ChoController(
 	GeolocService geoloc,
 	OsuVersionService version,
@@ -19,6 +21,12 @@ public partial class ChoController(
 {
 	private readonly BanchoSession _session = BanchoSession.Instance;
 
+	[HttpGet("/testc")]
+	public IActionResult test()
+	{
+		return Ok("c");
+	}
+	
 	[HttpPost("/")]
 	public async Task<IActionResult> BanchoHandler()
 	{
