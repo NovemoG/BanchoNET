@@ -18,12 +18,7 @@ public partial class OsuController(
     : ControllerBase
 {
     private readonly BanchoSession _session = BanchoSession.Instance;
-
-    [HttpGet("/testOsu")]
-    public IActionResult test()
-    {
-        return Ok("osu");
-    }
+    
 
     [HttpGet("bancho_connect.php")]
     public async Task<IActionResult> BanchoConnect()

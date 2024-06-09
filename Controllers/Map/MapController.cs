@@ -8,12 +8,6 @@ namespace BanchoNET.Controllers.Map;
 [SubdomainAuthorize(["b"])]
 public class MapController : ControllerBase
 {
-    [HttpGet("/testb")]
-    public IActionResult test()
-    {
-        return Ok("b");
-    }
-    
     [HttpGet("/thumb/{id}.jpg")]
     public IActionResult RedirectThumb(string id)
     { 

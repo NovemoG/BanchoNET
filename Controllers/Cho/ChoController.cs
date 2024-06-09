@@ -20,12 +20,7 @@ public partial class ChoController(
 	: ControllerBase
 {
 	private readonly BanchoSession _session = BanchoSession.Instance;
-
-	[HttpGet("/testc")]
-	public IActionResult test()
-	{
-		return Ok("c");
-	}
+	
 	
 	[HttpPost("/")]
 	public async Task<IActionResult> BanchoHandler()
