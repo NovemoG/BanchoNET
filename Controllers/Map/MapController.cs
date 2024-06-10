@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace BanchoNET.Controllers.Map;
 
 [ApiController]
-[SubdomainAuthorize(["b"])]
+[SubdomainAuthorize("b")]
 public class MapController : ControllerBase
 {
     [HttpGet("/thumb/{id}.jpg")]

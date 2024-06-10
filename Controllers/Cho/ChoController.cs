@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace BanchoNET.Controllers.Cho;
 
 [ApiController]
-[SubdomainAuthorize(["c", "c4", "cho"])]
+[SubdomainAuthorize("c", "c4", "cho")]
 public partial class ChoController(
 	GeolocService geoloc,
 	OsuVersionService version,

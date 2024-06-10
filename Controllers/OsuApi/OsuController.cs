@@ -7,7 +7,7 @@ namespace BanchoNET.Controllers.OsuApi;
 
 [Route("web")]
 [ApiController]
-[SubdomainAuthorize(["osu"])]
+[SubdomainAuthorize("osu")]
 public partial class OsuController(
     PlayersRepository players,
     BeatmapsRepository beatmaps,

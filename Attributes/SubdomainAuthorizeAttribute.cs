@@ -5,18 +5,18 @@ namespace BanchoNET.Attributes;
 
 public class SubdomainAuthorizeAttribute : ActionFilterAttribute
 {
-    private readonly string[] _allowedSubdomain;
+    private readonly string[] _allowedSubdomains;
 
-    public SubdomainAuthorizeAttribute(string[] allowedSubdomain)
+    public SubdomainAuthorizeAttribute(params string[] allowedSubdomains)
     {
-        _allowedSubdomain = allowedSubdomain;
+        _allowedSubdomains = allowedSubdomains;
     }
 
     public override void OnActionExecuting(ActionExecutingContext context)
     {
         var subdomain = context.HttpContext.Items["subdomain"]?.ToString();
 
-        if (!_allowedSubdomain.Contains(subdomain))
+        if (!_allowedSubdomains.Contains(subdomain))
             context.Result = new NotFoundResult();
         
         base.OnActionExecuting(context);
