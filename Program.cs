@@ -192,6 +192,9 @@ public class Program
 		app.UseHangfireDashboard();
 		app.UseHttpsRedirection();
 		app.UseAuthorization();
+
+		app.UseMiddleware<SubdomainMiddleware>();
+		
 		app.MapControllers();
 
 		app.Use(async (context, next) =>
