@@ -288,77 +288,73 @@ public partial class OsuController
         {
             if (score.MaxCombo > stats.MaxCombo)
                 stats.MaxCombo = score.MaxCombo;
-            
-            switch (beatmap.AwardsPP())
-            {
-                case true when score.Status == SubmissionStatus.Best:
-                {
-                    var additionalRankedScore = score.TotalScore;
 
-                    if (previousBest != null)
+            if (beatmap.AwardsPP() && score.Status == SubmissionStatus.Best)
+            {
+                var additionalRankedScore = score.TotalScore;
+
+                if (previousBest != null)
+                {
+                    additionalRankedScore -= previousBest.TotalScore;
+
+                    if (previousBest.Mods != bestWithMods?.Mods)
                     {
-                        additionalRankedScore -= previousBest.TotalScore;
-                        
-                        if (previousBest.Mods != bestWithMods?.Mods)
+                        //if our previous best score does not have the same mods as our best score with mods,
+                        //we always add 1 to our overall grade count because it's a new mod combo
+                        if (score.Grade >= Grade.A)
+                            stats.Grades[score.Grade] += 1;
+
+                        //if our score has the same mods as our previous best score, we remove 1 from our
+                        //overall grade count because it is not a new mod combo
+                        if (score.Mods == previousBest.Mods)
+                            if (previousBest.Grade >= Grade.A)
+                                stats.Grades[previousBest.Grade] -= 1;
+                    }
+                    else
+                    {
+                        //if our previous best score has the same mods as our best score with mods, we only
+                        //compare grades between those scores because previousBest and bestWithMods are the same
+                        if (score.Grade != bestWithMods.Grade)
                         {
-                            //if our previous best score does not have the same mods as our best score with mods,
-                            //we always add 1 to our overall grade count because it's a new mod combo
                             if (score.Grade >= Grade.A)
                                 stats.Grades[score.Grade] += 1;
-                            
-                            //if our score has the same mods as our previous best score, we remove 1 from our
-                            //overall grade count because it is not a new mod combo
-                            if (score.Mods == previousBest.Mods)
-                                if (previousBest.Grade >= Grade.A)
-                                    stats.Grades[previousBest.Grade] -= 1;
-                        }
-                        else
-                        {
-                            //if our previous best score has the same mods as our best score with mods, we only
-                            //compare grades between those scores because previousBest and bestWithMods are the same
-                            if (score.Grade != bestWithMods.Grade)
-                            {
-                                if (score.Grade >= Grade.A)
-                                    stats.Grades[score.Grade] += 1;
 
-                                if (bestWithMods.Grade >= Grade.A)
-                                    stats.Grades[bestWithMods.Grade] -= 1;
-                            }
+                            if (bestWithMods.Grade >= Grade.A)
+                                stats.Grades[bestWithMods.Grade] -= 1;
                         }
                     }
-                    else
-                    {
-                        //no scores to compare with, just add 1
-                        if (score.Grade >= Grade.A)
-                            stats.Grades[score.Grade] += 1;
-                    }
-
-                    stats.RankedScore += additionalRankedScore;
-				
-                    await players.RecalculatePlayerTopScores(player, score.Mode);
-                    await players.UpdatePlayerRank(player, score.Mode);
-                    break;
                 }
-                case true when score.Status == SubmissionStatus.BestWithMods:
+                else
                 {
-                    if (bestWithMods != null)
-                    {
-                        //if our score is not best or submitted, we compare with our bestWithMods
-                        if (score.Grade == bestWithMods.Grade) return;
-            
-                        if (score.Grade >= Grade.A)
-                            stats.Grades[score.Grade] += 1;
+                    //no scores to compare with, just add 1
+                    if (score.Grade >= Grade.A)
+                        stats.Grades[score.Grade] += 1;
+                }
 
-                        if (bestWithMods.Grade >= Grade.A)
-                            stats.Grades[bestWithMods.Grade] -= 1;
-                    }
-                    else
-                    {
-                        //no previous best scores with mods, just add 1
-                        if (score.Grade >= Grade.A)
-                            stats.Grades[score.Grade] += 1;
-                    }
-                    break;
+                stats.RankedScore += additionalRankedScore;
+
+                //TODO maybe recalculate top scores only when score is at least in top100?
+                await players.RecalculatePlayerTopScores(player, score.Mode);
+                await players.UpdatePlayerRank(player, score.Mode);
+            }
+            else if (beatmap.AwardsPP() && score.Status == SubmissionStatus.BestWithMods)
+            {
+                if (bestWithMods != null)
+                {
+                    //if our score is not best or submitted, we compare with our bestWithMods
+                    if (score.Grade == bestWithMods.Grade) return;
+
+                    if (score.Grade >= Grade.A)
+                        stats.Grades[score.Grade] += 1;
+
+                    if (bestWithMods.Grade >= Grade.A)
+                        stats.Grades[bestWithMods.Grade] -= 1;
+                }
+                else
+                {
+                    //no previous best scores with mods, just add 1
+                    if (score.Grade >= Grade.A)
+                        stats.Grades[score.Grade] += 1;
                 }
             }
         }

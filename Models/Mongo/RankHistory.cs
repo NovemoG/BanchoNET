@@ -12,6 +12,6 @@ public class RankHistory
     
     public int PlayerId { get; set; }
     public byte Mode { get; set; }
-    public ValueEntry PeakRank { get; set; } = null!;
-    public List<ValueEntry> Entries { get; set; } = null!;
+    public PeakRank PeakRank { get; set; } = null!;
+    public List<int> Entries { get; set; } = null!;
 }

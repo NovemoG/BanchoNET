@@ -8,6 +8,7 @@ using BanchoNET.Objects.Scores;
 using BanchoNET.Packets;
 using BanchoNET.Utils;
 using Microsoft.EntityFrameworkCore;
+using MongoDB.Driver.Linq;
 using StackExchange.Redis;
 
 namespace BanchoNET.Services.Repositories;
@@ -280,7 +281,7 @@ public class PlayersRepository
 			await _histories.UpdatePeakRank(
 				player.Id,
 				(byte)mode,
-				new ValueEntry
+				new PeakRank
 				{
 					Value = stats.PeakRank,
 					Date = DateTime.Now
@@ -328,36 +329,67 @@ public class PlayersRepository
 			
 			await _redis.SortedSetAddAsync($"bancho:leaderboard:{mode}", playerId, 0);
 
-			var rank = new ValueEntry
-			{
-				Value = await GetPlayerGlobalRank((GameMode)mode, playerId),
-				Date = DateTime.Now
-			};
+			var rank = await GetPlayerGlobalRank((GameMode)mode, playerId);
 
 			await Task.WhenAll(
 				_histories.InsertRankHistory(new RankHistory
 				{
 					PlayerId = playerId,
 					Mode = mode,
-					PeakRank = rank,
+					PeakRank = new PeakRank
+					{
+						Value = rank,
+						Date = DateTime.Now
+					},
 					Entries = [rank]
 				}),
 				_histories.InsertReplaysHistory(new ReplayViewsHistory
 				{
 					PlayerId = playerId,
 					Mode = mode,
-					Entries = [new ValueEntry { Value = 0, Date = DateTime.Now }]
+					Entries = [0]
 				}),
 				_histories.InsertPlayCountHistory(new PlayCountHistory
 				{
 					PlayerId = playerId,
 					Mode = mode,
-					Entries = [new ValueEntry { Value = 0, Date = DateTime.Now }]
+					Entries = [0]
 				}));
 		}
 
 		await _dbContext.Stats.AddRangeAsync(scoreDtos);
 		await _dbContext.SaveChangesAsync();
+	}
+
+	public async Task<bool> DeletePlayer(int playerId, bool deleteScores)
+	{
+		var online = _session.GetPlayerById(playerId);
+		if (online != null) return false;
+		
+		var player = await _dbContext.Players.FindAsync(playerId);
+		if (player == null) return false;
+
+		var batch = _redis.CreateBatch();
+
+		for (byte i = 0; i < 8; i++)
+		{
+			var mode = i == 7 ? (byte)(i + 1) : i;
+
+			await batch.SortedSetRemoveAsync($"bancho:leaderboard:{mode}", playerId);
+			await batch.SortedSetRemoveAsync($"bancho:leaderboard:{mode}:{player.Country}", playerId);
+		}
+
+		batch.Execute();
+
+		if (deleteScores)
+			await _dbContext.Scores.Where(s => s.PlayerId == playerId).ExecuteDeleteAsync();
+		await _dbContext.Relationships.Where(r => r.PlayerId == playerId || r.TargetId == playerId).ExecuteDeleteAsync();
+		await _dbContext.Stats.Where(s => s.PlayerId == playerId).ExecuteDeleteAsync();
+		await _dbContext.Players.Where(p => p.Id == playerId).ExecuteDeleteAsync();
+
+		await _histories.DeletePlayerData(playerId);
+
+		return true;
 	}
 
 	public async Task<StatsDto?> GetPlayerModeStats(int playerId, byte mode)

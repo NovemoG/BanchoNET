@@ -1,5 +1,4 @@
-﻿using BanchoNET.Models.Dtos;
-using BanchoNET.Models.Mongo;
+﻿using BanchoNET.Models.Mongo;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
@@ -157,20 +156,20 @@ public class HistoriesRepository
         await _rankHistories.InsertOneAsync(history);
     }
 
-    public async Task<List<ValueEntry>> GetRankHistory(int playerId, byte mode)
+    public async Task<List<int>> GetRankHistory(int playerId, byte mode)
     {
         var result = await _rankHistories.Find(RankFilter(playerId, mode)).SingleAsync();
         
-        List<ValueEntry> entries =
+        List<int> entries =
         [
-            result.PeakRank
+            result.PeakRank.Value
         ];
         entries.AddRange(result.Entries);
         
         return entries;
     }
     
-    public async Task AddRankHistory(int playerId, byte mode, ValueEntry entry)
+    public async Task AddRankHistory(int playerId, byte mode, int entry)
     {
         var filter = RankFilter(playerId, mode);
         var update = Builders<RankHistory>.Update.Push("Entries", entry);
@@ -189,7 +188,7 @@ public class HistoriesRepository
             Console.WriteLine("[Histories] Couldn't insert rank, player not found in rank history");
     }
     
-    public async Task UpdatePeakRank(int playerId, byte mode, ValueEntry peakRank)
+    public async Task UpdatePeakRank(int playerId, byte mode, PeakRank peakRank)
     {
         var update = Builders<RankHistory>.Update.Set("PeakRank", peakRank);
         
@@ -204,14 +203,14 @@ public class HistoriesRepository
         await _replayViewsHistories.InsertOneAsync(history);
     }
     
-    public async Task<List<ValueEntry>> GetReplaysHistory(int playerId, byte mode)
+    public async Task<List<int>> GetReplaysHistory(int playerId, byte mode)
     {
         var result = await _replayViewsHistories.Find(ReplayFilter(playerId, mode)).SingleAsync();
         
         return result.Entries;
     }
     
-    public async Task AddReplaysHistory(int playerId, byte mode, ValueEntry entry)
+    public async Task AddReplaysHistory(int playerId, byte mode, int entry)
     {
         var update = Builders<ReplayViewsHistory>.Update.Push("Entries", entry);
         
@@ -226,14 +225,14 @@ public class HistoriesRepository
         await _playCountHistories.InsertOneAsync(history);
     }
     
-    public async Task<List<ValueEntry>> GetPlayCountHistory(int playerId, byte mode)
+    public async Task<List<int>> GetPlayCountHistory(int playerId, byte mode)
     {
         var result = await _playCountHistories.Find(PlayCountFilter(playerId, mode)).SingleAsync();
         
         return result.Entries;
     }
     
-    public async Task AddPlayCountHistory(int playerId, byte mode, ValueEntry entry)
+    public async Task AddPlayCountHistory(int playerId, byte mode, int entry)
     {
         var update = Builders<PlayCountHistory>.Update.Push("Entries", entry);
         
@@ -241,6 +240,24 @@ public class HistoriesRepository
         
         if (result.ModifiedCount == 0)
             Console.WriteLine("[Histories] Couldn't insert play count history, player not found in play count history");
+    }
+
+    public async Task DeletePlayerData(int playerId)
+    {
+        var rankFilter = Builders<RankHistory>.Filter.Eq("PlayerId", playerId);
+        var replayFilter = Builders<ReplayViewsHistory>.Filter.Eq("PlayerId", playerId);
+        var playCountFilter = Builders<PlayCountHistory>.Filter.Eq("PlayerId", playerId);
+        
+        var rankResult = await _rankHistories.DeleteOneAsync(rankFilter);
+        
+        if (rankResult.DeletedCount == 0)
+        {
+            Console.WriteLine("[Histories] Couldn't delete player's histories, player not found in db");
+            return;
+        }
+        
+        await _replayViewsHistories.DeleteOneAsync(replayFilter);
+        await _playCountHistories.DeleteOneAsync(playCountFilter);
     }
 
     private static bool CollectionExists(IMongoDatabase db, string name)

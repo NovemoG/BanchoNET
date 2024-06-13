@@ -108,11 +108,7 @@ public class BackgroundTasks(IServiceScopeFactory scopeFactory)
                 await histories.AddRankHistory(
                     playerId,
                     mode,
-                    new ValueEntry
-                    {
-                        Value = i + j + 1,
-                        Date = DateTime.Now
-                    });
+                    i + j + 1);
             }
                 
             iter++;
@@ -160,19 +156,11 @@ public class BackgroundTasks(IServiceScopeFactory scopeFactory)
                     histories.AddPlayCountHistory(
                         playerId,
                         mode,
-                        new ValueEntry
-                        {
-                            Value = playCount,
-                            Date = DateTime.Now
-                        }),
+                        playCount),
                     histories.AddReplaysHistory(
                         playerId,
                         mode,
-                        new ValueEntry
-                        {
-                            Value = replaysViewed,
-                            Date = DateTime.Now
-                        })
+                        replaysViewed)
                 );
             }
                 
