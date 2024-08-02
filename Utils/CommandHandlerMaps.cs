@@ -6,6 +6,8 @@ namespace BanchoNET.Utils;
 
 public static class CommandHandlerMap
 {
+    
+    
     static CommandHandlerMap()
     {
         Console.WriteLine($"[CommandProcessor] Loaded commands in: {ReloadCommands()}");
@@ -26,6 +28,9 @@ public static class CommandHandlerMap
             .GetTypes()
             .SelectMany(t => t.GetMethods(flags))
             .Where(m => m.GetCustomAttributes(typeof(CommandAttribute), false).Length > 0);
+        
+        //TODO if commands ever have performance problems, we should consider splitting commands to different
+        //     classes and create instances of them differently
         
         foreach (var method in methods)
         {

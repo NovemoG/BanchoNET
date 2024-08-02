@@ -1,8 +1,7 @@
-﻿using BanchoNET.Models;
-using BanchoNET.Objects.Privileges;
+﻿using BanchoNET.Objects.Privileges;
 using BanchoNET.Utils;
 
-namespace BanchoNET.Attributes;
+namespace BanchoNET.Attributes.Commands;
 
 [AttributeUsage(AttributeTargets.Method)]
 public class CommandAttribute : Attribute
