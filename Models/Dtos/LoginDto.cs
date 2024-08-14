@@ -10,13 +10,12 @@ public class LoginDto
 	[Key] public int Id { get; set; }
 	
 	[MaxLength(45), Unicode(false)]
-	public string Ip { get; set; }
+	public required string Ip { get; set; }
+	[MaxLength(11), Unicode(false)]
+	public required string ReleaseStream { get; set; }
 	
 	[Column(TypeName = "DATETIME")]
 	public DateTime OsuVersion { get; set; }
-	
-	[MaxLength(11), Unicode(false)]
-	public string ReleaseStream { get; set; }
 	
 	[Column(TypeName = "DATETIME")]
 	public DateTime LoginTime { get; set; }

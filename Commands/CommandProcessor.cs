@@ -3,7 +3,7 @@ using BanchoNET.Objects.Players;
 using BanchoNET.Services;
 using BanchoNET.Services.Repositories;
 using BanchoNET.Utils;
-using static BanchoNET.Utils.CommandHandlerMap;
+using static BanchoNET.Utils.CommandHandlerMaps;
 
 namespace BanchoNET.Commands;
 
@@ -15,9 +15,6 @@ public partial class CommandProcessor(
     HistoriesRepository histories)
 {
     private readonly string _prefix = AppSettings.CommandPrefix;
-    private readonly int _prefixLength = AppSettings.CommandPrefix.Length;
-    private readonly string _commandNotFound =
-        $"Command not found. Please use '{AppSettings.CommandPrefix}help' to see all available commands.";
 
     private readonly BanchoSession _session = BanchoSession.Instance;
 
@@ -38,17 +35,17 @@ public partial class CommandProcessor(
         Player player,
         Channel? channel = null)
     {
-        command = command[_prefixLength..];
+        command = command[_prefix.Length..];
         
         var commandValues = command.Split(" ");
         
         if (!CommandsMap.TryGetValue(commandValues[0].ToLower(), out var cm))
-            return (true, _commandNotFound);
+            return (true, CommandNotFound);
 
         //If a player doesn't have required privileges to execute this command,
         //we don't want to expose the existence of this command to him
         if (!player.CanUseCommand(cm.Attribute.Privileges))
-            return (true, _commandNotFound);
+            return (true, CommandNotFound);
         
         _playerCtx = player;
         _channelCtx = channel;

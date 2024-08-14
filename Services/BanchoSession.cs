@@ -1,5 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using System.Net;
 using BanchoNET.Objects.Beatmaps;
 using BanchoNET.Objects.Multiplayer;
 using BanchoNET.Objects.Players;
@@ -213,22 +212,15 @@ public sealed class BanchoSession
 		if (spectator) _spectatorChannels.TryAdd(channel.IdName, channel);
 		else _channels.TryAdd(channel.IdName, channel);
 	}
-
-	public Beatmap? GetBeatmap(string beatmapMD5 = "", int mapId = -1)
+	
+	public Beatmap? GetBeatmapByMD5(string beatmapMD5)
 	{
-		if (!string.IsNullOrEmpty(beatmapMD5))
-		{
-			if (_beatmapMD5Cache.TryGetValue(beatmapMD5, out var cachedBeatmap))
-				return cachedBeatmap;
-		}
-		
-		if (mapId > -1)
-		{
-			if (_beatmapIdCache.TryGetValue(mapId, out var cachedBeatmap))
-				return cachedBeatmap;
-		}
-
-		return null;
+		return _beatmapMD5Cache.TryGetValue(beatmapMD5, out var cachedBeatmap) ? cachedBeatmap : null;
+	}
+	
+	public Beatmap? GetBeatmapById(int mapId)
+	{
+		return _beatmapIdCache.TryGetValue(mapId, out var cachedBeatmap) ? cachedBeatmap : null;
 	}
 	
 	public BeatmapSet? GetBeatmapSet(int setId)
@@ -240,17 +232,11 @@ public sealed class BanchoSession
 	{
 		Console.WriteLine($"[BanchoSession] Caching beatmap set with id: {set.Id}");
 		
-		_beatmapSetsCache.TryGetValue(set.Id, out var currentSet);
-
-		if (currentSet != null)
-			foreach (var beatmap in currentSet.Beatmaps)
-            	_beatmapMD5Cache.TryRemove(beatmap.MD5, out _);
-		
 		_beatmapSetsCache.AddOrUpdate(set.Id, set, (_, _) => set);
 
 		foreach (var beatmap in set.Beatmaps)
 		{
-			_beatmapMD5Cache.TryAdd(beatmap.MD5, beatmap);
+			_beatmapMD5Cache.AddOrUpdate(beatmap.MD5, beatmap, (_, _) => beatmap);
 			_beatmapIdCache.AddOrUpdate(beatmap.MapId, beatmap, (_, _) => beatmap);
 		}
 	}

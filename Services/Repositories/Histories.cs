@@ -156,17 +156,18 @@ public class HistoriesRepository
         await _rankHistories.InsertOneAsync(history);
     }
 
+    public async Task<PeakRank> GetPeakRank(int playerId, byte mode)
+    {
+        var result = await _rankHistories.Find(RankFilter(playerId, mode)).SingleAsync();
+
+        return result.PeakRank;
+    }
+
     public async Task<List<int>> GetRankHistory(int playerId, byte mode)
     {
         var result = await _rankHistories.Find(RankFilter(playerId, mode)).SingleAsync();
         
-        List<int> entries =
-        [
-            result.PeakRank.Value
-        ];
-        entries.AddRange(result.Entries);
-        
-        return entries;
+        return result.Entries;
     }
     
     public async Task AddRankHistory(int playerId, byte mode, int entry)

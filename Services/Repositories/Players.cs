@@ -380,13 +380,31 @@ public class PlayersRepository
 		}
 
 		batch.Execute();
-
-		if (deleteScores)
-			await _dbContext.Scores.Where(s => s.PlayerId == playerId).ExecuteDeleteAsync();
+		
 		await _dbContext.Relationships.Where(r => r.PlayerId == playerId || r.TargetId == playerId).ExecuteDeleteAsync();
 		await _dbContext.Stats.Where(s => s.PlayerId == playerId).ExecuteDeleteAsync();
-		await _dbContext.Players.Where(p => p.Id == playerId).ExecuteDeleteAsync();
+		await _dbContext.Messages.Where(m => m.SenderId == playerId || m.ReceiverId == playerId).ExecuteDeleteAsync();
+		//TODO achievements, comments, favorites, club data
+		
+		if (deleteScores)
+		{
+			await _dbContext.Scores.Where(s => s.PlayerId == playerId).ExecuteDeleteAsync();
+			await _dbContext.Players.Where(p => p.Id == playerId).ExecuteDeleteAsync();
+		}
+		else
+		{
+			var id = Guid.NewGuid().ToString()[..8];
+			player.Username = $"delUser_{id}";
+			player.SafeName = player.Username.MakeSafe();
+			player.LoginName = player.SafeName;
 
+			player.Email = "email";
+			player.PasswordHash = "1";
+			player.AwayMessage = "";
+			player.UserPageContent = "";
+			player.ApiKey = "";
+		}
+		
 		await _histories.DeletePlayerData(playerId);
 
 		return true;
@@ -409,6 +427,8 @@ public class PlayersRepository
 		using var userSilencedPacket = new ServerPackets();
 		userSilencedPacket.UserSilenced(player.Id);
 		_session.EnqueueToPlayers(userSilencedPacket.GetContent());
+		
+		//TODO store in db
 
 		if (player.InMatch)
 			player.LeaveMatch();

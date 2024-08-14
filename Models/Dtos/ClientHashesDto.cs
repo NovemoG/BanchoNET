@@ -10,16 +10,16 @@ public class ClientHashesDto
 	[Key] public int Id { get; set; }
 	
 	[Column(TypeName = "CHAR"), StringLength(32), Unicode(false)]
-	public string OsuPath { get; set; }
+	public required string OsuPath { get; set; }
 
 	[Column(TypeName = "CHAR"), StringLength(32), Unicode(false)]
-	public string Adapters { get; set; }
+	public required string Adapters { get; set; }
 
 	[Column(TypeName = "CHAR"), StringLength(32), Unicode(false)]
-	public string Uninstall { get; set; }
+	public required string Uninstall { get; set; }
 
 	[Column(TypeName = "CHAR"), StringLength(32), Unicode(false)]
-	public string DiskSerial { get; set; }
+	public required string DiskSerial { get; set; }
 	
 	[Column(TypeName = "DATETIME")]
 	public DateTime LatestTime { get; set; }

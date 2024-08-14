@@ -1,7 +1,7 @@
 ﻿using BanchoNET.Attributes;
 using BanchoNET.Objects.Privileges;
 using BanchoNET.Utils;
-using static BanchoNET.Utils.CommandHandlerMap;
+using static BanchoNET.Utils.CommandHandlerMaps;
 
 namespace BanchoNET.Commands;
 
@@ -10,7 +10,7 @@ public partial class CommandProcessor
     [Command("help",
         Privileges.Unrestricted,
         "Shows a list of all available commands or displays detailed description of a given command.")]
-    private Task<string> Help(params string[] args)
+    private Task<string> Help(string[] args)
     {
         if (args.Length > 0
             && CommandsMap.TryGetValue(args[0], out var command)
@@ -35,6 +35,6 @@ public partial class CommandProcessor
                     (current, c) => current + $"{_prefix}{c.Key} - {c.Value.Attribute.BriefDescription}\n")[..^1]);
         }
 
-        return Task.FromResult($"Command not found. Please use '{_prefix}help' to see all available commands.");
+        return Task.FromResult(CommandNotFound);
     }
 }

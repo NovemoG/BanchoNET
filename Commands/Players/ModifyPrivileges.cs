@@ -1,19 +1,18 @@
 ﻿using BanchoNET.Attributes;
 using BanchoNET.Objects.Privileges;
 using BanchoNET.Utils;
+using static BanchoNET.Utils.CommandHandlerMaps;
 
 namespace BanchoNET.Commands;
 
 public partial class CommandProcessor
 {
-    private readonly string[] _validPrivileges = ["nominator", "moderator", "administrator", "developer"];
-    
     [Command("addpriv",
         Privileges.Administrator | Privileges.Developer,
         "Adds given privilege to a player with given username. Syntax: addpriv <username> <privilege>",
         "\nYou can only add privileges that are lower in rank than yours. If player's username contains spaces" +
         "\nplease replace them with underscores." +
-        "\nAvailable privileges: nominator, moderator, administrator, developer.",
+        "\nAvailable privileges: nominator, submitter, moderator, administrator, developer.",
         ["ap"])]
     private async Task<string> AddPrivileges(params string[] args)
     {
@@ -21,21 +20,19 @@ public partial class CommandProcessor
             return $"No parameter(s) provided. Syntax: {_prefix}addpriv <username> <privilege>.";
         
         if (args.Length == 1)
-            return $"No privilege provided. Available privileges: {string.Join(", ", _validPrivileges)}.";
+            return $"No privilege provided. Available privileges: {string.Join(", ", ValidPrivileges)}.";
 
         var username = args[0];
         var priv = args[1].ToLower();
         
-        if (!Enum.TryParse(priv, true, out Privileges privilege))
-            return $"Invalid privilege provided. Available privileges: {string.Join(", ", _validPrivileges)}.";
+        if (!ValidPrivileges.Contains(priv) || !Enum.TryParse(priv, true, out Privileges privilege))
+            return $"Invalid privilege provided. Available privileges: {string.Join(", ", ValidPrivileges)}.";
         
         if (_playerCtx.Privileges.GetHighestPrivilege() < privilege)
             return "You can't add a privilege that is higher in rank than yours.";
         
         var player = await players.GetPlayerOrOffline(username);
-
-        if (player == null)
-            return "Player not found. Make sure you provided correct username.";
+        if (player == null) return PlayerNotFound;
         
         if (player.IsBot)
             return "Dummy, you can't modify bot's privileges \ud83d\udc7c";
@@ -52,7 +49,7 @@ public partial class CommandProcessor
         "Removes given privilege from a player with given username. Syntax: rmpriv <username> <privilege>",
         "\nYou can only remove privileges that are lower in rank than yours. If player's username contains spaces" +
         "\nplease replace them with underscores." +
-        "\nAvailable privileges: nominator, moderator, administrator, developer.",
+        "\nAvailable privileges: nominator, submitter, moderator, administrator, developer.",
         ["rp"])]
     private async Task<string> RemovePrivileges(params string[] args)
     {
@@ -60,7 +57,7 @@ public partial class CommandProcessor
             return $"No parameter(s) provided. Use '{_prefix}help rmpriv' for more information.";
         
         if (args.Length == 1)
-            return $"No privilege provided. Available privileges: {string.Join(", ", _validPrivileges)}.";
+            return $"No privilege provided. Available privileges: {string.Join(", ", ValidPrivileges)}.";
         
         var username = args[0];
         var priv = args[1].ToLower();
@@ -68,16 +65,14 @@ public partial class CommandProcessor
         if (_playerCtx.SafeName == username.MakeSafe())
             return "You can't remove your own privileges.";
         
-        if (!Enum.TryParse(priv, true, out Privileges privilege))
-            return $"Invalid privilege provided. Available privileges: {string.Join(", ", _validPrivileges)}.";
+        if (!ValidPrivileges.Contains(priv) || !Enum.TryParse(priv, true, out Privileges privilege))
+            return $"Invalid privilege provided. Available privileges: {string.Join(", ", ValidPrivileges)}.";
         
         if (_playerCtx.Privileges.GetHighestPrivilege() <= privilege)
             return "You can't remove a privilege that is higher or equal in rank.";
         
         var player = await players.GetPlayerOrOffline(username);
-
-        if (player == null)
-            return "Player not found. Make sure you provided correct username.";
+        if (player == null) return PlayerNotFound;
         
         if (player.IsBot)
             return "Dummy, you can't modify bot's privileges \ud83d\udc7c";

@@ -1,7 +1,7 @@
 ﻿using BanchoNET.Objects.Privileges;
 using BanchoNET.Utils;
 
-namespace BanchoNET.Attributes.Commands;
+namespace BanchoNET.Attributes;
 
 [AttributeUsage(AttributeTargets.Method)]
 public class CommandAttribute : Attribute
@@ -35,17 +35,17 @@ public class CommandAttribute : Attribute
         BriefDescription = briefDescription;
         
         //Fix for multiplayer detailed description (it looked kinda awkward without prefix)
-        DetailedDescription = detailedDescription.Replace("mp", $"{AppSettings.CommandPrefix}mp");
+        DetailedDescription = Regexes.DescriptionMp.Replace(detailedDescription, $"\n{AppSettings.CommandPrefix}mp");
         
         Aliases = aliases;
     }
     
-    private Task<string> MethodString(params string[] args)
+    private Task<string> MethodString(string[] args)
     {
         return Task.FromResult("");
     }
 
-    private Task<(bool, string)> MethodTuple(params string[] args)
+    private Task<(bool, string)> MethodTuple(string[] args)
     {
         return Task.FromResult((true, ""));
     }

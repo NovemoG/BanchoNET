@@ -18,7 +18,7 @@ public class ScoreDto
 	[Key] public long Id { get; set; }
 	
 	[Column(TypeName = "CHAR(32)"), Unicode(false)]
-	public string BeatmapMD5 { get; set; }
+	public required string BeatmapMD5 { get; set; }
 	
 	[Column(TypeName = "FLOAT(7,3)")]
 	public float PP { get; set; }
@@ -49,7 +49,7 @@ public class ScoreDto
 	public bool Perfect { get; set; }
 	
 	[Column(TypeName = "CHAR(32)"), Unicode(false)]
-	public string OnlineChecksum { get; set; }
+	public required string OnlineChecksum { get; set; }
 
 	//TODO
 	public bool IsRestricted { get; set; }

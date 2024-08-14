@@ -4,6 +4,7 @@ using BanchoNET.Objects.Players;
 using BanchoNET.Objects.Privileges;
 using BanchoNET.Objects.Scores;
 using BanchoNET.Utils;
+using static BanchoNET.Utils.CommandHandlerMaps;
 
 namespace BanchoNET.Commands;
 
@@ -13,16 +14,16 @@ public partial class CommandProcessor
         Privileges.Unrestricted,
         "Displays your (or provided player's) most recent score in chat. Syntax: recent [<username>]",
         aliases: ["rs"])]
-    private async Task<(bool, string)> RecentScore(params string[] args)
+    private async Task<(bool, string)> RecentScore(string[] args)
     {
         Player? player;
         Score? score;
-        if (args.Length == 1)
+        if (args.Length > 0)
         {
             player = await players.GetPlayerOrOffline(args[0]);
 
             if (player == null)
-                return (true, "Player not found. Make sure you provided correct username.");
+                return (true, PlayerNotFound);
 
             if (player.IsBot)
                 return (true, "Sadly, bots can't play the game \ud83d\ude2d");
@@ -42,7 +43,7 @@ public partial class CommandProcessor
         
         var beatmap = await beatmaps.GetBeatmap(beatmapMD5: score.BeatmapMD5!);
         if (beatmap == null)
-            return (true, "Beatmap not found.");
+            return (true, BeatmapNotFound);
         
         var fcPP = 0.0f;
         if (score.Misses > 0 || beatmap.MaxCombo - score.MaxCombo > 15)

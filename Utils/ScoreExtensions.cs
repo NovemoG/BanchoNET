@@ -120,7 +120,7 @@ public static class ScoreExtensions
         if (score.Mods.HasMod(Mods.NightCore))
             score.Mods |= Mods.DoubleTime;
 
-        var pp = AkatsukiPpMethods.ComputeScorePp(Storage.GetBeatmapPath(beatmapId), score);
+        var pp = AkatsukiPpMethods.ComputeScorePp(beatmapId, score);
 
         score.PP = double.IsInfinity(pp) || double.IsNaN(pp) ? 0.0f : MathF.Round(pp, 5);
 

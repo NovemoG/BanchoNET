@@ -1,4 +1,3 @@
-using System.Web;
 using BanchoNET.Attributes;
 using Microsoft.AspNetCore.Mvc;
 

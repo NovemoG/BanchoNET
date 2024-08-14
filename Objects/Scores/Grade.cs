@@ -10,6 +10,8 @@ public enum Grade : byte
 	A,
 	S,
 	SH,
-	X, //SS
-	XH //SSH
+	X,
+	SS = X,
+	XH,
+	SSH = XH
 }

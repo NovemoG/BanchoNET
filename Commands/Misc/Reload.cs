@@ -11,7 +11,7 @@ public partial class CommandProcessor
         "Reloads given collection/configuration. Syntax: reload <collection>",
         "\nAvailable options: commands",
         ["rl"])]
-    private Task<(bool, string)> Reload(params string[] args)
+    private Task<(bool, string)> Reload(string[] args)
     {
         if (args.Length == 0)
             return Task.FromResult((true, "No parameter provided. Available options: commands"));
@@ -25,7 +25,7 @@ public partial class CommandProcessor
 
     private static string ReloadCommandsCollection()
     {
-        var elapsed = CommandHandlerMap.ReloadCommands();
+        var elapsed = CommandHandlerMaps.ReloadCommands();
         var returnString = "Commands successfully reloaded in:";
         
         if (elapsed.Milliseconds > 0)

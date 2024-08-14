@@ -1,6 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using BanchoNET.Objects.Beatmaps;
 using Microsoft.EntityFrameworkCore;
 
 namespace BanchoNET.Models.Dtos;
@@ -21,7 +20,7 @@ public class BeatmapDto
 	public sbyte Status { get; set; }
 	
 	[Column(TypeName = "CHAR(32)"), Unicode(false)]
-	public string MD5 { get; set; }
+	public required string MD5 { get; set; }
 	
 	[MaxLength(128), Unicode(false)]
 	public string Artist { get; set; }

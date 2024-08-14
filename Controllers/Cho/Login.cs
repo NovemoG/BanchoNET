@@ -290,12 +290,11 @@ public partial class ChoController
 		return loginPackets.GetContentResult();
 	}
 
-	private LoginData? ParseLoginData(IReadOnlyList<string> bodyString)
+	private LoginData? ParseLoginData(string[] bodyString)
 	{
 		var remainder = bodyString[2].Split('|', 5);
 		
 		var versionMatch = Regexes.OsuVersion.Match(remainder[0]);
-
 		if (!versionMatch.Success) return null;
 			
 		var osuVersion = new OsuVersion

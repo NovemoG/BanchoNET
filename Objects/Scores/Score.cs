@@ -37,11 +37,14 @@ public class Score
 	
 	public int LeaderboardPosition { get; set; }
 	public Score? PreviousBest { get; set; }
-
+	
+	public Score() { }
+	
 	public Score(IReadOnlyList<string> scoreData, Beatmap beatmap, Player player)
 	{
 		var mods = (Mods)int.Parse(scoreData[11]);
-		Enum.TryParse(scoreData[10], out Grade grade);
+		if (!Enum.TryParse(scoreData[10], out Grade grade))
+			return;
 
 		Beatmap = beatmap;
 		BeatmapMD5 = beatmap.MD5;

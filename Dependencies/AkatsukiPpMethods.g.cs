@@ -16,10 +16,10 @@ namespace AkatsukiPp
         [DllImport(__DllName, EntryPoint = "ComputePp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern double ComputePp(string path, byte mode, uint mods, nuint combo, float acc, nuint n300, nuint n_geki, nuint n100, nuint n_katu, nuint n50, nuint n_misses);
         
-        public static float ComputeScorePp(string osuFilePath, Score score)
+        public static float ComputeScorePp(int mapId, Score score)
         {
             return (float)ComputePp(
-                osuFilePath,
+                Storage.GetBeatmapPath(mapId),
                 (byte)score.Mode.AsVanilla(),
                 (uint)score.Mods,
                 new UIntPtr((uint)score.MaxCombo),

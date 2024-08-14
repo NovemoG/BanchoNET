@@ -29,6 +29,10 @@ public static class Regexes
 		NowPlaying = new Regex(
 			@$"^\x01ACTION is (?:playing|editing|watching|listening to) \[https://osu\.(?:{AppSettings.Domain.Replace(".", "\\.")}|ppy\.sh)/beatmapsets/(?<sid>\d{{1,10}})#/?(?:osu|taiko|fruits|mania)?/(?<bid>\d{{1,10}})/? .+\](?: <(?<mode_vn>Taiko|CatchTheBeat|osu!mania)>)?(?<mods>(?: (?:-|\+|~|\|)\w+(?:~|\|)?)+)?\x01$",
 			RegexOptions.Compiled);
+
+		DescriptionMp = new Regex(
+			@"\nmp\b",
+			RegexOptions.Compiled);
 	}
 
 	public static readonly Regex Username;
@@ -37,4 +41,5 @@ public static class Regexes
 	public static readonly Regex OsuVersion;
 	public static readonly Regex NumSeparator;
 	public static readonly Regex NowPlaying;
+	public static readonly Regex DescriptionMp;
 }

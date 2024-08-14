@@ -23,7 +23,7 @@ public static class AppSettings
         
         var banchoNetVersion = configuration["Config:BanchoNETVersion"];
         BanchoNETVersion = string.IsNullOrEmpty(banchoNetVersion)
-            ? "0.9"
+            ? "0.11.0"
             : banchoNetVersion;
         
         var debug = configuration["Config:Debug"];
@@ -125,6 +125,7 @@ public static class AppSettings
         
         #endregion
 
+        //TODO this cant contain spaces
         var commandPrefix = configuration["Config:CommandPrefix"];
         CommandPrefix = string.IsNullOrEmpty(commandPrefix)
             ? "!"

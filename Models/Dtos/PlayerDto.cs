@@ -17,18 +17,18 @@ public class PlayerDto
 	[Key] public int Id { get; set; }
 	
 	[MaxLength(16), Unicode(false)]
-	public string Username { get; set; }
+	public required string Username { get; set; }
 	[Key, MaxLength(16), Unicode(false)]
-	public string SafeName { get; set; }
+	public required string SafeName { get; set; }
 	[Key, MaxLength(16), Unicode(false)]
-	public string LoginName { get; set; }
+	public required string LoginName { get; set; }
 	[MaxLength(160), Unicode(false)]
-	public string Email { get; set; }
+	public required string Email { get; set; }
 	[Column(TypeName = "CHAR(60)"), Unicode(false)]
-	public string PasswordHash { get; set; }
+	public required string PasswordHash { get; set; }
 	
 	[Column(TypeName = "CHAR(2)"), Unicode(false)]
-	public string Country { get; set; }
+	public required string Country { get; set; }
 	public int Privileges { get; set; }
 	
 	[Column(TypeName = "DATETIME")]

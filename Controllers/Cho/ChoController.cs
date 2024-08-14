@@ -21,7 +21,6 @@ public partial class ChoController(
 {
 	private readonly BanchoSession _session = BanchoSession.Instance;
 	
-	
 	[HttpPost("/")]
 	public async Task<IActionResult> BanchoHandler()
 	{
@@ -42,29 +41,4 @@ public partial class ChoController(
 
 		return Responses.BytesContentResult(player.Dequeue());
 	}
-
-	[HttpGet("/")]
-	public async Task<ContentResult> BanchoHttpHandler()
-	{
-		Console.WriteLine("BanchoHTTP");
-		
-		return new ContentResult
-		{
-			ContentType = "text/html",
-			StatusCode = 200,
-			Content = "<!DOCTYPE html><body style=\"font-family: monospace; white-space: pre-wrap;\">Test</a></body></html>"
-		};
-	}
-
-	/*[HttpGet("matches")]
-	public async Task<HttpResponse> ViewOnlineUsers()
-	{
-		
-	}
-
-	[HttpGet("online")]
-	public async Task<HttpResponse> ViewMatches()
-	{
-		
-	}*/
 }

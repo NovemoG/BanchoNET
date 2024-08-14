@@ -2,35 +2,34 @@
 using BanchoNET.Objects.Beatmaps;
 using BanchoNET.Objects.Privileges;
 using BanchoNET.Utils;
+using static BanchoNET.Utils.CommandHandlerMaps;
 
 namespace BanchoNET.Commands;
 
 public partial class CommandProcessor
 {
-    private readonly string[] _validStatuses = ["love", "qualify", "approve", "rank", "unrank"];
-    
     [Command("map",
         Privileges.Nominator | Privileges.Administrator,
-        "Changes the status of previously /np'd map. Syntax: map <status> <map/set>",
+        "Changes the status of previously /np'd map. Syntax: map <status> [<set>]",
         "\nAvailable statuses: love, qualify, approve, rank, unrank" +
         "\nmrs - ranks whole set",
         ["mrs"])]
-    private async Task<string> ChangeMapStatus(params string[] args)
+    private async Task<string> ChangeMapStatus(string[] args)
     {
         if (args.Length == 0 && _commandBase != "mrs")
-            return $"No parameter(s) provided. Syntax: {_prefix}map <status> <map/set>.";
+            return $"No parameter(s) provided. Syntax: {_prefix}map <status> [<set>].";
 
         if (_commandBase == "mrs")
             return await ChangeStatus(BeatmapStatus.Ranked, true);
         
-        if (args.Length == 1)
-            return "Choose whether u want to rank one map or whole set.";
-        
         var status = args[0].ToLower();
-        if (!_validStatuses.Contains(status))
-            return $"Invalid status provided. Available statuses: {string.Join(", ", _validStatuses)}.";
+        if (!ValidStatuses.Contains(status))
+            return $"Invalid status provided. Available statuses: {string.Join(", ", ValidStatuses)}.";
 
-        return await ChangeStatus(status.ToBeatmapStatus(), args[1] != "map" && args[1] == "set");
+        if (args.Length > 1 && args[1] != "set")
+            return "Did you mean 'set'?";
+        
+        return await ChangeStatus(status.ToBeatmapStatus(), args is [_, "set"]);
     }
 
     private async Task<string> ChangeStatus(BeatmapStatus targetStatus, bool set)

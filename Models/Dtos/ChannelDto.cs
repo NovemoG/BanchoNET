@@ -8,8 +8,11 @@ public class ChannelDto
 {
 	[Key] public int Id { get; set; }
 	
-	public string Name { get; set; }
-	public string Description { get; set; }
+	[MaxLength(16)]
+	public required string Name { get; set; }
+	[MaxLength(128)]
+	public required string Description { get; set; }
+	
 	public bool AutoJoin { get; set; }
 	public bool Hidden { get; set; }
 	public bool ReadOnly { get; set; }

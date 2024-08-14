@@ -128,8 +128,7 @@ public partial class OsuController
                 if (beatmap.Status != BeatmapStatus.LatestPending)
                     await scores.SetScoreLeaderboardPosition(beatmap, score, false);
             }
-            else
-                score.Status = SubmissionStatus.Failed;
+            else score.Status = SubmissionStatus.Failed;
         }
         else
         {

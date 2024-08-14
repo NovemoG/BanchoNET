@@ -4,11 +4,18 @@ using BanchoNET.Attributes;
 
 namespace BanchoNET.Utils;
 
-public static class CommandHandlerMap
+public static class CommandHandlerMaps
 {
+    public const string PlayerNotFound = "Player not found. Make sure you provided correct username.";
+    public const string BeatmapNotFound = "Beatmap not found.";
+    public static readonly string CommandNotFound =
+        $"Command not found. Please use '{AppSettings.CommandPrefix}help' to see all available commands.";
     
+    public static readonly string[] ValidPrivileges = ["nominator", "submitter", "moderator", "administrator", "developer"];
+    public static readonly string[] ValidStatuses = ["love", "qualify", "approve", "rank", "unrank"];
+    public static readonly string[] FreemodAliases = ["fm", "freemod", "freemods"];
     
-    static CommandHandlerMap()
+    static CommandHandlerMaps()
     {
         Console.WriteLine($"[CommandProcessor] Loaded commands in: {ReloadCommands()}");
     }
@@ -28,9 +35,6 @@ public static class CommandHandlerMap
             .GetTypes()
             .SelectMany(t => t.GetMethods(flags))
             .Where(m => m.GetCustomAttributes(typeof(CommandAttribute), false).Length > 0);
-        
-        //TODO if commands ever have performance problems, we should consider splitting commands to different
-        //     classes and create instances of them differently
         
         foreach (var method in methods)
         {

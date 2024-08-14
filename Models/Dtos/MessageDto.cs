@@ -13,8 +13,10 @@ public class MessageDto
     [Key] public long Id { get; set; }
     public int SenderId { get; set; }
     public int ReceiverId { get; set; }
-    public string Message { get; set; } = null!;
     public bool Read { get; set; }
+    
+    [MaxLength(2048)]
+    public string Message { get; set; } = null!;
     
     [Column(TypeName = "DATETIME")]
     public DateTime SentAt { get; set; }

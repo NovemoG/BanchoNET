@@ -1,7 +1,7 @@
 ﻿namespace BanchoNET.Objects.Privileges;
 
 [Flags]
-public enum ClientPrivileges
+public enum ClientPrivileges : byte
 {
 	Player = 1 << 0,
 	Moderator = 1 << 1,

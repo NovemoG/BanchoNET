@@ -18,7 +18,8 @@ public static class MultiplayerExtensions
 
 	public static string Url(this MultiplayerLobby lobby)
 	{
-		return $"osump://{lobby.Id}/{lobby.Password}";
+		//TODO apparently spaces are replaced with _ but I forgot to check other cases (spaces and _ at the same time)
+		return $"osump://{lobby.Id}/{lobby.Password.Replace(' ', '_')}";
 	}
 
 	public static string Embed(this MultiplayerLobby lobby)

@@ -1,7 +1,6 @@
 ﻿using BanchoNET.Models;
 using BanchoNET.Models.Dtos;
 using BanchoNET.Objects.Beatmaps;
-using BanchoNET.Utils;
 using Microsoft.EntityFrameworkCore;
 
 namespace BanchoNET.Services.Repositories;
@@ -37,7 +36,7 @@ public class BeatmapsRepository(
 		int beatmapId = -1,
 		int setId = -1)
 	{
-		if (setId > -1)
+		if (setId > 0)
 		{
 			var cachedSet = await GetBeatmapSet(setId);
 			if (cachedSet != null)
@@ -50,15 +49,13 @@ public class BeatmapsRepository(
 			}
 		}
 
-		if (beatmapId <= -1) return 0;
+		if (beatmapId < 1) return 0;
 		
-		var cachedMap = await GetBeatmap(mapId: beatmapId);
+		var cachedMap = await GetBeatmapWithId(beatmapId);
 		if (cachedMap == null) return 0;
 		
 		cachedMap.Status = targetStatus;
-		cachedMap = _session.GetBeatmap(beatmapMD5: cachedMap.MD5);
-		cachedMap!.Status = targetStatus; //Map exists because we got it by id
-			
+		
 		return await dbContext.Beatmaps.Where(b => b.MapId == beatmapId)
 				.ExecuteUpdateAsync(p => p.SetProperty(b => b.Status, (int)targetStatus));
 	}
@@ -76,7 +73,7 @@ public class BeatmapsRepository(
 
 	public async Task<Beatmap?> GetBeatmapWithMD5(string beatmapMD5, int setId)
 	{
-		var beatmap = _session.GetBeatmap(beatmapMD5: beatmapMD5);
+		var beatmap = _session.GetBeatmapByMD5(beatmapMD5);
 		if (beatmap != null) return beatmap;
 		
 		var mapId = 0;
@@ -109,7 +106,7 @@ public class BeatmapsRepository(
 
 	public async Task<Beatmap?> GetBeatmapWithId(int mapId)
 	{
-		var beatmap = _session.GetBeatmap(mapId: mapId);
+		var beatmap = _session.GetBeatmapById(mapId);
 		if (beatmap != null) return beatmap;
 		
 		int setId;
@@ -149,11 +146,11 @@ public class BeatmapsRepository(
 				if (beatmapSet == null) return null;
 
 				didApiRequest = true;
-				_session.CacheBeatmapSet(beatmapSet);
 				await InsertSetIntoDatabase(beatmapSet);
 			}
-			else
-				beatmapSet = new BeatmapSet(dbBeatmaps);
+			else beatmapSet = new BeatmapSet(dbBeatmaps);
+			
+			_session.CacheBeatmapSet(beatmapSet);
 		}
 
 		if (!didApiRequest && mapId > 0)
