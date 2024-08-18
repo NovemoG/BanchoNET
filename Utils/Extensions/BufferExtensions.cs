@@ -5,7 +5,7 @@ using BanchoNET.Objects.Multiplayer;
 using BanchoNET.Objects.Players;
 using BanchoNET.Objects.Replay;
 
-namespace BanchoNET.Utils;
+namespace BanchoNET.Utils.Extensions;
 
 public static class BufferExtensions
 {

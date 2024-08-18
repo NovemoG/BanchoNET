@@ -2,7 +2,7 @@
 using BanchoNET.Objects.Players;
 using BanchoNET.Objects.Scores;
 
-namespace BanchoNET.Utils;
+namespace BanchoNET.Utils.Extensions;
 
 public static class ModeExtensions
 {

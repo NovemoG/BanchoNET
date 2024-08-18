@@ -1,6 +1,7 @@
 ﻿using BanchoNET.Models.Beatmaps;
 using BanchoNET.Models.Dtos;
 using BanchoNET.Utils;
+using BanchoNET.Utils.Extensions;
 
 namespace BanchoNET.Objects.Beatmaps;
 

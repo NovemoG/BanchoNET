@@ -2,6 +2,7 @@
 using BanchoNET.Objects.Beatmaps;
 using BanchoNET.Objects.Players;
 using BanchoNET.Utils;
+using BanchoNET.Utils.Extensions;
 
 namespace BanchoNET.Objects.Scores;
 

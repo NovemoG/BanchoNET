@@ -4,6 +4,7 @@ using BanchoNET.Objects.Players;
 using BanchoNET.Packets;
 using BanchoNET.Services.Repositories;
 using BanchoNET.Utils;
+using BanchoNET.Utils.Maps;
 
 namespace BanchoNET.Services.ClientPacketsHandler;
 

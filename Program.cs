@@ -11,6 +11,7 @@ using BanchoNET.Services;
 using BanchoNET.Services.ClientPacketsHandler;
 using BanchoNET.Services.Repositories;
 using BanchoNET.Utils;
+using BanchoNET.Utils.Extensions;
 using dotenv.net;
 using Hangfire;
 using Hangfire.MySql;

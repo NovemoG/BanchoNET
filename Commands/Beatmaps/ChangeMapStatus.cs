@@ -2,7 +2,8 @@
 using BanchoNET.Objects.Beatmaps;
 using BanchoNET.Objects.Privileges;
 using BanchoNET.Utils;
-using static BanchoNET.Utils.CommandHandlerMaps;
+using BanchoNET.Utils.Extensions;
+using static BanchoNET.Utils.Maps.CommandHandlerMap;
 
 namespace BanchoNET.Commands;
 
@@ -43,7 +44,7 @@ public partial class CommandProcessor
             ? await beatmaps.ChangeBeatmapStatus(targetStatus, setId: playerNp.SetId) >= 1
             : await beatmaps.ChangeBeatmapStatus(targetStatus, beatmapId: playerNp.BeatmapId) == 1;
         
-        return changed
+        return changed                                                          // Quick fix for Latest Pending
             ? $"Successfully updated beatmap status to {targetStatus.ToString().Replace("P", " P")}"
             : $"{(set ? "Set" : "Map")} was not found or status is the same.";
     }

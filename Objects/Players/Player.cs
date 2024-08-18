@@ -4,6 +4,7 @@ using BanchoNET.Objects.Multiplayer;
 using BanchoNET.Objects.Scores;
 using BanchoNET.Packets;
 using BanchoNET.Utils;
+using BanchoNET.Utils.Extensions;
 using static BanchoNET.Objects.Privileges.Privileges;
 
 namespace BanchoNET.Objects.Players;

@@ -4,9 +4,10 @@ using BanchoNET.Objects;
 using BanchoNET.Objects.Multiplayer;
 using BanchoNET.Objects.Privileges;
 using BanchoNET.Utils;
+using BanchoNET.Utils.Extensions;
 using Action = BanchoNET.Models.Mongo.Action;
-using static BanchoNET.Utils.CommandHandlerMaps;
-using static BanchoNET.Utils.ModsExtensions;
+using static BanchoNET.Utils.Maps.CommandHandlerMap;
+using static BanchoNET.Utils.Extensions.ModsExtensions;
 
 namespace BanchoNET.Commands;
 

@@ -1,6 +1,7 @@
 ﻿using BanchoNET.Attributes;
 using BanchoNET.Objects.Privileges;
 using BanchoNET.Utils;
+using BanchoNET.Utils.Maps;
 
 namespace BanchoNET.Commands;
 
@@ -25,7 +26,7 @@ public partial class CommandProcessor
 
     private static string ReloadCommandsCollection()
     {
-        var elapsed = CommandHandlerMaps.ReloadCommands();
+        var elapsed = CommandHandlerMap.ReloadCommands();
         var returnString = "Commands successfully reloaded in:";
         
         if (elapsed.Milliseconds > 0)

@@ -1,8 +1,9 @@
 ﻿using System.Timers;
-using BanchoNET.Objects.Multiplayer;
+using BanchoNET.Utils;
+using BanchoNET.Utils.Extensions;
 using Timer = System.Timers.Timer;
 
-namespace BanchoNET.Utils;
+namespace BanchoNET.Objects.Multiplayer;
 
 public class LobbyTimer
 {

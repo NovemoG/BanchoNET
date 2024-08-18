@@ -5,7 +5,7 @@ using BanchoNET.Objects.Players;
 using BanchoNET.Packets;
 using BanchoNET.Services;
 
-namespace BanchoNET.Utils;
+namespace BanchoNET.Utils.Extensions;
 
 public static class MultiplayerExtensions
 {

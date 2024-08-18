@@ -1,4 +1,4 @@
-﻿namespace BanchoNET.Utils;
+﻿namespace BanchoNET.Utils.Extensions;
 
 public static class ResponseExtensions
 {

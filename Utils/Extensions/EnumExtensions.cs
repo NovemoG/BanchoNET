@@ -1,9 +1,7 @@
 ﻿using BanchoNET.Objects;
-using BanchoNET.Objects.Beatmaps;
-using BanchoNET.Objects.Multiplayer;
 using BanchoNET.Objects.Privileges;
 
-namespace BanchoNET.Utils;
+namespace BanchoNET.Utils.Extensions;
 
 public static class EnumExtensions
 {

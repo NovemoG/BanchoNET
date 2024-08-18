@@ -2,9 +2,9 @@
 using System.Reflection;
 using BanchoNET.Attributes;
 
-namespace BanchoNET.Utils;
+namespace BanchoNET.Utils.Maps;
 
-public static class CommandHandlerMaps
+public static class CommandHandlerMap
 {
     public const string PlayerNotFound = "Player not found. Make sure you provided correct username.";
     public const string BeatmapNotFound = "Beatmap not found.";
@@ -15,7 +15,7 @@ public static class CommandHandlerMaps
     public static readonly string[] ValidStatuses = ["love", "qualify", "approve", "rank", "unrank"];
     public static readonly string[] FreemodAliases = ["fm", "freemod", "freemods"];
     
-    static CommandHandlerMaps()
+    static CommandHandlerMap()
     {
         Console.WriteLine($"[CommandProcessor] Loaded commands in: {ReloadCommands()}");
     }

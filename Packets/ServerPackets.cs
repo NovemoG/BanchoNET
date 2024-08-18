@@ -3,6 +3,7 @@ using BanchoNET.Objects.Multiplayer;
 using BanchoNET.Objects.Players;
 using BanchoNET.Services;
 using BanchoNET.Utils;
+using BanchoNET.Utils.Extensions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BanchoNET.Packets;

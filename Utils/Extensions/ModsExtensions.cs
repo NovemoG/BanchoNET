@@ -1,7 +1,7 @@
 ﻿using System.Collections.Immutable;
 using BanchoNET.Objects;
 
-namespace BanchoNET.Utils;
+namespace BanchoNET.Utils.Extensions;
 
 public static class ModsExtensions
 {

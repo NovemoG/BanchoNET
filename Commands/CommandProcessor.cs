@@ -3,7 +3,8 @@ using BanchoNET.Objects.Players;
 using BanchoNET.Services;
 using BanchoNET.Services.Repositories;
 using BanchoNET.Utils;
-using static BanchoNET.Utils.CommandHandlerMaps;
+using BanchoNET.Utils.Extensions;
+using static BanchoNET.Utils.Maps.CommandHandlerMap;
 
 namespace BanchoNET.Commands;
 

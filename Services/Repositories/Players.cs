@@ -7,8 +7,8 @@ using BanchoNET.Objects.Privileges;
 using BanchoNET.Objects.Scores;
 using BanchoNET.Packets;
 using BanchoNET.Utils;
+using BanchoNET.Utils.Extensions;
 using Microsoft.EntityFrameworkCore;
-using MongoDB.Driver.Linq;
 using StackExchange.Redis;
 
 namespace BanchoNET.Services.Repositories;
@@ -38,6 +38,17 @@ public class PlayersRepository
 	public async Task<bool> UsernameTaken(string username)
 	{
 		return await _dbContext.Players.AnyAsync(p => p.SafeName == username.MakeSafe());
+	}
+
+	public async Task<bool> ChangeUsername(PlayerDto player, string username)
+	{
+		player.Username = username;
+		player.SafeName = username.MakeSafe();
+		player.LoginName = player.SafeName; // Not implementing login name functionality yet
+
+		var result = await _dbContext.SaveChangesAsync();
+
+		return result > 0;
 	}
 
 	public async Task AddFriend(Player player, int targetId)
@@ -113,18 +124,25 @@ public class PlayersRepository
 			               p.SetProperty(u => u.Country, country));
 	}
 	
-	public async Task<PlayerDto?> FetchPlayerInfo(int id = 1, string username = "", string loginName = "")
+	public async Task<PlayerDto?> FetchPlayerInfoById(int id)
 	{
-		if (id > 1)
-			return await _dbContext.Players.FindAsync(id);
-
-		if (username != "")
-			return await _dbContext.Players.FirstOrDefaultAsync(p => p.SafeName == username.MakeSafe());
+		if (id <= 1) return null;
 		
-		if (loginName != "")
-			return await _dbContext.Players.FirstOrDefaultAsync(p => p.LoginName == loginName.MakeSafe());
-
-		return null;
+		return await _dbContext.Players.FindAsync(id);
+	}
+	
+	public async Task<PlayerDto?> FetchPlayerInfoByName(string username)
+	{
+		if (string.IsNullOrEmpty(username)) return null;
+		
+		return await _dbContext.Players.FirstOrDefaultAsync(p => p.SafeName == username.MakeSafe());
+	}
+	
+	public async Task<PlayerDto?> FetchPlayerInfoByLogin(string loginName)
+	{
+		if (string.IsNullOrEmpty(loginName)) return null;
+		
+		return await _dbContext.Players.FirstOrDefaultAsync(p => p.LoginName == loginName.MakeSafe());
 	}
 	
 	public async Task FetchPlayerStats(Player player)
@@ -160,6 +178,11 @@ public class PlayersRepository
 				Total50s = stat.Total50s
 			};
 		}
+	}
+	
+	public async Task<StatsDto?> GetPlayerModeStats(int playerId, byte mode)
+	{
+		return await _dbContext.Stats.FirstOrDefaultAsync(s => s.PlayerId == playerId && s.Mode == mode);
 	}
 
 	public async Task UpdatePlayerStats(Player player, GameMode mode)
@@ -361,13 +384,17 @@ public class PlayersRepository
 		await _dbContext.SaveChangesAsync();
 	}
 
-	public async Task<bool> DeletePlayer(int playerId, bool deleteScores)
+	public async Task<bool> DeletePlayer(PlayerDto player, bool deleteScores, bool force)
 	{
-		var online = _session.GetPlayerById(playerId);
-		if (online != null) return false;
+		var playerId = player.Id;
 		
-		var player = await _dbContext.Players.FindAsync(playerId);
-		if (player == null) return false;
+		var online = _session.GetPlayerById(playerId);
+		if (online != null)
+		{
+			if (!force) return false;
+			
+			_session.LogoutPlayer(online);
+		}
 
 		var batch = _redis.CreateBatch();
 
@@ -408,11 +435,6 @@ public class PlayersRepository
 		await _histories.DeletePlayerData(playerId);
 
 		return true;
-	}
-
-	public async Task<StatsDto?> GetPlayerModeStats(int playerId, byte mode)
-	{
-		return await _dbContext.Stats.FirstOrDefaultAsync(s => s.PlayerId == playerId && s.Mode == mode);
 	}
 
 	public async Task<bool> SilencePlayer(Player player, TimeSpan duration, string reason)

@@ -1,4 +1,4 @@
-﻿namespace BanchoNET.Utils;
+﻿namespace BanchoNET.Utils.Extensions;
 
 public static class StringExtensions
 {
@@ -28,6 +28,36 @@ public static class StringExtensions
 		
 		for (var i = 0; i < input.Length; i += spacing)
 			yield return input.Substring(i, Math.Min(spacing, input.Length - i));
+	}
+	
+	public static string MergeQuotedElements(this string[] args)
+	{
+		var start = 0;
+		var end = 0;
+
+		for (int i = 0; i < args.Length; i++)
+		{
+			// This is not optimal but gets the job done
+			
+			if (args[i].StartsWith('\"'))
+			{
+				start = i;
+				continue;
+			}
+			
+			if (args[i].EndsWith('\"'))
+			{
+				end = i;
+				break;
+			}
+		}
+		
+		return string.Join(' ', args[start..end]);
+	}
+	
+	public static string Unquote(this string input)
+	{
+		return input.Trim('"');
 	}
 	
 	public static string CreateMD5(this string input)

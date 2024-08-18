@@ -5,6 +5,7 @@ using BanchoNET.Objects.Players;
 using BanchoNET.Objects.Privileges;
 using BanchoNET.Packets;
 using BanchoNET.Utils;
+using BanchoNET.Utils.Extensions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BanchoNET.Controllers.Cho;
@@ -90,7 +91,7 @@ public partial class ChoController
 			_session.LogoutPlayer(player);
 		}
 		
-		var userInfo = await players.FetchPlayerInfo(loginName: loginData.Username);
+		var userInfo = await players.FetchPlayerInfoByLogin(loginData.Username);
 		if (userInfo == null)
 		{
 			Response.Headers["cho-token"] = "unknown-username";

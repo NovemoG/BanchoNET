@@ -1,7 +1,8 @@
 ﻿using BanchoNET.Attributes;
 using BanchoNET.Objects.Privileges;
 using BanchoNET.Utils;
-using static BanchoNET.Utils.CommandHandlerMaps;
+using BanchoNET.Utils.Extensions;
+using static BanchoNET.Utils.Maps.CommandHandlerMap;
 
 namespace BanchoNET.Commands;
 
@@ -14,7 +15,7 @@ public partial class CommandProcessor
         "\nplease replace them with underscores." +
         "\nAvailable privileges: nominator, submitter, moderator, administrator, developer.",
         ["ap"])]
-    private async Task<string> AddPrivileges(params string[] args)
+    private async Task<string> AddPrivileges(string[] args)
     {
         if (args.Length == 0)
             return $"No parameter(s) provided. Syntax: {_prefix}addpriv <username> <privilege>.";
@@ -51,7 +52,7 @@ public partial class CommandProcessor
         "\nplease replace them with underscores." +
         "\nAvailable privileges: nominator, submitter, moderator, administrator, developer.",
         ["rp"])]
-    private async Task<string> RemovePrivileges(params string[] args)
+    private async Task<string> RemovePrivileges(string[] args)
     {
         if (args.Length == 0)
             return $"No parameter(s) provided. Use '{_prefix}help rmpriv' for more information.";

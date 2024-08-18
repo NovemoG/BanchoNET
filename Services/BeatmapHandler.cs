@@ -1,6 +1,7 @@
 ﻿using BanchoNET.Models.Beatmaps;
 using BanchoNET.Objects.Beatmaps;
 using BanchoNET.Utils;
+using BanchoNET.Utils.Extensions;
 using Newtonsoft.Json;
 
 namespace BanchoNET.Services;

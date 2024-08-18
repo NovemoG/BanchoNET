@@ -2,7 +2,7 @@
 using BanchoNET.Packets;
 using BanchoNET.Services.ClientPacketsHandler;
 
-namespace BanchoNET.Utils;
+namespace BanchoNET.Utils.Maps;
 
 public static class PacketHandlerMap
 {
