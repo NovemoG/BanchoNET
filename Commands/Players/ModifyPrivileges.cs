@@ -1,6 +1,5 @@
 ﻿using BanchoNET.Attributes;
 using BanchoNET.Objects.Privileges;
-using BanchoNET.Utils;
 using BanchoNET.Utils.Extensions;
 using static BanchoNET.Utils.Maps.CommandHandlerMap;
 

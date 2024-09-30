@@ -439,8 +439,11 @@ public class PlayersRepository
 
 	public async Task<bool> SilencePlayer(Player player, TimeSpan duration, string reason)
 	{
+		//TODO this resets current silence status if it is there
 		var modified = await _dbContext.Players.Where(p => p.Id == player.Id)
 			.ExecuteUpdateAsync(s => s.SetProperty(p => p.RemainingSilence, DateTime.Now + duration));
+
+		if (modified != 1) return false;
 		
 		using var silenceEndPacket = new ServerPackets();
 		silenceEndPacket.SilenceEnd((int)duration.TotalSeconds);
@@ -455,7 +458,7 @@ public class PlayersRepository
 		if (player.InMatch)
 			player.LeaveMatch();
 
-		return modified == 1;
+		return true;
 	}
 	
 	public async Task<bool> UnsilencePlayer(Player player, string reason)
