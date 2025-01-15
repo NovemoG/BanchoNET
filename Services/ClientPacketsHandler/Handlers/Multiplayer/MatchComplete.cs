@@ -1,9 +1,7 @@
 ﻿using BanchoNET.Models.Dtos;
-using BanchoNET.Models.Mongo;
 using BanchoNET.Objects.Multiplayer;
 using BanchoNET.Objects.Players;
 using BanchoNET.Packets;
-using BanchoNET.Utils;
 using BanchoNET.Utils.Extensions;
 
 namespace BanchoNET.Services.ClientPacketsHandler;
@@ -36,13 +34,16 @@ public partial class ClientPacketsHandler
 			if (s.Status != SlotStatus.Complete)
 				notPlayingIds.Add(s.Player.Id);
 		}
-
-		var submittedScores = new List<ScoreDto>(
-			await scores.GetPlayersRecentScores(
-				lobby.Slots
-					.Where(s => s.Status == SlotStatus.Complete)
-					.Select(s => s.Player!.Id),
-				lobby.MapFinishDate));
+		
+		await scoresQueue.EnqueueJobAsync(new ScoreRequestDto
+		{
+			Slots = slots
+				.Where(s => s.Status == SlotStatus.Complete)
+				.Select(s => s.Player!.Id)
+				.ToList(),
+			MapFinishDate = lobby.MapFinishDate,
+			Lobby = lobby
+		});
 		
 		lobby.UnreadyPlayers(SlotStatus.Complete);
 		lobby.ResetPlayersLoadedStatuses();
@@ -53,27 +54,7 @@ public partial class ClientPacketsHandler
 		lobby.Enqueue(matchCompletedPacket.GetContent(), notPlayingIds, false);
 		lobby.EnqueueState();
 		
-		var scoreEntries = submittedScores.Select(score => new ScoreEntry
-			{
-				Accuracy = score.Acc,
-				Grade = score.Grade,
-				Gekis = score.Gekis,
-				Count300 = score.Count300,
-				Katus = score.Katus,
-				Count100 = score.Count100,
-				Count50 = score.Count50,
-				Misses = score.Misses,
-				MaxCombo = score.MaxCombo,
-				Mods = score.Mods,
-				PlayerId = score.PlayerId,
-				TotalScore = score.Score,
-				Failed = score.Status == 0,
-				Team = (byte)lobby.GetPlayerSlot(score.PlayerId)!.Team
-			})
-			.ToList();
-		
-		await histories.MapCompleted(lobby.LobbyId, scoreEntries);
-
+		// reset map finish date
 		lobby.MapFinishDate = DateTime.MinValue;
 	}
 }

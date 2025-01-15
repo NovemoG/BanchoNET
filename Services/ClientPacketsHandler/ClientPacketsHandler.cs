@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using BanchoNET.Abstractions.Services;
 using BanchoNET.Commands;
 using BanchoNET.Objects.Players;
 using BanchoNET.Packets;
@@ -14,7 +15,8 @@ public partial class ClientPacketsHandler(
 	HistoriesRepository histories,
 	BeatmapsRepository beatmaps,
 	MessagesRepository messages,
-	CommandProcessor commands)
+	CommandProcessor commands,
+	ILobbyScoresQueue scoresQueue)
 {
 	private readonly BanchoSession _session = BanchoSession.Instance;
 	private readonly string[] _ignoredChannels = ["#highlight", "#userlog"];

@@ -145,8 +145,6 @@ public class HistoriesRepository
         
         var result = await _multiplayerMatches.UpdateOneAsync(filter, update);
         
-        Console.WriteLine(result.ModifiedCount);
-        
         if (result.ModifiedCount == 0)
             Console.WriteLine("[Histories] Couldn't update scores, match not found in multiplayer history");
     }

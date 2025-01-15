@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.RegularExpressions;
+using BanchoNET.Abstractions.Services;
 using BanchoNET.Commands;
 using BanchoNET.Models;
 using BanchoNET.Models.Dtos;
@@ -9,6 +10,7 @@ using BanchoNET.Objects.Players;
 using BanchoNET.Objects.Privileges;
 using BanchoNET.Services;
 using BanchoNET.Services.ClientPacketsHandler;
+using BanchoNET.Services.LobbyScoresQueue;
 using BanchoNET.Services.Repositories;
 using BanchoNET.Utils;
 using BanchoNET.Utils.Extensions;
@@ -167,6 +169,9 @@ public class Program
 
 		var mongoSettings = MongoClientSettings.FromConnectionString(mongoConnectionString);
 		mongoSettings.LinqProvider = MongoDB.Driver.Linq.LinqProvider.V3;
+		
+		builder.Services.AddSingleton<ILobbyScoresQueue, LobbyScoresQueue>();
+		builder.Services.AddHostedService<LobbyQueueHostedService>();
 		
 		builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConnectionString));
 		builder.Services.AddSingleton(new MongoClient(mongoSettings));

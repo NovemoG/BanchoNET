@@ -63,19 +63,11 @@ public class ScoresRepository(BanchoDbContext dbContext)
         return score == null ? null : new Score(score);
     }
     
-    public async Task<List<ScoreDto>> GetPlayersRecentScores(IEnumerable<int> playerIds, DateTime finishDate)
+    public async Task<List<ScoreDto>> GetPlayersRecentScores(List<int> playerIds, DateTime finishDate)
     {
-        var date = finishDate - TimeSpan.FromSeconds(10);
-        
-        //TODO idk why this query does not return any results; raw sql works fine but with ef it does not
-        var scores = await dbContext.Scores
-            .FromSqlRaw($"SELECT * FROM Scores WHERE PlayerId IN ({string.Join(", ", playerIds)}) AND PlayTime > TIMESTAMP(\"{date:yyyy-MM-dd}\", \"{date:HH:mm:ss}\")")
+         var scores = await dbContext.Scores
+            .Where(s => playerIds.Contains(s.PlayerId) && s.PlayTime > finishDate)
             .ToListAsync();
-         /*var scores = await dbContext.Scores
-            .Where(s => playerIds.Contains(s.PlayerId) && s.PlayTime > date)
-            .ToListAsync();*/
-        
-        Console.WriteLine($"Scores: {scores.Count}, date: {date}");
 
         return scores;
     }
