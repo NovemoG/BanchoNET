@@ -50,7 +50,7 @@ public static class MultiplayerExtensions
 		Session.InsertChannel(matchChannel);
 
 		player.JoinMatch(lobby, lobby.Password);
-		Console.WriteLine($"[CreateMatch] {player.Username} created a match with ID {lobby.LobbyId}, in-game ID: {lobby.Id}.");
+		Logger.Shared.LogDebug($"{player.Username} created a match with ID {lobby.LobbyId}, in-game ID: {lobby.Id}.", nameof(MultiplayerExtensions));
 	}
 	
 	public static void InviteToLobby(Player player, Player? target)
@@ -66,7 +66,7 @@ public static class MultiplayerExtensions
 		invitePacket.MatchInvite(player, target.Username);
 		target.Enqueue(invitePacket.GetContent());
 		
-		Console.WriteLine($"[MatchInvite] {player.Username} invited {target.Username} to their match.");
+		Logger.Shared.LogDebug($"{player.Username} invited {target.Username} to their match.", nameof(MultiplayerExtensions));
 	}
 	
 	public static void ResetPlayersLoadedStatuses(this MultiplayerLobby lobby)

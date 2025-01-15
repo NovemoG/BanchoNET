@@ -54,7 +54,7 @@ public partial class ClientPacketsHandler
 		if (target.Status.Activity == Activity.Afk && !string.IsNullOrEmpty(target.AwayMessage))
 			player.SendMessage(target.AwayMessage, target);
 
-		if (_session.Bots.FirstOrDefault(b => b.Username == target.Username) == null)
+		if (session.Bots.FirstOrDefault(b => b.Username == target.Username) == null)
 		{
 			var read = false;
 			if (target.Online)

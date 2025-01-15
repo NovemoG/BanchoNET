@@ -86,7 +86,7 @@ public static class PlayerExtensions
 			joinFailPacket.MatchJoinFail();
 			player.Enqueue(joinFailPacket.GetContent());
 			
-			Console.WriteLine($"[PlayerExtensions] {player.Username} tried to join multiple matches.");
+			Logger.Shared.LogDebug($"{player.Username} tried to join multiple matches.", nameof(PlayerExtensions));
 			return false;
 		}
 
@@ -107,7 +107,7 @@ public static class PlayerExtensions
 				joinFailPacket.MatchJoinFail();
 				player.Enqueue(joinFailPacket.GetContent());
 
-				Console.WriteLine($"[PlayerExtensions] {player.Username} tried to join {lobby.LobbyId} with incorrect password.");
+				Logger.Shared.LogDebug($"{player.Username} tried to join {lobby.LobbyId} with incorrect password.", nameof(PlayerExtensions));
 				return false;
 			}
 
@@ -124,7 +124,7 @@ public static class PlayerExtensions
 
 		if (!player.JoinChannel(lobby.Chat))
 		{
-			Console.WriteLine($"[PlayerExtensions] {player.Username} failed to join {lobby.Chat.IdName}");
+			Logger.Shared.LogDebug($"{player.Username} failed to join {lobby.Chat.IdName}", nameof(PlayerExtensions));
 			return false;
 		}
 		
@@ -150,7 +150,7 @@ public static class PlayerExtensions
 	{
 		if (!player.InMatch)
 		{
-			Console.WriteLine($"[PlayerExtensions] {player.Username} tried to leave a match without being in one.");
+			Logger.Shared.LogDebug($"{player.Username} tried to leave a match without being in one.", nameof(PlayerExtensions));
 			return false;
 		}
 
@@ -162,7 +162,7 @@ public static class PlayerExtensions
 
 		if (lobby.IsEmpty())
 		{
-			Console.WriteLine($"[PlayerExtensions] Match \"{lobby.Name}\" is empty, removing.");
+			Logger.Shared.LogDebug($"Match \"{lobby.Name}\" is empty, removing.", nameof(PlayerExtensions));
 
 			lobby.Timer?.Stop();
 			Session.RemoveLobby(lobby);
@@ -216,7 +216,7 @@ public static class PlayerExtensions
 
 		if (!target.JoinChannel(spectatorChannel))
 		{
-			Console.WriteLine($"[PlayerExtensions] {target.Username} failed to join {channelName}");
+			Logger.Shared.LogDebug($"{target.Username} failed to join {channelName}", nameof(PlayerExtensions));
 			return;
 		}
 
@@ -240,7 +240,7 @@ public static class PlayerExtensions
 		host.Spectators.Add(target);
 		target.Spectating = host;
 		
-		Console.WriteLine($"[PlayerExtensions] {target.Username} is now spectating {host.Username}");
+		Logger.Shared.LogDebug($"{target.Username} is now spectating {host.Username}", nameof(PlayerExtensions));
 	}
 	
 	public static void RemoveSpectator(this Player host, Player target)
@@ -271,7 +271,7 @@ public static class PlayerExtensions
 		spectatorLeftPacket.SpectatorLeft(target.Id);
 		host.Enqueue(spectatorLeftPacket.GetContent());
 		
-		Console.WriteLine($"[PlayerExtensions] {target.Username} is no longer spectating {host.Username}");
+		Logger.Shared.LogDebug($"{target.Username} is no longer spectating {host.Username}", nameof(PlayerExtensions));
 	}
 
 	public static bool BlockedByPlayer(this Player player, int targetId)
@@ -324,8 +324,8 @@ public static class PlayerExtensions
 	{
 		if (!channel.PlayerInChannel(player))
 		{
-			Console.WriteLine($"[PlayerExtensions] {player.Username} tried to leave {channel.IdName} without being " +
-			                  $"in it (most of the times it's a false positive).");
+			Logger.Shared.LogDebug($"{player.Username} tried to leave {channel.IdName} without being in it " +
+			                       $"(most of the times it's a false positive).", nameof(PlayerExtensions));
 			return;
 		}
 		
@@ -349,7 +349,7 @@ public static class PlayerExtensions
 			foreach (var user in Session.Players.Where(channel.CanPlayerRead))
 				user.Enqueue(bytes);
 		
-		Console.WriteLine($"[PlayerExtensions] {player.Username} left {channel.IdName}");
+		Logger.Shared.LogDebug($"{player.Username} left {channel.IdName}", nameof(PlayerExtensions));
 	}
 
 	private static void AddToChannel(this Player player, Channel channel)

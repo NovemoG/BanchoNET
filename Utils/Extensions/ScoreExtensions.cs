@@ -123,7 +123,7 @@ public static class ScoreExtensions
 
         score.PP = double.IsInfinity(pp) || double.IsNaN(pp) ? 0.0f : MathF.Round(pp, 5);
 
-        Console.WriteLine($"[Score Extensions] Submitted score pp: {score.PP}");
+        Logger.Shared.LogInfo($"Submitted score pp: {score.PP}", nameof(ScoreExtensions));
     }
     
     public static void ComputeSubmissionStatus(this Score score, Score? prevBest, Score? prevBestWithMods)

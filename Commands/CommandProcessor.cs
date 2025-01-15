@@ -1,4 +1,5 @@
-﻿using BanchoNET.Objects.Channels;
+﻿using BanchoNET.Abstractions.Services;
+using BanchoNET.Objects.Channels;
 using BanchoNET.Objects.Players;
 using BanchoNET.Services;
 using BanchoNET.Services.Repositories;
@@ -9,15 +10,15 @@ using static BanchoNET.Utils.Maps.CommandHandlerMap;
 namespace BanchoNET.Commands;
 
 public partial class CommandProcessor(
+    IBanchoSession session,
     ScoresRepository scores,
     PlayersRepository players,
     BeatmapsRepository beatmaps,
-    BeatmapHandler beatmapHandler,
-    HistoriesRepository histories)
+    IBeatmapHandler beatmapHandler,
+    HistoriesRepository histories
+    ) : ICommandProcessor
 {
-    private readonly string _prefix = AppSettings.CommandPrefix;
-
-    private readonly BanchoSession _session = BanchoSession.Instance;
+    private static readonly string Prefix = AppSettings.CommandPrefix;
 
     private Player _playerCtx = null!;
     private Channel? _channelCtx;
@@ -36,7 +37,7 @@ public partial class CommandProcessor(
         Player player,
         Channel? channel = null)
     {
-        command = command[_prefix.Length..];
+        command = command[Prefix.Length..];
         
         var commandValues = command.Split(" ");
         

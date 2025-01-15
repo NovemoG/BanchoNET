@@ -1,4 +1,5 @@
-﻿using BanchoNET.Models;
+﻿using BanchoNET.Abstractions.Services;
+using BanchoNET.Models;
 using BanchoNET.Models.Dtos;
 using BanchoNET.Objects.Beatmaps;
 using Microsoft.EntityFrameworkCore;
@@ -6,12 +7,11 @@ using Microsoft.EntityFrameworkCore;
 namespace BanchoNET.Services.Repositories;
 
 public class BeatmapsRepository(
+	IBanchoSession session,
 	BanchoDbContext dbContext,
-	BeatmapHandler beatmapHandler,
+	IBeatmapHandler beatmapHandler,
 	ScoresRepository scores)
 {
-	private readonly BanchoSession _session = BanchoSession.Instance;
-
 	/// <summary>
 	/// Updates Playcount and Passcount of a beatmap in database
 	/// </summary>
@@ -73,7 +73,7 @@ public class BeatmapsRepository(
 
 	public async Task<Beatmap?> GetBeatmapWithMD5(string beatmapMD5, int setId)
 	{
-		var beatmap = _session.GetBeatmapByMD5(beatmapMD5);
+		var beatmap = session.GetBeatmapByMD5(beatmapMD5);
 		if (beatmap != null) return beatmap;
 		
 		var mapId = 0;
@@ -106,7 +106,7 @@ public class BeatmapsRepository(
 
 	public async Task<Beatmap?> GetBeatmapWithId(int mapId)
 	{
-		var beatmap = _session.GetBeatmapById(mapId);
+		var beatmap = session.GetBeatmapById(mapId);
 		if (beatmap != null) return beatmap;
 		
 		int setId;
@@ -132,7 +132,7 @@ public class BeatmapsRepository(
 	public async Task<BeatmapSet?> GetBeatmapSet(int setId, int mapId = 0)
 	{
 		var didApiRequest = false;
-		var beatmapSet = _session.GetBeatmapSet(setId);
+		var beatmapSet = session.GetBeatmapSet(setId);
 		
 		if (beatmapSet == null)
 		{
@@ -150,7 +150,7 @@ public class BeatmapsRepository(
 			}
 			else beatmapSet = new BeatmapSet(dbBeatmaps);
 			
-			_session.CacheBeatmapSet(beatmapSet);
+			session.CacheBeatmapSet(beatmapSet);
 		}
 
 		if (!didApiRequest && mapId > 0)
@@ -165,7 +165,7 @@ public class BeatmapsRepository(
 		var beatmapSet = await beatmapHandler.GetBeatmapSetFromApi(setId);
 		if (beatmapSet == null) return;
 		
-		_session.CacheBeatmapSet(beatmapSet);
+		session.CacheBeatmapSet(beatmapSet);
 		await InsertSetIntoDatabase(beatmapSet);
 	}
 

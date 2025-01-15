@@ -18,7 +18,7 @@ public partial class CommandProcessor
     private async Task<string> ChangeMapStatus(string[] args)
     {
         if (args.Length == 0 && _commandBase != "mrs")
-            return $"No parameter(s) provided. Syntax: {_prefix}map <status> [<set>].";
+            return $"No parameter(s) provided. Syntax: {Prefix}map <status> [<set>].";
 
         if (_commandBase == "mrs")
             return await ChangeStatus(BeatmapStatus.Ranked, true);
@@ -44,7 +44,7 @@ public partial class CommandProcessor
             ? await beatmaps.ChangeBeatmapStatus(targetStatus, setId: playerNp.SetId) >= 1
             : await beatmaps.ChangeBeatmapStatus(targetStatus, beatmapId: playerNp.BeatmapId) == 1;
         
-        return changed                                                          // Quick fix for Latest Pending
+        return changed                                                       // Quick fix for Latest Pending
             ? $"Successfully updated beatmap status to {targetStatus.ToString().Replace("P", " P")}"
             : $"{(set ? "Set" : "Map")} was not found or status is the same.";
     }

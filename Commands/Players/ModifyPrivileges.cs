@@ -17,7 +17,7 @@ public partial class CommandProcessor
     private async Task<string> AddPrivileges(string[] args)
     {
         if (args.Length == 0)
-            return $"No parameter(s) provided. Syntax: {_prefix}addpriv <username> <privilege>.";
+            return $"No parameter(s) provided. Syntax: {Prefix}addpriv <username> <privilege>.";
         
         if (args.Length == 1)
             return $"No privilege provided. Available privileges: {string.Join(", ", ValidPrivileges)}.";
@@ -54,7 +54,7 @@ public partial class CommandProcessor
     private async Task<string> RemovePrivileges(string[] args)
     {
         if (args.Length == 0)
-            return $"No parameter(s) provided. Use '{_prefix}help rmpriv' for more information.";
+            return $"No parameter(s) provided. Use '{Prefix}help rmpriv' for more information.";
         
         if (args.Length == 1)
             return $"No privilege provided. Available privileges: {string.Join(", ", ValidPrivileges)}.";

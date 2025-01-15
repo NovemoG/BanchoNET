@@ -1,5 +1,5 @@
 ﻿using System.Diagnostics;
-using BanchoNET.Models.Mongo;
+using BanchoNET.Abstractions.Services;
 using BanchoNET.Objects.Privileges;
 using BanchoNET.Packets;
 using BanchoNET.Services.Repositories;
@@ -9,15 +9,14 @@ using StackExchange.Redis;
 
 namespace BanchoNET.Services;
 
-public class BackgroundTasks(IServiceScopeFactory scopeFactory)
+public class BackgroundTasks(
+    IBanchoSession session,
+    IServiceScopeFactory scopeFactory
+    ) : IBackgroundTasks
 {
-    private readonly BanchoSession _session = BanchoSession.Instance;
-
-    public BackgroundTasks() : this(null!) { }
-
     public async Task Init()
     {
-        Console.WriteLine($"[Init] Initiating background tasks, execution date: {DateTime.Now}");
+        Logger.Shared.LogInfo("Initiating background tasks...");
         var stopwatch = new Stopwatch();
         stopwatch.Start();
          
@@ -55,14 +54,14 @@ public class BackgroundTasks(IServiceScopeFactory scopeFactory)
             "0 0 1 * *"); // every 1st day of the month at midnight
         
         stopwatch.Stop();
-        Console.WriteLine($"[Init] Initiating background tasks, execution time: {stopwatch.Elapsed}");
+        Logger.Shared.LogInfo($"Initiated background tasks in {stopwatch.Elapsed}");
     }
 
     public void ClearPasswordsCache()
     {
         Console.WriteLine($"[{GetType().Name}] Clearing passwords cache.");
         
-        _session.ClearPasswordsCache();
+        session.ClearPasswordsCache();
     }
 
     #region Rank History
@@ -201,7 +200,7 @@ public class BackgroundTasks(IServiceScopeFactory scopeFactory)
 
         foreach (var supporter in expiredSupporters)
         {
-            var player = _session.GetPlayerById(supporter);
+            var player = session.GetPlayerById(supporter);
             if (player == null) continue;
             
             player.Privileges &= ~Privileges.Supporter;
@@ -222,7 +221,7 @@ public class BackgroundTasks(IServiceScopeFactory scopeFactory)
         var random = new Random();
         var botStatuses = AppSettings.BotStatuses;
 
-        foreach (var bot in _session.Bots)
+        foreach (var bot in session.Bots)
         {
             var status = botStatuses[random.Next(0, botStatuses.Count)];
             var botStatus = bot.Status;

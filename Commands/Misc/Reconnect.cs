@@ -17,19 +17,19 @@ public partial class CommandProcessor
     private Task<string> Reconnect(string[] args)
     {
         if (args.Length == 0)
-            _session.LogoutPlayer(_playerCtx);
+            session.LogoutPlayer(_playerCtx);
 
         if (args.Length > 0 && !_playerCtx.CanUseCommand(Privileges.Administrator))
             return Task.FromResult("Not enough privileges to reconnect other players.");
         
-        var targetPlayer = _session.GetPlayerByName(args[0]);
+        var targetPlayer = session.GetPlayerByName(args[0]);
         if (targetPlayer == null)
             return Task.FromResult(PlayerNotFound);
         
         if (targetPlayer.IsBot)
             return Task.FromResult("Dummy, you can't reconnect a bot \ud83d\udc7c");
             
-        _session.LogoutPlayer(targetPlayer);
+        session.LogoutPlayer(targetPlayer);
 
         return Task.FromResult($"{targetPlayer.Username} has been reconnected.");
     }

@@ -1,4 +1,6 @@
 ﻿using System.Diagnostics;
+using BanchoNET.Abstractions;
+using BanchoNET.Abstractions.Services;
 using BanchoNET.Models;
 using BanchoNET.Objects;
 using BanchoNET.Utils;
@@ -8,15 +10,15 @@ using Newtonsoft.Json;
 
 namespace BanchoNET.Services;
 
-public class OsuVersionService
+public class OsuVersionService : IOsuVersionService
 {
     private readonly HttpClient _client = new();
     private const string OsuApiV2ChangelogUrl = "https://osu.ppy.sh/api/v2/changelog";
     private readonly Dictionary<string, OsuVersion> _streams = new()
     {
-        {"stable40", new OsuVersion()},
-        {"beta40", new OsuVersion()},
-        {"cuttingedge", new OsuVersion()},
+        { "stable40", new OsuVersion() },
+        { "beta40", new OsuVersion() },
+        { "cuttingedge", new OsuVersion() },
     };
 
     public async Task Init()
@@ -31,7 +33,7 @@ public class OsuVersionService
     
     public async Task FetchOsuVersion()
     {
-        Console.WriteLine($"[{GetType().Name}] Fetching osu versions execution date: {DateTime.Now}");
+        Console.WriteLine($"[{GetType().Name}] Fetching osu versions...");
         var stopwatch = new Stopwatch();
         stopwatch.Start();
         
@@ -60,7 +62,7 @@ public class OsuVersionService
             await WriteToFile();
             
             stopwatch.Stop();
-            Console.WriteLine($"[{GetType().Name}] Fetching osu versions execution time: {stopwatch.Elapsed}");
+            Console.WriteLine($"[{GetType().Name}] Fetched osu versions in {stopwatch.Elapsed}");
             return;
         }
         
@@ -90,7 +92,7 @@ public class OsuVersionService
         }
         
         stopwatch.Stop();
-        Console.WriteLine($"[{GetType().Name}] Fetching osu versions execution time: {stopwatch.Elapsed}");
+        Console.WriteLine($"[{GetType().Name}] Fetched osu versions in {stopwatch.Elapsed}");
     }
     
     public OsuVersion GetLatestVersion(string stream)

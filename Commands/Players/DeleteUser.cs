@@ -13,10 +13,10 @@ public partial class CommandProcessor
     private async Task<string> DeleteUser(string[] args)
     {
         if (args.Length == 0)
-            return $"No parameters provided. Syntax: {_prefix}delete_user <delete_scores> [<force>] \"<username>\"";
+            return $"No parameters provided. Syntax: {Prefix}delete_user <delete_scores> [<force>] \"<username>\"";
         
         if (args.Length < 2)
-            return $"Invalid number of parameters provided. Syntax: {_prefix}delete_user <delete_scores> [<force>] \"<username>\"";
+            return $"Invalid number of parameters provided. Syntax: {Prefix}delete_user <delete_scores> [<force>] \"<username>\"";
         
         if (!bool.TryParse(args[1], out var deleteScores) || !(deleteScores = args[1] == "1"))
             return "Invalid delete_scores parameter provided. It must be a boolean value.";

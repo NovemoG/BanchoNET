@@ -22,7 +22,7 @@ public partial class CommandProcessor
     private async Task<string> SubmitScore(string[] args)
     {
         if (args.Length is < 12)
-            return $"Invalid number of parameters provided. Syntax: {_prefix}submit <beatmap_id> <mode> <score> " +
+            return $"Invalid number of parameters provided. Syntax: {Prefix}submit <beatmap_id> <mode> <score> " +
                    $"<max_combo> <count300> <count100> <count50> <misses> <geki> <katu> <grade> <date> [<perfect_fc>] " +
                    $"[<mods>] [<username>]";
 

@@ -13,7 +13,7 @@ public partial class ClientPacketsHandler
 		var lobby = player.Lobby;
 		if (lobby == null) return Task.CompletedTask;
 		
-		var target = _session.GetPlayerById(playerId);
+		var target = session.GetPlayerById(playerId);
 		
 		MultiplayerExtensions.InviteToLobby(player, target);
 		

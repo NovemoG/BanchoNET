@@ -17,7 +17,7 @@ public partial class ClientPacketsHandler
 		var txt = message.Content.Trim();
 		if (txt == string.Empty) return;
 		
-		if (_ignoredChannels.Contains(message.Destination)) return;
+		if (IgnoredChannels.Contains(message.Destination)) return;
 		
 		Channel? channel;
 		switch (message.Destination)
@@ -30,7 +30,7 @@ public partial class ClientPacketsHandler
 				else if (player.HasSpectators) spectatorId = player.Id;
 				else return;
 			
-				channel = _session.GetChannel($"#s_{spectatorId}", true);
+				channel = session.GetChannel($"#s_{spectatorId}", true);
 				break;
 			}
 			case "#multiplayer" when player.Lobby == null:
@@ -39,7 +39,7 @@ public partial class ClientPacketsHandler
 				channel = player.Lobby.Chat;
 				break;
 			default:
-				channel = _session.GetChannel(message.Destination);
+				channel = session.GetChannel(message.Destination);
 				break;
 		}
 

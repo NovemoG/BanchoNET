@@ -18,7 +18,7 @@ public partial class ClientPacketsHandler
         if (!player.Privileges.HasPrivilege(Privileges.Supporter))
             return Task.CompletedTask;
         
-        var match = _session.GetLobby((ushort)matchId);
+        var match = session.GetLobby((ushort)matchId);
         if (match == null)
             return Task.CompletedTask;
 

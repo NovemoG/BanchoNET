@@ -15,7 +15,7 @@ public static class BufferExtensions
 		if (stringExists == 0) return string.Empty;
 		if (stringExists != 11)
 		{
-			Console.WriteLine("[BufferExtensions] Invalid byte value while trying to read osu string");
+			Logger.Shared.LogWarning("Invalid byte value while trying to read osu string", caller: nameof(BufferExtensions));
 			return string.Empty;
 		}
 		

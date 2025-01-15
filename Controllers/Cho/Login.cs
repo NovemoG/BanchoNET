@@ -74,7 +74,7 @@ public partial class ChoController
 			return responseData.GetContentResult();
 		}
 
-		var player = _session.GetPlayerByName(loginData.Username);
+		var player = session.GetPlayerByName(loginData.Username);
 		if (player != null && loginData.OsuVersion.Stream != "tourney")
 		{
 			Console.WriteLine($"[{GetType().Name}] Login time difference: {DateTime.Now - player.LastActivityTime}");
@@ -88,7 +88,7 @@ public partial class ChoController
 				return responseData.GetContentResult();
 			}
 
-			_session.LogoutPlayer(player);
+			session.LogoutPlayer(player);
 		}
 		
 		var userInfo = await players.FetchPlayerInfoByLogin(loginData.Username);
@@ -114,7 +114,7 @@ public partial class ChoController
 			return responseData.GetContentResult();
 		}
 		
-		if (!_session.CheckHashes(loginData.PasswordMD5, userInfo.PasswordHash))
+		if (!session.CheckHashes(loginData.PasswordMD5, userInfo.PasswordHash))
 		{
 			Response.Headers["cho-token"] = "incorrect-password";
 				
@@ -192,7 +192,7 @@ public partial class ChoController
 
 		#region Append AutoJoin Channels
 
-		foreach (var channel in _session.Channels)
+		foreach (var channel in session.Channels)
 		{
 			if (!channel.AutoJoin || 
 			    !channel.CanPlayerRead(player) ||
@@ -223,7 +223,7 @@ public partial class ChoController
 		loginPackets.UserPresence(player);
 		loginPackets.UserStats(player);
 
-		var banchoBot = _session.BanchoBot;
+		var banchoBot = session.BanchoBot;
 		if (!player.Restricted)
 		{
 			loginPackets.OtherPlayers(player);
@@ -265,7 +265,7 @@ public partial class ChoController
 			});
 		}
 		
-		_session.AppendPlayer(player);
+		session.AppendPlayer(player);
 		
 		var unreadMessages = await messages.GetUnreadMessages(player.Id);
 		if (unreadMessages.Count > 0)
@@ -291,7 +291,7 @@ public partial class ChoController
 		return loginPackets.GetContentResult();
 	}
 
-	private LoginData? ParseLoginData(string[] bodyString)
+	private static LoginData? ParseLoginData(string[] bodyString)
 	{
 		var remainder = bodyString[2].Split('|', 5);
 		

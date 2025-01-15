@@ -1,4 +1,5 @@
-﻿using BanchoNET.Models.Beatmaps;
+﻿using BanchoNET.Abstractions.Services;
+using BanchoNET.Models.Beatmaps;
 using BanchoNET.Objects.Beatmaps;
 using BanchoNET.Utils;
 using BanchoNET.Utils.Extensions;
@@ -6,7 +7,7 @@ using Newtonsoft.Json;
 
 namespace BanchoNET.Services;
 
-public class BeatmapHandler(HttpClient httpClient)
+public class BeatmapHandler(HttpClient httpClient) : IBeatmapHandler
 {
     public async Task<bool> CheckIfMapExistsOnBanchoByFilename(string filename)
 	{

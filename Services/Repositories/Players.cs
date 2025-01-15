@@ -1,4 +1,5 @@
-﻿using BanchoNET.Models;
+﻿using BanchoNET.Abstractions.Services;
+using BanchoNET.Models;
 using BanchoNET.Models.Dtos;
 using BanchoNET.Models.Mongo;
 using BanchoNET.Objects;
@@ -6,7 +7,6 @@ using BanchoNET.Objects.Players;
 using BanchoNET.Objects.Privileges;
 using BanchoNET.Objects.Scores;
 using BanchoNET.Packets;
-using BanchoNET.Utils;
 using BanchoNET.Utils.Extensions;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
@@ -15,16 +15,18 @@ namespace BanchoNET.Services.Repositories;
 
 public class PlayersRepository
 {
-	private readonly BanchoSession _session = BanchoSession.Instance;
+	private readonly IBanchoSession _session;
 	private readonly BanchoDbContext _dbContext;
 	private readonly IDatabase _redis;
 	private readonly HistoriesRepository _histories;
 	
 	public PlayersRepository(
+		IBanchoSession session,
 		BanchoDbContext dbContext,
 		IConnectionMultiplexer redis,
 		HistoriesRepository histories)
 	{
+		_session = session;
 		_dbContext = dbContext;
 		_redis = redis.GetDatabase();
 		_histories = histories;

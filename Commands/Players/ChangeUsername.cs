@@ -15,11 +15,11 @@ public partial class CommandProcessor
     private async Task<string> ChangeUsername(string[] args)
     {
         if (args.Length == 0)
-            return $"No parameters provided. Syntax: {_prefix}change_username <old_username>/<new_username>";
+            return $"No parameters provided. Syntax: {Prefix}change_username <old_username>/<new_username>";
         
         var usernames = string.Join(' ', args).Split('/', 2);
         if (usernames.Length is < 2)
-            return $"Invalid number of parameters provided. {_prefix}Syntax: change_username <old_username>/<new_username>";
+            return $"Invalid number of parameters provided. {Prefix}Syntax: change_username <old_username>/<new_username>";
 
         var player = await players.FetchPlayerInfoByName(usernames[0]);
         if (player == null)

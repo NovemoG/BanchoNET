@@ -29,7 +29,7 @@ public class CommandAttribute : Attribute
         Privileges privileges,
         string briefDescription,
         string detailedDescription = "",
-        string[]? aliases = default)
+        string[]? aliases = null)
     {
         Name = name;
         Privileges = privileges;

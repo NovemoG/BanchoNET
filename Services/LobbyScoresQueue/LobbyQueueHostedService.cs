@@ -31,45 +31,7 @@ public class LobbyQueueHostedService(
                     try
                     {
                         await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
-                        
-                        using var scope = scopeFactory.CreateScope();
-                        var scores = scope.ServiceProvider.GetRequiredService<ScoresRepository>();
-                        var histories = scope.ServiceProvider.GetRequiredService<HistoriesRepository>();
-                        
-                        var lobby = request.Lobby;
-                        var slots = request.Slots;
-                        List<ScoreDto> submittedScores;
-                        
-                        byte i = 0;
-                        do
-                        {
-                            submittedScores = await scores.GetPlayersRecentScores(
-                                slots,
-                                request.MapFinishDate);
-                            
-                            await Task.Delay(TimeSpan.FromSeconds(3), stoppingToken);
-                        } while (submittedScores.Count != slots.Count && i++ < MAX_RETRIES);
-            
-                        var scoreEntries = submittedScores.Select(score => new ScoreEntry
-                            {
-                                Accuracy = score.Acc,
-                                Grade = score.Grade,
-                                Gekis = score.Gekis,
-                                Count300 = score.Count300,
-                                Katus = score.Katus,
-                                Count100 = score.Count100,
-                                Count50 = score.Count50,
-                                Misses = score.Misses,
-                                MaxCombo = score.MaxCombo,
-                                Mods = score.Mods,
-                                PlayerId = score.PlayerId,
-                                TotalScore = score.Score,
-                                Failed = score.Status == 0,
-                                Team = (byte)lobby.GetPlayerSlot(score.PlayerId)!.Team
-                            })
-                            .ToList();
-		    
-                        await histories.MapCompleted(lobby.LobbyId, scoreEntries);
+                        await ExecuteScoresFetch(request, stoppingToken);
                     }
                     catch (Exception ex)
                     {
@@ -86,5 +48,47 @@ public class LobbyQueueHostedService(
                 break;
             }
         }
+    }
+
+    private async Task ExecuteScoresFetch(ScoreRequestDto request, CancellationToken stoppingToken)
+    {
+        using var scope = scopeFactory.CreateScope();
+        var scores = scope.ServiceProvider.GetRequiredService<ScoresRepository>();
+        var histories = scope.ServiceProvider.GetRequiredService<HistoriesRepository>();
+        
+        var lobby = request.Lobby;
+        var slots = request.Slots;
+        List<ScoreDto> submittedScores;
+        
+        byte i = 0;
+        do
+        {
+            submittedScores = await scores.GetPlayersRecentScores(
+                slots,
+                request.MapFinishDate);
+            
+            await Task.Delay(TimeSpan.FromSeconds(3), stoppingToken);
+        } while (submittedScores.Count != slots.Count && i++ < MAX_RETRIES);
+
+        var scoreEntries = submittedScores.Select(score => new ScoreEntry
+            {
+                Accuracy = score.Acc,
+                Grade = score.Grade,
+                Gekis = score.Gekis,
+                Count300 = score.Count300,
+                Katus = score.Katus,
+                Count100 = score.Count100,
+                Count50 = score.Count50,
+                Misses = score.Misses,
+                MaxCombo = score.MaxCombo,
+                Mods = score.Mods,
+                PlayerId = score.PlayerId,
+                TotalScore = score.Score,
+                Failed = score.Status == 0,
+                Team = (byte)lobby.GetPlayerSlot(score.PlayerId)!.Team
+            })
+            .ToList();
+
+        await histories.MapCompleted(lobby.LobbyId, scoreEntries);
     }
 }

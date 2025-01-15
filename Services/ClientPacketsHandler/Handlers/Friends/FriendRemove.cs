@@ -7,7 +7,7 @@ public partial class ClientPacketsHandler
     private async Task FriendRemove(Player player, BinaryReader br)
     {
         var friendId = br.ReadInt32();
-        var target = _session.GetPlayerById(friendId);
+        var target = session.GetPlayerById(friendId);
 
         if (target == null)
         {

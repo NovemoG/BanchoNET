@@ -78,7 +78,7 @@ public partial class OsuController
 		var passwordMD5 = password.CreateMD5();
 		var passwordBcrypt = BCrypt.Net.BCrypt.HashPassword(passwordMD5);
 		
-		_session.InsertPasswordHash(passwordMD5, passwordBcrypt);
+		session.InsertPasswordHash(passwordMD5, passwordBcrypt);
 		
 		var playerGeoloc = await geoloc.GetGeoloc(Request.Headers);
 		await players.CreatePlayer(

@@ -33,10 +33,10 @@ public partial class OsuController
 		if (player == null)
 			return Unauthorized("auth fail");
 
-		if (_session.BeatmapNeedsUpdate(mapMD5))
+		if (session.BeatmapNeedsUpdate(mapMD5))
 			return Responses.BytesContentResult("1|false");
 		
-		if (_session.IsBeatmapNotSubmitted(mapMD5))
+		if (session.IsBeatmapNotSubmitted(mapMD5))
 			return Responses.BytesContentResult("-1|false");
 
 		var mods = (Mods)modsValue;
@@ -65,7 +65,7 @@ public partial class OsuController
 			{
 				using var statsPacket = new ServerPackets();
 				statsPacket.UserStats(player);
-				_session.EnqueueToPlayers(statsPacket.GetContent());
+				session.EnqueueToPlayers(statsPacket.GetContent());
 			}
 		}
 		
@@ -74,10 +74,10 @@ public partial class OsuController
 		{
 			if (await beatmapHandler.CheckIfMapExistsOnBanchoByFilename(mapFilename))
 			{
-				_session.CacheNeedUpdateBeatmap(mapMD5);
+				session.CacheNeedsUpdateBeatmap(mapMD5);
 				return Ok("1|false");
 			}
-			_session.CacheNotSubmittedBeatmap(mapMD5);
+			session.CacheNotSubmittedBeatmap(mapMD5);
 			return Ok("-1|false");
 		}
 

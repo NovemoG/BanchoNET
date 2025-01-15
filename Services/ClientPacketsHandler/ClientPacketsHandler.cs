@@ -1,25 +1,23 @@
 ﻿using System.ComponentModel;
 using BanchoNET.Abstractions.Services;
-using BanchoNET.Commands;
 using BanchoNET.Objects.Players;
 using BanchoNET.Packets;
 using BanchoNET.Services.Repositories;
-using BanchoNET.Utils;
 using BanchoNET.Utils.Maps;
 
 namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler(
+	IBanchoSession session,
 	PlayersRepository players,
-	ScoresRepository scores,
 	HistoriesRepository histories,
 	BeatmapsRepository beatmaps,
 	MessagesRepository messages,
-	CommandProcessor commands,
-	ILobbyScoresQueue scoresQueue)
+	ICommandProcessor commands,
+	ILobbyScoresQueue scoresQueue
+	) : IClientPacketsHandler
 {
-	private readonly BanchoSession _session = BanchoSession.Instance;
-	private readonly string[] _ignoredChannels = ["#highlight", "#userlog"];
+	private static readonly string[] IgnoredChannels = ["#highlight", "#userlog"];
 	
 	public async Task ReadPackets(Stream stream, Player player)
 	{

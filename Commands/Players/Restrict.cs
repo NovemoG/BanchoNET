@@ -14,7 +14,7 @@ public partial class CommandProcessor
     private async Task<string> Restrict(string[] args)
     {
         if (args.Length == 0)
-            return $"No parameters provided. Syntax: {_prefix}restrict <username> <reason>";
+            return $"No parameters provided. Syntax: {Prefix}restrict <username> <reason>";
         
         if (args.Length < 2)
             return "You must provide a reason for a restriction.";
@@ -50,7 +50,7 @@ public partial class CommandProcessor
     private async Task<string> Unrestrict(string[] args)
     {
         if (args.Length == 0)
-            return $"No parameters provided. Syntax: {_prefix}unrestrict <username> <reason>";
+            return $"No parameters provided. Syntax: {Prefix}unrestrict <username> <reason>";
         
         if (args.Length < 2)
             return "You must provide a reason for removing a restriction.";

@@ -103,7 +103,7 @@ public partial class OsuController
             {
                 using var statsPacket = new ServerPackets();
                 statsPacket.UserStats(player);
-                _session.EnqueueToPlayers(statsPacket.GetContent());
+                session.EnqueueToPlayers(statsPacket.GetContent());
             }
         }
 
@@ -212,7 +212,7 @@ public partial class OsuController
         {
             using var statsPacket = new ServerPackets();
             statsPacket.UserStats(player);
-            _session.EnqueueToPlayers(statsPacket.GetContent());
+            session.EnqueueToPlayers(statsPacket.GetContent());
 
             beatmap.Plays += 1;
             if (score.Passed)
@@ -364,7 +364,7 @@ public partial class OsuController
     {
         if (score.LeaderboardPosition == 1 && !player.Restricted)
         {
-            var announceChannel = _session.GetChannel("#announce");
+            var announceChannel = session.GetChannel("#announce");
             var announcement = $@"\x01ACTION achieved #1 on {beatmap.Embed()} with {score.Acc:F2}% and {score.PP}pp.";
 			
             var currentBest = await scores.GetBestBeatmapScore(beatmap, score.Mode);

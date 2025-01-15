@@ -37,7 +37,7 @@ public partial class ClientPacketsHandler
 			return;
 		}
 		
-		var lobby = _session.GetLobby((ushort)lobbyId);
+		var lobby = session.GetLobby((ushort)lobbyId);
 		if (lobby == null)
 		{
 			Console.WriteLine($"[JoinMatch] {player.Username} tried to join a non-existent lobby ({lobbyId})");
