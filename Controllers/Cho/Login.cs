@@ -124,13 +124,13 @@ public partial class ChoController
 			return responseData.GetContentResult();
 		}
 
-		await client.InsertLoginData(
+		await clients.InsertLoginData(
 			userInfo.Id,
 			geoloc.GetIp(Request.Headers),
 			loginData.OsuVersion.Date,
 			loginData.OsuVersion.Stream);
 
-		var bannedUsersHashes = await client.TryInsertClientHashes(userInfo.Id,
+		var bannedUsersHashes = await clients.TryInsertClientHashes(userInfo.Id,
 			loginData.OsuPathMD5,
 			loginData.AdaptersMD5,
 			loginData.UninstallMD5,

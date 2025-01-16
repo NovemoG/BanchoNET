@@ -1,4 +1,6 @@
-﻿using BanchoNET.Abstractions.Services;
+﻿using BanchoNET.Abstractions.Repositories;
+using BanchoNET.Abstractions.Repositories.Histories;
+using BanchoNET.Abstractions.Services;
 using BanchoNET.Objects.Channels;
 using BanchoNET.Objects.Players;
 using BanchoNET.Services;
@@ -13,9 +15,9 @@ public partial class CommandProcessor(
     IBanchoSession session,
     ScoresRepository scores,
     PlayersRepository players,
-    BeatmapsRepository beatmaps,
+    IBeatmapsRepository beatmaps,
     IBeatmapHandler beatmapHandler,
-    HistoriesRepository histories
+    IHistoriesRepository histories
     ) : ICommandProcessor
 {
     private static readonly string Prefix = AppSettings.CommandPrefix;

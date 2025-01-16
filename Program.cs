@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using System.Text.RegularExpressions;
+using BanchoNET.Abstractions.Repositories;
+using BanchoNET.Abstractions.Repositories.Histories;
 using BanchoNET.Abstractions.Services;
 using BanchoNET.Commands;
 using BanchoNET.Middlewares;
@@ -20,13 +22,14 @@ using Hangfire;
 using Hangfire.AspNetCore;
 using Hangfire.MySql;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using MySql.Data.MySqlClient;
 using Novelog.Config;
-using Novelog.Types;
 using StackExchange.Redis;
 using static System.Data.IsolationLevel;
 using IsolationLevel = System.Transactions.IsolationLevel;
+using LogLevel = Novelog.Types.LogLevel;
 // ReSharper disable ExplicitCallerInfoArgument
 
 namespace BanchoNET;
@@ -42,18 +45,40 @@ public class Program
 		
 		DotEnv.Load(); // Load .env when non dockerized
 		
-		builder.Services.AddLogger(options => options
+		#region Logging
+
+		builder.Logging.ClearProviders();
+
+		var microsoftLogger = new LoggerConfigBuilder(false)
 			.AttachConsole()
-			.AttachRollingFile(new RollingFileConfig
-			{
-				FilePath = Storage.GetLogFilePath("log.txt")
-			})
-			.AttachRollingFile(new RollingFileConfig
-			{
-				FilePath = Storage.GetLogFilePath("debug.txt"),
-				MinLogLevel = LogLevel.DEBUG
-			})
-		);
+			.ModifyDefaultFormatter("", "[{0}] [{1} | {3}] {4}");
+		
+		builder.Logging.AddProvider(new NovelogLoggerProvider(microsoftLogger.Build()));
+		builder.Services.AddNovelog(options =>
+		{
+			options.AttachConsole()
+				.AttachRollingFile(new RollingFileConfig
+				{
+					FilePath = Storage.GetLogFilePath("log.txt")
+				})
+				.AttachRollingFile(new RollingFileConfig
+				{
+					FilePath = Storage.GetLogFilePath("debug.txt"),
+					MinLogLevel = LogLevel.DEBUG
+				})
+				.ForType<RequestTimingMiddleware>(rtmOptions =>
+				{
+					rtmOptions.AttachConsole()
+						.AttachRollingFile(new RollingFileConfig
+						{
+							FilePath = Storage.GetLogFilePath("requests.txt"),
+							MinLogLevel = LogLevel.DEBUG
+						})
+						.ModifyDefaultFormatter("", "[{0}] [{1} | {2}] {4}");
+				});
+		});
+
+		#endregion
 
 		#region Domain Check
 
@@ -198,10 +223,10 @@ public class Program
 			options.UseMySQL(mySqlConnectionString);
 		});
 		builder.Services.AddSingleton<IBanchoSession>(BanchoSession.Instance);
-		builder.Services.AddSingleton<HistoriesRepository>();
-		builder.Services.AddScoped<BeatmapsRepository>();
-		builder.Services.AddScoped<ClientRepository>();
-		builder.Services.AddScoped<MessagesRepository>();
+		builder.Services.AddSingleton<IHistoriesRepository, HistoriesRepository>();
+		builder.Services.AddScoped<IBeatmapsRepository, BeatmapsRepository>();
+		builder.Services.AddScoped<IClientsRepository, ClientsRepository>();
+		builder.Services.AddScoped<IMessagesRepository, MessagesRepository>();
 		builder.Services.AddScoped<PlayersRepository>();
 		builder.Services.AddScoped<ScoresRepository>();
 		builder.Services.AddScoped<IGeolocService, GeolocService>();
@@ -278,9 +303,8 @@ public class Program
 	
 	private static void InitBanchoBot(IServiceScope scope)
 	{
-		var session = BanchoSession.Instance;
-		
 		var db = scope.ServiceProvider.GetRequiredService<BanchoDbContext>();
+		var session = BanchoSession.Instance;
 
 		var dbBanchoBot = db.Players.FirstOrDefault(p => p.Id == 1);
 		if (dbBanchoBot != null)

@@ -1,9 +1,10 @@
 ﻿using System.Diagnostics;
 using BanchoNET.Utils.Extensions;
+// ReSharper disable ExplicitCallerInfoArgument
 
 namespace BanchoNET.Middlewares;
 
-public class RequestTimingMiddleware(ILogger logger, RequestDelegate next)
+public class RequestTimingMiddleware(ILogger<RequestTimingMiddleware> logger, RequestDelegate next)
 {
     public async Task InvokeAsync(HttpContext context)
     {
@@ -15,11 +16,11 @@ public class RequestTimingMiddleware(ILogger logger, RequestDelegate next)
         await next(context);
 
         stopwatch.Stop();
-        //TODO temporary, will replace after logger update
         logger.LogDebug($"{context.Request.Host}{context.Request.Path} | " +
                         $"Request took: {stopwatch.Elapsed.Seconds}s " +
                         $"{stopwatch.Elapsed.Milliseconds}ms " +
                         $"{stopwatch.Elapsed.Microseconds}μs",
-            caller: $"{context.Request.Method} {context.Response.StatusCode}");
+            caller: context.Request.Method,
+            atLine: context.Response.StatusCode);
     }
 }

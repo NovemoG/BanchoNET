@@ -69,8 +69,7 @@ public partial class ClientPacketsHandler
 				player.Enqueue(msgPacket.GetContent());
 			}
 			
-			await messages.AddMessage(player.Id, target.Id, txt, read);
-			
+			await messages.AddMessage(txt, player.Id, target.Id, read);
 		}
 		else
 		{

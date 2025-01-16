@@ -1,4 +1,6 @@
-﻿using BanchoNET.Abstractions.Services;
+﻿using BanchoNET.Abstractions.Repositories;
+using BanchoNET.Abstractions.Repositories.Histories;
+using BanchoNET.Abstractions.Services;
 using BanchoNET.Models;
 using BanchoNET.Models.Dtos;
 using BanchoNET.Models.Mongo;
@@ -18,13 +20,13 @@ public class PlayersRepository
 	private readonly IBanchoSession _session;
 	private readonly BanchoDbContext _dbContext;
 	private readonly IDatabase _redis;
-	private readonly HistoriesRepository _histories;
+	private readonly IHistoriesRepository _histories;
 	
 	public PlayersRepository(
 		IBanchoSession session,
 		BanchoDbContext dbContext,
 		IConnectionMultiplexer redis,
-		HistoriesRepository histories)
+		IHistoriesRepository histories)
 	{
 		_session = session;
 		_dbContext = dbContext;

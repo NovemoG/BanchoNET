@@ -1,4 +1,5 @@
-﻿using BanchoNET.Abstractions.Services;
+﻿using BanchoNET.Abstractions.Repositories;
+using BanchoNET.Abstractions.Services;
 using BanchoNET.Attributes;
 using BanchoNET.Packets;
 using BanchoNET.Services.Repositories;
@@ -14,9 +15,9 @@ public partial class ChoController(
 	IGeolocService geoloc,
 	IOsuVersionService version,
 	PlayersRepository players,
-	ClientRepository client,
+	IClientsRepository clients,
 	IClientPacketsHandler clientPackets,
-	MessagesRepository messages)
+	IMessagesRepository messages)
 	: ControllerBase
 {
 	[HttpPost("/")]

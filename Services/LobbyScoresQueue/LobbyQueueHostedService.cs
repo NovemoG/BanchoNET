@@ -1,4 +1,6 @@
-﻿using BanchoNET.Abstractions.Services;
+﻿using BanchoNET.Abstractions.Repositories;
+using BanchoNET.Abstractions.Repositories.Histories;
+using BanchoNET.Abstractions.Services;
 using BanchoNET.Models.Dtos;
 using BanchoNET.Models.Mongo;
 using BanchoNET.Services.Repositories;
@@ -54,7 +56,7 @@ public class LobbyQueueHostedService(
     {
         using var scope = scopeFactory.CreateScope();
         var scores = scope.ServiceProvider.GetRequiredService<ScoresRepository>();
-        var histories = scope.ServiceProvider.GetRequiredService<HistoriesRepository>();
+        var histories = scope.ServiceProvider.GetRequiredService<IHistoriesRepository>();
         
         var lobby = request.Lobby;
         var slots = request.Slots;

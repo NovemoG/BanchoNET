@@ -1,4 +1,6 @@
 ﻿using System.ComponentModel;
+using BanchoNET.Abstractions.Repositories;
+using BanchoNET.Abstractions.Repositories.Histories;
 using BanchoNET.Abstractions.Services;
 using BanchoNET.Objects.Players;
 using BanchoNET.Packets;
@@ -10,9 +12,9 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 public partial class ClientPacketsHandler(
 	IBanchoSession session,
 	PlayersRepository players,
-	HistoriesRepository histories,
-	BeatmapsRepository beatmaps,
-	MessagesRepository messages,
+	IHistoriesRepository histories,
+	IBeatmapsRepository beatmaps,
+	IMessagesRepository messages,
 	ICommandProcessor commands,
 	ILobbyScoresQueue scoresQueue
 	) : IClientPacketsHandler

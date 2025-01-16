@@ -41,8 +41,8 @@ public partial class CommandProcessor
             return "Please /np a map first.";
         
         var changed = set
-            ? await beatmaps.ChangeBeatmapStatus(targetStatus, setId: playerNp.SetId) >= 1
-            : await beatmaps.ChangeBeatmapStatus(targetStatus, beatmapId: playerNp.BeatmapId) == 1;
+            ? await beatmaps.UpdateBeatmapSetStatus(targetStatus, playerNp.SetId) >= 1
+            : await beatmaps.UpdateBeatmapStatus(targetStatus, playerNp.BeatmapId) == 1;
         
         return changed                                                       // Quick fix for Latest Pending
             ? $"Successfully updated beatmap status to {targetStatus.ToString().Replace("P", " P")}"

@@ -218,7 +218,7 @@ public partial class OsuController
             if (score.Passed)
                 beatmap.Passes += 1;
 			
-            await beatmaps.UpdateBeatmapStats(beatmap);
+            await beatmaps.UpdateBeatmapPlayCount(beatmap);
         }
 		
         string response;

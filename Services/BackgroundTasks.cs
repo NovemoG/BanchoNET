@@ -1,4 +1,6 @@
 ﻿using System.Diagnostics;
+using BanchoNET.Abstractions.Repositories;
+using BanchoNET.Abstractions.Repositories.Histories;
 using BanchoNET.Abstractions.Services;
 using BanchoNET.Objects.Privileges;
 using BanchoNET.Packets;
@@ -80,7 +82,7 @@ public class BackgroundTasks(
         await using var scope = scopeFactory.CreateAsyncScope();
         var players = scope.ServiceProvider.GetRequiredService<PlayersRepository>();
         var redis = scope.ServiceProvider.GetRequiredService<IConnectionMultiplexer>().GetDatabase();
-        var histories = scope.ServiceProvider.GetRequiredService<HistoriesRepository>();
+        var histories = scope.ServiceProvider.GetRequiredService<IHistoriesRepository>();
         
         var stopwatch = new Stopwatch();
         stopwatch.Start();
@@ -134,7 +136,7 @@ public class BackgroundTasks(
     {
         await using var scope = scopeFactory.CreateAsyncScope();
         var players = scope.ServiceProvider.GetRequiredService<PlayersRepository>();
-        var histories = scope.ServiceProvider.GetRequiredService<HistoriesRepository>();
+        var histories = scope.ServiceProvider.GetRequiredService<IHistoriesRepository>();
         
         var stopwatch = new Stopwatch();
         stopwatch.Start();

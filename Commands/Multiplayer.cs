@@ -105,7 +105,7 @@ public partial class CommandProcessor
             return "";
         
         var lobbyDetails = string.Join(' ', args).Split('/', 2);
-        var beatmap = await beatmaps.GetBeatmapWithId(_playerCtx.LastValidBeatmapId);
+        var beatmap = await beatmaps.GetBeatmap(_playerCtx.LastValidBeatmapId);
         
         var lobby = new MultiplayerLobby
         {
