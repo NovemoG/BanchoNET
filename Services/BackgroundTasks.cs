@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using BanchoNET.Abstractions.Repositories;
 using BanchoNET.Abstractions.Repositories.Histories;
 using BanchoNET.Abstractions.Services;
 using BanchoNET.Objects.Privileges;
@@ -13,12 +12,13 @@ namespace BanchoNET.Services;
 
 public class BackgroundTasks(
     IBanchoSession session,
+    ILogger logger,
     IServiceScopeFactory scopeFactory
     ) : IBackgroundTasks
 {
     public async Task Init()
     {
-        Logger.Shared.LogInfo("Initiating background tasks...");
+        logger.LogInfo("Initiating background tasks...");
         var stopwatch = new Stopwatch();
         stopwatch.Start();
          
@@ -56,12 +56,12 @@ public class BackgroundTasks(
             "0 0 1 * *"); // every 1st day of the month at midnight
         
         stopwatch.Stop();
-        Logger.Shared.LogInfo($"Initiated background tasks in {stopwatch.Elapsed}");
+        logger.LogInfo($"Initiated background tasks in {stopwatch.Elapsed}");
     }
 
     public void ClearPasswordsCache()
     {
-        Console.WriteLine($"[{GetType().Name}] Clearing passwords cache.");
+        logger.LogInfo("Clearing passwords cache.", caller: nameof(BackgroundTasks));
         
         session.ClearPasswordsCache();
     }
@@ -70,11 +70,11 @@ public class BackgroundTasks(
 
     public async Task AppendPlayerRankHistory()
     {
-        Console.WriteLine($"[{GetType().Name}] Appending players' daily rank history, execution date: {DateTime.Now})");
+        logger.LogInfo($"Appending players' daily rank history ({DateTime.Now})", caller: nameof(BackgroundTasks));
         
         await Parallel.ForAsync(0, 8, async (i, _) => await ProcessRankHistory((byte)i));
         
-        Console.WriteLine($"[{GetType().Name}] Finished updating players' rank history, finish date: {DateTime.Now}");
+        logger.LogInfo($"Finished updating players' rank history ({DateTime.Now})", caller: nameof(BackgroundTasks));
     }
 
     private async Task ProcessRankHistory(byte mode)
@@ -116,7 +116,8 @@ public class BackgroundTasks(
         }
         
         stopwatch.Stop();
-        Console.WriteLine($"[{GetType().Name}] Finished updating daily rank history for mode {mode}, execution time: {stopwatch.Elapsed}");
+        logger.LogInfo($"Finished updating daily rank history for mode {mode}, execution time: {stopwatch.Elapsed}",
+            caller: nameof(BackgroundTasks));
     }
 
     #endregion
@@ -125,11 +126,11 @@ public class BackgroundTasks(
 
     public async Task AppendPlayerMonthlyHistory()
     {
-        Console.WriteLine($"[{GetType().Name}] Appending players' monthly history, execution date: {DateTime.Now})");
+        logger.LogInfo($"Appending players' monthly history ({DateTime.Now})", caller: nameof(BackgroundTasks));
         
         await Parallel.ForAsync(0, 8, async (i, _) => await ProcessMonthlyHistory((byte)i));
         
-        Console.WriteLine($"[{GetType().Name}] Finished updating monthly history, finish date: {DateTime.Now}");
+        logger.LogInfo($"Finished updating players' monthly history ({DateTime.Now})", caller: nameof(BackgroundTasks));
     }
     
     private async Task ProcessMonthlyHistory(byte mode)
@@ -171,14 +172,15 @@ public class BackgroundTasks(
         await players.ResetPlayersStats(mode);
         
         stopwatch.Stop();
-        Console.WriteLine($"[{GetType().Name}] Finished updating monthly history for mode {mode}, execution time: {stopwatch.Elapsed}");
+        logger.LogInfo($"Finished updating monthly history for mode {mode}, execution time: {stopwatch.Elapsed}",
+            caller: nameof(BackgroundTasks));
     }
 
     #endregion
 
     public async Task DeleteUnnecessaryScores()
     {
-        Console.WriteLine($"[{GetType().Name}] Deleting old scores...");
+        logger.LogInfo("Deleting old scores...", caller: nameof(BackgroundTasks));
         
         await using var scope = scopeFactory.CreateAsyncScope();
         var scores = scope.ServiceProvider.GetRequiredService<ScoresRepository>();
@@ -188,12 +190,12 @@ public class BackgroundTasks(
         foreach (var id in deletedScores)
             File.Delete(Storage.GetReplayPath(id));
         
-        Console.WriteLine($"[{GetType().Name}] Deleted {deletedScores.Count} replays.");
+        logger.LogInfo($"Deleted {deletedScores.Count} replays.", caller: nameof(BackgroundTasks));
     }
 
     public async Task CheckExpiringSupporters()
     {
-        Console.WriteLine($"[{GetType().Name}] Updating expiring supporters privileges...");
+        logger.LogInfo("Checking expiring supporter privileges...", caller: nameof(BackgroundTasks));
         
         await using var scope = scopeFactory.CreateAsyncScope();
         var players = scope.ServiceProvider.GetRequiredService<PlayersRepository>();
@@ -212,10 +214,10 @@ public class BackgroundTasks(
             notificationPacket.Notification("Your supporter status has expired.\nThank you for supporting us!");
             player.Enqueue(notificationPacket.GetContent());
             
-            Console.WriteLine($"[{GetType().Name}] {player.Username}'s supporter status has expired.");
+            logger.LogDebug($"{player.Username}'s supporter status has expired.", caller: nameof(BackgroundTasks));
         }
         
-        Console.WriteLine($"[{GetType().Name}] Supporter status has expired for {expiredSupporters.Count} players.");
+        logger.LogInfo($"Supporter status has expired for {expiredSupporters.Count} players.", caller: nameof(BackgroundTasks));
     }
 
     public void UpdateBotStatus()

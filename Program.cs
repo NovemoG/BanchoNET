@@ -154,7 +154,7 @@ public class Program
 			$"user={dbConnections.HangfireUser};" +
 			$"{(string.IsNullOrEmpty(hangfirePass) ? "" : $"password={hangfirePass};")}" +
 			$"database=hangfire;" +
-			$"Allow User Variables=True";;
+			$"Allow User Variables=True";
 		
 		var redisConnectionString = 
 			$"{dbConnections.RedisHost}:{dbConnections.RedisPort}," +
