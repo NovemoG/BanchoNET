@@ -36,10 +36,10 @@ public partial class ChoController
 		{
 			Response.Headers["cho-token"] = "invalid-request";
 
-			using var responseData = new ServerPackets();
-			responseData.Notification("Error occurred");
-			responseData.PlayerId(-5);
-			return responseData.GetContentResult();
+			return new ServerPacket()
+				.Notification("Error occured")
+				.PlayerId(-5)
+				.FinalizeAndGetContentResult();
 		}
 		
 		if (!AppSettings.DisallowOldClients)
@@ -53,11 +53,11 @@ public partial class ChoController
 			if (loginData.OsuVersion > version.GetLatestVersion(clientStream))
 			{
 				Response.Headers["cho-token"] = "client-too-old";
-                
-                using var responseData = new ServerPackets();
-                responseData.VersionUpdate();
-                responseData.PlayerId(-2);
-                return responseData.GetContentResult();
+
+				return new ServerPacket()
+					.VersionUpdate()
+					.PlayerId(-2)
+					.FinalizeAndGetContentResult();
 			}
 		}
 
@@ -67,11 +67,11 @@ public partial class ChoController
 		if (!(runningUnderWine || adapters.Length != 0))
 		{
 			Response.Headers["cho-token"] = "empty-adapters";
-                
-			using var responseData = new ServerPackets();
-			responseData.PlayerId(-1);
-			responseData.Notification("Please restart your osu! client and try again.");
-			return responseData.GetContentResult();
+
+			return new ServerPacket()
+				.Notification("Please restart your osu! client and try again.")
+				.PlayerId(-1)
+				.FinalizeAndGetContentResult();
 		}
 
 		var player = session.GetPlayerByName(loginData.Username);
@@ -81,25 +81,25 @@ public partial class ChoController
 			if (DateTime.Now - player.LastActivityTime < TimeSpan.FromSeconds(15))
 			{
 				Response.Headers["cho-token"] = "user-already-logged-in";
-                
-				using var responseData = new ServerPackets();
-				responseData.PlayerId(-1);
-				responseData.Notification("User already logged in.");
-				return responseData.GetContentResult();
+
+				return new ServerPacket()
+					.Notification("User already logged in.")
+					.PlayerId(-1)
+					.FinalizeAndGetContentResult();
 			}
 
 			session.LogoutPlayer(player);
 		}
 		
-		var userInfo = await players.FetchPlayerInfoByLogin(loginData.Username);
+		var userInfo = await players.GetPlayerInfoFromLogin(loginData.Username);
 		if (userInfo == null)
 		{
 			Response.Headers["cho-token"] = "unknown-username";
-                
-			using var responseData = new ServerPackets();
-			responseData.Notification("Unknown username.");
-			responseData.PlayerId(-1);
-			return responseData.GetContentResult();
+
+			return new ServerPacket()
+				.Notification("Unknown username.")
+				.PlayerId(-1)
+				.FinalizeAndGetContentResult();
 		}
 		
 		var privileges = (Privileges)userInfo.Privileges;
@@ -108,20 +108,20 @@ public partial class ChoController
 		    privileges.HasPrivilege(Privileges.Unrestricted))
 		{
 			Response.Headers["cho-token"] = "no";
-                
-			using var responseData = new ServerPackets();
-			responseData.PlayerId(-1);
-			return responseData.GetContentResult();
+
+			return new ServerPacket()
+				.PlayerId(-1)
+				.FinalizeAndGetContentResult();
 		}
 		
 		if (!session.CheckHashes(loginData.PasswordMD5, userInfo.PasswordHash))
 		{
 			Response.Headers["cho-token"] = "incorrect-password";
-				
-			using var responseData = new ServerPackets();
-			responseData.Notification("Incorrect password.");
-			responseData.PlayerId(-1);
-			return responseData.GetContentResult();
+
+			return new ServerPacket()
+				.Notification("Incorrect password.")
+				.PlayerId(-1)
+				.FinalizeAndGetContentResult();
 		}
 
 		await clients.InsertLoginData(
@@ -145,29 +145,29 @@ public partial class ChoController
 			else
 			{
 				Response.Headers["cho-token"] = "contact-staff";
-			
-				using var responseData = new ServerPackets();
-				responseData.Notification("Please contact staff directly to create an account.");
-				responseData.PlayerId(-1);
-				return responseData.GetContentResult();
+
+				return new ServerPacket()
+					.Notification("Please contact staff directly to create an account.")
+					.PlayerId(-1)
+					.FinalizeAndGetContentResult();
 			}
 		}
 		//TODO assign club
 		
-		var geoloc1 = await geoloc.GetGeoloc(Request.Headers);
-		if (geoloc1 == null)
+		var _geoloc = await geoloc.GetGeoloc(Request.Headers);
+		if (_geoloc == null)
 		{
 			Response.Headers["cho-token"] = "login-failed";
-			
-			using var responseData = new ServerPackets();
-			responseData.Notification("Login failed. Please contact an admin.");
-			responseData.PlayerId(-1);
-			return responseData.GetContentResult();
+
+			return new ServerPacket()
+				.Notification("Login failed. Please contact an admin.")
+				.PlayerId(-1)
+				.FinalizeAndGetContentResult();
 		}
 		
 		player = new Player(userInfo, Guid.NewGuid(), DateTime.Now, loginData.TimeZone)
 		{
-			Geoloc = geoloc1.Value,
+			Geoloc = _geoloc.Value,
 			ClientDetails = new ClientDetails
 			{
 				OsuVersion = loginData.OsuVersion,
@@ -181,14 +181,13 @@ public partial class ChoController
 		};
 
 		if (userInfo.Country == "xx")
-			await players.UpdatePlayerCountry(player, geoloc1.Value.Country.Acronym);
-		
-		using var loginPackets = new ServerPackets();
+			await players.UpdatePlayerCountry(player, _geoloc.Value.Country.Acronym);
 
-		loginPackets.ProtocolVersion(19);
-		loginPackets.PlayerId(player.Id);
-		loginPackets.BanchoPrivileges((int)(player.ToBanchoPrivileges() | ClientPrivileges.Supporter));
-		loginPackets.Notification(AppSettings.WelcomeMessage);
+		using var loginPackets = new ServerPacket()
+			.ProtocolVersion(19)
+			.PlayerId(player.Id)
+			.BanchoPrivileges((int)(player.ToBanchoPrivileges() | ClientPrivileges.Supporter))
+			.Notification(AppSettings.WelcomeMessage);
 
 		#region Append AutoJoin Channels
 
@@ -201,12 +200,12 @@ public partial class ChoController
 				continue;
 			}
 
-			using var chanInfoPacket = new ServerPackets();
-			chanInfoPacket.ChannelInfo(channel);
-			var bytes = chanInfoPacket.GetContent();
+			var chanInfoBytes = new ServerPacket()
+				.ChannelInfo(channel)
+				.FinalizeAndGetContent();
 			
-			loginPackets.WriteBytes(bytes);
-			channel.EnqueueIfCanRead(bytes);
+			loginPackets.WriteBytes(chanInfoBytes);
+			channel.EnqueueIfCanRead(chanInfoBytes);
 		}
 		
 		loginPackets.ChannelInfoEnd();
@@ -215,13 +214,13 @@ public partial class ChoController
 		
 		loginPackets.MainMenuIcon(AppSettings.MenuIconUrl, AppSettings.MenuOnclickUrl);
 		
-		await players.FetchPlayerStats(player);
-		await players.FetchPlayerRelationships(player);
+		await players.GetPlayerStats(player);
+		await players.GetPlayerRelationships(player);
 
-		loginPackets.FriendsList(player.Friends);
-		loginPackets.SilenceEnd(Math.Max(0, (int)(player.RemainingSilence - DateTime.Now).TotalSeconds));
-		loginPackets.UserPresence(player);
-		loginPackets.UserStats(player);
+		loginPackets.FriendsList(player.Friends)
+			.SilenceEnd(Math.Max(0, (int)(player.RemainingSilence - DateTime.Now).TotalSeconds))
+			.UserPresence(player)
+			.UserStats(player);
 
 		var banchoBot = session.BanchoBot;
 		if (!player.Restricted)
@@ -243,15 +242,15 @@ public partial class ChoController
 		}
 		else
 		{
-			loginPackets.OtherPlayers();
-			loginPackets.AccountRestricted();
-			loginPackets.SendMessage(new Message
-			{
-				Sender = banchoBot.Username,
-				Content = AppSettings.RestrictedMessage,
-				Destination = player.Username,
-				SenderId = banchoBot.Id
-			});
+			loginPackets.OtherPlayers()
+				.AccountRestricted()
+				.SendMessage(new Message
+				{
+					Sender = banchoBot.Username,
+					Content = AppSettings.RestrictedMessage,
+					Destination = player.Username,
+					SenderId = banchoBot.Id
+				});
 		}
 
 		if (sendHashWarning)

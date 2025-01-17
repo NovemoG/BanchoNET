@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using BanchoNET.Abstractions.Repositories;
 using BanchoNET.Abstractions.Repositories.Histories;
 using BanchoNET.Abstractions.Services;
 using BanchoNET.Objects.Privileges;
@@ -80,7 +81,7 @@ public class BackgroundTasks(
     private async Task ProcessRankHistory(byte mode)
     {
         await using var scope = scopeFactory.CreateAsyncScope();
-        var players = scope.ServiceProvider.GetRequiredService<PlayersRepository>();
+        var players = scope.ServiceProvider.GetRequiredService<IPlayersRepository>();
         var redis = scope.ServiceProvider.GetRequiredService<IConnectionMultiplexer>().GetDatabase();
         var histories = scope.ServiceProvider.GetRequiredService<IHistoriesRepository>();
         
@@ -136,7 +137,7 @@ public class BackgroundTasks(
     private async Task ProcessMonthlyHistory(byte mode)
     {
         await using var scope = scopeFactory.CreateAsyncScope();
-        var players = scope.ServiceProvider.GetRequiredService<PlayersRepository>();
+        var players = scope.ServiceProvider.GetRequiredService<IPlayersRepository>();
         var histories = scope.ServiceProvider.GetRequiredService<IHistoriesRepository>();
         
         var stopwatch = new Stopwatch();
@@ -150,7 +151,7 @@ public class BackgroundTasks(
         var iter = 0;
         for (int i = 0; i < playerCount; i += limit)
         {
-            var stats = await players.GetPlayerModeStatsInRange(mode, limit, iter * limit);
+            var stats = await players.GetPlayersModeStatsRange(mode, limit, iter * limit);
             
             foreach (var (playerId, playCount, replaysViewed) in stats)
             {
@@ -183,7 +184,7 @@ public class BackgroundTasks(
         logger.LogInfo("Deleting old scores...", caller: nameof(BackgroundTasks));
         
         await using var scope = scopeFactory.CreateAsyncScope();
-        var scores = scope.ServiceProvider.GetRequiredService<ScoresRepository>();
+        var scores = scope.ServiceProvider.GetRequiredService<IScoresRepository>();
 
         var deletedScores = await scores.DeleteOldScores();
 
@@ -198,9 +199,9 @@ public class BackgroundTasks(
         logger.LogInfo("Checking expiring supporter privileges...", caller: nameof(BackgroundTasks));
         
         await using var scope = scopeFactory.CreateAsyncScope();
-        var players = scope.ServiceProvider.GetRequiredService<PlayersRepository>();
+        var players = scope.ServiceProvider.GetRequiredService<IPlayersRepository>();
         
-        var expiredSupporters = await players.GetPlayersWithExpiredSupporter();
+        var expiredSupporters = await players.GetPlayerIdsWithExpiredSupporter();
 
         foreach (var supporter in expiredSupporters)
         {
@@ -209,10 +210,10 @@ public class BackgroundTasks(
             
             player.Privileges &= ~Privileges.Supporter;
             player.RemainingSupporter = DateTime.MinValue;
-
-            using var notificationPacket = new ServerPackets();
-            notificationPacket.Notification("Your supporter status has expired.\nThank you for supporting us!");
-            player.Enqueue(notificationPacket.GetContent());
+            
+            player.Enqueue(new ServerPacket()
+                .Notification("Your supporter status has expired.\nThank you for supporting us!")
+                .FinalizeAndGetContent());
             
             logger.LogDebug($"{player.Username}'s supporter status has expired.", caller: nameof(BackgroundTasks));
         }

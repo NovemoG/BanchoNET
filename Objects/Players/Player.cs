@@ -3,7 +3,6 @@ using BanchoNET.Objects.Channels;
 using BanchoNET.Objects.Multiplayer;
 using BanchoNET.Objects.Scores;
 using BanchoNET.Packets;
-using BanchoNET.Utils;
 using BanchoNET.Utils.Extensions;
 using static BanchoNET.Objects.Privileges.Privileges;
 
@@ -11,7 +10,8 @@ namespace BanchoNET.Objects.Players;
 
 public class Player
 {
-	private ServerPackets? _queue;
+	//TODO this most probably leaks, not disposing on server shutdown
+	private ServerPacket? _queue;
 	
 	public readonly int Id;
 	public readonly Guid Token;
@@ -100,7 +100,7 @@ public class Player
 	
 	public void Enqueue(byte[] dataBytes)
 	{
-		_queue ??= new ServerPackets();
+		_queue ??= new ServerPacket();
 		_queue.WriteBytes(dataBytes);
 	}
 

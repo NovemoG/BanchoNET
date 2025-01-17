@@ -11,7 +11,7 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler(
 	IBanchoSession session,
-	PlayersRepository players,
+	IPlayersRepository players,
 	IHistoriesRepository histories,
 	IBeatmapsRepository beatmaps,
 	IMessagesRepository messages,

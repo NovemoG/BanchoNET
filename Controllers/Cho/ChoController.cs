@@ -14,7 +14,7 @@ public partial class ChoController(
 	IBanchoSession session,
 	IGeolocService geoloc,
 	IOsuVersionService version,
-	PlayersRepository players,
+	IPlayersRepository players,
 	IClientsRepository clients,
 	IClientPacketsHandler clientPackets,
 	IMessagesRepository messages)
@@ -30,10 +30,10 @@ public partial class ChoController(
 		var player = session.GetPlayerByToken(new Guid(osuToken));
 		if (player == null)
 		{
-			using var restartData = new ServerPackets();
-			restartData.Notification("Server has restarted.");
-			restartData.RestartServer(0);
-			return restartData.GetContentResult();
+			return new ServerPacket()
+				.Notification("Server has restarted.")
+				.RestartServer(0)
+				.FinalizeAndGetContentResult();
 		}
 		
 		await clientPackets.ReadPackets(Request.Body, player);

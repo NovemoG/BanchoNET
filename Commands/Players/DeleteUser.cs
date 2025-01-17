@@ -28,7 +28,7 @@ public partial class CommandProcessor
         //TODO is it really needed since every nickname is converted to safe anyway?
         var username = args.MergeQuotedElements().Unquote();
         
-        var player = await players.FetchPlayerInfoByName(username);
+        var player = await players.GetPlayerInfo(username);
         if (player == null)
             return "Player with provided username does not exist.";
         

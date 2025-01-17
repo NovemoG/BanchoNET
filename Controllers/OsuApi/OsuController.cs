@@ -11,9 +11,9 @@ namespace BanchoNET.Controllers.OsuApi;
 [SubdomainAuthorize("osu")]
 public partial class OsuController(
     IBanchoSession session,
-    PlayersRepository players,
+    IPlayersRepository players,
     IBeatmapsRepository beatmaps,
-    ScoresRepository scores,
+    IScoresRepository scores,
     IBeatmapHandler beatmapHandler,
     IGeolocService geoloc,
     HttpClient httpClient)

@@ -140,9 +140,9 @@ public sealed class BanchoSession : IBanchoSession
 
 		if (!player.Restricted)
 		{
-			using var logoutPacket = new ServerPackets();
-			logoutPacket.Logout(player.Id);
-			EnqueueToPlayers(logoutPacket.GetContent());
+			EnqueueToPlayers(new ServerPacket()
+				.Logout(player.Id)
+				.FinalizeAndGetContent());
 		}
 
 		var successfullyRemoved = _playersById.TryRemove(player.Id, out _)

@@ -9,6 +9,7 @@ namespace BanchoNET.Models.Dtos;
 [Index(nameof(Score))]
 [Index(nameof(Mods))]
 [Index(nameof(BeatmapMD5))]
+[Index(nameof(OnlineChecksum))]
 [Index(nameof(Mode))]
 [Index(nameof(Status))]
 [Index(nameof(PlayTime))]

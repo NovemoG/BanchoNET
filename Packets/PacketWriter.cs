@@ -1,12 +1,11 @@
 ﻿using BanchoNET.Objects.Channels;
 using BanchoNET.Objects.Multiplayer;
 using BanchoNET.Objects.Players;
-using BanchoNET.Utils;
 using BanchoNET.Utils.Extensions;
 
 namespace BanchoNET.Packets;
 
-public partial class ServerPackets
+public sealed partial class ServerPacket
 {
 	private readonly Dictionary<DataType, Action<BinaryWriter, object>> _actionsMap = new()
 	{
@@ -56,6 +55,7 @@ public partial class ServerPackets
 		var dataBytes = buffer.ToArray();
 		var returnStream = new MemoryStream();
 		
+		//TODO byte counter helper function
 		//Writes length of the packet data inside the stream
 		returnStream.Write(dataBytes, 0, 3);
 		returnStream.Write(BitConverter.GetBytes(dataBytes.Length - 3));

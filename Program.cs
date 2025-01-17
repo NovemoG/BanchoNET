@@ -227,8 +227,8 @@ public class Program
 		builder.Services.AddScoped<IBeatmapsRepository, BeatmapsRepository>();
 		builder.Services.AddScoped<IClientsRepository, ClientsRepository>();
 		builder.Services.AddScoped<IMessagesRepository, MessagesRepository>();
-		builder.Services.AddScoped<PlayersRepository>();
-		builder.Services.AddScoped<ScoresRepository>();
+		builder.Services.AddScoped<IPlayersRepository, PlayersRepository>();
+		builder.Services.AddScoped<IScoresRepository, ScoresRepository>();
 		builder.Services.AddScoped<IGeolocService, GeolocService>();
 		builder.Services.AddScoped<IBeatmapHandler, BeatmapHandler>();
 		builder.Services.AddScoped<ICommandProcessor, CommandProcessor>();

@@ -66,7 +66,7 @@ public partial class OsuController
             var versionDate = DateTime.ParseExact(osuVersion[..8], "yyyyMMdd", null);
 			
             if (versionDate != player.ClientDetails.OsuVersion.Date)
-                throw new Exception("ovu! version mismatch");
+                throw new Exception("osu! version mismatch");
 			
             if (clientHash != player.ClientDetails.ClientHash)
                 throw new Exception("Client hash mismatch");
@@ -101,13 +101,13 @@ public partial class OsuController
 			
             if (!player.Restricted)
             {
-                using var statsPacket = new ServerPackets();
-                statsPacket.UserStats(player);
-                session.EnqueueToPlayers(statsPacket.GetContent());
+                session.EnqueueToPlayers(new ServerPacket()
+                    .UserStats(player)
+                    .FinalizeAndGetContent());
             }
         }
 
-        if (await scores.GetScore(score.ClientChecksum) != null)
+        if (await scores.ScoreExists(score.ClientChecksum))
         {
             Console.WriteLine($"[ScoreSubmission] {player.Username} tried to submit a duplicate score.");
             return Ok("error: no");
@@ -115,8 +115,8 @@ public partial class OsuController
 		
         score.CalculateAccuracy();
         
-        var bestWithMods = await scores.GetPlayerBestScoreWithModsOnMap(player, beatmapMD5, score.Mode, score.Mods);
-        var prevBest = await scores.GetPlayerBestScoreOnMap(player, beatmapMD5, score.Mode);
+        var bestWithMods = await scores.GetPlayerBestScoreWithModsOnMap(player.Id, beatmapMD5, score.Mode, score.Mods);
+        var prevBest = await scores.GetPlayerBestScoreOnMap(player.Id, beatmapMD5, score.Mode);
 
         if (await beatmapHandler.EnsureLocalBeatmapFile(beatmap.MapId, beatmapMD5))
         {
@@ -127,7 +127,7 @@ public partial class OsuController
                 score.ComputeSubmissionStatus(prevBest, bestWithMods);
 
                 if (beatmap.Status != BeatmapStatus.LatestPending)
-                    await scores.SetScoreLeaderboardPosition(beatmap, score, false);
+                    await scores.SetScoreLeaderboardPosition(beatmap.MD5, score, false);
             }
             else score.Status = SubmissionStatus.Failed;
         }
@@ -164,19 +164,20 @@ public partial class OsuController
 					
                     scoreNotification += $"\n[{fcPP:F2}pp if FC]";
                 }
-				
-                using var notification = new ServerPackets();
-                notification.Notification(scoreNotification);
-                player.Enqueue(notification.GetContent());
+                
+                player.Enqueue(new ServerPacket()
+                    .Notification(scoreNotification)
+                    .FinalizeAndGetContent());
 
                 await AnnounceNewFirstScore(score, player, beatmap);
             }
-            
-            await scores.SetScoresStatuses(prevBest, bestWithMods);
+
+            await scores.UpdateScoreStatus(prevBest);
+            await scores.UpdateScoreStatus(bestWithMods);
         }
         
         score.Player = player;
-        player.RecentScore = await scores.InsertScore(score, beatmap.MD5, player);
+        player.RecentScore = await scores.InsertScore(score, beatmap.MD5, player.Restricted);
 
         if (score.Passed)
         {
@@ -203,16 +204,16 @@ public partial class OsuController
         stats.UpdateHits(score);
         
         var previousBest = score.PreviousBest;
-        if (previousBest != null) await scores.SetScoreLeaderboardPosition(beatmap, previousBest, false);
+        if (previousBest != null) await scores.SetScoreLeaderboardPosition(beatmap.MD5, previousBest, false);
         
         await RecalculatePlayerStats(beatmap, stats, player, score, previousBest, bestWithMods);
         await players.UpdatePlayerStats(player, score.Mode);
 
         if (!player.Restricted)
         {
-            using var statsPacket = new ServerPackets();
-            statsPacket.UserStats(player);
-            session.EnqueueToPlayers(statsPacket.GetContent());
+            session.EnqueueToPlayers(new ServerPacket()
+                .UserStats(player)
+                .FinalizeAndGetContent());
 
             beatmap.Plays += 1;
             if (score.Passed)
@@ -367,7 +368,7 @@ public partial class OsuController
             var announceChannel = session.GetChannel("#announce");
             var announcement = $@"\x01ACTION achieved #1 on {beatmap.Embed()} with {score.Acc:F2}% and {score.PP}pp.";
 			
-            var currentBest = await scores.GetBestBeatmapScore(beatmap, score.Mode);
+            var currentBest = await scores.GetBestBeatmapScore(beatmap.MD5, score.Mode);
 					
             if (score.Mods > 0)
                 announcement = announcement.Insert(0, $"+{score.Mods}");

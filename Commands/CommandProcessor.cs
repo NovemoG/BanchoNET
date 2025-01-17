@@ -13,8 +13,8 @@ namespace BanchoNET.Commands;
 
 public partial class CommandProcessor(
     IBanchoSession session,
-    ScoresRepository scores,
-    PlayersRepository players,
+    IScoresRepository scores,
+    IPlayersRepository players,
     IBeatmapsRepository beatmaps,
     IBeatmapHandler beatmapHandler,
     IHistoriesRepository histories

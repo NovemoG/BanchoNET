@@ -1,7 +1,7 @@
-﻿using BanchoNET.Models;
+﻿using BanchoNET.Abstractions.Repositories;
+using BanchoNET.Models;
 using BanchoNET.Models.Dtos;
 using BanchoNET.Objects;
-using BanchoNET.Objects.Beatmaps;
 using BanchoNET.Objects.Players;
 using BanchoNET.Objects.Scores;
 using BanchoNET.Utils;
@@ -9,11 +9,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BanchoNET.Services.Repositories;
 
-public class ScoresRepository(BanchoDbContext dbContext)
+public class ScoresRepository(BanchoDbContext dbContext) : IScoresRepository
 {
     private static bool OrderByPp(GameMode mode) => mode >= GameMode.RelaxStd || AppSettings.SortLeaderboardByPP;
 	
-    public async Task<Score> InsertScore(Score score, string beatmapMD5, Player player)
+    public async Task<Score> InsertScore(Score score, string beatmapMD5, bool isPlayerRestricted)
     {
         var dbScore = await dbContext.Scores.AddAsync(new ScoreDto
         {
@@ -38,21 +38,24 @@ public class ScoresRepository(BanchoDbContext dbContext)
             PlayerId = score.PlayerId,
             Perfect = score.Perfect,
             OnlineChecksum = score.ClientChecksum,
-            IsRestricted = player.Restricted
+            IsRestricted = isPlayerRestricted
         });
         await dbContext.SaveChangesAsync();
 
         score.Id = dbScore.Entity.Id;
-
-        return new Score(dbScore.Entity);
+        return score;
     }
 
-    public async Task<ScoreDto?> GetScore(string checksum)
+    public async Task<ScoreDto?> GetScore(long id)
     {
-        if (!string.IsNullOrEmpty(checksum))
-            return await dbContext.Scores.FirstOrDefaultAsync(s => s.OnlineChecksum == checksum);
+        return await dbContext.Scores.FirstOrDefaultAsync(s => s.Id == id);
+    }
 
-        return null;
+    public async Task<bool> ScoreExists(string checksum)
+    {
+        if (string.IsNullOrEmpty(checksum)) return false;
+
+        return await dbContext.Scores.AnyAsync(s => s.OnlineChecksum == checksum);
     }
 
     public async Task<Score?> GetPlayerRecentScore(int playerId)
@@ -63,33 +66,42 @@ public class ScoresRepository(BanchoDbContext dbContext)
         return score == null ? null : new Score(score);
     }
     
-    public async Task<List<ScoreDto>> GetPlayersRecentScores(List<int> playerIds, DateTime finishDate)
+    public async Task<List<ScoreDto>> GetPlayerRecentScores(int playerId, int start, int count = 10)
     {
-         var scores = await dbContext.Scores
+        return await dbContext.Scores.Where(s => s.PlayerId == playerId)
+            .OrderByDescending(s => s.PlayTime)
+            .Skip(start)
+            .Take(count)
+            .ToListAsync();
+    }
+    
+    public async Task<List<ScoreDto>> GetMultiplayerScores(List<int> playerIds, DateTime finishDate)
+    {
+        return await dbContext.Scores
             .Where(s => playerIds.Contains(s.PlayerId) && s.PlayTime > finishDate)
             .ToListAsync();
-
-        return scores;
     }
 
-    public async Task SetScoresStatuses(Score? previousScore, Score? previousWithMods)
+    public async Task UpdateScoreStatus(Score? score)
     {
-        if (previousScore != null)
-            await dbContext.Scores.Where(s => s.Id == previousScore.Id).ExecuteUpdateAsync(s => 
-                s.SetProperty(u => u.Status, (int)previousScore.Status));
+        if (score == null) return;
 
-        if (previousWithMods != null)
-            await dbContext.Scores.Where(s => s.Id == previousWithMods.Id).ExecuteUpdateAsync(s =>
-                s.SetProperty(u => u.Status, (int)previousWithMods.Status));
+        await UpdateScoreStatus(score.Id, score.Status);
+    }
+
+    public async Task UpdateScoreStatus(long id, SubmissionStatus newStatus)
+    {
+        await dbContext.Scores.Where(s => s.Id == id)
+            .ExecuteUpdateAsync(p => p.SetProperty(s => s.Status, (int)newStatus));
     }
     
     public async Task<Score?> GetPlayerBestScoreOnMap(
-        Player player,
+        int playerId,
         string beatmapMD5,
         GameMode mode)
     {
         var score = await dbContext.Scores.FirstOrDefaultAsync(
-            s => s.PlayerId == player.Id
+            s => s.PlayerId == playerId
                  && s.BeatmapMD5 == beatmapMD5
                  && s.Mode == (int)mode
                  && s.Status == (int)SubmissionStatus.Best);
@@ -98,13 +110,13 @@ public class ScoresRepository(BanchoDbContext dbContext)
     }
     
     public async Task<Score?> GetPlayerBestScoreWithModsOnMap(
-        Player player,
+        int playerId,
         string beatmapMD5,
         GameMode mode,
         Mods mods)
     {
         var response = await dbContext.Scores.FirstOrDefaultAsync(
-            s => s.PlayerId == player.Id
+            s => s.PlayerId == playerId
                  && s.BeatmapMD5 == beatmapMD5
                  && s.Mode == (int)mode
                  && s.Mods == (int)mods
@@ -113,10 +125,11 @@ public class ScoresRepository(BanchoDbContext dbContext)
         return response == null ? null : new Score(response);
     }
 	
-    public async Task<ScoreDto?> GetBestBeatmapScore(Beatmap beatmap, GameMode mode)
+    public async Task<ScoreDto?> GetBestBeatmapScore(string beatmapMD5, GameMode mode)
     {
-        return await dbContext.Scores.Include(s => s.Player)
-            .Where(s => s.BeatmapMD5 == beatmap.MD5
+        return await dbContext.Scores
+            .Include(s => s.Player)
+            .Where(s => s.BeatmapMD5 == beatmapMD5
                         && s.Mode == (int)mode
                         && s.Status == (int)SubmissionStatus.Best
                         && (s.Player.Privileges & 1) == 1
@@ -126,14 +139,14 @@ public class ScoresRepository(BanchoDbContext dbContext)
     }
 	
     public async Task SetScoreLeaderboardPosition(
-        Beatmap beatmap,
+        string beatmapMD5,
         Score score,
         bool withMods,
         Mods mods = Mods.None)
     {
         score.LeaderboardPosition = await dbContext.Scores
             .Include(s => s.Player)
-            .Where(s => s.BeatmapMD5 == beatmap.MD5 
+            .Where(s => s.BeatmapMD5 == beatmapMD5 
                         && s.Mode == (int)score.Mode
                         && (withMods
                             ? s.Status >= (int)SubmissionStatus.BestWithMods
@@ -184,20 +197,19 @@ public class ScoresRepository(BanchoDbContext dbContext)
         return result;
     }
 
-    public async Task DisableNotSubmittedBeatmapScores(string beatmapMD5)
+    public async Task ToggleBeatmapScoresVisibility(string beatmapMD5, bool visible)
     {
-        await dbContext.Scores
-            .Where(s => s.BeatmapMD5 == beatmapMD5)
-            .ExecuteUpdateAsync(p => p.SetProperty(s => s.IsRestricted, true));
+        await dbContext.Scores.Where(s => s.BeatmapMD5 == beatmapMD5)
+            .ExecuteUpdateAsync(p => p.SetProperty(s => s.IsRestricted, visible));
     }
     
     /// <summary>
     /// Deletes all scores with status not flagged as best older than 2 days from when the method was used.
     /// </summary>
     /// <returns>List of IDs of scores that were affected.</returns>
-    public async Task<List<long>> DeleteOldScores()
+    public async Task<List<long>> DeleteOldScores(short differenceInHours = 48)
     {
-        var date = DateTime.Now - TimeSpan.FromDays(2);
+        var date = DateTime.Now - TimeSpan.FromHours(differenceInHours);
 
         // Saving IDs of scores that are not failed (we don't store failed scores replays)
         var scoreIds = await dbContext.Scores

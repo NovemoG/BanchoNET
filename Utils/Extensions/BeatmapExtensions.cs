@@ -129,36 +129,29 @@ public static class BeatmapExtensions
 
 	public static BeatmapDto UpdateWith(this BeatmapDto currentBeatmap, Beatmap newBeatmap)
 	{
-		return new BeatmapDto
-		{
-			MapId = currentBeatmap.MapId,
-			SetId = currentBeatmap.SetId,
-			Private = currentBeatmap.Private,
-			Mode = currentBeatmap.Mode,
-			Status = newBeatmap.IsRankedOfficially || newBeatmap.Status == BeatmapStatus.Qualified
-				? (sbyte)newBeatmap.Status
-				: currentBeatmap.Status,
-			IsRankedOfficially = newBeatmap.IsRankedOfficially,
-			MD5 = newBeatmap.MD5,
-			Artist = newBeatmap.Artist,
-			Title = newBeatmap.Title,
-			Name = newBeatmap.Name,
-			Creator = newBeatmap.Creator,
-			SubmitDate = newBeatmap.SubmitDate,
-			LastUpdate = newBeatmap.LastUpdate,
-			TotalLength = newBeatmap.TotalLength,
-			MaxCombo = newBeatmap.MaxCombo,
-			Plays = currentBeatmap.Plays,
-			Passes = currentBeatmap.Passes,
-			Bpm = newBeatmap.Bpm,
-			Cs = newBeatmap.Cs,
-			Ar = newBeatmap.Ar,
-			Od = newBeatmap.Od,
-			Hp = newBeatmap.Hp,
-			StarRating = newBeatmap.StarRating,
-			NotesCount = newBeatmap.NotesCount,
-			SlidersCount = newBeatmap.SlidersCount,
-			SpinnersCount = newBeatmap.SpinnersCount
-		};
+		currentBeatmap.Status = newBeatmap.IsRankedOfficially || newBeatmap.Status == BeatmapStatus.Qualified
+			? (sbyte)newBeatmap.Status
+			: currentBeatmap.Status;
+		currentBeatmap.IsRankedOfficially = newBeatmap.IsRankedOfficially;
+		currentBeatmap.MD5 = newBeatmap.MD5;
+		currentBeatmap.Artist = newBeatmap.Artist;
+		currentBeatmap.Title = newBeatmap.Title;
+		currentBeatmap.Name = newBeatmap.Name;
+		currentBeatmap.Creator = newBeatmap.Creator;
+		currentBeatmap.SubmitDate = newBeatmap.SubmitDate;
+		currentBeatmap.LastUpdate = newBeatmap.LastUpdate;
+		currentBeatmap.TotalLength = newBeatmap.TotalLength;
+		currentBeatmap.MaxCombo = newBeatmap.MaxCombo;
+		currentBeatmap.Bpm = newBeatmap.Bpm;
+		currentBeatmap.Cs = newBeatmap.Cs;
+		currentBeatmap.Ar = newBeatmap.Ar;
+		currentBeatmap.Od = newBeatmap.Od;
+		currentBeatmap.Hp = newBeatmap.Hp;
+		currentBeatmap.StarRating = newBeatmap.StarRating;
+		currentBeatmap.NotesCount = newBeatmap.NotesCount;
+		currentBeatmap.SlidersCount = newBeatmap.SlidersCount;
+		currentBeatmap.SpinnersCount = newBeatmap.SpinnersCount;
+		
+		return currentBeatmap;
 	}
 }

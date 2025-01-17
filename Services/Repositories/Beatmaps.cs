@@ -11,7 +11,7 @@ public class BeatmapsRepository(
 	IBanchoSession session,
 	BanchoDbContext dbContext,
 	IBeatmapHandler beatmapHandler,
-	ScoresRepository scores
+	IScoresRepository scores
 	) : IBeatmapsRepository
 {
 	public async Task<Beatmap?> GetBeatmap(int mapId, int setId = -1)
@@ -167,14 +167,15 @@ public class BeatmapsRepository(
 	{
 		foreach (var beatmap in set.Beatmaps)
 		{
-			var dbBeatmap = await dbContext.Beatmaps.FirstOrDefaultAsync(b => b.MapId == beatmap.MapId);
-
+			//var dbBeatmap = await dbContext.Beatmaps.FirstOrDefaultAsync(b => b.MapId == beatmap.MapId);
+			var dbBeatmap = await dbContext.Beatmaps.FirstOrDefaultAsync(b => b.MD5 == beatmap.MD5);
+			
 			if (dbBeatmap != null)
 			{
 				dbContext.Update(dbBeatmap.UpdateWith(beatmap));
 
 				if (beatmap.Status <= BeatmapStatus.NotSubmitted)
-					await scores.DisableNotSubmittedBeatmapScores(beatmap.MD5);
+					await scores.ToggleBeatmapScoresVisibility(beatmap.MD5, false);
 			}
 			else
 			{

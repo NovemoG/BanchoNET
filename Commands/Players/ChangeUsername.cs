@@ -8,7 +8,7 @@ public partial class CommandProcessor
 {
     [Command("change_username",
         Privileges.Administrator,
-        "Changes provided player's username to a desired one. Syntax: change_username <old_username>/<new_username>",
+        "Changes provided player's username to a desired one. Syntax: change_username <old_username>/<new_username> or just <new_username>",
         "\nIt must not be taken or disallowed and it must be a valid one: have between 2 and 15 characters, contain " +
         "only alphanumeric characters, underscores, spaces, dashes or square brackets, and not start or end with a space.",
         ["cu"])]
@@ -18,11 +18,10 @@ public partial class CommandProcessor
             return $"No parameters provided. Syntax: {Prefix}change_username <old_username>/<new_username>";
         
         var usernames = string.Join(' ', args).Split('/', 2);
-        if (usernames.Length is < 2)
-            return $"Invalid number of parameters provided. {Prefix}Syntax: change_username <old_username>/<new_username>";
-
-        var player = await players.FetchPlayerInfoByName(usernames[0]);
-        if (player == null)
+        if (usernames.Length == 1)
+            return await UsernameChangeResult(_playerCtx.Username, usernames[0]);
+        
+        if (!await players.PlayerExists(usernames[0]))
             return "Player with provided username does not exist.";
         
         if (!Regexes.Username.Match(usernames[1]).Success)
@@ -38,8 +37,13 @@ public partial class CommandProcessor
         if (AppSettings.DisallowedNames.Contains(usernames[1]))
             return "Username is disallowed.";
 
-        return await players.ChangeUsername(player, usernames[1])
-            ? $"{player.Username}'s username has been successfully changed to {usernames[1]}."
-            : "An error occurred while changing the username.";
+        return await UsernameChangeResult(usernames[0], usernames[1]);
+
+        async Task<string> UsernameChangeResult(string oldName, string newName)
+        {
+            return await players.ChangeUsername(oldName, newName)
+                ? $"{oldName}'s username has been successfully changed to {newName}."
+                : "An error occurred while changing the username.";
+        }
     }
 }
