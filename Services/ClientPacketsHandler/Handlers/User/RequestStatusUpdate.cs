@@ -7,9 +7,9 @@ public partial class ClientPacketsHandler
 {
 	private Task RequestStatusUpdate(Player player, BinaryReader br)
 	{
-		using var packet = new ServerPackets();
-		packet.UserStats(player);
-		session.EnqueueToPlayers(packet.GetContent());
+		session.EnqueueToPlayers(new ServerPackets()
+			.UserStats(player)
+			.FinalizeAndGetContent());
 		
 		player.LastActivityTime = DateTime.Now;
 		return Task.CompletedTask;

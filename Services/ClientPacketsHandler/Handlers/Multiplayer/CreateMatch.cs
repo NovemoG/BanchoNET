@@ -1,7 +1,6 @@
 ﻿using BanchoNET.Models.Mongo;
 using BanchoNET.Objects.Players;
 using BanchoNET.Packets;
-using BanchoNET.Utils;
 using BanchoNET.Utils.Extensions;
 using Action = BanchoNET.Models.Mongo.Action;
 
@@ -16,19 +15,19 @@ public partial class ClientPacketsHandler
 		
 		if (player.Restricted)
 		{
-			using var joinFailPacket = new ServerPackets();
-			joinFailPacket.MatchJoinFail();
-			joinFailPacket.Notification("Multiplayer is not available while restricted.");
-			player.Enqueue(joinFailPacket.GetContent());
+			player.Enqueue(new ServerPackets()
+				.MatchJoinFail()
+				.Notification("Multiplayer is not available while restricted.")
+				.FinalizeAndGetContent());
 			return;
 		}
 
 		if (player.Silenced)
 		{
-			using var joinFailPacket = new ServerPackets();
-			joinFailPacket.MatchJoinFail();
-			joinFailPacket.Notification("Multiplayer is not available while silenced.");
-			player.Enqueue(joinFailPacket.GetContent());
+			player.Enqueue(new ServerPackets()
+				.MatchJoinFail()
+				.Notification("Multiplayer is not available while silenced.")
+				.FinalizeAndGetContent());
 			return;
 		}
 		

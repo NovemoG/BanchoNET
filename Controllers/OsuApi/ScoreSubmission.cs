@@ -101,7 +101,7 @@ public partial class OsuController
 			
             if (!player.Restricted)
             {
-                session.EnqueueToPlayers(new ServerPacket()
+                session.EnqueueToPlayers(new ServerPackets()
                     .UserStats(player)
                     .FinalizeAndGetContent());
             }
@@ -165,7 +165,7 @@ public partial class OsuController
                     scoreNotification += $"\n[{fcPP:F2}pp if FC]";
                 }
                 
-                player.Enqueue(new ServerPacket()
+                player.Enqueue(new ServerPackets()
                     .Notification(scoreNotification)
                     .FinalizeAndGetContent());
 
@@ -211,7 +211,7 @@ public partial class OsuController
 
         if (!player.Restricted)
         {
-            session.EnqueueToPlayers(new ServerPacket()
+            session.EnqueueToPlayers(new ServerPackets()
                 .UserStats(player)
                 .FinalizeAndGetContent());
 

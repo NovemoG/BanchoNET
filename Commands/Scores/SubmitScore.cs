@@ -13,7 +13,7 @@ namespace BanchoNET.Commands;
 public partial class CommandProcessor
 {
     [Command("submit",
-        Privileges.Submitter | Privileges.Administrator,
+        PlayerPrivileges.Submitter | PlayerPrivileges.Administrator,
         "Submits a passed score to the server. Syntax: submit <beatmap_id> <mode> <score> <max_combo> <count300> " +
         "<count100> <count50> <misses> <geki> <katu> <grade> <date> [<perfect_fc>] [<mods>] [<username>]",
         "\nDate format is: yyyyMMddHHmmss. If optional values are not provided, they will be set to 0 (nomod for mods)." +

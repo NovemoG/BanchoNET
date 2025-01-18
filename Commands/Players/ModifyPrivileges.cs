@@ -8,7 +8,7 @@ namespace BanchoNET.Commands;
 public partial class CommandProcessor
 {
     [Command("addpriv",
-        Privileges.Administrator | Privileges.Developer,
+        PlayerPrivileges.Administrator | PlayerPrivileges.Developer,
         "Adds given privilege to a player with given username. Syntax: addpriv <username> <privilege>",
         "\nYou can only add privileges that are lower in rank than yours. If player's username contains spaces" +
         "\nplease replace them with underscores." +
@@ -25,7 +25,7 @@ public partial class CommandProcessor
         var username = args[0];
         var priv = args[1].ToLower();
         
-        if (!ValidPrivileges.Contains(priv) || !Enum.TryParse(priv, true, out Privileges privilege))
+        if (!ValidPrivileges.Contains(priv) || !Enum.TryParse(priv, true, out PlayerPrivileges privilege))
             return $"Invalid privilege provided. Available privileges: {string.Join(", ", ValidPrivileges)}.";
         
         if (_playerCtx.Privileges.GetHighestPrivilege() < privilege)
@@ -45,7 +45,7 @@ public partial class CommandProcessor
     }
 
     [Command("rmpriv",
-        Privileges.Administrator | Privileges.Developer,
+        PlayerPrivileges.Administrator | PlayerPrivileges.Developer,
         "Removes given privilege from a player with given username. Syntax: rmpriv <username> <privilege>",
         "\nYou can only remove privileges that are lower in rank than yours. If player's username contains spaces" +
         "\nplease replace them with underscores." +
@@ -65,7 +65,7 @@ public partial class CommandProcessor
         if (_playerCtx.SafeName == username.MakeSafe())
             return "You can't remove your own privileges.";
         
-        if (!ValidPrivileges.Contains(priv) || !Enum.TryParse(priv, true, out Privileges privilege))
+        if (!ValidPrivileges.Contains(priv) || !Enum.TryParse(priv, true, out PlayerPrivileges privilege))
             return $"Invalid privilege provided. Available privileges: {string.Join(", ", ValidPrivileges)}.";
         
         if (_playerCtx.Privileges.GetHighestPrivilege() <= privilege)

@@ -8,7 +8,7 @@ namespace BanchoNET.Commands;
 public partial class CommandProcessor
 {
     [Command("restrict",
-        Privileges.Moderator | Privileges.Staff,
+        PlayerPrivileges.Moderator | PlayerPrivileges.Staff,
         "Restricts provided user's account. Syntax: restrict <username> <reason>",
         "\nReason can be provided with spaces between words.")]
     private async Task<string> Restrict(string[] args)
@@ -29,8 +29,8 @@ public partial class CommandProcessor
         if (player.IsBot)
             return "You can't restrict a bot.";
 
-        if (!player.Privileges.HasPrivilege(Privileges.Verified)
-            || !player.Privileges.HasPrivilege(Privileges.Unrestricted))
+        if (!player.Privileges.HasPrivilege(PlayerPrivileges.Verified)
+            || !player.Privileges.HasPrivilege(PlayerPrivileges.Unrestricted))
             return "This player is already restricted.";
         
         if (player.Privileges.GetHighestPrivilege() >= _playerCtx.Privileges.GetHighestPrivilege())
@@ -44,7 +44,7 @@ public partial class CommandProcessor
     }
 
     [Command("unrestrict",
-        Privileges.Moderator | Privileges.Staff,
+        PlayerPrivileges.Moderator | PlayerPrivileges.Staff,
         "Removes a restriction from provided user's account. Syntax: unrestrict <username> <reason>",
         "\nReason can be provided with spaces between words.")]
     private async Task<string> Unrestrict(string[] args)
@@ -61,8 +61,8 @@ public partial class CommandProcessor
         var player = await players.GetPlayerOrOffline(username);
         if (player == null) return PlayerNotFound;
 
-        if (player.Privileges.HasPrivilege(Privileges.Verified)
-            || player.Privileges.HasPrivilege(Privileges.Unrestricted))
+        if (player.Privileges.HasPrivilege(PlayerPrivileges.Verified)
+            || player.Privileges.HasPrivilege(PlayerPrivileges.Unrestricted))
             return "This player is not restricted";
 
         var result = await players.UnrestrictPlayer(player, reason);

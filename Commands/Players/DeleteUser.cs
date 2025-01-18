@@ -7,7 +7,7 @@ namespace BanchoNET.Commands;
 public partial class CommandProcessor
 {
     [Command("delete_user",
-        Privileges.Developer | Privileges.Staff,
+        PlayerPrivileges.Developer | PlayerPrivileges.Staff,
         "Deletes provided user's account. Syntax: delete_user <delete_scores> [<force>] \"<username>\"",
         "\nForce is only needed if you want to delete other staff member account or an online player.")]
     private async Task<string> DeleteUser(string[] args)
@@ -32,7 +32,7 @@ public partial class CommandProcessor
         if (player == null)
             return "Player with provided username does not exist.";
         
-        if (((Privileges)player.Privileges).GetHighestPrivilege() >= Privileges.Moderator && !force)
+        if (((PlayerPrivileges)player.Privileges).GetHighestPrivilege() >= PlayerPrivileges.Moderator && !force)
             return "This is other staff member account. If you're sure that you want to delete it - set force to true.";
 
         var result = await players.DeletePlayer(player, deleteScores, force);

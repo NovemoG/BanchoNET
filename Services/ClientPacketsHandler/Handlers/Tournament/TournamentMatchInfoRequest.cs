@@ -15,16 +15,16 @@ public partial class ClientPacketsHandler
         if (matchId is < 0 or > short.MaxValue)
             return Task.CompletedTask;
 
-        if (!player.Privileges.HasPrivilege(Privileges.Supporter))
+        if (!player.Privileges.HasPrivilege(PlayerPrivileges.Supporter))
             return Task.CompletedTask;
         
         var match = session.GetLobby((ushort)matchId);
         if (match == null)
             return Task.CompletedTask;
-
-        using var packet = new ServerPackets();
-        packet.UpdateMatch(match, false);
-        player.Enqueue(packet.GetContent());
+        
+        player.Enqueue(new ServerPackets()
+            .UpdateMatch(match, false)
+            .FinalizeAndGetContent());
         
         return Task.CompletedTask;
     }

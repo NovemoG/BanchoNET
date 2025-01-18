@@ -253,12 +253,12 @@ public class PlayersRepository : IPlayersRepository
 		}
 	}
 	
-	public async Task ModifyPlayerPrivileges(Player player, Privileges privileges, bool remove)
+	public async Task ModifyPlayerPrivileges(Player player, PlayerPrivileges playerPrivileges, bool remove)
 	{
 		if (remove)
-			player.Privileges &= ~privileges;
+			player.Privileges &= ~playerPrivileges;
 		else
-			player.Privileges |= privileges;
+			player.Privileges |= playerPrivileges;
 		
 		await _dbContext.Players.Where(p => p.Id == player.Id)
 		               .ExecuteUpdateAsync(p => 
@@ -266,7 +266,7 @@ public class PlayersRepository : IPlayersRepository
 
 		if (player.Online)
 		{
-			player.Enqueue(new ServerPacket()
+			player.Enqueue(new ServerPackets()
 				.BanchoPrivileges((int)player.ToBanchoPrivileges())
 				.FinalizeAndGetContent());
 		}
@@ -463,11 +463,11 @@ public class PlayersRepository : IPlayersRepository
 
 		if (modified != 1) return false;
 		
-		player.Enqueue(new ServerPacket()
+		player.Enqueue(new ServerPackets()
 			.SilenceEnd((int) duration.TotalSeconds)
 			.FinalizeAndGetContent());
 		
-		_session.EnqueueToPlayers(new ServerPacket()
+		_session.EnqueueToPlayers(new ServerPackets()
 			.UserSilenced(player.Id)
 			.FinalizeAndGetContent());
 		
@@ -487,7 +487,7 @@ public class PlayersRepository : IPlayersRepository
 		entity.RemainingSilence = DateTime.Now;
 		await _dbContext.SaveChangesAsync();
 		
-		player.Enqueue(new ServerPacket()
+		player.Enqueue(new ServerPackets()
 			.SilenceEnd(0)
 			.FinalizeAndGetContent());
 
@@ -501,7 +501,7 @@ public class PlayersRepository : IPlayersRepository
 		
 		//TODO log reason to database
 		
-		entity.Privileges &= ~(int)Privileges.Unrestricted;
+		entity.Privileges &= ~(int)PlayerPrivileges.Unrestricted;
 		await _dbContext.SaveChangesAsync();
 
 		for (byte i = 0; i < 8; i++)
@@ -521,7 +521,7 @@ public class PlayersRepository : IPlayersRepository
 		var entity = await _dbContext.Players.FirstOrDefaultAsync(p => p.Id == player.Id);
 		if (entity == null) return false;
 		
-		entity.Privileges |= (int)Privileges.Unrestricted;
+		entity.Privileges |= (int)PlayerPrivileges.Unrestricted;
 		await _dbContext.SaveChangesAsync();
 
 		if (!player.Online)
@@ -584,14 +584,14 @@ public class PlayersRepository : IPlayersRepository
 	{
 		var query = _dbContext.Players
 			.Where(p => p.RemainingSupporter < DateTime.Now
-			            && (p.Privileges & (int)Privileges.Supporter) == (int)Privileges.Supporter);
+			            && (p.Privileges & (int)PlayerPrivileges.Supporter) == (int)PlayerPrivileges.Supporter);
 		
 		// Saving IDs before update
 		var playerIds = await query.Select(p => p.Id).ToListAsync();
 
 		// Updating supporter status
 		await query.ExecuteUpdateAsync(s => s.SetProperty(p => p.RemainingSupporter, DateTime.MinValue)
-			.SetProperty(p => p.Privileges, e => e.Privileges & ~(int)Privileges.Supporter));
+			.SetProperty(p => p.Privileges, e => e.Privileges & ~(int)PlayerPrivileges.Supporter));
 		
 		return playerIds;
 	}

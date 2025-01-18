@@ -50,8 +50,8 @@ public class ClientsRepository(BanchoDbContext dbContext) : IClientsRepository
 			var hashes = await dbContext
 				.ClientHashes.Include(ch => ch.Player)
 				.Where(ch =>
-					((Privileges)ch.Player.Privileges & Privileges.Unrestricted) !=
-					Privileges.Unrestricted
+					((PlayerPrivileges)ch.Player.Privileges & PlayerPrivileges.Unrestricted) !=
+					PlayerPrivileges.Unrestricted
 					&& ch.Uninstall == uninstall)
 				.ToListAsync();
 
@@ -62,8 +62,8 @@ public class ClientsRepository(BanchoDbContext dbContext) : IClientsRepository
 			var hashes = await dbContext
 				.ClientHashes.Include(ch => ch.Player)
 				.Where(ch =>
-					((Privileges)ch.Player.Privileges & Privileges.Unrestricted) !=
-					Privileges.Unrestricted
+					((PlayerPrivileges)ch.Player.Privileges & PlayerPrivileges.Unrestricted) !=
+					PlayerPrivileges.Unrestricted
 					&& ch.Uninstall == uninstall
 					&& ch.Adapters == adapters
 					&& ch.DiskSerial == diskSerial)

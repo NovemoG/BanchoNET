@@ -19,21 +19,19 @@ public partial class ClientPacketsHandler
 		
 		if (player.Restricted)
 		{
-			using var joinFailPacket = new ServerPackets();
-			joinFailPacket.MatchJoinFail();
-			joinFailPacket.Notification("Multiplayer is not available while restricted.");
-			player.Enqueue(joinFailPacket.GetContent());
-			
+			player.Enqueue(new ServerPackets()
+				.MatchJoinFail()
+				.Notification("Multiplayer is not available while restricted.")
+				.FinalizeAndGetContent());
 			return;
 		}
 
 		if (player.Silenced)
 		{
-			using var joinFailPacket = new ServerPackets();
-			joinFailPacket.MatchJoinFail();
-			joinFailPacket.Notification("Multiplayer is not available while silenced.");
-			player.Enqueue(joinFailPacket.GetContent());
-			
+			player.Enqueue(new ServerPackets()
+				.MatchJoinFail()
+				.Notification("Multiplayer is not available while silenced.")
+				.FinalizeAndGetContent());
 			return;
 		}
 		
@@ -42,18 +40,18 @@ public partial class ClientPacketsHandler
 		{
 			Console.WriteLine($"[JoinMatch] {player.Username} tried to join a non-existent lobby ({lobbyId})");
 			
-			using var joinFailPacket = new ServerPackets();
-			joinFailPacket.MatchJoinFail();
-			player.Enqueue(joinFailPacket.GetContent());
+			player.Enqueue(new ServerPackets()
+				.MatchJoinFail()
+				.FinalizeAndGetContent());
 			return;
 		}
 
 		if (lobby.BannedPlayers.Contains(player.Id))
 		{
-			using var joinFailPacket = new ServerPackets();
-			joinFailPacket.MatchJoinFail();
-			joinFailPacket.Notification("You are banned from joining this lobby.");
-			player.Enqueue(joinFailPacket.GetContent());
+			player.Enqueue(new ServerPackets()
+				.MatchJoinFail()
+				.Notification("You are banned from joining this lobby.")
+				.FinalizeAndGetContent());
 			return;
 		}
 		

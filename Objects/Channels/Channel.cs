@@ -1,4 +1,5 @@
-﻿using BanchoNET.Models.Dtos;
+﻿using System.Collections.Concurrent;
+using BanchoNET.Models.Dtos;
 using BanchoNET.Objects.Players;
 using BanchoNET.Objects.Privileges;
 
@@ -23,7 +24,7 @@ public class Channel
 
 		if (Name.StartsWith("#multi_") || Name.StartsWith("#s_"))
 		{
-			Console.WriteLine("[ChannelInit] Channel name cannot start with '#multi_' or '#s_', skipping.");
+			Logger.Shared.LogWarning("Channel name cannot start with '#multi_' or '#s_', skipping.", caller: "ChannelInit");
 			return;
 		}
 		
@@ -34,11 +35,11 @@ public class Channel
 		
 		if (Enum.TryParse<ClientPrivileges>(channel.ReadPrivileges.ToString(), out var readPrivileges))
 			ReadPrivileges = readPrivileges;
-		else Console.WriteLine($"[ChannelInit] Wrong read privileges for channel {Name}, setting default one (Player).");
+		else Logger.Shared.LogWarning($"Wrong read privileges for channel {Name}, setting default one (Player).", caller: "ChannelInit");
 		
 		if (Enum.TryParse<ClientPrivileges>(channel.WritePrivileges.ToString(), out var writePrivileges))
 			WritePrivileges = writePrivileges;
-		else Console.WriteLine($"[ChannelInit] Wrong write privileges for channel {Name}, setting default one (Player).");
+		else Logger.Shared.LogWarning($"Wrong write privileges for channel {Name}, setting default one (Player).", caller: "ChannelInit"); 
 	}
 	
 	public bool AutoJoin { get; set; }
@@ -50,6 +51,11 @@ public class Channel
 
 	public string IdName { get; }
 	public string Name { get; }
-	public string Description { get; set; }
-	public List<Player> Players { get; set; } = [];
+	public string Description { get; set; } = null!;
+	
+	private readonly ConcurrentDictionary<Player, bool> _players = [];
+	public IEnumerable<Player> Players => _players.Keys;
+	public int PlayersCount => _players.Count;
+	public void AddPlayer(Player player) => _players.TryAdd(player, false);
+	public void RemovePlayer(Player player) => _players.TryRemove(player, out _);
 }

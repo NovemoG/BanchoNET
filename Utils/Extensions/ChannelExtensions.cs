@@ -71,7 +71,7 @@ public static class ChannelExtensions
 
 	public static void SendMessage(this Channel channel, Message message, bool toSelf = false)
 	{
-		var messageBytes = new ServerPacket()
+		var messageBytes = new ServerPackets()
 			.SendMessage(new Message
 			{
 				Sender = message.Sender,
@@ -95,7 +95,7 @@ public static class ChannelExtensions
 		if (message.Length >= 31979)
 			message = $"message would have crashed games ({message.Length} characters).";
 		
-		channel.EnqueueToPlayers(new ServerPacket()
+		channel.EnqueueToPlayers(new ServerPackets()
 			.SendMessage(new Message
 			{
 				Sender = bot.Username,

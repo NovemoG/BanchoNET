@@ -18,9 +18,8 @@ public partial class ClientPacketsHandler
 
 		if (!lobby.Slots.Any(s => s is { Status: SlotStatus.Playing, Loaded: false }))
 		{
-			using var playersLoadedPacket = new ServerPackets();
-			playersLoadedPacket.MatchAllPlayersLoaded();
-			lobby.Enqueue(playersLoadedPacket.GetContent(), toLobby: false);
+			lobby.Enqueue(new ServerPackets().MatchAllPlayersLoaded().FinalizeAndGetContent(),
+				toLobby: false);
 		}
 
 		return Task.CompletedTask;

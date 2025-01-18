@@ -35,7 +35,7 @@ public interface IPlayersRepository
     Task ResetPlayersStats(byte mode);
     
     Task GetPlayerRelationships(Player player);
-    Task ModifyPlayerPrivileges(Player player, Privileges privileges, bool remove);
+    Task ModifyPlayerPrivileges(Player player, PlayerPrivileges playerPrivileges, bool remove);
 
     Task RecalculatePlayerTopScores(Player player, GameMode mode);
     Task UpdatePlayerRank(Player player, GameMode mode);

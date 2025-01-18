@@ -56,9 +56,9 @@ public partial class ClientPacketsHandler
 		{
 			txt = $"{txt[..2000]}... (truncated)";
 
-			using var msgPacket = new ServerPackets();
-			msgPacket.Notification("Your message was too long and has been truncated.\n(Exceeded 2000 characters)");
-			player.Enqueue(msgPacket.GetContent());
+			player.Enqueue(new ServerPackets()
+				.Notification("Your message was too long and has been truncated.\n(Exceeded 2000 characters)")
+				.FinalizeAndGetContent());
 		}
 
 		if (txt.StartsWith(AppSettings.CommandPrefix))

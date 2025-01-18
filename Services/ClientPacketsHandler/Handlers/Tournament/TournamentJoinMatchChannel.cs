@@ -15,7 +15,7 @@ public partial class ClientPacketsHandler
         if (matchId is < 0 or > short.MaxValue)
             return Task.CompletedTask;
 
-        if (!player.Privileges.HasPrivilege(Privileges.Supporter))
+        if (!player.Privileges.HasPrivilege(PlayerPrivileges.Supporter))
             return Task.CompletedTask;
         
         var match = session.GetLobby((ushort)matchId);

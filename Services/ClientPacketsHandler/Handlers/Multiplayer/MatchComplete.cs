@@ -48,10 +48,10 @@ public partial class ClientPacketsHandler
 		lobby.UnreadyPlayers(SlotStatus.Complete);
 		lobby.ResetPlayersLoadedStatuses();
 		lobby.InProgress = false;
-
-		using var matchCompletedPacket = new ServerPackets();
-		matchCompletedPacket.MatchComplete();
-		lobby.Enqueue(matchCompletedPacket.GetContent(), notPlayingIds, false);
+		
+		lobby.Enqueue(new ServerPackets().MatchComplete().FinalizeAndGetContent(),
+			notPlayingIds,
+			false);
 		lobby.EnqueueState();
 		
 		// reset map finish date

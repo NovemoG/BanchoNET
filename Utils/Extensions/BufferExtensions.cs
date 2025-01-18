@@ -270,7 +270,7 @@ public static class BufferExtensions
 	{
 		bw.WriteOsuString(channel.Name);
 		bw.WriteOsuString(channel.Description);
-		bw.Write((ushort)channel.Players.Count);
+		bw.Write((ushort)channel.PlayersCount);
 	}
 
 	public static void WriteOsuMatch(this BinaryWriter bw, LobbyData lobbyData)

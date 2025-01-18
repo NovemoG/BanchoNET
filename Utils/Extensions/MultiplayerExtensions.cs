@@ -61,10 +61,10 @@ public static class MultiplayerExtensions
 			player.SendBotMessage("I'm too busy right now! Maybe later \ud83d\udc7c");
 			return;
 		}
-
-		using var invitePacket = new ServerPackets();
-		invitePacket.MatchInvite(player, target.Username);
-		target.Enqueue(invitePacket.GetContent());
+		
+		target.Enqueue(new ServerPackets()
+			.MatchInvite(player, target.Username)
+			.FinalizeAndGetContent());
 		
 		Logger.Shared.LogDebug($"{player.Username} invited {target.Username} to their match.", nameof(MultiplayerExtensions));
 	}
@@ -168,10 +168,10 @@ public static class MultiplayerExtensions
 		}
 
 		lobby.InProgress = true;
-
-		using var matchStartPacket = new ServerPackets();
-		matchStartPacket.MatchStart(lobby);
-		lobby.Enqueue(matchStartPacket.GetContent(), noMapPlayerIds, false);
+		
+		lobby.Enqueue(new ServerPackets().MatchStart(lobby).FinalizeAndGetContent(),
+			noMapPlayerIds,
+			false);
 		lobby.EnqueueState();
 	}
 	
@@ -182,17 +182,17 @@ public static class MultiplayerExtensions
 		
 		lobby.UnreadyPlayers(SlotStatus.Playing | SlotStatus.Ready);
 		
-		using var matchEndPacket = new ServerPackets();
-		matchEndPacket.MatchAbort();
-		lobby.Enqueue(matchEndPacket.GetContent());
+		lobby.Enqueue(new ServerPackets()
+			.MatchAbort()
+			.FinalizeAndGetContent());
 		lobby.EnqueueState();
 	}
 
 	public static void EnqueueDispose(this MultiplayerLobby lobby)
 	{
-		using var matchDisposePacket = new ServerPackets();
-		matchDisposePacket.DisposeMatch(lobby);
-		var data = matchDisposePacket.GetContent();
+		var data = new ServerPackets()
+			.DisposeMatch(lobby)
+			.FinalizeAndGetContent();
 		
 		foreach (var player in Session.PlayersInLobby)
 			player.Enqueue(data);
@@ -219,17 +219,15 @@ public static class MultiplayerExtensions
 
 	public static void EnqueueState(this MultiplayerLobby lobby, bool toLobby = true)
 	{
-		using (var updatePacketT = new ServerPackets())
-		{
-			updatePacketT.UpdateMatch(lobby, true);
-			lobby.Chat.EnqueueToPlayers(updatePacketT.GetContent());
-		}
+		lobby.Chat.EnqueueToPlayers(new ServerPackets()
+			.UpdateMatch(lobby, true)
+			.FinalizeAndGetContent());
 
 		if (!toLobby) return;
-
-		using var updatePacketF = new ServerPackets();
-		updatePacketF.UpdateMatch(lobby, false);
-		var data = updatePacketF.GetContent();
+		
+		var data = new ServerPackets()
+			.UpdateMatch(lobby, false)
+			.FinalizeAndGetContent();
 		
 		foreach (var player in Session.PlayersInLobby)
 			player.Enqueue(data);

@@ -5,9 +5,9 @@ using BanchoNET.Utils.Extensions;
 
 namespace BanchoNET.Packets;
 
-public sealed partial class ServerPacket
+public sealed partial class ServerPackets
 {
-	private readonly Dictionary<DataType, Action<BinaryWriter, object>> _actionsMap = new()
+	private static readonly Dictionary<DataType, Action<BinaryWriter, object>> ActionsMap = new()
 	{
 		[DataType.SByte] = (bw, data) => bw.Write((sbyte)data),
 		[DataType.Byte] = (bw, data) => bw.Write((byte)data),
@@ -37,11 +37,12 @@ public sealed partial class ServerPacket
 	
 	private void WritePacketData(ServerPacketId packetId, params PacketData[] dataArray)
 	{
-		var buffer = new MemoryStream();
+		using var buffer = new MemoryStream();
 		using var bw = new BinaryWriter(buffer);
 		
 		bw.Write((short)packetId);
 		bw.Write((byte)0);
+		
 		if (dataArray.Length == 0)
 		{
 			bw.Write((int)0);
@@ -49,18 +50,19 @@ public sealed partial class ServerPacket
 			return;
 		}
 		
+		var lengthPosition = bw.BaseStream.Position;
+		bw.Write((int)0);
+		
 		foreach (var data in dataArray)
-			_actionsMap[data.Type](bw, data.Data!);
+			ActionsMap[data.Type](bw, data.Data!);
+
+		var endPosition = bw.BaseStream.Position;
+		var payloadLength = (int)(endPosition - (lengthPosition + 4));
+
+		bw.BaseStream.Seek(lengthPosition, SeekOrigin.Begin);
+		bw.Write(payloadLength);
+		bw.BaseStream.Seek(endPosition, SeekOrigin.Begin);
 		
-		var dataBytes = buffer.ToArray();
-		var returnStream = new MemoryStream();
-		
-		//TODO byte counter helper function
-		//Writes length of the packet data inside the stream
-		returnStream.Write(dataBytes, 0, 3);
-		returnStream.Write(BitConverter.GetBytes(dataBytes.Length - 3));
-		returnStream.Write(dataBytes, 3, dataBytes.Length - 3);
-		
-		_binaryWriter.Write(returnStream.ToArray());
+		_binaryWriter.Write(buffer.ToArray());
 	}
 }

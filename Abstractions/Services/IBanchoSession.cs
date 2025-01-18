@@ -25,6 +25,9 @@ public interface IBanchoSession
     void AppendBot(Player bot);
     void AppendPlayer(Player player);
     bool LogoutPlayer(Player player);
+
+    void JoinLobby(Player player);
+    void LeaveLobby(Player player);
     
     Player? GetPlayerById(int id);
     Player? GetPlayerByName(string? username);

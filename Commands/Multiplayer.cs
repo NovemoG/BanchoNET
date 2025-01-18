@@ -16,7 +16,7 @@ public partial class CommandProcessor
     private MultiplayerLobby _lobby = null!;
     
     [Command("mp",
-        Privileges.Verified,
+        PlayerPrivileges.Verified,
         "A set of commands to manage your multiplayer lobby. List of commands available under 'mp help' or 'help mp' command.",
         "\nmp create [<name>]/[<password>] - Creates a multiplayer lobby with a given name." +
         "\nmp invite/i <username> - Invites a player with a given username to your current multiplayer lobby." +
@@ -745,6 +745,7 @@ public partial class CommandProcessor
     
     private string ListReferees()
     {
+        //TODO wtf? refactor this
         return $"{string.Join(", ", _lobby.Refs.Select(id => players.GetPlayerOrOffline(id).Result!.Username))}";
     }
     

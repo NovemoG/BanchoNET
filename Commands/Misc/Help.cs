@@ -9,7 +9,7 @@ namespace BanchoNET.Commands;
 public partial class CommandProcessor
 {
     [Command("help",
-        Privileges.Unrestricted,
+        PlayerPrivileges.Unrestricted,
         "Shows a list of all available commands or displays detailed description of a given command.")]
     private Task<string> Help(string[] args)
     {

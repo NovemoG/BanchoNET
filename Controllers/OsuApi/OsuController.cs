@@ -1,7 +1,6 @@
 ﻿using BanchoNET.Abstractions.Repositories;
 using BanchoNET.Abstractions.Services;
 using BanchoNET.Attributes;
-using BanchoNET.Services.Repositories;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BanchoNET.Controllers.OsuApi;

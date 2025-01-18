@@ -63,7 +63,7 @@ public partial class OsuController
 
 			if (!player.Restricted)
 			{
-				session.EnqueueToPlayers(new ServerPacket()
+				session.EnqueueToPlayers(new ServerPackets()
 					.UserStats(player)
 					.FinalizeAndGetContent());
 			}

@@ -24,13 +24,13 @@ public partial class ClientPacketsHandler
         {
             if (currentHost == target)
             {
-                using var spectatorPacket = new ServerPackets();
-                spectatorPacket.SpectatorJoined(player.Id);
-                target.Enqueue(spectatorPacket.GetContent());
-
-                using var playerJoinedPacket = new ServerPackets();
-                playerJoinedPacket.FellowSpectatorJoined(player.Id);
-                var bytes = playerJoinedPacket.GetContent();
+                target.Enqueue(new ServerPackets()
+                    .SpectatorJoined(player.Id)
+                    .FinalizeAndGetContent());
+                
+                var bytes = new ServerPackets()
+                    .FellowSpectatorJoined(player.Id)
+                    .FinalizeAndGetContent();
                 
                 foreach (var spectator in target.Spectators.Where(spectator => spectator != player))
                     spectator.Enqueue(bytes);

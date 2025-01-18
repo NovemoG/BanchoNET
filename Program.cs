@@ -337,7 +337,7 @@ public class Program
 			RemainingSupporter = DateTime.Now.AddYears(100),
 			CreationTime = DateTime.Now,
 			LastActivityTime = DateTime.Now.AddYears(100),
-			Privileges = (int)(Privileges.Verified | Privileges.Staff | Privileges.Unrestricted),
+			Privileges = (int)(PlayerPrivileges.Verified | PlayerPrivileges.Staff | PlayerPrivileges.Unrestricted),
 		});
 		db.SaveChanges();
 		

@@ -2,7 +2,6 @@
 using BanchoNET.Abstractions.Services;
 using BanchoNET.Attributes;
 using BanchoNET.Packets;
-using BanchoNET.Services.Repositories;
 using BanchoNET.Utils;
 using Microsoft.AspNetCore.Mvc;
 
@@ -17,7 +16,8 @@ public partial class ChoController(
 	IPlayersRepository players,
 	IClientsRepository clients,
 	IClientPacketsHandler clientPackets,
-	IMessagesRepository messages)
+	IMessagesRepository messages,
+	ILogger logger)
 	: ControllerBase
 {
 	[HttpPost("/")]
@@ -30,7 +30,7 @@ public partial class ChoController(
 		var player = session.GetPlayerByToken(new Guid(osuToken));
 		if (player == null)
 		{
-			return new ServerPacket()
+			return new ServerPackets()
 				.Notification("Server has restarted.")
 				.RestartServer(0)
 				.FinalizeAndGetContentResult();

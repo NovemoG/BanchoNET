@@ -3,7 +3,6 @@ using BanchoNET.Attributes;
 using BanchoNET.Objects.Players;
 using BanchoNET.Objects.Privileges;
 using BanchoNET.Objects.Scores;
-using BanchoNET.Utils;
 using BanchoNET.Utils.Extensions;
 using static BanchoNET.Utils.Maps.CommandHandlerMap;
 
@@ -12,7 +11,7 @@ namespace BanchoNET.Commands;
 public partial class CommandProcessor
 {
     [Command("recent",
-        Privileges.Unrestricted,
+        PlayerPrivileges.Unrestricted,
         "Displays your (or provided player's) most recent score in chat. Syntax: recent [<username>]",
         aliases: ["rs"])]
     private async Task<(bool, string)> RecentScore(string[] args)

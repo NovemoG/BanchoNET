@@ -28,7 +28,9 @@ public sealed class BanchoSession : IBanchoSession
 	private readonly ConcurrentDictionary<string, Player> _playersByUsername = [];
 	private readonly ConcurrentDictionary<int, Player> _playersById = [];
 	public IEnumerable<Player> Players => _playersById.Values;
-	public IEnumerable<Player> PlayersInLobby => Players.Where(p => p.InLobby);
+	
+	private readonly ConcurrentDictionary<Player, bool> _playersInLobby = [];
+	public IEnumerable<Player> PlayersInLobby => _playersInLobby.Keys;
 
 	private readonly ConcurrentDictionary<Guid, Player> _restrictedByToken = [];
 	private readonly ConcurrentDictionary<string, Player> _restrictedByUsername = [];
@@ -125,6 +127,18 @@ public sealed class BanchoSession : IBanchoSession
 			_playersById.TryAdd(player.Id, player);
 		}
 	}
+	
+	public void JoinLobby(Player player)
+	{
+		player.InLobby = true;
+		_playersInLobby.TryAdd(player, false);
+	}
+
+	public void LeaveLobby(Player player)
+	{
+		player.InLobby = false;
+		_playersInLobby.TryRemove(player, out _);
+	}
 
 	public bool LogoutPlayer(Player player)
 	{
@@ -140,20 +154,37 @@ public sealed class BanchoSession : IBanchoSession
 
 		if (!player.Restricted)
 		{
-			EnqueueToPlayers(new ServerPacket()
+			EnqueueToPlayers(new ServerPackets()
 				.Logout(player.Id)
 				.FinalizeAndGetContent());
 		}
-
-		var successfullyRemoved = _playersById.TryRemove(player.Id, out _)
-		                          && _playersByUsername.TryRemove(player.Username.MakeSafe(), out _)
-		                          && _playersByToken.TryRemove(player.Token, out _);
-		if (!successfullyRemoved)
-		{
-			Logger.Shared.LogWarning($"[{GetType().Name}] Failed to remove {player.Username} from session", caller: nameof(BanchoSession));
-		}
-
+		
+		RemovePlayer(player);
+		
 		return true;
+	}
+
+	private void RemovePlayer(Player player)
+	{
+		_playersById.TryRemove(player.Id, out _);
+		_playersByUsername.TryRemove(player.LoginName, out _);
+		_playersByToken.TryRemove(player.Token, out _);
+		_playersInLobby.TryRemove(player, out _);
+		
+		if (player.Restricted)
+		{
+			_restrictedById.TryRemove(player.Id, out _);
+			_restrictedByUsername.TryRemove(player.LoginName, out _);
+			_restrictedByToken.TryRemove(player.Token, out _);
+		}
+		
+		if (player.IsBot)
+		{
+			_botsById.TryRemove(player.Id, out _);
+			_botsByUsername.TryRemove(player.LoginName, out _);
+		}
+		
+		player.Logout();
 	}
 
 	public Player? GetPlayerById(int id)
@@ -300,10 +331,10 @@ public sealed class BanchoSession : IBanchoSession
 
 	public void EnqueueToPlayers(byte[] data)
 	{
-		foreach (var player in _playersById.Values)
+		foreach (var player in Players)
 			player.Enqueue(data);
 
-		foreach (var player in _restrictedById.Values)
+		foreach (var player in Restricted)
 			player.Enqueue(data);
 	}
 }

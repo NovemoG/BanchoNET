@@ -208,10 +208,10 @@ public class BackgroundTasks(
             var player = session.GetPlayerById(supporter);
             if (player == null) continue;
             
-            player.Privileges &= ~Privileges.Supporter;
+            player.Privileges &= ~PlayerPrivileges.Supporter;
             player.RemainingSupporter = DateTime.MinValue;
             
-            player.Enqueue(new ServerPacket()
+            player.Enqueue(new ServerPackets()
                 .Notification("Your supporter status has expired.\nThank you for supporting us!")
                 .FinalizeAndGetContent());
             

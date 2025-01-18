@@ -6,7 +6,7 @@ public partial class ClientPacketsHandler
 {
 	private Task PartLobby(Player player, BinaryReader br)
 	{
-		player.InLobby = false;
+		session.LeaveLobby(player);
 		return Task.CompletedTask;
 	}
 }

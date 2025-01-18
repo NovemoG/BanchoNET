@@ -10,7 +10,7 @@ namespace BanchoNET.Commands;
 public partial class CommandProcessor
 {
     [Command("map",
-        Privileges.Nominator | Privileges.Administrator,
+        PlayerPrivileges.Nominator | PlayerPrivileges.Administrator,
         "Changes the status of previously /np'd map. Syntax: map <status> [<set>]",
         "\nAvailable statuses: love, qualify, approve, rank, unrank" +
         "\nmrs - ranks whole set",
