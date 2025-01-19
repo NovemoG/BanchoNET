@@ -65,7 +65,11 @@ public sealed class Player
 	
 	public string? ApiKey { get; set; }
 	
-	public Player(PlayerDto playerData, Guid token = new(), DateTime? loginTime = null, sbyte timeZone = 0)
+	public Player(
+		PlayerDto playerData,
+		Guid token = new(),
+		DateTime? loginTime = null,
+		sbyte timeZone = 0)
 	{
 		Id = playerData.Id;
 		
@@ -101,7 +105,6 @@ public sealed class Player
 		Spectators = [];
 	}
 	
-	//TODO maybe change this to expose queue and write to it directly?
 	public void Enqueue(byte[] dataBytes)
 	{
 		lock (_queueLock)

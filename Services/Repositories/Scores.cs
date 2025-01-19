@@ -115,14 +115,14 @@ public class ScoresRepository(BanchoDbContext dbContext) : IScoresRepository
         GameMode mode,
         Mods mods)
     {
-        var response = await dbContext.Scores.FirstOrDefaultAsync(
+        var score = await dbContext.Scores.FirstOrDefaultAsync(
             s => s.PlayerId == playerId
                  && s.BeatmapMD5 == beatmapMD5
                  && s.Mode == (int)mode
                  && s.Mods == (int)mods
                  && s.Status >= (int)SubmissionStatus.BestWithMods);
 
-        return response == null ? null : new Score(response);
+        return score == null ? null : new Score(score);
     }
 	
     public async Task<ScoreDto?> GetBestBeatmapScore(string beatmapMD5, GameMode mode)
@@ -209,6 +209,7 @@ public class ScoresRepository(BanchoDbContext dbContext) : IScoresRepository
     /// <returns>List of IDs of scores that were affected.</returns>
     public async Task<List<long>> DeleteOldScores(short differenceInHours = 48)
     {
+        //TODO maybe instead of deleting just move to other table so we can keep the data?
         var date = DateTime.Now - TimeSpan.FromHours(differenceInHours);
 
         // Saving IDs of scores that are not failed (we don't store failed scores replays)

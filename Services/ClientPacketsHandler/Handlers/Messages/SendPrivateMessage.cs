@@ -25,6 +25,9 @@ public partial class ClientPacketsHandler
 				.FinalizeAndGetContent());
 			return;
 		}
+
+		if (!target.Online)
+			await players.GetPlayerRelationships(target);
 		
 		if (target.PmFriendsOnly && !target.Friends.Contains(player.Id))
 		{

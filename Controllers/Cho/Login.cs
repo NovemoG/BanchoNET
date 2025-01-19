@@ -231,7 +231,7 @@ public partial class ChoController
 			
 			if (!player.Privileges.HasPrivilege(PlayerPrivileges.Verified))
 			{
-				await players.ModifyPlayerPrivileges(player, PlayerPrivileges.Verified, false);
+				await players.UpdatePlayerPrivileges(player, PlayerPrivileges.Verified, false);
 
 				loginPackets.SendMessage(new Message
 				{

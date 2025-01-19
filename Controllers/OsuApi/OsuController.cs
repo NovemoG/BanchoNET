@@ -15,20 +15,19 @@ public partial class OsuController(
     IScoresRepository scores,
     IBeatmapHandler beatmapHandler,
     IGeolocService geoloc,
+    ILogger logger,
     HttpClient httpClient)
     : ControllerBase
 {
     [HttpGet("bancho_connect.php")]
     public async Task<IActionResult> BanchoConnect()
     {
-        Console.WriteLine("BanchoConnect");
         return Ok();
     }
 
     [HttpGet("check-updates.php")]
     public async Task<IActionResult> CheckUpdates()
     {
-        Console.WriteLine("CheckUpdates");
         return Ok();
     }
 }

@@ -7,12 +7,11 @@ namespace BanchoNET.Abstractions.Repositories;
 
 public interface IPlayersRepository
 {
-    //TODO maybe split this because it feels too big
-    
     Task<bool> EmailTaken(string email);
     Task<bool> UsernameTaken(string username);
     Task<bool> PlayerExists(string username);
     Task<bool> ChangeUsername(string oldUsername, string newUsername);
+    Task<List<string>> GetPlayerNames(List<int> ids);
     
     Task AddFriend(Player player, int targetId);
     Task RemoveFriend(Player player, int targetId);
@@ -35,7 +34,7 @@ public interface IPlayersRepository
     Task ResetPlayersStats(byte mode);
     
     Task GetPlayerRelationships(Player player);
-    Task ModifyPlayerPrivileges(Player player, PlayerPrivileges playerPrivileges, bool remove);
+    Task UpdatePlayerPrivileges(Player player, PlayerPrivileges playerPrivileges, bool remove);
 
     Task RecalculatePlayerTopScores(Player player, GameMode mode);
     Task UpdatePlayerRank(Player player, GameMode mode);

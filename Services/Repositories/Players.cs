@@ -61,6 +61,14 @@ public class PlayersRepository : IPlayersRepository
 		return result > 0;
 	}
 
+	public async Task<List<string>> GetPlayerNames(List<int> ids)
+	{
+		return await _dbContext.Players
+			.Where(p => ids.Contains(p.Id))
+			.Select(p => p.Username)
+			.ToListAsync();
+	}
+
 	public async Task AddFriend(Player player, int targetId)
 	{
 		if (player.Friends.Contains(targetId))
@@ -72,7 +80,7 @@ public class PlayersRepository : IPlayersRepository
 		{
 			PlayerId = player.Id,
 			TargetId = targetId,
-			Relation = (byte)Relations.Friend
+			Relation = (int)Relations.Friend
 		});
 		await _dbContext.SaveChangesAsync();
 	}
@@ -89,7 +97,6 @@ public class PlayersRepository : IPlayersRepository
 			.ExecuteDeleteAsync();
 	}
 	
-	//TODO check everywhere if we even need to get a player info or can just check if player exists
 	public async Task<Player?> GetPlayerFromLogin(string username, string passwordMD5)
 	{
 		var player = await GetPlayerOrOffline(username);
@@ -206,7 +213,6 @@ public class PlayersRepository : IPlayersRepository
 	{
 		var stats = player.Stats[mode];
 		
-		//TODO check if it is possible to update without updating whole dto
 		var dbStats = new StatsDto
 		{
 			PlayerId = player.Id,
@@ -253,7 +259,7 @@ public class PlayersRepository : IPlayersRepository
 		}
 	}
 	
-	public async Task ModifyPlayerPrivileges(Player player, PlayerPrivileges playerPrivileges, bool remove)
+	public async Task UpdatePlayerPrivileges(Player player, PlayerPrivileges playerPrivileges, bool remove)
 	{
 		if (remove)
 			player.Privileges &= ~playerPrivileges;
@@ -274,11 +280,12 @@ public class PlayersRepository : IPlayersRepository
 
 	public async Task RecalculatePlayerTopScores(Player player, GameMode mode)
 	{
-		var bestScores = await _dbContext.Scores.Where(s => s.PlayerId == player.Id &&
-		                                                    s.Status == (byte)SubmissionStatus.Best)
-		                                 .OrderByDescending(s => s.PP)
-		                                 .Take(100)
-		                                 .ToListAsync();
+		var bestScores = await _dbContext.Scores
+			.Where(s => s.PlayerId == player.Id
+			            && s.Status == (int)SubmissionStatus.Best)
+			.OrderByDescending(s => s.PP)
+			.Take(100)
+			.ToListAsync();
 
 		var weightedAcc = 0.0f;
 		var weightedPp = 0.0f;
@@ -349,13 +356,6 @@ public class PlayersRepository : IPlayersRepository
 		await _dbContext.SaveChangesAsync();
 
 		var playerId = player.Entity.Id;
-		
-		await _dbContext.Relationships.AddAsync(new RelationshipDto
-		{
-			PlayerId = playerId,
-			TargetId = 1,
-			Relation = (byte)Relations.Friend
-		});
 		
 		var scoreDtos = new StatsDto[8];
 		for (byte i = 0; i < scoreDtos.Length; i++)
@@ -457,7 +457,6 @@ public class PlayersRepository : IPlayersRepository
 
 	public async Task<bool> SilencePlayer(Player player, TimeSpan duration, string reason)
 	{
-		//TODO this resets current silence status if it is there
 		var modified = await _dbContext.Players.Where(p => p.Id == player.Id)
 			.ExecuteUpdateAsync(s => s.SetProperty(p => p.RemainingSilence, DateTime.Now + duration));
 

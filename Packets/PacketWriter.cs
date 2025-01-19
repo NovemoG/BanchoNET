@@ -37,32 +37,26 @@ public sealed partial class ServerPackets
 	
 	private void WritePacketData(ServerPacketId packetId, params PacketData[] dataArray)
 	{
-		using var buffer = new MemoryStream();
-		using var bw = new BinaryWriter(buffer);
-		
-		bw.Write((short)packetId);
-		bw.Write((byte)0);
+		_binaryWriter.Write((short)packetId);
+		_binaryWriter.Write((byte)0);
 		
 		if (dataArray.Length == 0)
 		{
-			bw.Write((int)0);
-			_binaryWriter.Write(buffer.ToArray());
+			_binaryWriter.Write((int)0);
 			return;
 		}
 		
-		var lengthPosition = bw.BaseStream.Position;
-		bw.Write((int)0);
+		var lengthPosition = _binaryWriter.BaseStream.Position;
+		_binaryWriter.Write((int)0);
 		
 		foreach (var data in dataArray)
-			ActionsMap[data.Type](bw, data.Data!);
+			ActionsMap[data.Type](_binaryWriter, data.Data!);
 
-		var endPosition = bw.BaseStream.Position;
+		var endPosition = _binaryWriter.BaseStream.Position;
 		var payloadLength = (int)(endPosition - (lengthPosition + 4));
 
-		bw.BaseStream.Seek(lengthPosition, SeekOrigin.Begin);
-		bw.Write(payloadLength);
-		bw.BaseStream.Seek(endPosition, SeekOrigin.Begin);
-		
-		_binaryWriter.Write(buffer.ToArray());
+		_binaryWriter.BaseStream.Seek(lengthPosition, SeekOrigin.Begin);
+		_binaryWriter.Write(payloadLength);
+		_binaryWriter.BaseStream.Seek(endPosition, SeekOrigin.Begin);
 	}
 }

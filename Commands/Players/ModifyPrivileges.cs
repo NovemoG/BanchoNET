@@ -40,7 +40,7 @@ public partial class CommandProcessor
         if (player.Privileges.HasPrivilege(privilege))
             return $"{player.Username} already has this privilege.";
             
-        await players.ModifyPlayerPrivileges(player, privilege, false);
+        await players.UpdatePlayerPrivileges(player, privilege, false);
         return $"Successfully added privilege to {player.Username}.";
     }
 
@@ -83,7 +83,7 @@ public partial class CommandProcessor
         if (!player.Privileges.HasPrivilege(privilege))
             return $"{player.Username} does not have that privilege.";
             
-        await players.ModifyPlayerPrivileges(player, privilege, true);
+        await players.UpdatePlayerPrivileges(player, privilege, true);
         return $"Stripped {player.Username} from his privilege.";
     }
 }

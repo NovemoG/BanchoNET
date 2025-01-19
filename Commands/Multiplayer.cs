@@ -93,7 +93,7 @@ public partial class CommandProcessor
             "ban" => (false, await BanPlayer(args[1..])),
             "addref" => (false, await AddReferee(args[1..])),
             "rmref" => (false, await RemoveReferee(args[1..])),
-            "listrefs" => (false, ListReferees()),
+            "listrefs" => (false, await ListReferees()),
             "close" => (false, await CloseLobby()),
             _ => (true, $"Invalid parameter provided. Check available options using '{prefix}mp help' or '{prefix}help mp'.")
         };
@@ -743,10 +743,9 @@ public partial class CommandProcessor
         return $"Removed {count} players from referees.";
     }
     
-    private string ListReferees()
+    private async Task<string> ListReferees()
     {
-        //TODO wtf? refactor this
-        return $"{string.Join(", ", _lobby.Refs.Select(id => players.GetPlayerOrOffline(id).Result!.Username))}";
+        return $"{string.Join(", ", await players.GetPlayerNames(_lobby.Refs))}";
     }
     
     private async Task<string> CloseLobby()

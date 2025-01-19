@@ -24,9 +24,8 @@ public partial class CommandProcessor
         
         var player = await players.GetPlayerOrOffline(username);
         if (player == null) return PlayerNotFound;
-
-        //TODO let player with staff privileges to restrict a bot
-        if (player.IsBot)
+        
+        if (player.IsBot && !player.Privileges.HasPrivilege(PlayerPrivileges.Staff))
             return "You can't restrict a bot.";
 
         if (!player.Privileges.HasPrivilege(PlayerPrivileges.Verified)

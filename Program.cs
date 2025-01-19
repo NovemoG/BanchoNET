@@ -54,29 +54,26 @@ public class Program
 			.ModifyDefaultFormatter("", "[{0}] [{1} | {3}] {4}");
 		
 		builder.Logging.AddProvider(new NovelogLoggerProvider(microsoftLogger.Build()));
-		builder.Services.AddNovelog(options =>
-		{
-			options.AttachConsole()
+		builder.Services.AddNovelog(options => options
+			.AttachConsole()
+			.AttachRollingFile(new RollingFileConfig
+			{
+				FilePath = Storage.GetLogFilePath("log.txt")
+			})
+			.AttachRollingFile(new RollingFileConfig
+			{
+				FilePath = Storage.GetLogFilePath("debug.txt"),
+				MinLogLevel = LogLevel.DEBUG
+			})
+			.ForType<RequestTimingMiddleware>(rtmOptions => rtmOptions
+				.AttachConsole()
 				.AttachRollingFile(new RollingFileConfig
 				{
-					FilePath = Storage.GetLogFilePath("log.txt")
-				})
-				.AttachRollingFile(new RollingFileConfig
-				{
-					FilePath = Storage.GetLogFilePath("debug.txt"),
+					FilePath = Storage.GetLogFilePath("requests.txt"),
 					MinLogLevel = LogLevel.DEBUG
 				})
-				.ForType<RequestTimingMiddleware>(rtmOptions =>
-				{
-					rtmOptions.AttachConsole()
-						.AttachRollingFile(new RollingFileConfig
-						{
-							FilePath = Storage.GetLogFilePath("requests.txt"),
-							MinLogLevel = LogLevel.DEBUG
-						})
-						.ModifyDefaultFormatter("", "[{0}] [{1} | {2}] {4}");
-				});
-		});
+				.ModifyDefaultFormatter("", "[{0}] [{1} | {2}] {4}"))
+		);
 
 		#endregion
 
@@ -304,6 +301,7 @@ public class Program
 	private static void InitBanchoBot(IServiceScope scope)
 	{
 		var db = scope.ServiceProvider.GetRequiredService<BanchoDbContext>();
+		var players = scope.ServiceProvider.GetRequiredService<IPlayersRepository>();
 		var session = BanchoSession.Instance;
 
 		var dbBanchoBot = db.Players.FirstOrDefault(p => p.Id == 1);
@@ -312,8 +310,11 @@ public class Program
 			dbBanchoBot.RemainingSupporter = DateTime.Now.AddYears(100);
 			dbBanchoBot.LastActivityTime = DateTime.Now.AddYears(100);
 			db.SaveChanges();
-			
-			session.AppendBot(new Player(dbBanchoBot));
+
+			var banchoBot = new Player(dbBanchoBot);
+
+			players.GetPlayerRelationships(banchoBot);
+			session.AppendBot(banchoBot);
 			return;
 		}
 
