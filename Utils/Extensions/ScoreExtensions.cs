@@ -124,7 +124,7 @@ public static class ScoreExtensions
         Logger.Shared.LogInfo($"Submitted score pp: {score.PP}", nameof(ScoreExtensions));
     }
     
-    public static bool IsBetter(this Score score, Score? other)
+    public static bool IsBetterThan(this Score score, Score? other)
     {
         if (other == null) return true;
         
@@ -136,32 +136,35 @@ public static class ScoreExtensions
     public static void ComputeSubmissionStatus(
         this Score newScore,
         Score? prevBest,
-        Score? prevBestWithMods)
+        Score? bestWithMods)
     {
-        // replace prevBest if newScore is better
-        if (newScore.IsBetter(prevBest))
+        newScore.Status = SubmissionStatus.Submitted;
+        
+        if (newScore.IsBetterThan(prevBest))
         {
-            // if prevBest exists, change its status to Submitted
             if (prevBest != null)
             {
-                prevBest.Status = SubmissionStatus.Submitted;
+                prevBest.Status = newScore.Mods != prevBest.Mods
+                    ? SubmissionStatus.BestWithMods
+                    : SubmissionStatus.Submitted;
+                
                 newScore.PreviousBest = prevBest;
             }
             
             newScore.Status = SubmissionStatus.Best;
         }
-        
-        if (prevBestWithMods != null
-            && prevBestWithMods.Mods == newScore.Mods)
+        else
         {
-            // bestWithMods exists for the same Mods; see if newScore is better
-            if (!newScore.IsBetter(prevBestWithMods)) return;
-
-            prevBestWithMods.Status = SubmissionStatus.Submitted;
+            if (bestWithMods == null)
+                newScore.Status = SubmissionStatus.BestWithMods;
+            
+            newScore.PreviousBest = prevBest;
         }
 
-        // no bestWithMods, so newScore becomes BestWithMods 
-        // if it's not already Best.
+        if (bestWithMods == null || !newScore.IsBetterThan(bestWithMods)) return;
+        
+        bestWithMods.Status = SubmissionStatus.Submitted;
+        
         if (newScore.Status != SubmissionStatus.Best)
             newScore.Status = SubmissionStatus.BestWithMods;
     }

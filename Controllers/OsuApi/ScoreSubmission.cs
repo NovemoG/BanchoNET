@@ -63,9 +63,6 @@ public partial class OsuController
         try
         {
             var versionDate = DateTime.ParseExact(osuVersion[..8], "yyyyMMdd", null);
-			
-            /*if ((int)score.Mode <= 3 && (int)score.Mode >= 0)
-                throw new Exception("Invalid score game mode");*/
             
             if (versionDate != player.ClientDetails.OsuVersion.Date)
                 throw new Exception("osu! version mismatch");
@@ -129,11 +126,14 @@ public partial class OsuController
             if (score.Passed)
             {
                 score.ComputeSubmissionStatus(prevBest, bestWithMods);
-
+                
                 if (beatmap.Status != BeatmapStatus.LatestPending)
                     await scores.SetScoreLeaderboardPosition(beatmap.MD5, score, false);
             }
             else score.Status = SubmissionStatus.Failed;
+            
+            await scores.UpdateScoreStatus(prevBest);
+            await scores.UpdateScoreStatus(bestWithMods);
         }
         else
         {
@@ -175,9 +175,6 @@ public partial class OsuController
 
                 await AnnounceNewFirstScore(score, player, beatmap);
             }
-
-            await scores.UpdateScoreStatus(prevBest);
-            await scores.UpdateScoreStatus(bestWithMods);
         }
         
         score.Player = player;
@@ -294,25 +291,23 @@ public partial class OsuController
         
         if (score.MaxCombo > stats.MaxCombo)
             stats.MaxCombo = score.MaxCombo;
-
+        
         if (score.Status == SubmissionStatus.Best)
         {
             var oldBestScore = 0;
-
-            // if new score is better than prevBest
+            
             if (prevBest != null)
             {
-                // Decrement old best’s grade count
-                if (prevBest.Grade >= Grade.A)
+                if (prevBest is { Status: SubmissionStatus.Submitted, Grade: >= Grade.A })
                     stats.Grades[prevBest.Grade] -= 1;
-
-                // Mark dethroned best as submitted
+                else if (bestWithMods is { Status: SubmissionStatus.Submitted, Grade: >= Grade.A })
+                    stats.Grades[bestWithMods.Grade] -= 1;
+                
                 oldBestScore = prevBest.TotalScore;
             }
             
             stats.RankedScore += score.TotalScore - oldBestScore;
-
-            // Add the new best’s grade
+            
             if (score.Grade >= Grade.A)
                 stats.Grades[score.Grade] += 1;
             
@@ -322,11 +317,9 @@ public partial class OsuController
         }
         else if (score.Status == SubmissionStatus.BestWithMods)
         {
-            // If dethroned a different old best-with-mods
             if (bestWithMods is { Grade: >= Grade.A })
                 stats.Grades[bestWithMods.Grade] -= 1;
-
-            // Add the new best-with-mods’s grade
+            
             if (score.Grade >= Grade.A)
                 stats.Grades[score.Grade] += 1;
         }
