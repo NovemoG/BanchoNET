@@ -1,5 +1,4 @@
-﻿using System.Collections.Immutable;
-using System.Reflection;
+﻿using System.Reflection;
 using BanchoNET.Objects.Players;
 
 namespace BanchoNET.Utils;
@@ -40,9 +39,12 @@ public static class AppSettings
             : banchoBotName;
         
         var disallowedNames = configuration["Config:DisallowedNames"];
-        DisallowedNames = ImmutableList.Create(string.IsNullOrEmpty(disallowedNames)
-            ? [""]
-            : disallowedNames.ToLower().Split(","));
+        DisallowedNames =
+        [
+            ..string.IsNullOrEmpty(disallowedNames)
+                ? [""]
+                : disallowedNames.ToLower().Split(",")
+        ];
         
         //TODO make it more customizable (use string.Format or something to allow usage of some variables)
         var welcomeMessage = configuration["Config:WelcomeMessage"];
@@ -92,9 +94,12 @@ public static class AppSettings
             : menuOnclickUrl;
 
         var searchEndpoints = configuration["Config:OsuDirectSearchEndpoints"];
-        OsuDirectSearchEndpoints = ImmutableList.Create(string.IsNullOrEmpty(searchEndpoints)
-            ? ["https://osu.direct/api/search"]
-            : searchEndpoints.Split(","));
+        OsuDirectSearchEndpoints =
+        [
+            ..string.IsNullOrEmpty(searchEndpoints)
+                ? ["https://osu.direct/api/search"]
+                : searchEndpoints.Split(",")
+        ];
 
         var downloadEndpoint = configuration["Config:OsuDirectDownloadEndpoint"];
         OsuDirectDownloadEndpoint = string.IsNullOrEmpty(downloadEndpoint)
@@ -104,32 +109,40 @@ public static class AppSettings
         #region BotStatuses
 
         var botStatuses = configuration["Config:BotStatuses"];
-        BotStatuses = ImmutableList.Create(string.IsNullOrEmpty(botStatuses)
-            ? [
-                (Activity.Afk, "looking for source.."),
-                (Activity.Editing, "the source code.."),
-                (Activity.Editing, "server's website.."),
-                (Activity.Modding, "your requests.."),
-                (Activity.Watching, "over all of you.."),
-                (Activity.Watching, "over the server.."),
-                (Activity.Testing, "my will to live.."),
-                (Activity.Testing, "your patience.."),
-                (Activity.Submitting, "scores to database.."),
-                (Activity.Submitting, "a pull request.."),
-                (Activity.OsuDirect, "updating maps..")
-            ]
-            : botStatuses.Split(",").Select(status => {
-                var statusParts = status.Split(":");
-                return (Enum.Parse<Activity>(statusParts[0]), statusParts[1]);
-            }).ToArray());
+        BotStatuses =
+        [
+            ..string.IsNullOrEmpty(botStatuses)
+                ? [
+                    (Activity.Afk, "looking for source.."),
+                    (Activity.Editing, "the source code.."),
+                    (Activity.Editing, "server's website.."),
+                    (Activity.Modding, "your requests.."),
+                    (Activity.Watching, "over all of you.."),
+                    (Activity.Watching, "over the server.."),
+                    (Activity.Testing, "my will to live.."),
+                    (Activity.Testing, "your patience.."),
+                    (Activity.Submitting, "scores to database.."),
+                    (Activity.Submitting, "a pull request.."),
+                    (Activity.OsuDirect, "updating maps..")
+                ]
+                : botStatuses.Split(",").Select(status =>
+                {
+                    var statusParts = status.Split(":");
+                    return (Enum.Parse<Activity>(statusParts[0]), statusParts[1]);
+                }).ToArray()
+        ];
         
         #endregion
 
         //TODO this cant contain spaces
         var commandPrefix = configuration["Config:CommandPrefix"];
-        CommandPrefix = string.IsNullOrEmpty(commandPrefix)
-            ? "!"
-            : commandPrefix;
+
+        if (string.IsNullOrEmpty(commandPrefix) || commandPrefix.Contains(' '))
+        {
+            Logger.Shared.LogWarning("No command prefix provided or it contains spaces. Using default prefix: !", caller: "Init");
+            CommandPrefix = "!";
+        }
+        else CommandPrefix = commandPrefix;
         
         var statusInterval = configuration["Config:BotStatusUpdateInterval"];
         BotStatusUpdateInterval = string.IsNullOrEmpty(statusInterval)
@@ -160,9 +173,9 @@ public static class AppSettings
     public static readonly string MenuOnclickUrl;
     public static readonly string DataPath;
     public static readonly string BanchoBotName;
-    public static readonly ImmutableList<string> DisallowedNames;
-    public static readonly ImmutableList<string> OsuDirectSearchEndpoints;
-    public static readonly ImmutableList<(Activity Activity, string Description)> BotStatuses;
+    public static readonly List<string> DisallowedNames;
+    public static readonly List<string> OsuDirectSearchEndpoints;
+    public static readonly List<(Activity Activity, string Description)> BotStatuses;
     public static readonly string OsuDirectDownloadEndpoint;
     public static readonly string WelcomeMessage;
     public static readonly string FirstLoginMessage;

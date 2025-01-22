@@ -26,10 +26,10 @@ public sealed partial class ServerPackets
 		[DataType.BotStats] = (bw, data) => bw.WriteBotStats((Player)data),
 		[DataType.Presence] = (bw, data) => bw.WriteUserPresence((Player)data),
 		[DataType.BotPresence] = (bw, data) => bw.WriteBotPresence((Player)data),
-		[DataType.ScoreFrame] = (bw, data) => bw.Write((byte)data), //TODO
-		[DataType.MapInfoRequest] = (bw, data) => bw.Write((sbyte)data), //TODO
-		[DataType.MapInfoReply] = (bw, data) => bw.Write((byte)data), //TODO
-		[DataType.ReplayFrameBundle] = (bw, data) => bw.Write((byte)data), //TODO
+		[DataType.ScoreFrame] = (bw, data) => bw.Write((byte)data),
+		[DataType.MapInfoRequest] = (bw, data) => bw.Write((sbyte)data),
+		[DataType.MapInfoReply] = (bw, data) => bw.Write((byte)data),
+		[DataType.ReplayFrameBundle] = (bw, data) => bw.Write((byte)data),
 		[DataType.IntList] = (bw, data) => bw.WriteOsuList32((List<int>)data),
 		[DataType.String] = (bw, data) => bw.WriteOsuString(data.ToString()),
 		[DataType.Raw] = (bw, data) => bw.Write((byte[])data),

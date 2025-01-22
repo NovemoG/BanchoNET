@@ -31,6 +31,8 @@ public class PlayerDto
 	public required string Country { get; set; }
 	public int Privileges { get; set; }
 	
+	public bool Inactive { get; set; }
+	
 	[Column(TypeName = "DATETIME")]
 	public DateTime RemainingSilence { get; set; }
 	[Column(TypeName = "DATETIME")]

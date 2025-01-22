@@ -7,5 +7,6 @@ public interface IBackgroundTasks : IInitiable
     Task AppendPlayerMonthlyHistory();
     Task DeleteUnnecessaryScores();
     Task CheckExpiringSupporters();
+    Task MarkInactivePlayers();
     void UpdateBotStatus();
 }

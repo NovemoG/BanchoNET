@@ -132,42 +132,6 @@ public static class ScoreExtensions
             ? (score.PP > other.PP)
             : (score.TotalScore > other.TotalScore);
     }
-    
-    public static void ComputeSubmissionStatus(
-        this Score newScore,
-        Score? prevBest,
-        Score? bestWithMods)
-    {
-        newScore.Status = SubmissionStatus.Submitted;
-        
-        if (newScore.IsBetterThan(prevBest))
-        {
-            if (prevBest != null)
-            {
-                prevBest.Status = newScore.Mods != prevBest.Mods
-                    ? SubmissionStatus.BestWithMods
-                    : SubmissionStatus.Submitted;
-                
-                newScore.PreviousBest = prevBest;
-            }
-            
-            newScore.Status = SubmissionStatus.Best;
-        }
-        else
-        {
-            if (bestWithMods == null)
-                newScore.Status = SubmissionStatus.BestWithMods;
-            
-            newScore.PreviousBest = prevBest;
-        }
-
-        if (bestWithMods == null || !newScore.IsBetterThan(bestWithMods)) return;
-        
-        bestWithMods.Status = SubmissionStatus.Submitted;
-        
-        if (newScore.Status != SubmissionStatus.Best)
-            newScore.Status = SubmissionStatus.BestWithMods;
-    }
 
     public static string ModeToString(this Score score)
     {

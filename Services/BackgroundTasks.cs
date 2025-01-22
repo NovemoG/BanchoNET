@@ -2,11 +2,13 @@
 using BanchoNET.Abstractions.Repositories;
 using BanchoNET.Abstractions.Repositories.Histories;
 using BanchoNET.Abstractions.Services;
+using BanchoNET.Models;
 using BanchoNET.Objects.Privileges;
 using BanchoNET.Packets;
 using BanchoNET.Services.Repositories;
 using BanchoNET.Utils;
 using Hangfire;
+using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
 
 namespace BanchoNET.Services;
@@ -37,8 +39,13 @@ public class BackgroundTasks(
             "*/30 * * * *"); // every 30 minutes
         
         RecurringJob.AddOrUpdate(
-            "deleteScores",
+            "appendRankHistory",
             () => AppendPlayerRankHistory(),
+            "0 0 * * *"); // every day at midnight
+        
+        RecurringJob.AddOrUpdate(
+            "markInactivePlayers",
+            () => MarkInactivePlayers(),
             "0 0 * * *"); // every day at midnight
         
         RecurringJob.AddOrUpdate(
@@ -47,12 +54,12 @@ public class BackgroundTasks(
             "0 0 */2 * *"); // every 2 days at midnight
         
         RecurringJob.AddOrUpdate(
-            "checkSupporters",
+            "clearCache",
             () => ClearPasswordsCache(),
             "0 0 1 * *"); // every 1st day of the month at midnight
         
         RecurringJob.AddOrUpdate(
-            "deleteScores",
+            "appendMonthlyHistory",
             () => AppendPlayerMonthlyHistory(),
             "0 0 1 * *"); // every 1st day of the month at midnight
         
@@ -87,13 +94,14 @@ public class BackgroundTasks(
         
         var stopwatch = new Stopwatch();
         stopwatch.Start();
-
-        var playerCount = await players.TotalPlayerCount();
+        
+        var key = $"bancho:leaderboard:{mode}";
+        var playerCount = await redis.SortedSetLengthAsync(key);
+        //var playerCount = await players.TotalPlayerCount();
         const int limit = 10_000;
         
         mode = mode == 7 ? (byte)(mode + 1) : mode;
-        var key = $"bancho:leaderboard:{mode}";
-            
+        
         var iter = 0;
         for (int i = 0; i < playerCount; i += limit)
         {
@@ -178,7 +186,21 @@ public class BackgroundTasks(
     }
 
     #endregion
-
+    
+    public async Task MarkInactivePlayers()
+    {
+        logger.LogInfo("Marking inactive players...", caller: nameof(BackgroundTasks));
+        
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<BanchoDbContext>();
+        
+        var inactivePlayers = await db.Players              //TODO make it configurable
+            .Where(p => !p.Inactive && p.LastActivityTime < DateTime.Now.AddDays(-14))
+            .ExecuteUpdateAsync(p => p.SetProperty(u => u.Inactive, true));
+        
+        logger.LogInfo($"Marked {inactivePlayers} players as inactive.", caller: nameof(BackgroundTasks));
+    }
+    
     public async Task DeleteUnnecessaryScores()
     {
         logger.LogInfo("Deleting old scores...", caller: nameof(BackgroundTasks));

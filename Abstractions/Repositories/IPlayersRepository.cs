@@ -1,3 +1,4 @@
+using BanchoNET.Models;
 using BanchoNET.Models.Dtos;
 using BanchoNET.Objects;
 using BanchoNET.Objects.Players;
@@ -29,7 +30,7 @@ public interface IPlayersRepository
 
     Task GetPlayerStats(Player player);
     Task<StatsDto?> GetPlayerModeStats(int playerId, byte mode);
-    Task<List<Tuple<int, int, int>>> GetPlayersModeStatsRange(byte mode, int count, int skip = 0, bool reset = false);
+    Task<List<PlayerHistoryStats>> GetPlayersModeStatsRange(byte mode, int count, int skip = 0, bool reset = false);
     Task UpdatePlayerStats(Player player, GameMode mode);
     Task ResetPlayersStats(byte mode);
     

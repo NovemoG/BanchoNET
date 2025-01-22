@@ -76,7 +76,7 @@ public partial class OsuController
             if (uniqueId2 != player.ClientDetails.DiskSignatureMD5)
                 throw new Exception($"UniqueId2 mismatch ({uniqueId2} != {player.ClientDetails.UninstallMD5})");
 
-            var serverScoreChecksum = score.ComputeOnlineChecksum(osuVersion, clientHash, storyboardMD5);
+            var serverScoreChecksum = score.ComputeOnlineChecksum(osuVersion, clientHash, storyboardMD5 ?? "");
             if (score.ClientChecksum != serverScoreChecksum)
                 throw new Exception($"Online score checksum mismatch ({score.ClientChecksum} != {serverScoreChecksum})");
 
@@ -91,6 +91,12 @@ public partial class OsuController
             return Ok("error: ban");
         }
 
+        if (await scores.ScoreExists(score.ClientChecksum))
+        {
+            logger.LogWarning($"{player.Username} tried to submit a duplicate score.");
+            return Ok("error: no");
+        }
+        
         await players.UpdateLatestActivity(player);
 
         if (score.Mode != player.Status.Mode)
@@ -105,13 +111,6 @@ public partial class OsuController
                     .FinalizeAndGetContent());
             }
         }
-
-        if (await scores.ScoreExists(score.ClientChecksum))
-        {
-            logger.LogWarning($"{player.Username} tried to submit a duplicate score.");
-            return Ok("error: no");
-        }
-		
         score.CalculateAccuracy();
         
         var prevBest = await scores.GetPlayerBestScoreOnMap(player.Id, beatmapMD5, score.Mode);
@@ -125,7 +124,7 @@ public partial class OsuController
 
             if (score.Passed)
             {
-                score.ComputeSubmissionStatus(prevBest, bestWithMods);
+                ComputeSubmissionStatus(score, prevBest, bestWithMods);
                 
                 if (beatmap.Status != BeatmapStatus.LatestPending)
                     await scores.SetScoreLeaderboardPosition(beatmap.MD5, score, false);
@@ -142,8 +141,6 @@ public partial class OsuController
         }
 
         score.TimeElapsed = score.Passed ? scoreTime : failTime;
-		
-        //TODO pp autoban(?)
         
         if (score.Status == SubmissionStatus.Best)
         {
@@ -277,6 +274,49 @@ public partial class OsuController
 
         return Responses.BytesContentResult(response);
     }
+    
+    private static void ComputeSubmissionStatus(
+        Score newScore,
+        Score? prevBest,
+        Score? bestWithMods)
+    {
+        newScore.Status = SubmissionStatus.Submitted;
+        
+        if (newScore.IsBetterThan(prevBest))
+        {
+            if (prevBest != null)
+            {
+                // if new score beats prevBest and has different mods,
+                // prevBest becomes bestWithMods
+                prevBest.Status = newScore.Mods != prevBest.Mods
+                    ? SubmissionStatus.BestWithMods
+                    : SubmissionStatus.Submitted;
+                
+                newScore.PreviousBest = prevBest;
+            }
+            
+            newScore.Status = SubmissionStatus.Best;
+        }
+        else
+        {
+            // if it didn't beat prevBest, check if it bestWithMods exists and set
+            // status accordingly (it is going to be properly checked later)
+            if (bestWithMods == null)
+                newScore.Status = SubmissionStatus.BestWithMods;
+            
+            newScore.PreviousBest = prevBest;
+        }
+
+        if (bestWithMods == null || !newScore.IsBetterThan(bestWithMods)) return;
+        
+        // if it exists and new score is better set bestWithMods to Submitted
+        bestWithMods.Status = SubmissionStatus.Submitted;
+        
+        // this check is for if new score is not better than prevBest but is
+        // better than bestWithMods
+        if (newScore.Status != SubmissionStatus.Best)
+            newScore.Status = SubmissionStatus.BestWithMods;
+    }
 
     private async Task RecalculatePlayerStats(
         Beatmap beatmap,
@@ -298,9 +338,13 @@ public partial class OsuController
             
             if (prevBest != null)
             {
+                // our current score is best, so if prevbest is submitted subtract,
+                // otherwise our score should still count because it is in the modded
+                // leaderboard; then if current score beat both prevBest and bestWithMods
+                // but prevBest is BestWithMods we subtract bestWithMods
                 if (prevBest is { Status: SubmissionStatus.Submitted, Grade: >= Grade.A })
                     stats.Grades[prevBest.Grade] -= 1;
-                else if (bestWithMods is { Status: SubmissionStatus.Submitted, Grade: >= Grade.A })
+                else if (bestWithMods != null)
                     stats.Grades[bestWithMods.Grade] -= 1;
                 
                 oldBestScore = prevBest.TotalScore;
@@ -317,6 +361,7 @@ public partial class OsuController
         }
         else if (score.Status == SubmissionStatus.BestWithMods)
         {
+            // if our score didnt beat prevBest but beat bestWithMods subtract
             if (bestWithMods is { Grade: >= Grade.A })
                 stats.Grades[bestWithMods.Grade] -= 1;
             

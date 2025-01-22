@@ -137,7 +137,8 @@ public class PlayersRepository : IPlayersRepository
 		await _dbContext.Players
 			.Where(p => p.Id == playerId)
 			.ExecuteUpdateAsync(p => 
-				p.SetProperty(u => u.LastActivityTime, DateTime.Now));
+				p.SetProperty(u => u.LastActivityTime, DateTime.Now)
+				 .SetProperty(u => u.Inactive, false));
 	}
 	
 	public async Task UpdatePlayerCountry(Player player, string country)
@@ -535,9 +536,9 @@ public class PlayersRepository : IPlayersRepository
 	}
 	
 	/// <summary>
-	/// Returns a list of tuples that contains: player id, play count and replay views of players in a given mode.
+	/// Returns a list of objects that contains: player id, play count and replay views of players in a given mode.
 	/// </summary>
-	public async Task<List<Tuple<int, int, int>>> GetPlayersModeStatsRange(
+	public async Task<List<PlayerHistoryStats>> GetPlayersModeStatsRange(
 		byte mode,
 		int count,
 		int skip = 0,
@@ -548,11 +549,11 @@ public class PlayersRepository : IPlayersRepository
 		
 		return await _dbContext.Stats
 			.Include(s => s.Player)
-			.Where(s => s.Mode == mode && (s.Player.Privileges & 1) == 1)
+			.Where(s => s.Mode == mode && !s.Player.Inactive && (s.Player.Privileges & 1) == 1)
 			.OrderBy(s => s.PlayerId)
 			.Skip(skip)
 			.Take(count)
-			.Select(s => new Tuple<int, int, int>(s.PlayerId, s.PlayCount, s.ReplayViews))
+			.Select(s => new PlayerHistoryStats(s.PlayerId, s.PlayCount, s.ReplayViews))
 			.ToListAsync();
 	}
 
