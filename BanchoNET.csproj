@@ -40,6 +40,9 @@
 
     <ItemGroup>
       <None Remove=".env" />
+      <Content Include="..\.dockerignore">
+        <Link>.dockerignore</Link>
+      </Content>
       <Content Include=".env" />
     </ItemGroup>
 

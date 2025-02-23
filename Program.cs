@@ -17,7 +17,6 @@ using BanchoNET.Services.LobbyScoresQueue;
 using BanchoNET.Services.Repositories;
 using BanchoNET.Utils;
 using BanchoNET.Utils.Extensions;
-using dotenv.net;
 using Hangfire;
 using Hangfire.AspNetCore;
 using Hangfire.MySql;
@@ -42,8 +41,6 @@ public class Program
 		initStopwatch.Start();
 		
 		var builder = WebApplication.CreateBuilder(args);
-		
-		DotEnv.Load(); // Load .env when non dockerized
 		
 		#region Logging
 
@@ -96,9 +93,6 @@ public class Program
 			"MYSQL_PORT",
 			"MYSQL_USER",
 			"MYSQL_DB",
-			"HANGFIRE_HOST",
-			"HANGFIRE_PORT",
-			"HANGFIRE_USER",
 			"REDIS_HOST",
 			"REDIS_PORT",
 			"MONGO_HOST",
@@ -121,10 +115,6 @@ public class Program
 			MysqlUser = Environment.GetEnvironmentVariable("MYSQL_USER")!,
 			MysqlPass = Environment.GetEnvironmentVariable("MYSQL_PASS")!,
 			MysqlDb = Environment.GetEnvironmentVariable("MYSQL_DB")!,
-			HangfireHost = Environment.GetEnvironmentVariable("HANGFIRE_HOST")!,
-			HangfirePort = Environment.GetEnvironmentVariable("HANGFIRE_PORT")!,
-			HangfireUser = Environment.GetEnvironmentVariable("HANGFIRE_USER")!,
-			HangfirePass = Environment.GetEnvironmentVariable("HANGFIRE_PASS")!,
 			RedisHost = Environment.GetEnvironmentVariable("REDIS_HOST")!,
 			RedisPort = Environment.GetEnvironmentVariable("REDIS_PORT")!,
 			RedisPass = Environment.GetEnvironmentVariable("REDIS_PASS")!,
@@ -144,11 +134,11 @@ public class Program
 
 		mySqlConnectionString += $"database={dbConnections.MysqlDb};";
 
-		var hangfirePass = dbConnections.HangfirePass;
+		var hangfirePass = dbConnections.MysqlPass;
 		var hangfireConnectionString =
-			$"server={dbConnections.HangfireHost};" +
-			$"port={dbConnections.HangfirePort};" +
-			$"user={dbConnections.HangfireUser};" +
+			$"server={dbConnections.MysqlHost};" +
+			$"port={dbConnections.MysqlPort};" +
+			$"user={dbConnections.MysqlUser};" +
 			$"{(string.IsNullOrEmpty(hangfirePass) ? "" : $"password={hangfirePass};")}" +
 			$"database=hangfire;" +
 			$"Allow User Variables=True";

@@ -8,11 +8,6 @@ public class DbConnectionsModel
     public string MysqlPass { get; set; } = null!;
     public string MysqlDb { get; set; } = null!;
     
-    public string HangfireHost { get; set; } = null!;
-    public string HangfirePort { get; set; } = null!;
-    public string HangfireUser { get; set; } = null!;
-    public string HangfirePass { get; set; } = null!;
-    
     public string RedisHost { get; set; } = null!;
     public string RedisPort { get; set; } = null!;
     public string RedisPass { get; set; } = null!;
