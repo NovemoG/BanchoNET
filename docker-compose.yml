@@ -12,7 +12,7 @@
       - "./data:/app/publish/.data"
     depends_on:
       mariadb:
-        condition: service_started
+        condition: service_healthy
       redis:
         condition: service_started
       MongoDB:
@@ -21,14 +21,19 @@
     image: mariadb
     hostname: banchonet-mysql
     environment:
-      MYSQL_DATABASE: ${MYSQL_DB}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASS}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_PASS}
-      MYSQL_PORT: ${MYSQL_PORT}
-      MYSQL_HOST: ${MYSQL_HOST}
+      MARIADB_DATABASE: ${MYSQL_DB}
+      MARIADB_USER: ${MYSQL_USER}
+      MARIADB_PASSWORD: ${MYSQL_PASS}
+      MARIADB_ROOT_PASSWORD: ${MYSQL_PASS}
+      MARIADB_PORT: ${MYSQL_PORT}
+      MARIADB_HOST: ${MYSQL_HOST}
     ports:
       - ${MYSQL_PORT}:${MYSQL_PORT}
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 2s
+      timeout: 20s
+      retries: 10
   redis:
     image: redis
     hostname: banchonet-redis
