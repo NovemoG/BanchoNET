@@ -1,10 +1,11 @@
-﻿using BanchoNET.Models.Mongo;
+﻿using BanchoNET.Abstractions.Repositories.Histories;
+using BanchoNET.Models.Mongo;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace BanchoNET.Services.Repositories;
 
-public class HistoriesRepository
+public class HistoriesRepository : IHistoriesRepository
 {
     #region Constructor
 
@@ -98,7 +99,7 @@ public class HistoriesRepository
             Console.WriteLine("[Histories] Couldn't insert action, match not found in multiplayer history");
     }
 
-    public async Task AddMatchActions(int matchId, List<ActionEntry> entries)
+    public async Task AddMatchActions(int matchId, IEnumerable<ActionEntry> entries)
     {
         var builder = Builders<MultiplayerMatch>.Update.PushEach("Actions", entries);
         
@@ -144,8 +145,6 @@ public class HistoriesRepository
         var update = Builders<MultiplayerMatch>.Update.Set("Scores.$.Values", scores);
         
         var result = await _multiplayerMatches.UpdateOneAsync(filter, update);
-        
-        Console.WriteLine(result.ModifiedCount);
         
         if (result.ModifiedCount == 0)
             Console.WriteLine("[Histories] Couldn't update scores, match not found in multiplayer history");

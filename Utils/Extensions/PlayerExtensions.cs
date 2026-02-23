@@ -11,13 +11,13 @@ public static class PlayerExtensions
 {
 	private static readonly BanchoSession Session = BanchoSession.Instance;
 	private static readonly Player BanchoBot = Session.BanchoBot;
-	private static readonly Dictionary<Privileges, ClientPrivileges> ClientPrivilegesMap = new()
+	private static readonly Dictionary<PlayerPrivileges, ClientPrivileges> ClientPrivilegesMap = new()
 	{
-		{ Privileges.Unrestricted, ClientPrivileges.Player },
-		{ Privileges.Supporter, ClientPrivileges.Supporter },
-		{ Privileges.Moderator, ClientPrivileges.Moderator },
-		{ Privileges.Administrator, ClientPrivileges.Developer },
-		{ Privileges.Developer, ClientPrivileges.Owner },
+		{ PlayerPrivileges.Unrestricted, ClientPrivileges.Player },
+		{ PlayerPrivileges.Supporter, ClientPrivileges.Supporter },
+		{ PlayerPrivileges.Moderator, ClientPrivileges.Moderator },
+		{ PlayerPrivileges.Administrator, ClientPrivileges.Developer },
+		{ PlayerPrivileges.Developer, ClientPrivileges.Owner },
 	};
 	
 	public static ClientPrivileges ToBanchoPrivileges(this Player player)
@@ -25,7 +25,7 @@ public static class PlayerExtensions
 		var retPriv = 0;
 		var privs = (int)player.Privileges;
 		
-		foreach (var priv in Enum.GetValues<Privileges>())
+		foreach (var priv in Enum.GetValues<PlayerPrivileges>())
 		{
 			if ((privs & (int)priv) == (int)priv && ClientPrivilegesMap.TryGetValue(priv, out var value)) 
 				retPriv |= (int)value;
@@ -34,7 +34,7 @@ public static class PlayerExtensions
 		return (ClientPrivileges)retPriv;
 	}
 	
-	public static bool CanUseCommand(this Player player, Privileges requiredPrivileges)
+	public static bool CanUseCommand(this Player player, PlayerPrivileges requiredPrivileges)
 	{
 		return player.Privileges.HasAnyPrivilege(requiredPrivileges) &&
 		       player.Privileges.CompareHighestPrivileges(requiredPrivileges);
@@ -48,15 +48,14 @@ public static class PlayerExtensions
 	/// <param name="channel">(optional) channel that this message should be sent to instead of player</param>
 	public static void SendMessage(this Player player, string message, Player source, Channel? channel = null)
 	{
-		using var messagePacket = new ServerPackets();
-		messagePacket.SendMessage(new Message
-		{
-			Sender = source.Username,
-			Content = message,
-			Destination = channel != null ? channel.Name : player.Username,
-			SenderId = source.Id
-		});
-		player.Enqueue(messagePacket.GetContent());
+		player.Enqueue(new ServerPackets()
+			.SendMessage(new Message
+			{
+				Sender = source.Username,
+				Content = message,
+				Destination = channel != null ? channel.Name : player.Username,
+				SenderId = source.Id
+			}).FinalizeAndGetContent());
 	}
 
 	/// <summary>
@@ -67,56 +66,47 @@ public static class PlayerExtensions
 	/// <param name="destination">(optional) </param>
 	public static void SendBotMessage(this Player player, string message, string destination = "")
 	{
-		using var messagePacket = new ServerPackets();
-		messagePacket.SendMessage(new Message
-		{
-			Sender = BanchoBot.Username,
-			Content = message,
-			Destination = string.IsNullOrEmpty(destination) ? player.Username : destination,
-			SenderId = BanchoBot.Id
-		});
-		player.Enqueue(messagePacket.GetContent());
+		player.Enqueue(new ServerPackets()
+			.SendMessage(new Message
+			{
+				Sender = BanchoBot.Username,
+				Content = message,
+				Destination = string.IsNullOrEmpty(destination) ? player.Username : destination,
+				SenderId = BanchoBot.Id
+			}).FinalizeAndGetContent());
 	}
 
 	public static bool JoinMatch(this Player player, MultiplayerLobby lobby, string password)
 	{
 		if (player.InMatch)
 		{
-			using var joinFailPacket = new ServerPackets();
-			joinFailPacket.MatchJoinFail();
-			player.Enqueue(joinFailPacket.GetContent());
+			player.Enqueue(MatchJoinFailData());
 			
-			Console.WriteLine($"[PlayerExtensions] {player.Username} tried to join multiple matches.");
+			Logger.Shared.LogDebug($"{player.Username} tried to join multiple matches.", nameof(PlayerExtensions));
 			return false;
 		}
 
 		if (lobby.TourneyClients.Contains(player.Id))
 		{
-			using var joinFailPacket = new ServerPackets();
-			joinFailPacket.MatchJoinFail();
-			player.Enqueue(joinFailPacket.GetContent());
+			player.Enqueue(MatchJoinFailData());
 			return false;
 		}
 
 		MultiplayerSlot? slot;
 		if (lobby.HostId != player.Id)
 		{
-			if (password != lobby.Password && !player.Privileges.HasFlag(Privileges.Staff))
+			if (password != lobby.Password && !player.Privileges.HasFlag(PlayerPrivileges.Staff))
 			{
-				using var joinFailPacket = new ServerPackets();
-				joinFailPacket.MatchJoinFail();
-				player.Enqueue(joinFailPacket.GetContent());
+				player.Enqueue(MatchJoinFailData());
 
-				Console.WriteLine($"[PlayerExtensions] {player.Username} tried to join {lobby.LobbyId} with incorrect password.");
+				Logger.Shared.LogDebug($"{player.Username} tried to join {lobby.LobbyId} with incorrect password.", nameof(PlayerExtensions));
 				return false;
 			}
 
 			slot = lobby.Slots.FirstOrDefault(s => s.Status == SlotStatus.Open);
 			if (slot == null)
 			{
-				using var joinFailPacket = new ServerPackets();
-				joinFailPacket.MatchJoinFail();
-				player.Enqueue(joinFailPacket.GetContent());
+				player.Enqueue(MatchJoinFailData());
 				return false;
 			}
 		}
@@ -124,7 +114,7 @@ public static class PlayerExtensions
 
 		if (!player.JoinChannel(lobby.Chat))
 		{
-			Console.WriteLine($"[PlayerExtensions] {player.Username} failed to join {lobby.Chat.IdName}");
+			Logger.Shared.LogDebug($"{player.Username} failed to join {lobby.Chat.IdName}", nameof(PlayerExtensions));
 			return false;
 		}
 		
@@ -137,20 +127,27 @@ public static class PlayerExtensions
 		slot.Player = player;
 		player.Lobby = lobby;
 		
-		using var joinSuccessPacket = new ServerPackets();
-		joinSuccessPacket.MatchJoinSuccess(lobby);
-		player.Enqueue(joinSuccessPacket.GetContent());
+		player.Enqueue(new ServerPackets()
+			.MatchJoinSuccess(lobby)
+			.FinalizeAndGetContent());
 		lobby.EnqueueState();
 		
 		player.SendBotMessage($"Match created by {player.Username} {lobby.MPLinkEmbed()}", "#multiplayer");
 		return true;
+	}
+
+	private static byte[] MatchJoinFailData()
+	{
+		return new ServerPackets()
+			.MatchJoinFail()
+			.FinalizeAndGetContent();
 	}
 	
 	public static bool LeaveMatch(this Player player)
 	{
 		if (!player.InMatch)
 		{
-			Console.WriteLine($"[PlayerExtensions] {player.Username} tried to leave a match without being in one.");
+			Logger.Shared.LogDebug($"{player.Username} tried to leave a match without being in one.", nameof(PlayerExtensions));
 			return false;
 		}
 
@@ -162,7 +159,7 @@ public static class PlayerExtensions
 
 		if (lobby.IsEmpty())
 		{
-			Console.WriteLine($"[PlayerExtensions] Match \"{lobby.Name}\" is empty, removing.");
+			Logger.Shared.LogDebug($"Match \"{lobby.Name}\" is empty, removing.", nameof(PlayerExtensions));
 
 			lobby.Timer?.Stop();
 			Session.RemoveLobby(lobby);
@@ -174,9 +171,9 @@ public static class PlayerExtensions
 			{
 				var firstOccupiedSlot = lobby.Slots.First(s => s.Player != null);
 				lobby.HostId = firstOccupiedSlot.Player!.Id;
-				using var matchTransferPacket = new ServerPackets();
-				matchTransferPacket.MatchTransferHost();
-				firstOccupiedSlot.Player.Enqueue(matchTransferPacket.GetContent());
+				firstOccupiedSlot.Player.Enqueue(new ServerPackets()
+					.MatchTransferHost()
+					.FinalizeAndGetContent());
 			}
 
 			if (lobby.CreatorId != player.Id && lobby.Refs.Remove(player.Id))
@@ -216,31 +213,31 @@ public static class PlayerExtensions
 
 		if (!target.JoinChannel(spectatorChannel))
 		{
-			Console.WriteLine($"[PlayerExtensions] {target.Username} failed to join {channelName}");
+			Logger.Shared.LogDebug($"{target.Username} failed to join {channelName}", nameof(PlayerExtensions));
 			return;
 		}
-
-		using var joinedPacket = new ServerPackets();
-		joinedPacket.FellowSpectatorJoined(target.Id);
-		var bytes = joinedPacket.GetContent();
+		
+		var bytes = new ServerPackets()
+			.FellowSpectatorJoined(target.Id)
+			.FinalizeAndGetContent();
 		
 		foreach (var spectator in host.Spectators)
 		{
 			spectator.Enqueue(bytes);
-
-			using var fellowSpectatorPacket = new ServerPackets();
-			fellowSpectatorPacket.FellowSpectatorJoined(spectator.Id);
-			target.Enqueue(fellowSpectatorPacket.GetContent());
+			
+			target.Enqueue(new ServerPackets()
+				.FellowSpectatorJoined(spectator.Id)
+				.FinalizeAndGetContent());
 		}
 		
-		using var spectatorJoinedPacket = new ServerPackets();
-		spectatorJoinedPacket.SpectatorJoined(target.Id);
-		host.Enqueue(spectatorJoinedPacket.GetContent());
+		host.Enqueue(new ServerPackets()
+			.SpectatorJoined(target.Id)
+			.FinalizeAndGetContent());
 		
 		host.Spectators.Add(target);
 		target.Spectating = host;
 		
-		Console.WriteLine($"[PlayerExtensions] {target.Username} is now spectating {host.Username}");
+		Logger.Shared.LogDebug($"{target.Username} is now spectating {host.Username}", nameof(PlayerExtensions));
 	}
 	
 	public static void RemoveSpectator(this Player host, Player target)
@@ -267,11 +264,11 @@ public static class PlayerExtensions
 				spectator.Enqueue(bytes);
 		}
 		
-		using var spectatorLeftPacket = new ServerPackets();
-		spectatorLeftPacket.SpectatorLeft(target.Id);
-		host.Enqueue(spectatorLeftPacket.GetContent());
+		host.Enqueue(new ServerPackets()
+			.SpectatorLeft(target.Id)
+			.FinalizeAndGetContent());
 		
-		Console.WriteLine($"[PlayerExtensions] {target.Username} is no longer spectating {host.Username}");
+		Logger.Shared.LogDebug($"{target.Username} is no longer spectating {host.Username}", nameof(PlayerExtensions));
 	}
 
 	public static bool BlockedByPlayer(this Player player, int targetId)
@@ -281,13 +278,13 @@ public static class PlayerExtensions
 
 	public static void JoinLobby(this Player player)
 	{
-		player.InLobby = true;
+		Session.JoinLobby(player);
 
 		foreach (var lobby in Session.Lobbies)
 		{
-			using var newMatchPacket = new ServerPackets();
-			newMatchPacket.NewMatch(lobby);
-			player.Enqueue(newMatchPacket.GetContent());
+			player.Enqueue(new ServerPackets()
+				.NewMatch(lobby)
+				.FinalizeAndGetContent());
 		}
 	}
 
@@ -300,15 +297,16 @@ public static class PlayerExtensions
 			return false;
 		}
 
-		player.AddToChannel(channel);
-
-		using var channelJoinPacket = new ServerPackets();
-		channelJoinPacket.ChannelJoin(channel.Name);
-		player.Enqueue(channelJoinPacket.GetContent());
-
-		using var channelInfoPacket = new ServerPackets();
-		channelInfoPacket.ChannelInfo(channel);
-		var bytes = channelInfoPacket.GetContent();
+		channel.AddPlayer(player);
+		player.Channels.Add(channel);
+		
+		player.Enqueue(new ServerPackets()
+			.ChannelJoin(channel.Name)
+			.FinalizeAndGetContent());
+		
+		var bytes = new ServerPackets()
+			.ChannelInfo(channel)
+			.FinalizeAndGetContent();
 		
 		if (channel.Instance)
 			foreach (var user in channel.Players)
@@ -324,23 +322,24 @@ public static class PlayerExtensions
 	{
 		if (!channel.PlayerInChannel(player))
 		{
-			Console.WriteLine($"[PlayerExtensions] {player.Username} tried to leave {channel.IdName} without being " +
-			                  $"in it (most of the times it's a false positive).");
+			Logger.Shared.LogDebug($"{player.Username} tried to leave {channel.IdName} without being in it " +
+			                       $"(most of the times it's a false positive).", nameof(PlayerExtensions));
 			return;
 		}
 		
-		player.RemoveFromChannel(channel);
+		channel.RemovePlayer(player);
+		player.Channels.Remove(channel);
 
 		if (kick)
 		{
-			using var kickPacket = new ServerPackets();
-			kickPacket.ChannelKick(channel.Name);
-			player.Enqueue(kickPacket.GetContent());
+			player.Enqueue(new ServerPackets()
+				.ChannelKick(channel.Name)
+				.FinalizeAndGetContent());
 		}
 		
-		using var channelInfoPacket = new ServerPackets();
-		channelInfoPacket.ChannelInfo(channel);
-		var bytes = channelInfoPacket.GetContent();
+		var bytes = new ServerPackets()
+			.ChannelInfo(channel)
+			.FinalizeAndGetContent();
 
 		if (channel.Instance)
 			foreach (var user in channel.Players)
@@ -349,18 +348,6 @@ public static class PlayerExtensions
 			foreach (var user in Session.Players.Where(channel.CanPlayerRead))
 				user.Enqueue(bytes);
 		
-		Console.WriteLine($"[PlayerExtensions] {player.Username} left {channel.IdName}");
-	}
-
-	private static void AddToChannel(this Player player, Channel channel)
-	{
-		channel.Players.Add(player);
-		player.Channels.Add(channel);
-	}
-
-	private static void RemoveFromChannel(this Player player, Channel channel)
-	{
-		channel.Players.Remove(player);
-		player.Channels.Remove(channel);
+		Logger.Shared.LogDebug($"{player.Username} left {channel.IdName}", nameof(PlayerExtensions));
 	}
 }

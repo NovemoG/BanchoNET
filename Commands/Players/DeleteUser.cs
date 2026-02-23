@@ -7,16 +7,16 @@ namespace BanchoNET.Commands;
 public partial class CommandProcessor
 {
     [Command("delete_user",
-        Privileges.Developer | Privileges.Staff,
+        PlayerPrivileges.Developer | PlayerPrivileges.Staff,
         "Deletes provided user's account. Syntax: delete_user <delete_scores> [<force>] \"<username>\"",
         "\nForce is only needed if you want to delete other staff member account or an online player.")]
     private async Task<string> DeleteUser(string[] args)
     {
         if (args.Length == 0)
-            return $"No parameters provided. Syntax: {_prefix}delete_user <delete_scores> [<force>] \"<username>\"";
+            return $"No parameters provided. Syntax: {Prefix}delete_user <delete_scores> [<force>] \"<username>\"";
         
         if (args.Length < 2)
-            return $"Invalid number of parameters provided. Syntax: {_prefix}delete_user <delete_scores> [<force>] \"<username>\"";
+            return $"Invalid number of parameters provided. Syntax: {Prefix}delete_user <delete_scores> [<force>] \"<username>\"";
         
         if (!bool.TryParse(args[1], out var deleteScores) || !(deleteScores = args[1] == "1"))
             return "Invalid delete_scores parameter provided. It must be a boolean value.";
@@ -28,11 +28,11 @@ public partial class CommandProcessor
         //TODO is it really needed since every nickname is converted to safe anyway?
         var username = args.MergeQuotedElements().Unquote();
         
-        var player = await players.FetchPlayerInfoByName(username);
+        var player = await players.GetPlayerInfo(username);
         if (player == null)
             return "Player with provided username does not exist.";
         
-        if (((Privileges)player.Privileges).GetHighestPrivilege() >= Privileges.Moderator && !force)
+        if (((PlayerPrivileges)player.Privileges).GetHighestPrivilege() >= PlayerPrivileges.Moderator && !force)
             return "This is other staff member account. If you're sure that you want to delete it - set force to true.";
 
         var result = await players.DeletePlayer(player, deleteScores, force);

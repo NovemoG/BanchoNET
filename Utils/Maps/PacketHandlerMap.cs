@@ -10,6 +10,8 @@ public static class PacketHandlerMap
 	
 	static PacketHandlerMap()
 	{
+		Logger.Shared.LogDebug("Mapping packet method handlers...", nameof(PacketHandlerMap));
+		
 		var handlerType = typeof(ClientPacketsHandler);
 		foreach (var packetName in Enum.GetValues<ClientPacketId>())
 		{

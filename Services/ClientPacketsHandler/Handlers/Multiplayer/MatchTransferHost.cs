@@ -22,10 +22,10 @@ public partial class ClientPacketsHandler
 		if (target == null) return;
 
 		lobby.HostId = target.Id;
-
-		using var hostTransferPacket = new ServerPackets();
-		hostTransferPacket.MatchTransferHost();
-		target.Enqueue(hostTransferPacket.GetContent());
+		
+		lobby.Enqueue(new ServerPackets()
+			.MatchTransferHost()
+			.FinalizeAndGetContent());
 		lobby.EnqueueState();
 
 		await histories.AddMatchAction(

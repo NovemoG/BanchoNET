@@ -8,7 +8,7 @@ namespace BanchoNET.Commands;
 public partial class CommandProcessor
 {
     [Command("addpriv",
-        Privileges.Administrator | Privileges.Developer,
+        PlayerPrivileges.Administrator | PlayerPrivileges.Developer,
         "Adds given privilege to a player with given username. Syntax: addpriv <username> <privilege>",
         "\nYou can only add privileges that are lower in rank than yours. If player's username contains spaces" +
         "\nplease replace them with underscores." +
@@ -17,7 +17,7 @@ public partial class CommandProcessor
     private async Task<string> AddPrivileges(string[] args)
     {
         if (args.Length == 0)
-            return $"No parameter(s) provided. Syntax: {_prefix}addpriv <username> <privilege>.";
+            return $"No parameter(s) provided. Syntax: {Prefix}addpriv <username> <privilege>.";
         
         if (args.Length == 1)
             return $"No privilege provided. Available privileges: {string.Join(", ", ValidPrivileges)}.";
@@ -25,7 +25,7 @@ public partial class CommandProcessor
         var username = args[0];
         var priv = args[1].ToLower();
         
-        if (!ValidPrivileges.Contains(priv) || !Enum.TryParse(priv, true, out Privileges privilege))
+        if (!ValidPrivileges.Contains(priv) || !Enum.TryParse(priv, true, out PlayerPrivileges privilege))
             return $"Invalid privilege provided. Available privileges: {string.Join(", ", ValidPrivileges)}.";
         
         if (_playerCtx.Privileges.GetHighestPrivilege() < privilege)
@@ -40,12 +40,12 @@ public partial class CommandProcessor
         if (player.Privileges.HasPrivilege(privilege))
             return $"{player.Username} already has this privilege.";
             
-        await players.ModifyPlayerPrivileges(player, privilege, false);
+        await players.UpdatePlayerPrivileges(player, privilege, false);
         return $"Successfully added privilege to {player.Username}.";
     }
 
     [Command("rmpriv",
-        Privileges.Administrator | Privileges.Developer,
+        PlayerPrivileges.Administrator | PlayerPrivileges.Developer,
         "Removes given privilege from a player with given username. Syntax: rmpriv <username> <privilege>",
         "\nYou can only remove privileges that are lower in rank than yours. If player's username contains spaces" +
         "\nplease replace them with underscores." +
@@ -54,7 +54,7 @@ public partial class CommandProcessor
     private async Task<string> RemovePrivileges(string[] args)
     {
         if (args.Length == 0)
-            return $"No parameter(s) provided. Use '{_prefix}help rmpriv' for more information.";
+            return $"No parameter(s) provided. Use '{Prefix}help rmpriv' for more information.";
         
         if (args.Length == 1)
             return $"No privilege provided. Available privileges: {string.Join(", ", ValidPrivileges)}.";
@@ -65,7 +65,7 @@ public partial class CommandProcessor
         if (_playerCtx.SafeName == username.MakeSafe())
             return "You can't remove your own privileges.";
         
-        if (!ValidPrivileges.Contains(priv) || !Enum.TryParse(priv, true, out Privileges privilege))
+        if (!ValidPrivileges.Contains(priv) || !Enum.TryParse(priv, true, out PlayerPrivileges privilege))
             return $"Invalid privilege provided. Available privileges: {string.Join(", ", ValidPrivileges)}.";
         
         if (_playerCtx.Privileges.GetHighestPrivilege() <= privilege)
@@ -83,7 +83,7 @@ public partial class CommandProcessor
         if (!player.Privileges.HasPrivilege(privilege))
             return $"{player.Username} does not have that privilege.";
             
-        await players.ModifyPlayerPrivileges(player, privilege, true);
+        await players.UpdatePlayerPrivileges(player, privilege, true);
         return $"Stripped {player.Username} from his privilege.";
     }
 }

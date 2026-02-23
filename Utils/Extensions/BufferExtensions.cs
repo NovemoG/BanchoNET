@@ -15,7 +15,7 @@ public static class BufferExtensions
 		if (stringExists == 0) return string.Empty;
 		if (stringExists != 11)
 		{
-			Console.WriteLine("[BufferExtensions] Invalid byte value while trying to read osu string");
+			Logger.Shared.LogWarning("Invalid byte value while trying to read osu string", caller: nameof(BufferExtensions));
 			return string.Empty;
 		}
 		
@@ -270,7 +270,7 @@ public static class BufferExtensions
 	{
 		bw.WriteOsuString(channel.Name);
 		bw.WriteOsuString(channel.Description);
-		bw.Write((ushort)channel.Players.Count);
+		bw.Write((ushort)channel.PlayersCount);
 	}
 
 	public static void WriteOsuMatch(this BinaryWriter bw, LobbyData lobbyData)

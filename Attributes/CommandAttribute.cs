@@ -8,7 +8,7 @@ namespace BanchoNET.Attributes;
 public class CommandAttribute : Attribute
 {
     public string Name { get; }
-    public Privileges Privileges { get; }
+    public PlayerPrivileges Privileges { get; }
     public string BriefDescription { get; }
     public string DetailedDescription { get; }
     public string[]? Aliases { get; }
@@ -26,10 +26,10 @@ public class CommandAttribute : Attribute
     /// <param name="aliases">Other names associated that can run this command</param>
     public CommandAttribute(
         string name,
-        Privileges privileges,
+        PlayerPrivileges privileges,
         string briefDescription,
         string detailedDescription = "",
-        string[]? aliases = default)
+        string[]? aliases = null)
     {
         Name = name;
         Privileges = privileges;

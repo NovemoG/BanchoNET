@@ -71,20 +71,20 @@ public static class ChannelExtensions
 
 	public static void SendMessage(this Channel channel, Message message, bool toSelf = false)
 	{
-		using var messagePacket = new ServerPackets();
-		messagePacket.SendMessage(new Message
-		{
-			Sender = message.Sender,
-			Content = message.Content,
-			Destination = channel.Name,
-			SenderId = message.SenderId
-		});
-		var bytes = messagePacket.GetContent();
+		var messageBytes = new ServerPackets()
+			.SendMessage(new Message
+			{
+				Sender = message.Sender,
+				Content = message.Content,
+				Destination = channel.Name,
+				SenderId = message.SenderId
+			})
+			.FinalizeAndGetContent();
 		
 		foreach (var player in channel.Players)
 		{
 			if (!player.BlockedByPlayer(message.SenderId) && (toSelf || player.Id != message.SenderId))
-				player.Enqueue(bytes);
+				player.Enqueue(messageBytes);
 		}
 	}
 
@@ -95,15 +95,15 @@ public static class ChannelExtensions
 		if (message.Length >= 31979)
 			message = $"message would have crashed games ({message.Length} characters).";
 		
-		using var messagePacket = new ServerPackets();
-		messagePacket.SendMessage(new Message
-		{
-			Sender = bot.Username,
-			Content = message,
-			Destination = channel.Name,
-			SenderId = bot.Id
-		});
-		channel.EnqueueToPlayers(messagePacket.GetContent());
+		channel.EnqueueToPlayers(new ServerPackets()
+			.SendMessage(new Message
+			{
+				Sender = bot.Username,
+				Content = message,
+				Destination = channel.Name,
+				SenderId = bot.Id
+			})
+			.FinalizeAndGetContent());
 	}
 
 	public static void EnqueueIfCanRead(this Channel channel, byte[] data)

@@ -33,10 +33,10 @@ public partial class OsuController
 		if (player == null)
 			return Unauthorized("auth fail");
 
-		if (_session.BeatmapNeedsUpdate(mapMD5))
+		if (session.BeatmapNeedsUpdate(mapMD5))
 			return Responses.BytesContentResult("1|false");
 		
-		if (_session.IsBeatmapNotSubmitted(mapMD5))
+		if (session.IsBeatmapNotSubmitted(mapMD5))
 			return Responses.BytesContentResult("-1|false");
 
 		var mods = (Mods)modsValue;
@@ -63,9 +63,9 @@ public partial class OsuController
 
 			if (!player.Restricted)
 			{
-				using var statsPacket = new ServerPackets();
-				statsPacket.UserStats(player);
-				_session.EnqueueToPlayers(statsPacket.GetContent());
+				session.EnqueueToPlayers(new ServerPackets()
+					.UserStats(player)
+					.FinalizeAndGetContent());
 			}
 		}
 		
@@ -74,10 +74,10 @@ public partial class OsuController
 		{
 			if (await beatmapHandler.CheckIfMapExistsOnBanchoByFilename(mapFilename))
 			{
-				_session.CacheNeedUpdateBeatmap(mapMD5);
+				session.CacheNeedsUpdateBeatmap(mapMD5);
 				return Ok("1|false");
 			}
-			_session.CacheNotSubmittedBeatmap(mapMD5);
+			session.CacheNotSubmittedBeatmap(mapMD5);
 			return Ok("-1|false");
 		}
 
@@ -129,11 +129,11 @@ public partial class OsuController
 		{
 			var withMods = type is LeaderboardType.Mods or LeaderboardType.CountryMods or LeaderboardType.FriendsMods;
 			playerBest = withMods
-				? await scores.GetPlayerBestScoreWithModsOnMap(player, beatmap.MD5, mode, mods)
-				: await scores.GetPlayerBestScoreOnMap(player, beatmap.MD5, mode);
+				? await scores.GetPlayerBestScoreWithModsOnMap(player.Id, beatmap.MD5, mode, mods)
+				: await scores.GetPlayerBestScoreOnMap(player.Id, beatmap.MD5, mode);
 			
 			if (playerBest != null)
-				await scores.SetScoreLeaderboardPosition(beatmap, playerBest, withMods, mods);
+				await scores.SetScoreLeaderboardPosition(beatmap.MD5, playerBest, withMods, mods);
 		}
 		
 		return (leaderboard, playerBest);

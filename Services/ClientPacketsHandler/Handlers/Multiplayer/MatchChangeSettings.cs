@@ -61,7 +61,7 @@ public partial class ClientPacketsHandler
 			if (lobby.PreviousBeatmapId != matchData.BeatmapId)
 				lobby.Chat.SendBotMessage($"Selected: {matchData.MapEmbed()}");
 
-			var beatmap = await beatmaps.GetBeatmapWithMD5(matchData.BeatmapMD5, -1);
+			var beatmap = await beatmaps.GetBeatmap(matchData.BeatmapMD5);
 
 			if (beatmap != null)
 			{

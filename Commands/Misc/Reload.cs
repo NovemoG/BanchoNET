@@ -1,6 +1,5 @@
 ﻿using BanchoNET.Attributes;
 using BanchoNET.Objects.Privileges;
-using BanchoNET.Utils;
 using BanchoNET.Utils.Maps;
 
 namespace BanchoNET.Commands;
@@ -8,7 +7,7 @@ namespace BanchoNET.Commands;
 public partial class CommandProcessor
 {
     [Command("reload",
-        Privileges.Staff,
+        PlayerPrivileges.Staff,
         "Reloads given collection/configuration. Syntax: reload <collection>",
         "\nAvailable options: commands",
         ["rl"])]

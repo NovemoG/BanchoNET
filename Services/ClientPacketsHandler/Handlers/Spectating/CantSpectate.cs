@@ -14,9 +14,9 @@ public partial class ClientPacketsHandler
             return Task.CompletedTask;
         }
         
-        using var cantSpectatePacket = new ServerPackets();
-        cantSpectatePacket.SpectatorCantSpectate(player.Id);
-        var bytes = cantSpectatePacket.GetContent();
+        var bytes = new ServerPackets()
+            .SpectatorCantSpectate(player.Id)
+            .FinalizeAndGetContent();
         
         var host = player.Spectating;
         

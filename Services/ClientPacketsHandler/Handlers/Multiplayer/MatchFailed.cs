@@ -15,9 +15,8 @@ public partial class ClientPacketsHandler
 		var slotId = lobby.GetPlayerSlotId(player);
 		if (slotId == -1) throw new Exception("Player was not found in expected lobby");
 		
-		using var playerFailedPacket = new ServerPackets();
-		playerFailedPacket.MatchPlayerFailed(slotId);
-		lobby.Enqueue(playerFailedPacket.GetContent(), toLobby: false);
+		lobby.Enqueue(new ServerPackets().MatchPlayerFailed(slotId).FinalizeAndGetContent(),
+			toLobby: false);
 		
 		return Task.CompletedTask;
 	}

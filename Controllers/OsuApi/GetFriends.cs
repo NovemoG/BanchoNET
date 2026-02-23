@@ -14,6 +14,9 @@ public partial class OsuController
 		if (player == null)
 			return Unauthorized("auth fail");
 		
+		if (player.Friends.Count == 0)
+			await players.GetPlayerRelationships(player);
+		
 		return Responses.BytesContentResult(string.Join("\n", player.Friends));
 	}
 }

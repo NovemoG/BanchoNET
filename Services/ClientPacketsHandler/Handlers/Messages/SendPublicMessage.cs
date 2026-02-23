@@ -17,7 +17,7 @@ public partial class ClientPacketsHandler
 		var txt = message.Content.Trim();
 		if (txt == string.Empty) return;
 		
-		if (_ignoredChannels.Contains(message.Destination)) return;
+		if (IgnoredChannels.Contains(message.Destination)) return;
 		
 		Channel? channel;
 		switch (message.Destination)
@@ -30,7 +30,7 @@ public partial class ClientPacketsHandler
 				else if (player.HasSpectators) spectatorId = player.Id;
 				else return;
 			
-				channel = _session.GetChannel($"#s_{spectatorId}", true);
+				channel = session.GetChannel($"#s_{spectatorId}", true);
 				break;
 			}
 			case "#multiplayer" when player.Lobby == null:
@@ -39,7 +39,7 @@ public partial class ClientPacketsHandler
 				channel = player.Lobby.Chat;
 				break;
 			default:
-				channel = _session.GetChannel(message.Destination);
+				channel = session.GetChannel(message.Destination);
 				break;
 		}
 
@@ -56,9 +56,9 @@ public partial class ClientPacketsHandler
 		{
 			txt = $"{txt[..2000]}... (truncated)";
 
-			using var msgPacket = new ServerPackets();
-			msgPacket.Notification("Your message was too long and has been truncated.\n(Exceeded 2000 characters)");
-			player.Enqueue(msgPacket.GetContent());
+			player.Enqueue(new ServerPackets()
+				.Notification("Your message was too long and has been truncated.\n(Exceeded 2000 characters)")
+				.FinalizeAndGetContent());
 		}
 
 		if (txt.StartsWith(AppSettings.CommandPrefix))

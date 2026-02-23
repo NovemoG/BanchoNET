@@ -9,7 +9,7 @@ namespace BanchoNET.Commands;
 public partial class CommandProcessor
 {
     [Command("current",
-        Privileges.Unrestricted,
+        PlayerPrivileges.Unrestricted,
         "If in multiplayer lobby displays currently selected beatmap.",
         aliases: ["c"])]
     private async Task<(bool, string)> CurrentMap(string[] args)

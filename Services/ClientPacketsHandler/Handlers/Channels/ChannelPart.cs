@@ -10,10 +10,10 @@ public partial class ClientPacketsHandler
 	{
 		var channelName = br.ReadOsuString();
 
-		if (_ignoredChannels.Contains(channelName))
+		if (IgnoredChannels.Contains(channelName))
 			return Task.CompletedTask;
 
-		var channel = _session.GetChannel(channelName);
+		var channel = session.GetChannel(channelName);
 		if (channel == null)
 		{
 			Console.WriteLine($"[ChannelPart] {player.Username} failed to leave {channelName}");

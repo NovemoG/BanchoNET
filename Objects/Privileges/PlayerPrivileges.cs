@@ -3,7 +3,7 @@
 namespace BanchoNET.Objects.Privileges;
 
 [Flags]
-public enum Privileges : short
+public enum PlayerPrivileges : short
 {
 	[Description("if player does not have 1 it means that he is restricted")]
 	Unrestricted = 1 << 0,

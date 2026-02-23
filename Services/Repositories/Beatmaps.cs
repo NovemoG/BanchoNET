@@ -1,84 +1,53 @@
-﻿using BanchoNET.Models;
-using BanchoNET.Models.Dtos;
+﻿using BanchoNET.Abstractions.Repositories;
+using BanchoNET.Abstractions.Services;
+using BanchoNET.Models;
 using BanchoNET.Objects.Beatmaps;
+using BanchoNET.Utils.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace BanchoNET.Services.Repositories;
 
 public class BeatmapsRepository(
+	IBanchoSession session,
 	BanchoDbContext dbContext,
-	BeatmapHandler beatmapHandler,
-	ScoresRepository scores)
+	IBeatmapHandler beatmapHandler,
+	IScoresRepository scores
+	) : IBeatmapsRepository
 {
-	private readonly BanchoSession _session = BanchoSession.Instance;
-
-	/// <summary>
-	/// Updates Playcount and Passcount of a beatmap in database
-	/// </summary>
-	/// <param name="beatmap">Beatmap for which to update stats</param>
-	public async Task UpdateBeatmapStats(Beatmap beatmap)
+	public async Task<Beatmap?> GetBeatmap(int mapId, int setId = -1)
 	{
-		await dbContext.Beatmaps.Where(b => b.MapId == beatmap.MapId)
-		                .ExecuteUpdateAsync(p => 
-			                p.SetProperty(b => b.Plays, beatmap.Plays)
-			                 .SetProperty(b => b.Passes, beatmap.Passes));
-	}
+		var beatmap = session.GetBeatmapById(mapId);
+		if (beatmap != null) return beatmap;
 
-	/// <summary>
-	/// Changes beatmap status in cache and database
-	/// </summary>
-	/// <param name="targetStatus">Target status to which the current one will be changed</param>
-	/// <param name="beatmapId">Id of a beatmap to update</param>
-	/// <param name="setId">Id of a set to update</param>
-	/// <returns>Number of maps that were affected</returns>
-	public async Task<int> ChangeBeatmapStatus(
-		BeatmapStatus targetStatus,
-		int beatmapId = -1,
-		int setId = -1)
-	{
-		if (setId > 0)
+		if (setId < 1)
 		{
-			var cachedSet = await GetBeatmapSet(setId);
-			if (cachedSet != null)
+			var map = await dbContext.Beatmaps.FirstOrDefaultAsync(b => b.MapId == mapId);
+			
+			if (map != null)
+				setId = map.SetId;
+			else
 			{
-				foreach (var map in cachedSet.Beatmaps)
-					map.Status = targetStatus;
-				
-				return await dbContext.Beatmaps.Where(b => b.SetId == setId)
-					.ExecuteUpdateAsync(p => p.SetProperty(b => b.Status, (int)targetStatus));
+				var apiMap = await beatmapHandler.GetBeatmapFromApi(mapId: mapId);
+				if (apiMap == null) return null;
+
+				setId = apiMap.SetId;
 			}
 		}
 
-		if (beatmapId < 1) return 0;
-		
-		var cachedMap = await GetBeatmapWithId(beatmapId);
-		if (cachedMap == null) return 0;
-		
-		cachedMap.Status = targetStatus;
-		
-		return await dbContext.Beatmaps.Where(b => b.MapId == beatmapId)
-				.ExecuteUpdateAsync(p => p.SetProperty(b => b.Status, (int)targetStatus));
+		var beatmapSet = await GetBeatmapSet(setId, mapId);
+
+		return beatmapSet != null
+			? beatmapSet.Beatmaps.FirstOrDefault(b => b.MapId == mapId)
+			: beatmap;
 	}
 	
-	public async Task<Beatmap?> GetBeatmap(int mapId = -1, int setId = -1, string beatmapMD5 = "")
+	public async Task<Beatmap?> GetBeatmap(string beatmapMD5, int setId = -1)
 	{
-		if (!string.IsNullOrEmpty(beatmapMD5))
-			return await GetBeatmapWithMD5(beatmapMD5, setId);
-
-		if (mapId > 0)
-			return await GetBeatmapWithId(mapId);
-
-		return null;
-	}
-
-	public async Task<Beatmap?> GetBeatmapWithMD5(string beatmapMD5, int setId)
-	{
-		var beatmap = _session.GetBeatmapByMD5(beatmapMD5);
+		var beatmap = session.GetBeatmapByMD5(beatmapMD5);
 		if (beatmap != null) return beatmap;
 		
 		var mapId = 0;
-			
-		if (setId <= 0)
+		if (setId < 1)
 		{
 			var map = await dbContext.Beatmaps.FirstOrDefaultAsync(b => b.MD5 == beatmapMD5);
 
@@ -103,36 +72,11 @@ public class BeatmapsRepository(
 			? beatmapSet.Beatmaps.FirstOrDefault(b => b.MD5 == beatmapMD5)
 			: beatmap;
 	}
-
-	public async Task<Beatmap?> GetBeatmapWithId(int mapId)
-	{
-		var beatmap = _session.GetBeatmapById(mapId);
-		if (beatmap != null) return beatmap;
-		
-		int setId;
-		var map = await dbContext.Beatmaps.FirstOrDefaultAsync(b => b.MapId == mapId);
-			
-		if (map != null)
-			setId = map.SetId;
-		else
-		{
-			var apiMap = await beatmapHandler.GetBeatmapFromApi(mapId: mapId);
-			if (apiMap == null) return null;
-
-			setId = apiMap.SetId;
-		}
-
-		var beatmapSet = await GetBeatmapSet(setId, mapId);
-
-		return beatmapSet != null
-			? beatmapSet.Beatmaps.FirstOrDefault(b => b.MapId == mapId)
-			: beatmap;
-	}
-
-	public async Task<BeatmapSet?> GetBeatmapSet(int setId, int mapId = 0)
+	
+	public async Task<BeatmapSet?> GetBeatmapSet(int setId, int mapId = -1)
 	{
 		var didApiRequest = false;
-		var beatmapSet = _session.GetBeatmapSet(setId);
+		var beatmapSet = session.GetBeatmapSet(setId);
 		
 		if (beatmapSet == null)
 		{
@@ -146,11 +90,11 @@ public class BeatmapsRepository(
 				if (beatmapSet == null) return null;
 
 				didApiRequest = true;
-				await InsertSetIntoDatabase(beatmapSet);
+				await InsertBeatmapSet(beatmapSet);
 			}
 			else beatmapSet = new BeatmapSet(dbBeatmaps);
 			
-			_session.CacheBeatmapSet(beatmapSet);
+			session.CacheBeatmapSet(beatmapSet);
 		}
 
 		if (!didApiRequest && mapId > 0)
@@ -159,104 +103,86 @@ public class BeatmapsRepository(
 		
 		return beatmapSet;
 	}
-
+	
 	public async Task UpdateBeatmapSet(int setId)
 	{
 		var beatmapSet = await beatmapHandler.GetBeatmapSetFromApi(setId);
 		if (beatmapSet == null) return;
 		
-		_session.CacheBeatmapSet(beatmapSet);
-		await InsertSetIntoDatabase(beatmapSet);
+		session.CacheBeatmapSet(beatmapSet);
+		await InsertBeatmapSet(beatmapSet);
+	}
+	
+	/// <summary>
+	/// Updates Playcount and Passcount of a beatmap in database
+	/// </summary>
+	/// <param name="beatmap">Beatmap for which to update stats</param>
+	public async Task UpdateBeatmapPlayCount(Beatmap beatmap)
+	{
+		await dbContext.Beatmaps.Where(b => b.MapId == beatmap.MapId)
+		                .ExecuteUpdateAsync(p => 
+			                p.SetProperty(b => b.Plays, beatmap.Plays)
+			                 .SetProperty(b => b.Passes, beatmap.Passes));
 	}
 
-	public async Task InsertSetIntoDatabase(BeatmapSet set)
+	/// <summary>
+	/// Changes beatmap status in cache and database
+	/// </summary>
+	/// <param name="targetStatus">Target status to which the current one will be changed</param>
+	/// <param name="mapId">Id of a beatmap to update</param>
+	/// <param name="setId">Id of a set to update</param>
+	/// <returns>Number of maps that were affected</returns>
+	public async Task<int> UpdateBeatmapStatus(
+		BeatmapStatus targetStatus,
+		int mapId)
+	{
+		if (mapId < 1) return 0;
+		
+		var cachedMap = await GetBeatmap(mapId);
+		if (cachedMap == null) return 0;
+		
+		cachedMap.Status = targetStatus;
+		
+		return await dbContext.Beatmaps.Where(b => b.MapId == mapId)
+				.ExecuteUpdateAsync(p => p.SetProperty(b => b.Status, (int)targetStatus));
+	}
+	
+	public async Task<int> UpdateBeatmapSetStatus(
+		BeatmapStatus targetStatus,
+		int setId)
+	{
+		if (setId < 1) return 0;
+		
+		var cachedSet = await GetBeatmapSet(setId);
+		if (cachedSet == null) return 0;
+		
+		foreach (var map in cachedSet.Beatmaps)
+			map.Status = targetStatus;
+				
+		return await dbContext.Beatmaps.Where(b => b.SetId == setId)
+			.ExecuteUpdateAsync(p => p.SetProperty(b => b.Status, (int)targetStatus));
+	}
+
+	public async Task InsertBeatmapSet(BeatmapSet set)
 	{
 		foreach (var beatmap in set.Beatmaps)
 		{
-			var dbBeatmap = await dbContext.Beatmaps.FirstOrDefaultAsync(b => b.MapId == beatmap.MapId);
-
+			//var dbBeatmap = await dbContext.Beatmaps.FirstOrDefaultAsync(b => b.MapId == beatmap.MapId);
+			var dbBeatmap = await dbContext.Beatmaps.FirstOrDefaultAsync(b => b.MD5 == beatmap.MD5);
+			
 			if (dbBeatmap != null)
 			{
-				dbBeatmap = UpdateBeatmapDto(beatmap, dbBeatmap);
-				dbContext.Update(dbBeatmap);
+				dbContext.Update(dbBeatmap.UpdateWith(beatmap));
 
 				if (beatmap.Status <= BeatmapStatus.NotSubmitted)
-					await scores.DisableNotSubmittedBeatmapScores(beatmap.MD5);
+					await scores.ToggleBeatmapScoresVisibility(beatmap.MD5, false);
 			}
 			else
 			{
-				await dbContext.Beatmaps.AddAsync(CreateBeatmapDto(beatmap));
+				await dbContext.Beatmaps.AddAsync(beatmap.ToDto());
 			}
 		}
 		
 		await dbContext.SaveChangesAsync();
-	}
-
-	private static BeatmapDto CreateBeatmapDto(Beatmap beatmap)
-	{
-		return new BeatmapDto
-		{
-			MapId = beatmap.MapId,
-			SetId = beatmap.SetId,
-			Private = beatmap.Private,
-			Mode = (byte)beatmap.Mode,
-			Status = (sbyte)beatmap.Status,
-			IsRankedOfficially = beatmap.IsRankedOfficially,
-			MD5 = beatmap.MD5,
-			Artist = beatmap.Artist,
-			Title = beatmap.Title,
-			Name = beatmap.Name,
-			Creator = beatmap.Creator,
-			SubmitDate = beatmap.SubmitDate,
-			LastUpdate = beatmap.LastUpdate,
-			TotalLength = beatmap.TotalLength,
-			MaxCombo = beatmap.MaxCombo,
-			Plays = beatmap.Plays,
-			Passes = beatmap.Passes,
-			Bpm = beatmap.Bpm,
-			Cs = beatmap.Cs,
-			Ar = beatmap.Ar,
-			Od = beatmap.Od,
-			Hp = beatmap.Hp,
-			StarRating = beatmap.StarRating,
-			NotesCount = beatmap.NotesCount,
-			SlidersCount = beatmap.SlidersCount,
-			SpinnersCount = beatmap.SpinnersCount
-		};
-	}
-
-	private static BeatmapDto UpdateBeatmapDto(Beatmap beatmap, BeatmapDto currentBeatmap)
-	{
-		return new BeatmapDto
-		{
-			MapId = currentBeatmap.MapId,
-			SetId = currentBeatmap.SetId,
-			Private = currentBeatmap.Private,
-			Mode = currentBeatmap.Mode,
-			Status = beatmap.IsRankedOfficially || beatmap.Status == BeatmapStatus.Qualified
-				? (sbyte)beatmap.Status
-				: currentBeatmap.Status,
-			IsRankedOfficially = beatmap.IsRankedOfficially,
-			MD5 = beatmap.MD5,
-			Artist = beatmap.Artist,
-			Title = beatmap.Title,
-			Name = beatmap.Name,
-			Creator = beatmap.Creator,
-			SubmitDate = beatmap.SubmitDate,
-			LastUpdate = beatmap.LastUpdate,
-			TotalLength = beatmap.TotalLength,
-			MaxCombo = beatmap.MaxCombo,
-			Plays = currentBeatmap.Plays,
-			Passes = currentBeatmap.Passes,
-			Bpm = beatmap.Bpm,
-			Cs = beatmap.Cs,
-			Ar = beatmap.Ar,
-			Od = beatmap.Od,
-			Hp = beatmap.Hp,
-			StarRating = beatmap.StarRating,
-			NotesCount = beatmap.NotesCount,
-			SlidersCount = beatmap.SlidersCount,
-			SpinnersCount = beatmap.SpinnersCount
-		};
 	}
 }

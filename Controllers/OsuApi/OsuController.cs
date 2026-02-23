@@ -1,6 +1,6 @@
-﻿using BanchoNET.Attributes;
-using BanchoNET.Services;
-using BanchoNET.Services.Repositories;
+﻿using BanchoNET.Abstractions.Repositories;
+using BanchoNET.Abstractions.Services;
+using BanchoNET.Attributes;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BanchoNET.Controllers.OsuApi;
@@ -9,28 +9,25 @@ namespace BanchoNET.Controllers.OsuApi;
 [ApiController]
 [SubdomainAuthorize("osu")]
 public partial class OsuController(
-    PlayersRepository players,
-    BeatmapsRepository beatmaps,
-    ScoresRepository scores,
-    BeatmapHandler beatmapHandler,
-    GeolocService geoloc,
+    IBanchoSession session,
+    IPlayersRepository players,
+    IBeatmapsRepository beatmaps,
+    IScoresRepository scores,
+    IBeatmapHandler beatmapHandler,
+    IGeolocService geoloc,
+    ILogger logger,
     HttpClient httpClient)
     : ControllerBase
 {
-    private readonly BanchoSession _session = BanchoSession.Instance;
-    
-
     [HttpGet("bancho_connect.php")]
     public async Task<IActionResult> BanchoConnect()
     {
-        Console.WriteLine("BanchoConnect");
         return Ok();
     }
 
     [HttpGet("check-updates.php")]
     public async Task<IActionResult> CheckUpdates()
     {
-        Console.WriteLine("CheckUpdates");
         return Ok();
     }
 }

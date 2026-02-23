@@ -91,15 +91,13 @@ public static class ScoreExtensions
                 if (objects == 0) return 0f;
 
                 if ((mods & Mods.ScoreV2) == Mods.ScoreV2)
-                {
-                    return 100f *
-                           (gekis * 305f + count300 * 300f + katus * 200f + count100 * 100f + count50 * 50f) /
-                           (objects * 305f);
-                }
+                    return 100f
+                           * (gekis * 305f + count300 * 300f + katus * 200f + count100 * 100f + count50 * 50f)
+                           / (objects * 305f);
 
-                acc = 100f *
-                      ((count300 + gekis) * 300f + katus * 200f + count100 * 100f + count50 * 50f) /
-                      (objects * 300f);
+                acc = 100f
+                      * ((count300 + gekis) * 300f + katus * 200f + count100 * 100f + count50 * 50f)
+                      / (objects * 300f);
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(mode), $"Invalid mode {mode}");
@@ -123,92 +121,16 @@ public static class ScoreExtensions
 
         score.PP = double.IsInfinity(pp) || double.IsNaN(pp) ? 0.0f : MathF.Round(pp, 5);
 
-        Console.WriteLine($"[Score Extensions] Submitted score pp: {score.PP}");
+        Logger.Shared.LogInfo($"Submitted score pp: {score.PP}", nameof(ScoreExtensions));
     }
     
-    public static void ComputeSubmissionStatus(this Score score, Score? prevBest, Score? prevBestWithMods)
+    public static bool IsBetterThan(this Score score, Score? other)
     {
-        // TODO: Probably change it somehow
+        if (other == null) return true;
         
-        if (prevBest == null)
-        {
-            score.Status = SubmissionStatus.Best;
-            return;
-        }
-
-        if (prevBestWithMods == null || prevBest.Id == prevBestWithMods.Id)
-        {
-            var equalMods = score.Mods == prevBest.Mods;
-            score.PreviousBest = prevBest;
-            score.Status = equalMods
-                ? SubmissionStatus.Submitted
-                : SubmissionStatus.BestWithMods;
-
-            if (AppSettings.SubmitByPP)
-            {
-                if (!(score.PP > prevBest.PP)) return;
-        
-                score.Status = SubmissionStatus.Best;
-                prevBest.Status = equalMods
-                    ? SubmissionStatus.Submitted
-                    : SubmissionStatus.BestWithMods;
-            }
-            else
-            {
-                if (score.TotalScore < prevBest.TotalScore) return;
-        
-                score.Status = SubmissionStatus.Best;
-                prevBest.Status = equalMods
-                    ? SubmissionStatus.Submitted
-                    : SubmissionStatus.BestWithMods;
-            }
-        }
-        else
-        {            
-            var equalMods = score.Mods == prevBest.Mods;
-        
-            score.PreviousBest = prevBest;
-            score.Status = equalMods
-                ? SubmissionStatus.Submitted
-                : SubmissionStatus.BestWithMods;
-
-            if (AppSettings.SubmitByPP)
-            {
-                if (!(score.PP > prevBest.PP))
-                {
-                    if (score.PP > prevBestWithMods.PP)
-                        prevBestWithMods.Status = SubmissionStatus.Submitted;
-                    
-                    return;
-                }
-        
-                score.Status = SubmissionStatus.Best;
-                prevBest.Status = equalMods
-                    ? SubmissionStatus.Submitted
-                    : SubmissionStatus.BestWithMods;
-                
-                if (score.Mods == prevBestWithMods.Mods && score.PP > prevBestWithMods.PP)
-                    prevBestWithMods.Status = SubmissionStatus.Submitted;
-            }
-            else
-            {
-                if (score.TotalScore < prevBest.TotalScore)
-                {
-                    if (score.TotalScore > prevBestWithMods.TotalScore)
-                        prevBestWithMods.Status = SubmissionStatus.Submitted;
-                    
-                    return;
-                }
-        
-                score.Status = SubmissionStatus.Best;
-                prevBest.Status = equalMods
-                    ? SubmissionStatus.Submitted
-                    : SubmissionStatus.BestWithMods;
-
-                if (score.Mods == prevBestWithMods.Mods && score.TotalScore > prevBestWithMods.TotalScore)
-                    prevBestWithMods.Status = SubmissionStatus.Submitted;
-            }
-        }
+        return AppSettings.SubmitByPP
+            ? (score.PP > other.PP)
+            : (score.TotalScore > other.TotalScore);
     }
 
     public static string ModeToString(this Score score)

@@ -1,14 +1,13 @@
 ﻿using BanchoNET.Objects.Channels;
 using BanchoNET.Objects.Multiplayer;
 using BanchoNET.Objects.Players;
-using BanchoNET.Utils;
 using BanchoNET.Utils.Extensions;
 
 namespace BanchoNET.Packets;
 
-public partial class ServerPackets
+public sealed partial class ServerPackets
 {
-	private readonly Dictionary<DataType, Action<BinaryWriter, object>> _actionsMap = new()
+	private static readonly Dictionary<DataType, Action<BinaryWriter, object>> ActionsMap = new()
 	{
 		[DataType.SByte] = (bw, data) => bw.Write((sbyte)data),
 		[DataType.Byte] = (bw, data) => bw.Write((byte)data),
@@ -27,10 +26,10 @@ public partial class ServerPackets
 		[DataType.BotStats] = (bw, data) => bw.WriteBotStats((Player)data),
 		[DataType.Presence] = (bw, data) => bw.WriteUserPresence((Player)data),
 		[DataType.BotPresence] = (bw, data) => bw.WriteBotPresence((Player)data),
-		[DataType.ScoreFrame] = (bw, data) => bw.Write((byte)data), //TODO
-		[DataType.MapInfoRequest] = (bw, data) => bw.Write((sbyte)data), //TODO
-		[DataType.MapInfoReply] = (bw, data) => bw.Write((byte)data), //TODO
-		[DataType.ReplayFrameBundle] = (bw, data) => bw.Write((byte)data), //TODO
+		[DataType.ScoreFrame] = (bw, data) => bw.Write((byte)data),
+		[DataType.MapInfoRequest] = (bw, data) => bw.Write((sbyte)data),
+		[DataType.MapInfoReply] = (bw, data) => bw.Write((byte)data),
+		[DataType.ReplayFrameBundle] = (bw, data) => bw.Write((byte)data),
 		[DataType.IntList] = (bw, data) => bw.WriteOsuList32((List<int>)data),
 		[DataType.String] = (bw, data) => bw.WriteOsuString(data.ToString()),
 		[DataType.Raw] = (bw, data) => bw.Write((byte[])data),
@@ -38,29 +37,26 @@ public partial class ServerPackets
 	
 	private void WritePacketData(ServerPacketId packetId, params PacketData[] dataArray)
 	{
-		var buffer = new MemoryStream();
-		using var bw = new BinaryWriter(buffer);
+		_binaryWriter.Write((short)packetId);
+		_binaryWriter.Write((byte)0);
 		
-		bw.Write((short)packetId);
-		bw.Write((byte)0);
 		if (dataArray.Length == 0)
 		{
-			bw.Write((int)0);
-			_binaryWriter.Write(buffer.ToArray());
+			_binaryWriter.Write((int)0);
 			return;
 		}
 		
+		var lengthPosition = _binaryWriter.BaseStream.Position;
+		_binaryWriter.Write((int)0);
+		
 		foreach (var data in dataArray)
-			_actionsMap[data.Type](bw, data.Data!);
-		
-		var dataBytes = buffer.ToArray();
-		var returnStream = new MemoryStream();
-		
-		//Writes length of the packet data inside the stream
-		returnStream.Write(dataBytes, 0, 3);
-		returnStream.Write(BitConverter.GetBytes(dataBytes.Length - 3));
-		returnStream.Write(dataBytes, 3, dataBytes.Length - 3);
-		
-		_binaryWriter.Write(returnStream.ToArray());
+			ActionsMap[data.Type](_binaryWriter, data.Data!);
+
+		var endPosition = _binaryWriter.BaseStream.Position;
+		var payloadLength = (int)(endPosition - (lengthPosition + 4));
+
+		_binaryWriter.BaseStream.Seek(lengthPosition, SeekOrigin.Begin);
+		_binaryWriter.Write(payloadLength);
+		_binaryWriter.BaseStream.Seek(endPosition, SeekOrigin.Begin);
 	}
 }

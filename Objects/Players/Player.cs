@@ -1,17 +1,20 @@
 ﻿using BanchoNET.Models.Dtos;
 using BanchoNET.Objects.Channels;
 using BanchoNET.Objects.Multiplayer;
+using BanchoNET.Objects.Privileges;
 using BanchoNET.Objects.Scores;
 using BanchoNET.Packets;
-using BanchoNET.Utils;
 using BanchoNET.Utils.Extensions;
-using static BanchoNET.Objects.Privileges.Privileges;
+using static BanchoNET.Objects.Privileges.PlayerPrivileges;
 
 namespace BanchoNET.Objects.Players;
 
-public class Player
+public sealed class Player
 {
-	private ServerPackets? _queue;
+	private readonly ServerPackets _queue = new();
+	private readonly object _queueLock = new();
+	
+	private bool _logout;
 	
 	public readonly int Id;
 	public readonly Guid Token;
@@ -20,11 +23,11 @@ public class Player
 	public string SafeName { get; set; }
 	public string LoginName { get; set; }
 	public string PasswordHash { get; set; }
-	public Privileges.Privileges Privileges { get; set; }
+	public PlayerPrivileges Privileges { get; set; }
 	public Player? Spectating { get; set; }
 	public MultiplayerLobby? Lobby { get; set; }
 	public bool InLobby { get; set; }
-	public Geoloc Geoloc { get; set; }
+	public Geoloc Geoloc { get; init; }
 	public sbyte TimeZone { get; set; }
 	public bool PmFriendsOnly { get; set; }
 	public DateTime RemainingSilence { get; set; }
@@ -34,8 +37,8 @@ public class Player
 	public string? AwayMessage { get; set; }
 	public bool IsBot { get; set; }
 	public bool Stealth { get; set; } //TODO
-	
-	public ClientDetails ClientDetails { get; set; }
+
+	public ClientDetails ClientDetails { get; set; } = null!;
 	public PresenceFilter PresenceFilter { get; set; }
 	public PlayerStatus Status { get; }
 	public Dictionary<GameMode, ModeStats> Stats { get; }
@@ -62,7 +65,11 @@ public class Player
 	
 	public string? ApiKey { get; set; }
 	
-	public Player(PlayerDto playerData, Guid token = new(), DateTime? loginTime = null, sbyte timeZone = 0)
+	public Player(
+		PlayerDto playerData,
+		Guid token = new(),
+		DateTime? loginTime = null,
+		sbyte timeZone = 0)
 	{
 		Id = playerData.Id;
 		
@@ -74,7 +81,7 @@ public class Player
 		SafeName = playerData.SafeName;
 		LoginName = playerData.LoginName;
 		PasswordHash = playerData.PasswordHash;
-		Privileges = (Privileges.Privileges)playerData.Privileges;
+		Privileges = (PlayerPrivileges)playerData.Privileges;
 		TimeZone = timeZone;
 		RemainingSilence = playerData.RemainingSilence;
 		RemainingSupporter = playerData.RemainingSupporter;
@@ -100,19 +107,24 @@ public class Player
 	
 	public void Enqueue(byte[] dataBytes)
 	{
-		_queue ??= new ServerPackets();
-		_queue.WriteBytes(dataBytes);
+		lock (_queueLock)
+			_queue.WriteBytes(dataBytes);
 	}
 
 	public byte[] Dequeue()
 	{
-		if (_queue == null) return [];
+		lock (_queueLock)
+		{
+			var bytes = _queue.GetContent();
+			
+			_queue.Clear();
+			
+			if (_logout)
+				_queue.Dispose();
 
-		var bytes = _queue.GetContent();
-		
-		_queue.Dispose();
-		_queue = null;
-
-		return bytes;
+			return bytes;
+		}
 	}
+
+	public void Logout() => _logout = true;
 }

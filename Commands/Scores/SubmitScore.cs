@@ -13,7 +13,7 @@ namespace BanchoNET.Commands;
 public partial class CommandProcessor
 {
     [Command("submit",
-        Privileges.Submitter | Privileges.Administrator,
+        PlayerPrivileges.Submitter | PlayerPrivileges.Administrator,
         "Submits a passed score to the server. Syntax: submit <beatmap_id> <mode> <score> <max_combo> <count300> " +
         "<count100> <count50> <misses> <geki> <katu> <grade> <date> [<perfect_fc>] [<mods>] [<username>]",
         "\nDate format is: yyyyMMddHHmmss. If optional values are not provided, they will be set to 0 (nomod for mods)." +
@@ -22,7 +22,7 @@ public partial class CommandProcessor
     private async Task<string> SubmitScore(string[] args)
     {
         if (args.Length is < 12)
-            return $"Invalid number of parameters provided. Syntax: {_prefix}submit <beatmap_id> <mode> <score> " +
+            return $"Invalid number of parameters provided. Syntax: {Prefix}submit <beatmap_id> <mode> <score> " +
                    $"<max_combo> <count300> <count100> <count50> <misses> <geki> <katu> <grade> <date> [<perfect_fc>] " +
                    $"[<mods>] [<username>]";
 
@@ -48,7 +48,7 @@ public partial class CommandProcessor
 
         var mods = args.Length > 13 ? args[13].ParseMods((GameMode)parsedValues[1]) : Mods.None;
 
-        var beatmap = await beatmaps.GetBeatmapWithId(parsedValues[0]);
+        var beatmap = await beatmaps.GetBeatmap(parsedValues[0]);
         if (beatmap == null) return BeatmapNotFound;
         
         var player = await players.GetPlayerOrOffline(args.Length > 14 ? args[14] : _playerCtx.Username);

@@ -1,20 +1,22 @@
 ﻿using System.Collections.Concurrent;
+using BanchoNET.Abstractions.Services;
 using BanchoNET.Objects.Beatmaps;
 using BanchoNET.Objects.Multiplayer;
 using BanchoNET.Objects.Players;
 using BanchoNET.Packets;
-using BanchoNET.Utils;
 using BanchoNET.Utils.Extensions;
 using Channel = BanchoNET.Objects.Channels.Channel;
 
 namespace BanchoNET.Services;
 
-public sealed class BanchoSession
+public sealed class BanchoSession : IBanchoSession
 {
 	#region Instance
 
 	private static readonly Lazy<BanchoSession> Lazy = new(() => new BanchoSession());
 	public static BanchoSession Instance => Lazy.Value;
+	
+	private BanchoSession() { }
 
 	#endregion
 	
@@ -26,7 +28,9 @@ public sealed class BanchoSession
 	private readonly ConcurrentDictionary<string, Player> _playersByUsername = [];
 	private readonly ConcurrentDictionary<int, Player> _playersById = [];
 	public IEnumerable<Player> Players => _playersById.Values;
-	public IEnumerable<Player> PlayersInLobby => Players.Where(p => p.InLobby);
+	
+	private readonly ConcurrentDictionary<Player, bool> _playersInLobby = [];
+	public IEnumerable<Player> PlayersInLobby => _playersInLobby.Keys;
 
 	private readonly ConcurrentDictionary<Guid, Player> _restrictedByToken = [];
 	private readonly ConcurrentDictionary<string, Player> _restrictedByUsername = [];
@@ -44,8 +48,8 @@ public sealed class BanchoSession
 	private readonly ConcurrentDictionary<int, BeatmapSet> _beatmapSetsCache = []; // setId -> BeatmapSet
 	private readonly ConcurrentDictionary<string, Beatmap> _beatmapMD5Cache = []; // MD5 -> Beatmap
 	private readonly ConcurrentDictionary<int, Beatmap> _beatmapIdCache = []; // mapId -> Beatmap
-	private readonly List<string> _notSubmittedBeatmaps = []; //MD5s
-	private readonly List<string> _needUpdateBeatmaps = []; //MD5s
+	private readonly List<string> _notSubmittedBeatmaps = []; // MD5s
+	private readonly List<string> _needUpdateBeatmaps = []; // MD5s
 
 	#endregion
 	
@@ -62,7 +66,7 @@ public sealed class BanchoSession
 			if (_channels.TryGetValue("#lobby", out var lobby))
 				return lobby;
 			
-			Console.WriteLine("[Session] Couldn't find '#lobby' channel, creating a default one.");
+			Logger.Shared.LogWarning("Couldn't find '#lobby' channel, creating a default one.", caller: nameof(BanchoSession));
 
 			lobby = ChannelExtensions.DefaultChannels.First(c => c.IdName == "#lobby");
 			_channels.TryAdd("#lobby", lobby);
@@ -123,10 +127,22 @@ public sealed class BanchoSession
 			_playersById.TryAdd(player.Id, player);
 		}
 	}
+	
+	public void JoinLobby(Player player)
+	{
+		player.InLobby = true;
+		_playersInLobby.TryAdd(player, false);
+	}
+
+	public void LeaveLobby(Player player)
+	{
+		player.InLobby = false;
+		_playersInLobby.TryRemove(player, out _);
+	}
 
 	public bool LogoutPlayer(Player player)
 	{
-		Console.WriteLine($"[{GetType().Name}] Logout time difference: {DateTime.Now - player.LoginTime}");
+		Logger.Shared.LogDebug($"Logout time difference: {DateTime.Now - player.LoginTime}", nameof(BanchoSession));
 		if (DateTime.Now - player.LoginTime < TimeSpan.FromSeconds(1)) return false;
 		
 		if (player.Lobby != null) player.LeaveMatch();
@@ -138,19 +154,37 @@ public sealed class BanchoSession
 
 		if (!player.Restricted)
 		{
-			using var logoutPacket = new ServerPackets();
-			logoutPacket.Logout(player.Id);
-			EnqueueToPlayers(logoutPacket.GetContent());
+			EnqueueToPlayers(new ServerPackets()
+				.Logout(player.Id)
+				.FinalizeAndGetContent());
 		}
-
-		if (!_playersById.TryRemove(player.Id, out _)
-		    || !_playersByUsername.TryRemove(player.Username.MakeSafe(), out _)
-		    || !_playersByToken.TryRemove(player.Token, out _))
-		{
-			Console.WriteLine($"[{GetType().Name}] Failed to remove {player.Username} from session");
-		}
-
+		
+		RemovePlayer(player);
+		
 		return true;
+	}
+
+	private void RemovePlayer(Player player)
+	{
+		_playersById.TryRemove(player.Id, out _);
+		_playersByUsername.TryRemove(player.LoginName, out _);
+		_playersByToken.TryRemove(player.Token, out _);
+		_playersInLobby.TryRemove(player, out _);
+		
+		if (player.Restricted)
+		{
+			_restrictedById.TryRemove(player.Id, out _);
+			_restrictedByUsername.TryRemove(player.LoginName, out _);
+			_restrictedByToken.TryRemove(player.Token, out _);
+		}
+		
+		if (player.IsBot)
+		{
+			_botsById.TryRemove(player.Id, out _);
+			_botsByUsername.TryRemove(player.LoginName, out _);
+		}
+		
+		player.Logout();
 	}
 
 	public Player? GetPlayerById(int id)
@@ -231,7 +265,7 @@ public sealed class BanchoSession
 
 	public void CacheBeatmapSet(BeatmapSet set)
 	{
-		Console.WriteLine($"[BanchoSession] Caching beatmap set with id: {set.Id}");
+		Logger.Shared.LogDebug($"Caching beatmap set with id: {set.Id}", nameof(BanchoSession));
 		
 		_beatmapSetsCache.AddOrUpdate(set.Id, set, (_, _) => set);
 
@@ -249,7 +283,7 @@ public sealed class BanchoSession
 	
 	public void CacheNotSubmittedBeatmap(string beatmapMD5)
 	{
-		Console.WriteLine("[BanchoSession] Checking not submitted beatmaps for matching MD5");
+		Logger.Shared.LogDebug($"Caching not submitted beatmap with MD5: {beatmapMD5}", nameof(BanchoSession));
 		
 		_notSubmittedBeatmaps.Add(beatmapMD5);
 	}
@@ -259,9 +293,9 @@ public sealed class BanchoSession
 		return _needUpdateBeatmaps.Contains(beatmapMD5);
 	}
 	
-	public void CacheNeedUpdateBeatmap(string beatmapMD5)
+	public void CacheNeedsUpdateBeatmap(string beatmapMD5)
 	{
-		Console.WriteLine("[BanchoSession] Checking beatmaps which need update for matching MD5");
+		Logger.Shared.LogDebug($"Caching beatmap which needs update with MD5: {beatmapMD5}", nameof(BanchoSession));
 		
 		_needUpdateBeatmaps.Add(beatmapMD5);
 	}
@@ -291,15 +325,16 @@ public sealed class BanchoSession
 	public void RemoveLobby(MultiplayerLobby lobby)
 	{
 		_multiplayerLobbies.TryRemove(lobby.Id, out _);
-		Console.WriteLine($"[BanchoSession] Removing lobby with id: {lobby.Id}");
+		
+		Logger.Shared.LogDebug($"Removing lobby with id: {lobby.Id}", nameof(BanchoSession));
 	}
 
 	public void EnqueueToPlayers(byte[] data)
 	{
-		foreach (var player in _playersById.Values)
+		foreach (var player in Players)
 			player.Enqueue(data);
 
-		foreach (var player in _restrictedById.Values)
+		foreach (var player in Restricted)
 			player.Enqueue(data);
 	}
 }

@@ -17,7 +17,7 @@ public static class CommandHandlerMap
     
     static CommandHandlerMap()
     {
-        Console.WriteLine($"[CommandProcessor] Loaded commands in: {ReloadCommands()}");
+        Logger.Shared.LogDebug($"Loaded commands in: {ReloadCommands()}", nameof(CommandHandlerMap));
     }
     
     public static readonly Dictionary<string, (MethodInfo Method, CommandAttribute Attribute)> CommandsMap = new();
