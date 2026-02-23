@@ -1,0 +1,13 @@
+﻿namespace BanchoNET.Core.Models.Beatmaps;
+
+public enum BeatmapStatus : sbyte
+{
+	Unknown = -2,
+	NotSubmitted = -1,
+	LatestPending = 0,
+	NeedsUpdate = 1,
+	Ranked = 2,
+	Approved = 3,
+	Qualified = 4,
+	Loved = 5
+}
