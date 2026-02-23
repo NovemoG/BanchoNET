@@ -1,7 +1,7 @@
 ﻿namespace BanchoNET.Objects.Multiplayer;
 
-public class LobbyData
+public readonly struct LobbyData(MultiplayerLobby lobby, bool sendPassword)
 {
-	public MultiplayerLobby Lobby { get; set; }
-	public bool SendPassword { get; set; }
+    public readonly MultiplayerLobby Lobby = lobby;
+    public readonly bool SendPassword = sendPassword;
 }

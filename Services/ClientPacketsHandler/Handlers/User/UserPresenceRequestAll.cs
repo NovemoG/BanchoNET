@@ -13,10 +13,10 @@ public partial class ClientPacketsHandler
         
         using var presencePacket = new ServerPackets();
         
-        foreach (var p in _session.Players)
+        foreach (var p in session.Players)
             presencePacket.UserPresence(p);
 
-        foreach (var bot in _session.Bots)
+        foreach (var bot in session.Bots)
             presencePacket.BotPresence(bot);
         
         player.Enqueue(presencePacket.GetContent());

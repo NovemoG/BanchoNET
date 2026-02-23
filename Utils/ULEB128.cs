@@ -6,10 +6,10 @@ public static class ULEB128
 	{
 		var total = 0;
 		var shift = 0;
-		var _byte = br.ReadByte();
+		var @byte = br.ReadByte();
 
-		if ((_byte & 0x80) == 0)
-			total |= (_byte & 0x7F) << shift;
+		if ((@byte & 0x80) == 0)
+			total |= (@byte & 0x7F) << shift;
 		else
 		{
 			var end = false;
@@ -17,11 +17,11 @@ public static class ULEB128
 			do
 			{
 				if (shift > 0) 
-					_byte = br.ReadByte();
+					@byte = br.ReadByte();
 
-				total |= (_byte & 0x7F) << shift;
+				total |= (@byte & 0x7F) << shift;
 
-				if ((_byte & 0x80) == 0) 
+				if ((@byte & 0x80) == 0) 
 					end = true;
 
 				shift += 7;

@@ -5,23 +5,24 @@ using BanchoNET.Objects;
 using BanchoNET.Objects.Privileges;
 using BanchoNET.Objects.Scores;
 using BanchoNET.Utils;
-using static BanchoNET.Utils.CommandHandlerMaps;
+using BanchoNET.Utils.Extensions;
+using static BanchoNET.Utils.Maps.CommandHandlerMap;
 
 namespace BanchoNET.Commands;
 
 public partial class CommandProcessor
 {
     [Command("submit",
-        Privileges.Submitter | Privileges.Administrator,
+        PlayerPrivileges.Submitter | PlayerPrivileges.Administrator,
         "Submits a passed score to the server. Syntax: submit <beatmap_id> <mode> <score> <max_combo> <count300> " +
         "<count100> <count50> <misses> <geki> <katu> <grade> <date> [<perfect_fc>] [<mods>] [<username>]",
         "\nDate format is: yyyyMMddHHmmss. If optional values are not provided, they will be set to 0 (nomod for mods)." +
         "\nIf no username provided or player does not exist your name will be used. Please replace spaces with " +
         "underscores in username.")]
-    private async Task<string> SubmitScore(params string[] args)
+    private async Task<string> SubmitScore(string[] args)
     {
-        if (args.Length is < 12 or > 15)
-            return $"Invalid number of parameters provided. Syntax: {_prefix}submit <beatmap_id> <mode> <score> " +
+        if (args.Length is < 12)
+            return $"Invalid number of parameters provided. Syntax: {Prefix}submit <beatmap_id> <mode> <score> " +
                    $"<max_combo> <count300> <count100> <count50> <misses> <geki> <katu> <grade> <date> [<perfect_fc>] " +
                    $"[<mods>] [<username>]";
 
@@ -34,21 +35,24 @@ public partial class CommandProcessor
 
             parsedValues.Add(parsed);
         }
-
-        var beatmap = await beatmaps.GetBeatmapWithId(parsedValues[0]);
-        if (beatmap == null) return BeatmapNotFound;
         
-        var player = await players.GetPlayerOrOffline(args.Length == 15 ? args[14] : _playerCtx.Username);
-        if (player == null) return PlayerNotFound;
+        if (!Enum.TryParse(args[10], true, out Grade grade))
+            return "Invalid grade provided. Available grades: SS, S, A, B, C, D, F.";
         
         if (!DateTime.TryParseExact(args[11], "yyyyMMddHHmmss", null, DateTimeStyles.None, out var date))
             return "Invalid date format provided. Date format is: yyyyMMddHHmmss.";
 
-        if (args.Length == 13 && !bool.TryParse(args[12], out var perfectFc))
+        if (args.Length > 12 && !bool.TryParse(args[12], out var perfectFc))
             perfectFc = args[12] == "1";
         else perfectFc = false;
 
-        var mods = args.Length == 14 ? args[13].ParseMods((GameMode)parsedValues[1]) : Mods.None;
+        var mods = args.Length > 13 ? args[13].ParseMods((GameMode)parsedValues[1]) : Mods.None;
+
+        var beatmap = await beatmaps.GetBeatmap(parsedValues[0]);
+        if (beatmap == null) return BeatmapNotFound;
+        
+        var player = await players.GetPlayerOrOffline(args.Length > 14 ? args[14] : _playerCtx.Username);
+        if (player == null) return PlayerNotFound;
         
         var score = new Score
         {
@@ -63,7 +67,7 @@ public partial class CommandProcessor
             TotalScore = parsedValues[2],
             MaxCombo = parsedValues[3],
             Perfect = perfectFc,
-            Grade = (Grade)Enum.Parse(typeof(Grade), args[10]),
+            Grade = grade,
             Mods = mods,
             Passed = true,
             Mode = (GameMode)parsedValues[1],

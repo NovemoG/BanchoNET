@@ -2,6 +2,7 @@
 using BanchoNET.Objects.Players;
 using BanchoNET.Packets;
 using BanchoNET.Utils;
+using BanchoNET.Utils.Extensions;
 
 namespace BanchoNET.Services.ClientPacketsHandler;
 
@@ -38,9 +39,9 @@ public partial class ClientPacketsHandler
 		if (beatmapId > 0)
 			player.LastValidBeatmapId = beatmapId;
 		
-		using var packet = new ServerPackets();
-		packet.UserStats(player);
-		_session.EnqueueToPlayers(packet.GetContent());
+		session.EnqueueToPlayers(new ServerPackets()
+			.UserStats(player)
+			.FinalizeAndGetContent());
 
 		player.LastActivityTime = DateTime.Now;
 		return Task.CompletedTask;

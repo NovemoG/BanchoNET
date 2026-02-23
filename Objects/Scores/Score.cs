@@ -2,6 +2,7 @@
 using BanchoNET.Objects.Beatmaps;
 using BanchoNET.Objects.Players;
 using BanchoNET.Utils;
+using BanchoNET.Utils.Extensions;
 
 namespace BanchoNET.Objects.Scores;
 
@@ -30,7 +31,7 @@ public class Score
 	public Grade Grade { get; set; }
 	public Mods Mods { get; set; }
 	public GameMode Mode { get; set; }
-	public string ClientChecksum { get; set; }
+	public string ClientChecksum { get; set; } = null!;
 	public ClientFlags ClientFlags { get; set; }
 	public DateTime ClientTime { get; set; }
 	public int TimeElapsed { get; set; }
@@ -42,15 +43,19 @@ public class Score
 	
 	public Score(IReadOnlyList<string> scoreData, Beatmap beatmap, Player player)
 	{
-		var mods = (Mods)int.Parse(scoreData[11]);
 		if (!Enum.TryParse(scoreData[10], out Grade grade))
 			return;
-
+		
+		var mods = (Mods)int.Parse(scoreData[11]);
+		
+		Passed = scoreData[12] == "True";
+		Mode = ((GameMode)int.Parse(scoreData[13])).FromMods(mods);
+		
 		Beatmap = beatmap;
 		BeatmapMD5 = beatmap.MD5;
 		Player = player;
 		PlayerId = player.Id;
-			
+		
 		ClientChecksum = scoreData[0];
 		Count300 = int.Parse(scoreData[1]);
 		Count100 = int.Parse(scoreData[2]);
@@ -63,8 +68,6 @@ public class Score
 		Perfect = scoreData[9] == "True";
 		Grade = grade;
 		Mods = mods;
-		Passed = scoreData[12] == "True";
-		Mode = ((GameMode)int.Parse(scoreData[13])).FromMods(mods);
 		ClientTime = DateTime.ParseExact(scoreData[14], "yyMMddHHmmss", null);
 		ClientFlags = (ClientFlags)int.Parse(scoreData[15]);
 	}

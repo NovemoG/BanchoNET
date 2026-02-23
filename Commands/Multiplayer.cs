@@ -4,9 +4,10 @@ using BanchoNET.Objects;
 using BanchoNET.Objects.Multiplayer;
 using BanchoNET.Objects.Privileges;
 using BanchoNET.Utils;
+using BanchoNET.Utils.Extensions;
 using Action = BanchoNET.Models.Mongo.Action;
-using static BanchoNET.Utils.CommandHandlerMaps;
-using static BanchoNET.Utils.ModsExtensions;
+using static BanchoNET.Utils.Maps.CommandHandlerMap;
+using static BanchoNET.Utils.Extensions.ModsExtensions;
 
 namespace BanchoNET.Commands;
 
@@ -15,7 +16,7 @@ public partial class CommandProcessor
     private MultiplayerLobby _lobby = null!;
     
     [Command("mp",
-        Privileges.Verified,
+        PlayerPrivileges.Verified,
         "A set of commands to manage your multiplayer lobby. List of commands available under 'mp help' or 'help mp' command.",
         "\nmp create [<name>]/[<password>] - Creates a multiplayer lobby with a given name." +
         "\nmp invite/i <username> - Invites a player with a given username to your current multiplayer lobby." +
@@ -92,7 +93,7 @@ public partial class CommandProcessor
             "ban" => (false, await BanPlayer(args[1..])),
             "addref" => (false, await AddReferee(args[1..])),
             "rmref" => (false, await RemoveReferee(args[1..])),
-            "listrefs" => (false, ListReferees()),
+            "listrefs" => (false, await ListReferees()),
             "close" => (false, await CloseLobby()),
             _ => (true, $"Invalid parameter provided. Check available options using '{prefix}mp help' or '{prefix}help mp'.")
         };
@@ -104,7 +105,7 @@ public partial class CommandProcessor
             return "";
         
         var lobbyDetails = string.Join(' ', args).Split('/', 2);
-        var beatmap = await beatmaps.GetBeatmapWithId(_playerCtx.LastValidBeatmapId);
+        var beatmap = await beatmaps.GetBeatmap(_playerCtx.LastValidBeatmapId);
         
         var lobby = new MultiplayerLobby
         {
@@ -147,9 +148,9 @@ public partial class CommandProcessor
     private string InviteToLobby(string[] args)
     {
         if (args.Length == 0)
-            return $"No username provided. Use '{_prefix}mp invite <username>'.";
+            return $"No username provided. Use '{Prefix}mp invite <username>'.";
 
-        var target = _session.GetPlayerByName(args[0]);
+        var target = session.GetPlayerByName(args[0]);
         if (target == null)
             return $"{args[0]} is either offline or you misspelled the username.";
 
@@ -167,7 +168,7 @@ public partial class CommandProcessor
             return "";
         
         if (args.Length == 0)
-            return $"No name provided. Use '{_prefix}mp name <name>'.";
+            return $"No name provided. Use '{Prefix}mp name <name>'.";
         
         _lobby.Name = string.Join(' ', args);
         _lobby.EnqueueState();
@@ -221,7 +222,7 @@ public partial class CommandProcessor
             return "";
         
         if (args.Length == 0)
-            return $"Not enough parameters provided. Use '{_prefix}mp size <size>'.";
+            return $"Not enough parameters provided. Use '{Prefix}mp size <size>'.";
         
         if (!int.TryParse(args[0], out var size)) 
             return "Invalid size provided. Available slots: 1-16.";
@@ -258,7 +259,7 @@ public partial class CommandProcessor
             return "";
         
         if (args.Length == 0)
-            return $"Not enough parameters provided. Use '{_prefix}mp set <teammode> [<scoremode>] [<size>]'.";
+            return $"Not enough parameters provided. Use '{Prefix}mp set <teammode> [<scoremode>] [<size>]'.";
 
         if (!int.TryParse(args[0], out var teamMode)) 
             return "Invalid team mode provided. Available modes: 0, 1, 2, 3.";
@@ -290,7 +291,7 @@ public partial class CommandProcessor
             return "";
         
         if (args.Length < 2)
-            return $"Not enough parameters provided. Use '{_prefix}mp move <username> <slot>'.";
+            return $"Not enough parameters provided. Use '{Prefix}mp move <username> <slot>'.";
         
         var oldSlot = _lobby.GetPlayerSlot(username: args[0]);
         if (oldSlot == null)
@@ -335,7 +336,7 @@ public partial class CommandProcessor
             return "";   
         
         if (args.Length == 0)
-            return $"No username provided. Use '{_prefix}mp host <username>'.";
+            return $"No username provided. Use '{Prefix}mp host <username>'.";
         
         var slot = _lobby.GetPlayerSlot(args[0]);
         if (slot == null)
@@ -402,7 +403,7 @@ public partial class CommandProcessor
             return "This command is only available in team-based lobbies.";
         
         if (args.Length < 2)
-            return $"Not enough parameters provided. Use '{_prefix}mp team <username> <team>'.";
+            return $"Not enough parameters provided. Use '{Prefix}mp team <username> <team>'.";
         
         var slot = _lobby.GetPlayerSlot(username: args[0]);
         if (slot == null)
@@ -432,7 +433,7 @@ public partial class CommandProcessor
             return "";
         
         if (args.Length == 0)
-            return $"No beatmap ID provided. Use '{_prefix}mp map <mapid> [<gamemode>]'.";
+            return $"No beatmap ID provided. Use '{Prefix}mp map <mapid> [<gamemode>]'.";
 
         if (!int.TryParse(args[0], out var beatmapId))
             return "Beatmap not found.";
@@ -600,7 +601,7 @@ public partial class CommandProcessor
             return "";
         
         if (args.Length == 0)
-            return $"No username provided. Use '{_prefix}mp kick <username>'.";
+            return $"No username provided. Use '{Prefix}mp kick <username>'.";
         
         var slot = _lobby.GetPlayerSlot(args[0]);
         if (slot == null)
@@ -641,7 +642,7 @@ public partial class CommandProcessor
             return "";
         
         if (args.Length == 0)
-            return $"No username provided. Use '{_prefix}mp ban <username>'.";
+            return $"No username provided. Use '{Prefix}mp ban <username>'.";
         
         var target = await players.GetPlayerOrOffline(username: args[0]);
         if (target == null)
@@ -671,7 +672,7 @@ public partial class CommandProcessor
             return "";
         
         if (args.Length == 0)
-            return $"No referee(s) provided. Use '{_prefix}mp addref <username> [<username>] ...'.";
+            return $"No referee(s) provided. Use '{Prefix}mp addref <username> [<username>] ...'.";
 
         int count = 0;
         foreach (var username in args)
@@ -706,7 +707,7 @@ public partial class CommandProcessor
             return "";
         
         if (args.Length == 0)
-            return $"No referee(s) provided. Use '{_prefix}mp rmref <username> [<username>] ...'.";
+            return $"No referee(s) provided. Use '{Prefix}mp rmref <username> [<username>] ...'.";
 
         var count = 0;
         foreach (var username in args)
@@ -742,9 +743,9 @@ public partial class CommandProcessor
         return $"Removed {count} players from referees.";
     }
     
-    private string ListReferees()
+    private async Task<string> ListReferees()
     {
-        return $"{string.Join(", ", _lobby.Refs.Select(id => players.GetPlayerOrOffline(id).Result!.Username))}";
+        return $"{string.Join(", ", await players.GetPlayerNames(_lobby.Refs))}";
     }
     
     private async Task<string> CloseLobby()

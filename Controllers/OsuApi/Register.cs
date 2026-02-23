@@ -1,4 +1,5 @@
 ﻿using BanchoNET.Utils;
+using BanchoNET.Utils.Extensions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BanchoNET.Controllers.OsuApi;
@@ -29,7 +30,7 @@ public partial class OsuController
 		if (username.Contains(' ') && username.Contains('_')) errors.Add(new ErrorDetails
 		{
 			Field = "username",
-			Messages = ["Cannot contain spaces and underscores."]
+			Messages = ["Must not contain both spaces and underscores."]
 		});
 		if (await players.UsernameTaken(username)) errors.Add(new ErrorDetails
 		{
@@ -77,7 +78,7 @@ public partial class OsuController
 		var passwordMD5 = password.CreateMD5();
 		var passwordBcrypt = BCrypt.Net.BCrypt.HashPassword(passwordMD5);
 		
-		_session.InsertPasswordHash(passwordMD5, passwordBcrypt);
+		session.InsertPasswordHash(passwordMD5, passwordBcrypt);
 		
 		var playerGeoloc = await geoloc.GetGeoloc(Request.Headers);
 		await players.CreatePlayer(

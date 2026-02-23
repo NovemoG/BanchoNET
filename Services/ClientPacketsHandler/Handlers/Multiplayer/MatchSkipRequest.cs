@@ -2,6 +2,7 @@
 using BanchoNET.Objects.Players;
 using BanchoNET.Packets;
 using BanchoNET.Utils;
+using BanchoNET.Utils.Extensions;
 
 namespace BanchoNET.Services.ClientPacketsHandler;
 
@@ -15,17 +16,16 @@ public partial class ClientPacketsHandler
 		var slot = lobby.GetPlayerSlot(player)!;
 		slot.Skipped = true;
 		
-		using var playerSkippedPacket = new ServerPackets();
-		playerSkippedPacket.MatchPlayerSkipped(player.Id);
-		lobby.Enqueue(playerSkippedPacket.GetContent());
+		lobby.Enqueue(new ServerPackets()
+			.MatchPlayerSkipped(player.Id)
+			.FinalizeAndGetContent());
 
 		foreach (var s in lobby.Slots)
 			if (s is { Status: SlotStatus.Playing, Skipped: false })
 				return Task.CompletedTask;
-
-		using var matchSkipPacket = new ServerPackets();
-		matchSkipPacket.MatchSkip();
-		lobby.Enqueue(matchSkipPacket.GetContent(), toLobby: false);
+		
+		lobby.Enqueue(new ServerPackets().MatchSkip().FinalizeAndGetContent(),
+			toLobby: false);
 		
 		return Task.CompletedTask;
 	}

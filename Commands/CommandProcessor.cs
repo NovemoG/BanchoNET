@@ -1,22 +1,26 @@
-﻿using BanchoNET.Objects.Channels;
+﻿using BanchoNET.Abstractions.Repositories;
+using BanchoNET.Abstractions.Repositories.Histories;
+using BanchoNET.Abstractions.Services;
+using BanchoNET.Objects.Channels;
 using BanchoNET.Objects.Players;
 using BanchoNET.Services;
 using BanchoNET.Services.Repositories;
 using BanchoNET.Utils;
-using static BanchoNET.Utils.CommandHandlerMaps;
+using BanchoNET.Utils.Extensions;
+using static BanchoNET.Utils.Maps.CommandHandlerMap;
 
 namespace BanchoNET.Commands;
 
 public partial class CommandProcessor(
-    ScoresRepository scores,
-    PlayersRepository players,
-    BeatmapsRepository beatmaps,
-    BeatmapHandler beatmapHandler,
-    HistoriesRepository histories)
+    IBanchoSession session,
+    IScoresRepository scores,
+    IPlayersRepository players,
+    IBeatmapsRepository beatmaps,
+    IBeatmapHandler beatmapHandler,
+    IHistoriesRepository histories
+    ) : ICommandProcessor
 {
-    private readonly string _prefix = AppSettings.CommandPrefix;
-
-    private readonly BanchoSession _session = BanchoSession.Instance;
+    private static readonly string Prefix = AppSettings.CommandPrefix;
 
     private Player _playerCtx = null!;
     private Channel? _channelCtx;
@@ -35,7 +39,7 @@ public partial class CommandProcessor(
         Player player,
         Channel? channel = null)
     {
-        command = command[_prefix.Length..];
+        command = command[Prefix.Length..];
         
         var commandValues = command.Split(" ");
         

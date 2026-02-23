@@ -1,6 +1,7 @@
 ﻿using BanchoNET.Objects.Players;
 using BanchoNET.Packets;
 using BanchoNET.Utils;
+using BanchoNET.Utils.Extensions;
 
 namespace BanchoNET.Services.ClientPacketsHandler;
 
@@ -12,7 +13,7 @@ public partial class ClientPacketsHandler
         
         foreach (var id in userIds)
         {
-            var target = _session.GetPlayerById(id);
+            var target = session.GetPlayerById(id);
             if (target == null) continue;
             
             using var presencePacket = new ServerPackets();

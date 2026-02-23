@@ -1,5 +1,4 @@
 ﻿using BanchoNET.Objects.Channels;
-using BanchoNET.Utils;
 
 namespace BanchoNET.Objects.Multiplayer;
 
@@ -43,7 +42,7 @@ public class MultiplayerLobby
 	public byte Powerplay { get; set; }
 	public int Seed { get; set; }
 	public DateTime MapFinishDate { get; set; }
-	public Channel Chat { get; set; }
+	public Channel Chat { get; set; } = null!;
 	public MultiplayerSlot[] Slots { get; set; }
 	public bool Locked { get; set; }
 	public LobbyTimer? Timer { get; set; }

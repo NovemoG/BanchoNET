@@ -1,6 +1,10 @@
 using System.Diagnostics;
 using System.Text.RegularExpressions;
+using BanchoNET.Abstractions.Repositories;
+using BanchoNET.Abstractions.Repositories.Histories;
+using BanchoNET.Abstractions.Services;
 using BanchoNET.Commands;
+using BanchoNET.Middlewares;
 using BanchoNET.Models;
 using BanchoNET.Models.Dtos;
 using BanchoNET.Objects;
@@ -9,17 +13,23 @@ using BanchoNET.Objects.Players;
 using BanchoNET.Objects.Privileges;
 using BanchoNET.Services;
 using BanchoNET.Services.ClientPacketsHandler;
+using BanchoNET.Services.LobbyScoresQueue;
 using BanchoNET.Services.Repositories;
 using BanchoNET.Utils;
-using dotenv.net;
+using BanchoNET.Utils.Extensions;
 using Hangfire;
+using Hangfire.AspNetCore;
 using Hangfire.MySql;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using MySql.Data.MySqlClient;
+using Novelog.Config;
 using StackExchange.Redis;
 using static System.Data.IsolationLevel;
 using IsolationLevel = System.Transactions.IsolationLevel;
+using LogLevel = Novelog.Types.LogLevel;
+// ReSharper disable ExplicitCallerInfoArgument
 
 namespace BanchoNET;
 
@@ -32,16 +42,44 @@ public class Program
 		
 		var builder = WebApplication.CreateBuilder(args);
 		
-		DotEnv.Load(); // Load .env when non dockerized
+		#region Logging
+
+		builder.Logging.ClearProviders();
+
+		var microsoftLogger = new LoggerConfigBuilder(false)
+			.AttachConsole()
+			.ModifyDefaultFormatter("", "[{0}] [{1} | {3}] {4}");
+		
+		builder.Logging.AddProvider(new NovelogLoggerProvider(microsoftLogger.Build()));
+		builder.Services.AddNovelog(options => options
+			.AttachConsole()
+			.AttachRollingFile(new RollingFileConfig
+			{
+				FilePath = Storage.GetLogFilePath("log.txt")
+			})
+			.AttachRollingFile(new RollingFileConfig
+			{
+				FilePath = Storage.GetLogFilePath("debug.txt"),
+				MinLogLevel = LogLevel.DEBUG
+			})
+			.ForType<RequestTimingMiddleware>(rtmOptions => rtmOptions
+				.AttachConsole()
+				.AttachRollingFile(new RollingFileConfig
+				{
+					FilePath = Storage.GetLogFilePath("requests.txt"),
+					MinLogLevel = LogLevel.DEBUG
+				})
+				.ModifyDefaultFormatter("", "[{0}] [{1} | {2}] {4}"))
+		);
+
+		#endregion
 
 		#region Domain Check
 
 		var domain = AppSettings.Domain;
 		if (string.IsNullOrEmpty(domain))
 		{
-			Console.ForegroundColor = ConsoleColor.Red;
-			Console.WriteLine("[Init] Please set the DOMAIN environment variable.");
-			Console.ForegroundColor = ConsoleColor.White;
+			Logger.Shared.LogCritical("Please set the DOMAIN environment variable.", null, "Init");
 			return;
 		}
 
@@ -55,9 +93,6 @@ public class Program
 			"MYSQL_PORT",
 			"MYSQL_USER",
 			"MYSQL_DB",
-			"HANGFIRE_HOST",
-			"HANGFIRE_PORT",
-			"HANGFIRE_USER",
 			"REDIS_HOST",
 			"REDIS_PORT",
 			"MONGO_HOST",
@@ -68,7 +103,7 @@ public class Program
 		foreach (var requiredEnvVar in requiredEnvVars)
 		{
 			if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable(requiredEnvVar))) continue;
-			Console.WriteLine($"[Init] Missing environment variable: {requiredEnvVar}");
+			Logger.Shared.LogCritical($"Missing environment variable: {requiredEnvVar}", null, "Init");
 			missing = true;
 		}
 		if (missing) return;
@@ -80,10 +115,6 @@ public class Program
 			MysqlUser = Environment.GetEnvironmentVariable("MYSQL_USER")!,
 			MysqlPass = Environment.GetEnvironmentVariable("MYSQL_PASS")!,
 			MysqlDb = Environment.GetEnvironmentVariable("MYSQL_DB")!,
-			HangfireHost = Environment.GetEnvironmentVariable("HANGFIRE_HOST")!,
-			HangfirePort = Environment.GetEnvironmentVariable("HANGFIRE_PORT")!,
-			HangfireUser = Environment.GetEnvironmentVariable("HANGFIRE_USER")!,
-			HangfirePass = Environment.GetEnvironmentVariable("HANGFIRE_PASS")!,
 			RedisHost = Environment.GetEnvironmentVariable("REDIS_HOST")!,
 			RedisPort = Environment.GetEnvironmentVariable("REDIS_PORT")!,
 			RedisPass = Environment.GetEnvironmentVariable("REDIS_PASS")!,
@@ -103,14 +134,14 @@ public class Program
 
 		mySqlConnectionString += $"database={dbConnections.MysqlDb};";
 
-		var hangfirePass = dbConnections.HangfirePass;
+		var hangfirePass = dbConnections.MysqlPass;
 		var hangfireConnectionString =
-			$"server={dbConnections.HangfireHost};" +
-			$"port={dbConnections.HangfirePort};" +
-			$"user={dbConnections.HangfireUser};" +
+			$"server={dbConnections.MysqlHost};" +
+			$"port={dbConnections.MysqlPort};" +
+			$"user={dbConnections.MysqlUser};" +
 			$"{(string.IsNullOrEmpty(hangfirePass) ? "" : $"password={hangfirePass};")}" +
 			$"database=hangfire;" +
-			$"Allow User Variables=True";;
+			$"Allow User Variables=True";
 		
 		var redisConnectionString = 
 			$"{dbConnections.RedisHost}:{dbConnections.RedisPort}," +
@@ -123,13 +154,13 @@ public class Program
 		if (string.IsNullOrEmpty(mongoUser)
 		    && !string.IsNullOrEmpty(mongoPass))
 		{
-			Console.WriteLine("[Init] You specified password but left username empty for MongoDB. Ignoring password.");
+			Logger.Shared.LogWarning("You specified password but left username empty for MongoDB. Ignoring password.", caller: "Init");
 			credentials = false;
 		}
 		else if (string.IsNullOrEmpty(mongoUser)
 		         && string.IsNullOrEmpty(mongoPass))
 		{
-			Console.WriteLine("[Init] No credentials specified for MongoDB.");
+			Logger.Shared.LogWarning("No credentials specified for MongoDB.", caller: "Init");
 			credentials = false;
 		}
 		else
@@ -147,7 +178,7 @@ public class Program
 		
 		#endregion
 		
-		builder.Services.AddHangfire(config =>
+		builder.Services.AddHangfire((sp, config) =>
 		{
 			config.UseStorage(new MySqlStorage(hangfireConnectionString, new MySqlStorageOptions
 			{
@@ -156,36 +187,41 @@ public class Program
 				JobExpirationCheckInterval = TimeSpan.FromHours(1),
 				CountersAggregateInterval = TimeSpan.FromMinutes(5),
 				PrepareSchemaIfNecessary = true,
-			}));
+			})).UseActivator(new AspNetCoreJobActivator(sp.GetRequiredService<IServiceScopeFactory>()));
 		});
 		builder.Services.AddHangfireServer();
 		
 		builder.Services.AddEndpointsApiExplorer();
 		builder.Services.AddAuthorization();
 		builder.Services.AddControllers();
+		
+		builder.Services.AddHttpClient();
 
 		var mongoSettings = MongoClientSettings.FromConnectionString(mongoConnectionString);
 		mongoSettings.LinqProvider = MongoDB.Driver.Linq.LinqProvider.V3;
 		
+		builder.Services.AddSingleton<ILobbyScoresQueue, LobbyScoresQueue>();
+		builder.Services.AddHostedService<LobbyQueueHostedService>();
+		
 		builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConnectionString));
 		builder.Services.AddSingleton(new MongoClient(mongoSettings));
-		builder.Services.AddSingleton<HistoriesRepository>();
-		builder.Services.AddSingleton<OsuVersionService>();
-		builder.Services.AddSingleton<BackgroundTasks>();
 		builder.Services.AddDbContext<BanchoDbContext>(options =>
 		{
 			options.UseMySQL(mySqlConnectionString);
 		});
-		builder.Services.AddScoped<BeatmapsRepository>();
-		builder.Services.AddScoped<ClientRepository>();
-		builder.Services.AddScoped<MessagesRepository>();
-		builder.Services.AddScoped<PlayersRepository>();
-		builder.Services.AddScoped<ScoresRepository>();
-		builder.Services.AddScoped<GeolocService>();
-		builder.Services.AddScoped<BeatmapHandler>();
-		builder.Services.AddScoped<CommandProcessor>();
-		builder.Services.AddScoped<ClientPacketsHandler>();
-		builder.Services.AddHttpClient();
+		builder.Services.AddSingleton<IBanchoSession>(BanchoSession.Instance);
+		builder.Services.AddSingleton<IHistoriesRepository, HistoriesRepository>();
+		builder.Services.AddScoped<IBeatmapsRepository, BeatmapsRepository>();
+		builder.Services.AddScoped<IClientsRepository, ClientsRepository>();
+		builder.Services.AddScoped<IMessagesRepository, MessagesRepository>();
+		builder.Services.AddScoped<IPlayersRepository, PlayersRepository>();
+		builder.Services.AddScoped<IScoresRepository, ScoresRepository>();
+		builder.Services.AddScoped<IGeolocService, GeolocService>();
+		builder.Services.AddScoped<IBeatmapHandler, BeatmapHandler>();
+		builder.Services.AddScoped<ICommandProcessor, CommandProcessor>();
+		builder.Services.AddScoped<IClientPacketsHandler, ClientPacketsHandler>();
+		builder.Services.AddTransient<IOsuVersionService, OsuVersionService>();
+		builder.Services.AddTransient<IBackgroundTasks, BackgroundTasks>();
 
 		var app = builder.Build();
 
@@ -194,31 +230,15 @@ public class Program
 		app.UseAuthorization();
 
 		app.UseMiddleware<SubdomainMiddleware>();
+		app.UseMiddleware<RequestTimingMiddleware>();
 		
 		app.MapControllers();
-
-		app.Use(async (context, next) =>
-		{
-			context.Response.ApplyHeaders();
-			
-			var stopwatch = new Stopwatch();
-			stopwatch.Start();
-			
-			await next(context);
-			
-			stopwatch.Stop();
-			//TODO some fancy coloring
-			Console.WriteLine($"[{context.Request.Method} {context.Response.StatusCode}]\t{context.Request.Host}{context.Request.Path} | Request took: {stopwatch.Elapsed.Seconds}s {stopwatch.Elapsed.Milliseconds}ms {stopwatch.Elapsed.Microseconds}μs");
-		});
 
 		#region Initialization
 		
 		if (string.IsNullOrEmpty(AppSettings.OsuApiKey))
 		{
-			//TODO: Logging system || probably to change
-			Console.ForegroundColor = ConsoleColor.Yellow;
-			Console.WriteLine("[Init] OSU_API_KEY is not set. Some features will be disabled.");
-			Console.ForegroundColor = ConsoleColor.White;
+			Logger.Shared.LogWarning("OSU_API_KEY is not set. Some features will be disabled.", caller: "Init");
 		}
 		
 		EnsureDatabaseExists(app.Services.CreateScope());
@@ -231,20 +251,20 @@ public class Program
 		// redis leaderboards on startup
 		InitRedis(app.Services.CreateScope(), dbConnections.RedisHost, dbConnections.RedisPort);
 		
-		app.Services.GetRequiredService<OsuVersionService>().Init().Wait();
-		app.Services.GetRequiredService<BackgroundTasks>().Init().Wait();
+		app.Services.GetRequiredService<IOsuVersionService>().Init().Wait();
+		app.Services.GetRequiredService<IBackgroundTasks>().Init().Wait();
 
 		#endregion
 		
 		initStopwatch.Stop();
-		Console.WriteLine($"[Init] Initialization took: {initStopwatch.Elapsed}");
+		Logger.Shared.LogInfo($"Initialization took: {initStopwatch.Elapsed}", "Init");
 		
 		app.Run();
 	}
 
 	private static void EnsureHangfireDatabaseExists(string connectionString)
 	{
-		Console.WriteLine("[Init] Checking if Hangfire database exists.");
+		Logger.Shared.LogInfo("Checking if Hangfire database exists.", "Init");
 		
 		using var connection = new MySqlConnection(connectionString);
 		using var command = connection.CreateCommand();
@@ -258,18 +278,21 @@ public class Program
 	{
 		var db = scope.ServiceProvider.GetRequiredService<BanchoDbContext>();
 
-		Console.WriteLine("[Init] Checking if database exists.");
+		Logger.Shared.LogInfo("Checking if database exists.", "Init");
 		
 		var created = db.Database.EnsureCreated();
-
-		Console.WriteLine(created
-			? "[Init] Database couldn't be found and was created."
-			: "[Init] Database already exists, creation was skipped.");
+		
+		Logger.Shared.LogInfo(created
+			? "Database couldn't be found and was created."
+			: "Database already exists, skipping creation.",
+			"Init");
 	}
 	
 	private static void InitBanchoBot(IServiceScope scope)
 	{
 		var db = scope.ServiceProvider.GetRequiredService<BanchoDbContext>();
+		var players = scope.ServiceProvider.GetRequiredService<IPlayersRepository>();
+		var session = BanchoSession.Instance;
 
 		var dbBanchoBot = db.Players.FirstOrDefault(p => p.Id == 1);
 		if (dbBanchoBot != null)
@@ -277,17 +300,20 @@ public class Program
 			dbBanchoBot.RemainingSupporter = DateTime.Now.AddYears(100);
 			dbBanchoBot.LastActivityTime = DateTime.Now.AddYears(100);
 			db.SaveChanges();
-			
-			BanchoSession.Instance.AppendBot(new Player(dbBanchoBot));
+
+			var banchoBot = new Player(dbBanchoBot);
+
+			players.GetPlayerRelationships(banchoBot);
+			session.AppendBot(banchoBot);
 			return;
 		}
 
 		var banchoBotName = AppSettings.BanchoBotName;
 		if (banchoBotName.Length > 16)
 		{
-			Console.WriteLine("[Init] Bancho bot name is too long, truncating to 16 characters");
+			Logger.Shared.LogWarning("Bancho bot name is too long, truncating to 16 characters", caller: "Init");
 			banchoBotName = banchoBotName[..16];
-			Console.WriteLine("[Init] New bot name: " + banchoBotName);
+			Logger.Shared.LogInfo("New bot name: " + banchoBotName, "Init");
 		}
 		
 		var entry = db.Players.Add(new PlayerDto
@@ -302,11 +328,11 @@ public class Program
 			RemainingSupporter = DateTime.Now.AddYears(100),
 			CreationTime = DateTime.Now,
 			LastActivityTime = DateTime.Now.AddYears(100),
-			Privileges = (int)(Privileges.Verified | Privileges.Staff | Privileges.Unrestricted),
+			Privileges = (int)(PlayerPrivileges.Verified | PlayerPrivileges.Staff | PlayerPrivileges.Unrestricted),
 		});
 		db.SaveChanges();
 		
-		BanchoSession.Instance.AppendBot(new Player(entry.Entity));
+		session.AppendBot(new Player(entry.Entity));
 	}
 
 	private static void InitChannels(IServiceScope scope)
@@ -316,7 +342,7 @@ public class Program
 
 		if (!db.Channels.Any())
 		{
-			Console.WriteLine("[Init] No channels found in database, creating default ones.");
+			Logger.Shared.LogInfo("No channels found in database, creating default ones.", "Init");
 			
 			foreach (var channel in ChannelExtensions.DefaultChannels)
 			{
@@ -338,7 +364,7 @@ public class Program
 		}
 		else
 		{
-			Console.WriteLine("[Init] Loading channels from database.");
+			Logger.Shared.LogInfo("Loading channels from database.", "Init");
 			
 			foreach (var channel in db.Channels.ToList())
 				session.InsertChannel(new Channel(channel));
@@ -375,7 +401,7 @@ public class Program
 		}
 		
 		stopwatch.Stop();
-		Console.WriteLine($"[Init] Redis leaderboards updated in {stopwatch.ElapsedMilliseconds}ms");
+		Logger.Shared.LogInfo($"Redis leaderboards updated in {stopwatch.ElapsedMilliseconds}ms", "Init");
 	}
 	
 	private static string EscapeMongoCharacters(string input)

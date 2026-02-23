@@ -1,5 +1,6 @@
 ﻿using BanchoNET.Objects.Players;
 using BanchoNET.Utils;
+using BanchoNET.Utils.Extensions;
 
 namespace BanchoNET.Services.ClientPacketsHandler;
 
@@ -12,7 +13,7 @@ public partial class ClientPacketsHandler
         if (matchId is < 0 or > short.MaxValue)
             return Task.CompletedTask;
         
-        var match = _session.GetLobby((ushort)matchId);
+        var match = session.GetLobby((ushort)matchId);
         if (match == null)
             return Task.CompletedTask;
         

@@ -1,8 +1,7 @@
-﻿using BanchoNET.Attributes;
+﻿using BanchoNET.Abstractions.Repositories;
+using BanchoNET.Abstractions.Services;
+using BanchoNET.Attributes;
 using BanchoNET.Packets;
-using BanchoNET.Services;
-using BanchoNET.Services.ClientPacketsHandler;
-using BanchoNET.Services.Repositories;
 using BanchoNET.Utils;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,16 +10,16 @@ namespace BanchoNET.Controllers.Cho;
 [ApiController]
 [SubdomainAuthorize("c", "c4", "cho")]
 public partial class ChoController(
-	GeolocService geoloc,
-	OsuVersionService version,
-	PlayersRepository players,
-	ClientRepository client,
-	ClientPacketsHandler clientPackets,
-	MessagesRepository messages)
+	IBanchoSession session,
+	IGeolocService geoloc,
+	IOsuVersionService version,
+	IPlayersRepository players,
+	IClientsRepository clients,
+	IClientPacketsHandler clientPackets,
+	IMessagesRepository messages,
+	ILogger logger)
 	: ControllerBase
 {
-	private readonly BanchoSession _session = BanchoSession.Instance;
-	
 	[HttpPost("/")]
 	public async Task<IActionResult> BanchoHandler()
 	{
@@ -28,13 +27,13 @@ public partial class ChoController(
 		if (string.IsNullOrEmpty(osuToken))
 			return await Login();
 
-		var player = _session.GetPlayerByToken(new Guid(osuToken));
+		var player = session.GetPlayerByToken(new Guid(osuToken));
 		if (player == null)
 		{
-			using var restartData = new ServerPackets();
-			restartData.Notification("Server has restarted.");
-			restartData.RestartServer(0);
-			return restartData.GetContentResult();
+			return new ServerPackets()
+				.Notification("Server has restarted.")
+				.RestartServer(0)
+				.FinalizeAndGetContentResult();
 		}
 		
 		await clientPackets.ReadPackets(Request.Body, player);

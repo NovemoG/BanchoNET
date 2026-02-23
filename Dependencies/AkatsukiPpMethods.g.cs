@@ -6,6 +6,7 @@ using BanchoNET.Models.Dtos;
 using BanchoNET.Objects;
 using BanchoNET.Objects.Scores;
 using BanchoNET.Utils;
+using BanchoNET.Utils.Extensions;
 
 namespace AkatsukiPp
 {

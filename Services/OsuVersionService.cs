@@ -1,21 +1,23 @@
 ﻿using System.Diagnostics;
+using BanchoNET.Abstractions.Services;
 using BanchoNET.Models;
 using BanchoNET.Objects;
 using BanchoNET.Utils;
+using BanchoNET.Utils.Extensions;
 using Hangfire;
 using Newtonsoft.Json;
 
 namespace BanchoNET.Services;
 
-public class OsuVersionService
+public class OsuVersionService(ILogger logger) : IOsuVersionService
 {
     private readonly HttpClient _client = new();
     private const string OsuApiV2ChangelogUrl = "https://osu.ppy.sh/api/v2/changelog";
     private readonly Dictionary<string, OsuVersion> _streams = new()
     {
-        {"stable40", new OsuVersion()},
-        {"beta40", new OsuVersion()},
-        {"cuttingedge", new OsuVersion()},
+        { "stable40", new OsuVersion() },
+        { "beta40", new OsuVersion() },
+        { "cuttingedge", new OsuVersion() },
     };
 
     public async Task Init()
@@ -30,7 +32,7 @@ public class OsuVersionService
     
     public async Task FetchOsuVersion()
     {
-        Console.WriteLine($"[{GetType().Name}] Fetching osu versions execution date: {DateTime.Now}");
+        logger.LogInfo("Fetching osu versions...", caller: nameof(OsuVersionService));
         var stopwatch = new Stopwatch();
         stopwatch.Start();
         
@@ -59,7 +61,7 @@ public class OsuVersionService
             await WriteToFile();
             
             stopwatch.Stop();
-            Console.WriteLine($"[{GetType().Name}] Fetching osu versions execution time: {stopwatch.Elapsed}");
+            logger.LogInfo($"Fetched osu versions in {stopwatch.Elapsed}", caller: nameof(OsuVersionService));
             return;
         }
         
@@ -84,12 +86,12 @@ public class OsuVersionService
         
         if (newerDates)
         {
-            Console.WriteLine($"[{GetType().Name}] Caching updated versions");
+            logger.LogInfo("Caching updated versions", caller: nameof(OsuVersionService));
             await WriteToFile();
         }
         
         stopwatch.Stop();
-        Console.WriteLine($"[{GetType().Name}] Fetching osu versions execution time: {stopwatch.Elapsed}");
+        logger.LogInfo($"Fetched osu versions in {stopwatch.Elapsed}", caller: nameof(OsuVersionService));
     }
     
     public OsuVersion GetLatestVersion(string stream)

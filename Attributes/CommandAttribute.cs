@@ -1,4 +1,5 @@
-﻿using BanchoNET.Objects.Privileges;
+﻿using System.Text.RegularExpressions;
+using BanchoNET.Objects.Privileges;
 using BanchoNET.Utils;
 
 namespace BanchoNET.Attributes;
@@ -7,7 +8,7 @@ namespace BanchoNET.Attributes;
 public class CommandAttribute : Attribute
 {
     public string Name { get; }
-    public Privileges Privileges { get; }
+    public PlayerPrivileges Privileges { get; }
     public string BriefDescription { get; }
     public string DetailedDescription { get; }
     public string[]? Aliases { get; }
@@ -25,17 +26,26 @@ public class CommandAttribute : Attribute
     /// <param name="aliases">Other names associated that can run this command</param>
     public CommandAttribute(
         string name,
-        Privileges privileges,
+        PlayerPrivileges privileges,
         string briefDescription,
         string detailedDescription = "",
-        string[]? aliases = default)
+        string[]? aliases = null)
     {
         Name = name;
         Privileges = privileges;
-        BriefDescription = briefDescription;
         
-        //Fix for multiplayer detailed description (it looked kinda awkward without prefix)
-        DetailedDescription = Regexes.DescriptionMp.Replace(detailedDescription, $"\n{AppSettings.CommandPrefix}mp");
+        // Fix description syntaxes
+        var syntaxRegex = new Regex(@"\bSyntax: \b");
+        BriefDescription = syntaxRegex.Replace(briefDescription, $"Syntax: {AppSettings.CommandPrefix}");
+        
+        // Fix multiplayer detailed description
+        if (name == "mp")
+        {
+            var mpRegex = new Regex(@"\nmp\b");
+            
+            DetailedDescription = mpRegex.Replace(detailedDescription, $"\n{AppSettings.CommandPrefix}mp");
+        }
+        else DetailedDescription = detailedDescription;
         
         Aliases = aliases;
     }

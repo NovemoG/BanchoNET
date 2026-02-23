@@ -1,12 +1,13 @@
 ﻿using System.Net;
 using System.Text.Json;
+using BanchoNET.Abstractions.Services;
 using BanchoNET.Models;
 using BanchoNET.Objects.Players;
-using BanchoNET.Utils;
+using BanchoNET.Utils.Maps;
 
 namespace BanchoNET.Services;
 
-public class GeolocService(HttpClient httpClient)
+public class GeolocService(HttpClient httpClient) : IGeolocService
 {
 	public async Task<Geoloc?> GetGeoloc(IHeaderDictionary headers)
 	{
@@ -36,7 +37,7 @@ public class GeolocService(HttpClient httpClient)
 		return IPAddress.Parse(ipString);
 	}
 
-	private Geoloc? FromCloudflare(IHeaderDictionary headers)
+	private static Geoloc? FromCloudflare(IHeaderDictionary headers)
 	{
 		if (!headers.TryGetValue("CF-IPLatitude", out var latitude) ||
 		    !headers.TryGetValue("CF-IPLongitude", out var longitude) ||
@@ -59,7 +60,7 @@ public class GeolocService(HttpClient httpClient)
 		};
 	}
 	
-	private Geoloc? FromNginx(IHeaderDictionary headers)
+	private static Geoloc? FromNginx(IHeaderDictionary headers)
 	{
 		if (!headers.TryGetValue("X-Latitude", out var latitude) ||
 		    !headers.TryGetValue("X-Longitude", out var longitude) ||

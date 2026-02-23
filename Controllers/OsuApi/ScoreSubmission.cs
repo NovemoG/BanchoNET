@@ -4,13 +4,13 @@ using Org.BouncyCastle.Crypto.Paddings;
 using Org.BouncyCastle.Crypto.Parameters;
 using System.Text;
 using AkatsukiPp;
-using BanchoNET.Objects;
 using BanchoNET.Objects.Beatmaps;
 using BanchoNET.Objects.Channels;
 using BanchoNET.Objects.Players;
 using BanchoNET.Objects.Scores;
 using BanchoNET.Packets;
 using BanchoNET.Utils;
+using BanchoNET.Utils.Extensions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BanchoNET.Controllers.OsuApi;
@@ -63,9 +63,9 @@ public partial class OsuController
         try
         {
             var versionDate = DateTime.ParseExact(osuVersion[..8], "yyyyMMdd", null);
-			
+            
             if (versionDate != player.ClientDetails.OsuVersion.Date)
-                throw new Exception("ovu! version mismatch");
+                throw new Exception("osu! version mismatch");
 			
             if (clientHash != player.ClientDetails.ClientHash)
                 throw new Exception("Client hash mismatch");
@@ -76,7 +76,7 @@ public partial class OsuController
             if (uniqueId2 != player.ClientDetails.DiskSignatureMD5)
                 throw new Exception($"UniqueId2 mismatch ({uniqueId2} != {player.ClientDetails.UninstallMD5})");
 
-            var serverScoreChecksum = score.ComputeOnlineChecksum(osuVersion, clientHash, storyboardMD5);
+            var serverScoreChecksum = score.ComputeOnlineChecksum(osuVersion, clientHash, storyboardMD5 ?? "");
             if (score.ClientChecksum != serverScoreChecksum)
                 throw new Exception($"Online score checksum mismatch ({score.ClientChecksum} != {serverScoreChecksum})");
 
@@ -85,12 +85,18 @@ public partial class OsuController
         }
         catch (Exception e)
         {
-            Console.WriteLine($"[ScoreSubmission] {e.Message}");
+            logger.LogError("Mismatching hashes on score submission", e);
 
             await players.RestrictPlayer(player, "Mismatching hashes on score submission");
             return Ok("error: ban");
         }
 
+        if (await scores.ScoreExists(score.ClientChecksum))
+        {
+            logger.LogWarning($"{player.Username} tried to submit a duplicate score.");
+            return Ok("error: no");
+        }
+        
         await players.UpdateLatestActivity(player);
 
         if (score.Mode != player.Status.Mode)
@@ -100,35 +106,33 @@ public partial class OsuController
 			
             if (!player.Restricted)
             {
-                using var statsPacket = new ServerPackets();
-                statsPacket.UserStats(player);
-                _session.EnqueueToPlayers(statsPacket.GetContent());
+                session.EnqueueToPlayers(new ServerPackets()
+                    .UserStats(player)
+                    .FinalizeAndGetContent());
             }
         }
-
-        if (await scores.GetScore(score.ClientChecksum) != null)
-        {
-            Console.WriteLine($"[ScoreSubmission] {player.Username} tried to submit a duplicate score.");
-            return Ok("error: no");
-        }
-		
         score.CalculateAccuracy();
         
-        var bestWithMods = await scores.GetPlayerBestScoreWithModsOnMap(player, beatmapMD5, score.Mode, score.Mods);
-        var prevBest = await scores.GetPlayerBestScoreOnMap(player, beatmapMD5, score.Mode);
-
+        var prevBest = await scores.GetPlayerBestScoreOnMap(player.Id, beatmapMD5, score.Mode);
+        var bestWithMods = prevBest != null && score.Mods != prevBest.Mods
+            ? await scores.GetPlayerBestScoreWithModsOnMap(player.Id, beatmapMD5, score.Mode, score.Mods)
+            : null;
+        
         if (await beatmapHandler.EnsureLocalBeatmapFile(beatmap.MapId, beatmapMD5))
         {
             score.CalculatePerformance(beatmap.MapId);
 
             if (score.Passed)
             {
-                score.ComputeSubmissionStatus(prevBest, bestWithMods);
-
+                ComputeSubmissionStatus(score, prevBest, bestWithMods);
+                
                 if (beatmap.Status != BeatmapStatus.LatestPending)
-                    await scores.SetScoreLeaderboardPosition(beatmap, score, false);
+                    await scores.SetScoreLeaderboardPosition(beatmap.MD5, score, false);
             }
             else score.Status = SubmissionStatus.Failed;
+            
+            await scores.UpdateScoreStatus(prevBest);
+            await scores.UpdateScoreStatus(bestWithMods);
         }
         else
         {
@@ -137,8 +141,6 @@ public partial class OsuController
         }
 
         score.TimeElapsed = score.Passed ? scoreTime : failTime;
-		
-        //TODO pp autoban(?)
         
         if (score.Status == SubmissionStatus.Best)
         {
@@ -163,19 +165,17 @@ public partial class OsuController
 					
                     scoreNotification += $"\n[{fcPP:F2}pp if FC]";
                 }
-				
-                using var notification = new ServerPackets();
-                notification.Notification(scoreNotification);
-                player.Enqueue(notification.GetContent());
+                
+                player.Enqueue(new ServerPackets()
+                    .Notification(scoreNotification)
+                    .FinalizeAndGetContent());
 
                 await AnnounceNewFirstScore(score, player, beatmap);
             }
-            
-            await scores.SetScoresStatuses(prevBest, bestWithMods);
         }
         
         score.Player = player;
-        player.RecentScore = await scores.InsertScore(score, beatmap.MD5, player);
+        player.RecentScore = await scores.InsertScore(score, beatmap.MD5, player.Restricted);
 
         if (score.Passed)
         {
@@ -186,7 +186,7 @@ public partial class OsuController
             }
             else
             {
-                Console.WriteLine($"[ScoreSubmission] {player.Username} submitted a replay file with invalid length.");
+                logger.LogWarning($"{player.Username} submitted a replay file with invalid length.");
 
                 if (!player.Restricted)
                     await players.RestrictPlayer(player, "Submitted score with invalid replay length");
@@ -202,32 +202,31 @@ public partial class OsuController
         stats.UpdateHits(score);
         
         var previousBest = score.PreviousBest;
-        if (previousBest != null) await scores.SetScoreLeaderboardPosition(beatmap, previousBest, false);
+        if (previousBest != null) await scores.SetScoreLeaderboardPosition(beatmap.MD5, previousBest, false);
         
         await RecalculatePlayerStats(beatmap, stats, player, score, previousBest, bestWithMods);
         await players.UpdatePlayerStats(player, score.Mode);
 
         if (!player.Restricted)
         {
-            using var statsPacket = new ServerPackets();
-            statsPacket.UserStats(player);
-            _session.EnqueueToPlayers(statsPacket.GetContent());
+            session.EnqueueToPlayers(new ServerPackets()
+                .UserStats(player)
+                .FinalizeAndGetContent());
 
             beatmap.Plays += 1;
             if (score.Passed)
                 beatmap.Passes += 1;
 			
-            await beatmaps.UpdateBeatmapStats(beatmap);
+            await beatmaps.UpdateBeatmapPlayCount(beatmap);
         }
 		
         string response;
         var achievements = "";
-		
-        if (!score.Passed || (int)score.Mode > 3 || (int)score.Mode < 0)
-            response = "error: no";
-        else
+        
+        if (score.Passed && (int)score.Mode <= 3 && (int)score.Mode >= 0)
         {
-            List<string> submissionCharts = [
+            List<string> submissionCharts =
+            [
                 $"beatmapId:{beatmap.MapId}",
                 $"beatmapSetId:{beatmap.SetId}",
                 $"beatmapPlaycount:{(int)beatmap.Plays}",
@@ -241,8 +240,8 @@ public partial class OsuController
                 ChartEntry("rankedScore", previousBest?.TotalScore, score.TotalScore),
                 ChartEntry("totalScore", previousBest?.TotalScore, score.TotalScore),
                 ChartEntry("maxCombo", previousBest?.MaxCombo, score.MaxCombo),
-                ChartEntry("accuracy", 
-                    previousBest == null ? null : MathF.Round(previousBest.Acc, 2), 
+                ChartEntry("accuracy",
+                    previousBest == null ? null : MathF.Round(previousBest.Acc, 2),
                     MathF.Round(score.Acc, 2)),
                 ChartEntry("pp", previousBest?.PP, score.PP),
                 $"onlineScoreId:{score.Id}",
@@ -254,13 +253,13 @@ public partial class OsuController
                 ChartEntry("rankedScore", prevStats.RankedScore, stats.RankedScore),
                 ChartEntry("totalScore", prevStats.TotalScore, stats.TotalScore),
                 ChartEntry("maxCombo", prevStats.MaxCombo, stats.MaxCombo),
-                ChartEntry("accuracy", 
-                    MathF.Round(prevStats.Accuracy, 2), 
+                ChartEntry("accuracy",
+                    MathF.Round(prevStats.Accuracy, 2),
                     MathF.Round(stats.Accuracy, 2)),
                 ChartEntry("pp", prevStats.PP, stats.PP),
                 $"achievements-new:{achievements}",
             ];
-			
+
             if (beatmap.AwardsPP() && !player.Restricted)
             {
                 //var unlockedAchievements = new List<Achievement>();
@@ -268,11 +267,55 @@ public partial class OsuController
                 //TODO fetch player achievements
                 //TODO achievements string
             }
-			
+
             response = string.Join("|", submissionCharts);
         }
+        else response = "error: no";
 
         return Responses.BytesContentResult(response);
+    }
+    
+    private static void ComputeSubmissionStatus(
+        Score newScore,
+        Score? prevBest,
+        Score? bestWithMods)
+    {
+        newScore.Status = SubmissionStatus.Submitted;
+        
+        if (newScore.IsBetterThan(prevBest))
+        {
+            if (prevBest != null)
+            {
+                // if new score beats prevBest and has different mods,
+                // prevBest becomes bestWithMods
+                prevBest.Status = newScore.Mods != prevBest.Mods
+                    ? SubmissionStatus.BestWithMods
+                    : SubmissionStatus.Submitted;
+                
+                newScore.PreviousBest = prevBest;
+            }
+            
+            newScore.Status = SubmissionStatus.Best;
+        }
+        else
+        {
+            // if it didn't beat prevBest, check if it bestWithMods exists and set
+            // status accordingly (it is going to be properly checked later)
+            if (bestWithMods == null)
+                newScore.Status = SubmissionStatus.BestWithMods;
+            
+            newScore.PreviousBest = prevBest;
+        }
+
+        if (bestWithMods == null || !newScore.IsBetterThan(bestWithMods)) return;
+        
+        // if it exists and new score is better set bestWithMods to Submitted
+        bestWithMods.Status = SubmissionStatus.Submitted;
+        
+        // this check is for if new score is not better than prevBest but is
+        // better than bestWithMods
+        if (newScore.Status != SubmissionStatus.Best)
+            newScore.Status = SubmissionStatus.BestWithMods;
     }
 
     private async Task RecalculatePlayerStats(
@@ -280,82 +323,50 @@ public partial class OsuController
         ModeStats stats,
         Player player,
         Score score,
-        Score? previousBest,
+        Score? prevBest,
         Score? bestWithMods)
     {
-        if (score.Passed && beatmap.Status != BeatmapStatus.Qualified && beatmap.HasLeaderboard())
+        if (!score.Passed || !beatmap.AwardsPP())
+            return;
+        
+        if (score.MaxCombo > stats.MaxCombo)
+            stats.MaxCombo = score.MaxCombo;
+        
+        if (score.Status == SubmissionStatus.Best)
         {
-            if (score.MaxCombo > stats.MaxCombo)
-                stats.MaxCombo = score.MaxCombo;
-
-            if (beatmap.AwardsPP() && score.Status == SubmissionStatus.Best)
+            var oldBestScore = 0;
+            
+            if (prevBest != null)
             {
-                var additionalRankedScore = score.TotalScore;
-
-                if (previousBest != null)
-                {
-                    additionalRankedScore -= previousBest.TotalScore;
-
-                    if (previousBest.Mods != bestWithMods?.Mods)
-                    {
-                        //if our previous best score does not have the same mods as our best score with mods,
-                        //we always add 1 to our overall grade count because it's a new mod combo
-                        if (score.Grade >= Grade.A)
-                            stats.Grades[score.Grade] += 1;
-
-                        //if our score has the same mods as our previous best score, we remove 1 from our
-                        //overall grade count because it is not a new mod combo
-                        if (score.Mods == previousBest.Mods)
-                            if (previousBest.Grade >= Grade.A)
-                                stats.Grades[previousBest.Grade] -= 1;
-                    }
-                    else
-                    {
-                        //if our previous best score has the same mods as our best score with mods, we only
-                        //compare grades between those scores because previousBest and bestWithMods are the same
-                        if (score.Grade != bestWithMods.Grade)
-                        {
-                            if (score.Grade >= Grade.A)
-                                stats.Grades[score.Grade] += 1;
-
-                            if (bestWithMods.Grade >= Grade.A)
-                                stats.Grades[bestWithMods.Grade] -= 1;
-                        }
-                    }
-                }
-                else
-                {
-                    //no scores to compare with, just add 1
-                    if (score.Grade >= Grade.A)
-                        stats.Grades[score.Grade] += 1;
-                }
-
-                stats.RankedScore += additionalRankedScore;
-
-                //TODO maybe recalculate top scores only when score is at least in top100?
-                await players.RecalculatePlayerTopScores(player, score.Mode);
-                await players.UpdatePlayerRank(player, score.Mode);
+                // our current score is best, so if prevbest is submitted subtract,
+                // otherwise our score should still count because it is in the modded
+                // leaderboard; then if current score beat both prevBest and bestWithMods
+                // but prevBest is BestWithMods we subtract bestWithMods
+                if (prevBest is { Status: SubmissionStatus.Submitted, Grade: >= Grade.A })
+                    stats.Grades[prevBest.Grade] -= 1;
+                else if (bestWithMods != null)
+                    stats.Grades[bestWithMods.Grade] -= 1;
+                
+                oldBestScore = prevBest.TotalScore;
             }
-            else if (beatmap.AwardsPP() && score.Status == SubmissionStatus.BestWithMods)
-            {
-                if (bestWithMods != null)
-                {
-                    //if our score is not best or submitted, we compare with our bestWithMods
-                    if (score.Grade == bestWithMods.Grade) return;
-
-                    if (score.Grade >= Grade.A)
-                        stats.Grades[score.Grade] += 1;
-
-                    if (bestWithMods.Grade >= Grade.A)
-                        stats.Grades[bestWithMods.Grade] -= 1;
-                }
-                else
-                {
-                    //no previous best scores with mods, just add 1
-                    if (score.Grade >= Grade.A)
-                        stats.Grades[score.Grade] += 1;
-                }
-            }
+            
+            stats.RankedScore += score.TotalScore - oldBestScore;
+            
+            if (score.Grade >= Grade.A)
+                stats.Grades[score.Grade] += 1;
+            
+            //TODO maybe recalculate top scores only when score is at least in top100?
+            await players.RecalculatePlayerTopScores(player, score.Mode);
+            await players.UpdatePlayerRank(player, score.Mode);
+        }
+        else if (score.Status == SubmissionStatus.BestWithMods)
+        {
+            // if our score didnt beat prevBest but beat bestWithMods subtract
+            if (bestWithMods is { Grade: >= Grade.A })
+                stats.Grades[bestWithMods.Grade] -= 1;
+            
+            if (score.Grade >= Grade.A)
+                stats.Grades[score.Grade] += 1;
         }
     }
 
@@ -363,10 +374,10 @@ public partial class OsuController
     {
         if (score.LeaderboardPosition == 1 && !player.Restricted)
         {
-            var announceChannel = _session.GetChannel("#announce");
+            var announceChannel = session.GetChannel("#announce");
             var announcement = $@"\x01ACTION achieved #1 on {beatmap.Embed()} with {score.Acc:F2}% and {score.PP}pp.";
 			
-            var currentBest = await scores.GetBestBeatmapScore(beatmap, score.Mode);
+            var currentBest = await scores.GetBestBeatmapScore(beatmap.MD5, score.Mode);
 					
             if (score.Mods > 0)
                 announcement = announcement.Insert(0, $"+{score.Mods}");
