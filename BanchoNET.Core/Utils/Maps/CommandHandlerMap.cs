@@ -32,7 +32,7 @@ public static class CommandHandlerMap
         
         const BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
         
-        var methods = typeof(Program).Assembly
+        var methods = Assembly.GetExecutingAssembly()
             .GetTypes()
             .SelectMany(t => t.GetMethods(flags))
             .Where(m => m.GetCustomAttributes(typeof(CommandAttribute), false).Length > 0);

@@ -69,8 +69,8 @@ public sealed class BanchoSession : IBanchoSession
 
 	#region Other
 
-	private readonly ConcurrentDictionary<int, MultiplayerLobby> _multiplayerLobbies = [];
-	public IEnumerable<MultiplayerLobby> Lobbies => _multiplayerLobbies.Values;
+	private readonly ConcurrentDictionary<int, MultiplayerMatch> _multiplayerLobbies = [];
+	public IEnumerable<MultiplayerMatch> Lobbies => _multiplayerLobbies.Values;
 	
 	private readonly ConcurrentDictionary<string, string> _passwordHashes = [];
 
@@ -302,22 +302,22 @@ public sealed class BanchoSession : IBanchoSession
 		return (ushort)_multiplayerLobbies.Count;
 	}
 	
-	public MultiplayerLobby? GetLobby(ushort id)
+	public MultiplayerMatch? GetLobby(ushort id)
 	{
 		_multiplayerLobbies.TryGetValue(id, out var lobby);
 		return lobby;
 	}
 	
-	public void InsertLobby(MultiplayerLobby lobby)
+	public void InsertLobby(MultiplayerMatch match)
 	{
-		_multiplayerLobbies.TryAdd(lobby.Id, lobby);
+		_multiplayerLobbies.TryAdd(match.Id, match);
 	}
 	
-	public void RemoveLobby(MultiplayerLobby lobby)
+	public void RemoveLobby(MultiplayerMatch match)
 	{
-		_multiplayerLobbies.TryRemove(lobby.Id, out _);
+		_multiplayerLobbies.TryRemove(match.Id, out _);
 		
-		Logger.Shared.LogDebug($"Removing lobby with id: {lobby.Id}", nameof(BanchoSession));
+		Logger.Shared.LogDebug($"Removing lobby with id: {match.Id}", nameof(BanchoSession));
 	}
 
 	public void EnqueueToPlayers(byte[] data)

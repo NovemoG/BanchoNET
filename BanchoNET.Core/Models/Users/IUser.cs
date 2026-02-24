@@ -1,6 +1,6 @@
-using BanchoNET.Core.Models.Users;
+using BanchoNET.Core.Abstractions;
 
-namespace BanchoNET.Core.Abstractions;
+namespace BanchoNET.Core.Models.Users;
 
 public interface IUser : IHasOnlineId<int>,
     IEquatable<IUser>

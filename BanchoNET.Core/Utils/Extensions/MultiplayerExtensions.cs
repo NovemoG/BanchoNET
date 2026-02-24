@@ -9,46 +9,46 @@ namespace BanchoNET.Core.Utils.Extensions;
 
 public static class MultiplayerExtensions
 {
-	public static string MPLinkEmbed(this MultiplayerLobby lobby)
+	public static string MPLinkEmbed(this MultiplayerMatch match)
 	{
-		return $"[https://osu.{AppSettings.Domain}/matches/{lobby.LobbyId} Multiplayer Link]";
+		return $"[https://osu.{AppSettings.Domain}/matches/{match.LobbyId} Multiplayer Link]";
 	}
 
-	public static string Url(this MultiplayerLobby lobby)
+	public static string Url(this MultiplayerMatch match)
 	{
 		//TODO apparently spaces are replaced with _ but I forgot to check other cases (spaces and _ at the same time)
-		return $"osump://{lobby.Id}/{lobby.Password.Replace(' ', '_')}";
+		return $"osump://{match.Id}/{match.Password.Replace(' ', '_')}";
 	}
 
-	public static string Embed(this MultiplayerLobby lobby)
+	public static string Embed(this MultiplayerMatch match)
 	{
-		return $"[{lobby.Url()} {lobby.Name}]";
+		return $"[{match.Url()} {match.Name}]";
 	}
 
-	public static string MapEmbed(this MultiplayerLobby lobby)
+	public static string MapEmbed(this MultiplayerMatch match)
 	{
-		return $"https://osu.{AppSettings.Domain}/b/{lobby.BeatmapId} {lobby.BeatmapName}";
+		return $"https://osu.{AppSettings.Domain}/b/{match.BeatmapId} {match.BeatmapName}";
 	}
 
-	public static void CreateLobby(MultiplayerLobby lobby, Player player, int lobbyId)
+	public static void CreateLobby(MultiplayerMatch match, Player player, int lobbyId)
 	{
-		var matchChannel = new Channel($"#multi_{lobby.Id}")
+		var matchChannel = new Channel($"#multi_{match.Id}")
 		{
 			Description = "This multiplayer's channel.",
 			AutoJoin = false,
 			Instance = true
 		};
 
-		lobby.Id = Session.GetFreeMatchId();
-		lobby.LobbyId = lobbyId;
-		lobby.Chat = matchChannel; 
-		lobby.Refs.Add(player.Id);
+		match.Id = Session.GetFreeMatchId();
+		match.LobbyId = lobbyId;
+		match.Chat = matchChannel; 
+		match.Refs.Add(player.Id);
 		
-		Session.InsertLobby(lobby);
+		Session.InsertLobby(match);
 		Session.InsertChannel(matchChannel);
 
-		player.JoinMatch(lobby, lobby.Password);
-		Logger.Shared.LogDebug($"{player.Username} created a match with ID {lobby.LobbyId}, in-game ID: {lobby.Id}.", nameof(MultiplayerExtensions));
+		player.JoinMatch(match, match.Password);
+		Logger.Shared.LogDebug($"{player.Username} created a match with ID {match.LobbyId}, in-game ID: {match.Id}.", nameof(MultiplayerExtensions));
 	}
 	
 	public static void InviteToLobby(Player player, Player? target)
@@ -67,18 +67,18 @@ public static class MultiplayerExtensions
 		Logger.Shared.LogDebug($"{player.Username} invited {target.Username} to their match.", nameof(MultiplayerExtensions));
 	}
 	
-	public static void ResetPlayersLoadedStatuses(this MultiplayerLobby lobby)
+	public static void ResetPlayersLoadedStatuses(this MultiplayerMatch match)
 	{
-		foreach (var slot in lobby.Slots)
+		foreach (var slot in match.Slots)
 		{
 			slot.Loaded = false;
 			slot.Skipped = false;
 		}
 	}
 
-	public static void UnreadyPlayers(this MultiplayerLobby lobby, SlotStatus expectedStatus = SlotStatus.Ready)
+	public static void UnreadyPlayers(this MultiplayerMatch match, SlotStatus expectedStatus = SlotStatus.Ready)
 	{
-		foreach (var slot in lobby.Slots)
+		foreach (var slot in match.Slots)
 			if ((slot.Status & expectedStatus) != 0)
 				slot.Status = SlotStatus.NotReady;
 	}
@@ -114,48 +114,48 @@ public static class MultiplayerExtensions
 		};
 	}
 
-	public static MultiplayerSlot GetHostSlot(this MultiplayerLobby lobby)
+	public static MultiplayerSlot GetHostSlot(this MultiplayerMatch match)
 	{
-		return lobby.Slots.First(s => s.Player?.Id == lobby.HostId);
+		return match.Slots.First(s => s.Player?.Id == match.HostId);
 	}
 	
-	public static MultiplayerSlot? GetPlayerSlot(this MultiplayerLobby lobby, Player player)
+	public static MultiplayerSlot? GetPlayerSlot(this MultiplayerMatch match, Player player)
 	{
-		return lobby.Slots.FirstOrDefault(s => s.Player == player);
+		return match.Slots.FirstOrDefault(s => s.Player == player);
 	}
 	
-	public static MultiplayerSlot? GetPlayerSlot(this MultiplayerLobby lobby, string username)
+	public static MultiplayerSlot? GetPlayerSlot(this MultiplayerMatch match, string username)
 	{
-		return lobby.Slots.FirstOrDefault(s =>
+		return match.Slots.FirstOrDefault(s =>
 			s.Player != null && s.Player.Username.Equals(username, StringComparison.CurrentCultureIgnoreCase));
 	}
 	
-	public static MultiplayerSlot? GetPlayerSlot(this MultiplayerLobby lobby, int playerId)
+	public static MultiplayerSlot? GetPlayerSlot(this MultiplayerMatch match, int playerId)
 	{
-		return lobby.Slots.FirstOrDefault(s => s.Player != null && s.Player.Id == playerId);
+		return match.Slots.FirstOrDefault(s => s.Player != null && s.Player.Id == playerId);
 	}
 
-	public static int GetPlayerSlotId(this MultiplayerLobby lobby, Player player)
+	public static int GetPlayerSlotId(this MultiplayerMatch match, Player player)
 	{
-		for (int i = 0; i < lobby.Slots.Length; i++)
-			if (lobby.Slots[i].Player == player)
+		for (int i = 0; i < match.Slots.Length; i++)
+			if (match.Slots[i].Player == player)
 				return i;
 
 		return -1;
 	}
 	
-	public static void ReadyAllPlayers(this MultiplayerLobby lobby)
+	public static void ReadyAllPlayers(this MultiplayerMatch match)
 	{
-		foreach (var slot in lobby.Slots)
+		foreach (var slot in match.Slots)
 			if (slot.Status == SlotStatus.NotReady)
 				slot.Status = SlotStatus.Ready;
 	}
 
-	public static void Start(this MultiplayerLobby lobby)
+	public static void Start(this MultiplayerMatch match)
 	{
 		var noMapPlayerIds = new List<int>();
 
-		foreach (var slot in lobby.Slots)
+		foreach (var slot in match.Slots)
 		{
 			if (slot.Player == null) continue;
 
@@ -165,49 +165,49 @@ public static class MultiplayerExtensions
 				noMapPlayerIds.Add(slot.Player.Id);
 		}
 
-		lobby.InProgress = true;
+		match.InProgress = true;
 		
-		lobby.Enqueue(new ServerPackets().MatchStart(lobby).FinalizeAndGetContent(),
+		match.Enqueue(new ServerPackets().MatchStart(match).FinalizeAndGetContent(),
 			noMapPlayerIds,
 			false);
-		lobby.EnqueueState();
+		match.EnqueueState();
 	}
 	
-	public static void End(this MultiplayerLobby lobby)
+	public static void End(this MultiplayerMatch match)
 	{
-		lobby.InProgress = false;
-		lobby.ResetPlayersLoadedStatuses();
+		match.InProgress = false;
+		match.ResetPlayersLoadedStatuses();
 		
-		lobby.UnreadyPlayers(SlotStatus.Playing | SlotStatus.Ready);
+		match.UnreadyPlayers(SlotStatus.Playing | SlotStatus.Ready);
 		
-		lobby.Enqueue(new ServerPackets()
+		match.Enqueue(new ServerPackets()
 			.MatchAbort()
 			.FinalizeAndGetContent());
-		lobby.EnqueueState();
+		match.EnqueueState();
 	}
 
-	public static void EnqueueDispose(this MultiplayerLobby lobby)
+	public static void EnqueueDispose(this MultiplayerMatch match)
 	{
 		var data = new ServerPackets()
-			.DisposeMatch(lobby)
+			.DisposeMatch(match)
 			.FinalizeAndGetContent();
 		
 		foreach (var player in Session.PlayersInLobby)
 			player.Enqueue(data);
 	}
 
-	public static bool IsEmpty(this MultiplayerLobby lobby)
+	public static bool IsEmpty(this MultiplayerMatch match)
 	{
-		return lobby.Slots.All(s => s.Player == null) && lobby.TourneyClients.Count == 0;
+		return match.Slots.All(s => s.Player == null) && match.TourneyClients.Count == 0;
 	}
 
 	public static void Enqueue(
-		this MultiplayerLobby lobby,
+		this MultiplayerMatch match,
 		byte[] data,
 		List<int>? immune = default,
 		bool toLobby = true)
 	{
-		lobby.Chat.EnqueueToPlayers(data, immune);
+		match.Chat.EnqueueToPlayers(data, immune);
 		
 		if (!toLobby) return;
 		
@@ -215,16 +215,16 @@ public static class MultiplayerExtensions
 			player.Enqueue(data);
 	}
 
-	public static void EnqueueState(this MultiplayerLobby lobby, bool toLobby = true)
+	public static void EnqueueState(this MultiplayerMatch match, bool toLobby = true)
 	{
-		lobby.Chat.EnqueueToPlayers(new ServerPackets()
-			.UpdateMatch(lobby, true)
+		match.Chat.EnqueueToPlayers(new ServerPackets()
+			.UpdateMatch(match, true)
 			.FinalizeAndGetContent());
 
 		if (!toLobby) return;
 		
 		var data = new ServerPackets()
-			.UpdateMatch(lobby, false)
+			.UpdateMatch(match, false)
 			.FinalizeAndGetContent();
 		
 		foreach (var player in Session.PlayersInLobby)

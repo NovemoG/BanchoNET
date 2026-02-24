@@ -230,7 +230,7 @@ public partial class ChoController
 		var banchoBot = session.BanchoBot;
 		if (!player.Restricted)
 		{
-			loginPackets.OtherPlayers(player);
+			EnqueueOtherPlayers(loginPackets, player);
 			
 			if (!player.Privileges.HasPrivilege(PlayerPrivileges.Verified))
 			{
@@ -247,7 +247,7 @@ public partial class ChoController
 		}
 		else
 		{
-			loginPackets.OtherPlayers()
+			EnqueueOtherPlayers(loginPackets)
 				.AccountRestricted()
 				.SendMessage(new Message
 				{
@@ -329,5 +329,43 @@ public partial class ChoController
 			UninstallMD5 = clientHashes[3],
 			DiskSignatureMD5 = clientHashes[4]
 		};
+	}
+	
+	/// <summary>
+	/// Enqueues data of other players to player's buffer and if specified it also provides player's data to other players
+	/// </summary>
+	/// <param name="packets">Packets to which data will be enqueued</param>
+	/// <param name="player">Player from which data will be enqueued to others</param>
+	public ServerPackets EnqueueOtherPlayers(ServerPackets packets, Player? player = null)
+	{
+		var toOthers = player != null;
+		
+		using var playerLogin = new ServerPackets();
+		if (toOthers)
+		{
+			playerLogin.UserPresence(player!);
+			playerLogin.UserStats(player!);
+		}
+		var loginData = playerLogin.GetContent();
+		
+		foreach (var bot in session.Bots)
+		{
+			packets.BotPresence(bot);
+			packets.BotStats(bot);
+		}
+		
+		foreach (var user in session.Players)
+		{
+			if (toOthers) user.Enqueue(loginData);
+			packets.UserPresence(user);
+			packets.UserStats(user);
+		}
+
+		if (!toOthers) return packets;
+		
+		foreach (var restricted in session.Restricted)
+			restricted.Enqueue(loginData);
+
+		return packets;
 	}
 }

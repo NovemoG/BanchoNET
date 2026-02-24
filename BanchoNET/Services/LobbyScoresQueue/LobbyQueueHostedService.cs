@@ -58,7 +58,7 @@ public class LobbyQueueHostedService(
         var scores = scope.ServiceProvider.GetRequiredService<IScoresRepository>();
         var histories = scope.ServiceProvider.GetRequiredService<IHistoriesRepository>();
         
-        var lobby = request.Lobby;
+        var lobby = request.Match;
         var slots = request.Slots;
         List<ScoreDto> submittedScores;
         

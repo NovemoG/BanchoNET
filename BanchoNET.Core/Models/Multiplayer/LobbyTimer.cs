@@ -4,9 +4,9 @@ using Timer = System.Timers.Timer;
 
 namespace BanchoNET.Core.Models.Multiplayer;
 
-public class LobbyTimer
+public class LobbyTimer : IDisposable
 {
-    private readonly MultiplayerLobby _lobby;
+    private readonly MultiplayerMatch _match;
     private readonly string _alertMessage;
     
     private readonly bool _startGame;
@@ -26,14 +26,16 @@ public class LobbyTimer
     ];
     private uint _timerAlertIndex;
     private uint _secondsToFinish;
+
+    public event Action<string>? OnSendMessage;
     
     public LobbyTimer(
-        MultiplayerLobby lobby,
+        MultiplayerMatch match,
         uint secondsToFinish,
         bool startGame = false,
-        Func<Task>? onStart = null)
-    {
-        _lobby = lobby;
+        Func<Task>? onStart = null
+    ) {
+        _match = match;
         _secondsToFinish = secondsToFinish == 0 ? 1 : secondsToFinish; // no one is going to notice that :tf:
         _startGame = startGame;
         _alertMessage = startGame
@@ -57,7 +59,7 @@ public class LobbyTimer
         }
         
         if (secondsToFinish > 0)
-            _lobby.Chat.SendBotMessage(startGame
+            OnSendMessage?.Invoke(startGame
                 ? $"Match will start in {secondsToFinish} seconds."
                 : $"Countdown will end in {secondsToFinish} seconds.");
         
@@ -68,10 +70,12 @@ public class LobbyTimer
         };
         _timer.Elapsed += Tick;
     }
+    
+    //TODO helper methods for timer in multiplayerlobby instead of managing lobbytimer directly
 
     public void Stop()
     {
-        _lobby.Timer = null;
+        _match.Timer = null;
         _timer.Stop();
         _timer.Dispose();
     }
@@ -85,22 +89,32 @@ public class LobbyTimer
             var secondsLeft = _timerAlerts[_timerAlertIndex];
             if (_secondsToFinish != secondsLeft) return;
             
-            _lobby.Chat.SendBotMessage(string.Format(_alertMessage, secondsLeft));
+            OnSendMessage?.Invoke(string.Format(_alertMessage, secondsLeft));
             _timerAlertIndex = Math.Min(++_timerAlertIndex, 8);
             return;
         }
         
         if (_startGame)
         {
-            _lobby.Chat.SendBotMessage("Good luck, have fun!");
-            _lobby.Start();
+            OnSendMessage?.Invoke($"Good luck, have fun!");
+            _match.Start();
             _onStart?.Invoke();
         }
         else
         {
-            _lobby.Chat.SendBotMessage("Countdown has finished.");
+            OnSendMessage?.Invoke("Countdown has finished.");
         }
         
         Stop();
+    }
+    
+    private bool _disposed;
+
+    public void Dispose() {
+        if(_disposed)  return;
+        _timer.Stop();
+        _timer.Elapsed -= Tick;
+        _timer.Dispose();
+        _disposed = true;
     }
 }

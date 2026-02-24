@@ -51,62 +51,75 @@ public static class ChannelExtensions
 		}
 	);
 	
-	public static bool PlayerInChannel(this Channel channel, Player player)
-	{
-		return channel.Players.Any(p => p.Id == player.Id);
-	}
-	
-	public static bool CanPlayerRead(this Channel channel, Player player)
-	{
-		return player.ToBanchoPrivileges().CompareHighestPrivileges(channel.ReadPrivileges);
-	}
-
-	public static bool CanPlayerWrite(this Channel channel, Player player)
-	{
-		return player.ToBanchoPrivileges().CompareHighestPrivileges(channel.WritePrivileges);
-	}
-
-	public static void SendMessage(this Channel channel, Message message, bool toSelf = false)
-	{
-		var messageBytes = new ServerPackets()
-			.SendMessage(new Message
-			{
-				Sender = message.Sender,
-				Content = message.Content,
-				Destination = channel.Name,
-				SenderId = message.SenderId
-			})
-			.FinalizeAndGetContent();
-		
-		foreach (var player in channel.Players)
-		{
-			if (!player.BlockedByPlayer(message.SenderId) && (toSelf || player.Id != message.SenderId))
-				player.Enqueue(messageBytes);
+	extension(
+		Channel channel
+	) {
+		public bool PlayerInChannel(
+			Player player
+		) {
+			return channel.Players.Any(p => p.Id == player.Id);
 		}
-	}
 
-	public static void SendBotMessage(this Channel channel, string message, Player from)
-	{
-		if (message.Length >= 31979)
-			message = $"message would have crashed games ({message.Length} characters).";
+		public bool CanPlayerRead(
+			Player player
+		) {
+			return player.ToBanchoPrivileges().CompareHighestPrivileges(channel.ReadPrivileges);
+		}
+
+		public bool CanPlayerWrite(
+			Player player
+		) {
+			return player.ToBanchoPrivileges().CompareHighestPrivileges(channel.WritePrivileges);
+		}
+
+		public void SendMessage(
+			Message message,
+			bool toSelf = false
+		) {
+			var messageBytes = new ServerPackets()
+				.SendMessage(new Message
+				{
+					Sender = message.Sender,
+					Content = message.Content,
+					Destination = channel.Name,
+					SenderId = message.SenderId
+				})
+				.FinalizeAndGetContent();
 		
-		channel.EnqueueToPlayers(new ServerPackets()
-			.SendMessage(new Message
+			foreach (var player in channel.Players)
 			{
-				Sender = from.Username,
-				Content = message,
-				Destination = channel.Name,
-				SenderId = from.Id
-			})
-			.FinalizeAndGetContent());
-	}
+				if (!player.BlockedByPlayer(message.SenderId) && (toSelf || player.Id != message.SenderId))
+					player.Enqueue(messageBytes);
+			}
+		}
 
-	public static void EnqueueToPlayers(this Channel channel, byte[] data, List<int>? immune = null)
-	{
-		immune ??= [];
+		public void SendBotMessage(
+			string message,
+			Player from
+		) {
+			if (message.Length >= 31979)
+				message = $"message would have crashed games ({message.Length} characters).";
 		
-		foreach (var player in channel.Players)
-			if (!immune.Remove(player.Id))
-				player.Enqueue(data);
+			channel.EnqueueToPlayers(new ServerPackets()
+				.SendMessage(new Message
+				{
+					Sender = from.Username,
+					Content = message,
+					Destination = channel.Name,
+					SenderId = from.Id
+				})
+				.FinalizeAndGetContent());
+		}
+
+		public void EnqueueToPlayers(
+			byte[] data,
+			List<int>? immune = null
+		) {
+			immune ??= [];
+		
+			foreach (var player in channel.Players)
+				if (!immune.Remove(player.Id))
+					player.Enqueue(data);
+		}
 	}
 }

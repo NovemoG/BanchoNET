@@ -25,7 +25,7 @@ public sealed class Player
 	public string PasswordHash { get; set; }
 	public PlayerPrivileges Privileges { get; set; }
 	public Player? Spectating { get; set; }
-	public MultiplayerLobby? Lobby { get; set; }
+	public MultiplayerMatch? Lobby { get; set; }
 	public bool InLobby { get; set; }
 	public Geoloc Geoloc { get; init; }
 	public sbyte TimeZone { get; set; }

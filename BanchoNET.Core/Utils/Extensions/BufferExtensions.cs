@@ -52,9 +52,9 @@ public static class BufferExtensions
 		return returnList;
 	}
 	
-	public static MultiplayerLobby ReadOsuMatch(this BinaryReader br)
+	public static MultiplayerMatch ReadOsuMatch(this BinaryReader br)
 	{
-		var match = new MultiplayerLobby
+		var match = new MultiplayerMatch
 		{
 			Id = br.ReadUInt16(),
 			InProgress = br.ReadBoolean(),
@@ -276,7 +276,7 @@ public static class BufferExtensions
 
 	public static void WriteOsuMatch(this BinaryWriter bw, LobbyData lobbyData)
 	{
-		var match = lobbyData.Lobby;
+		var match = lobbyData.Match;
 		
 		bw.Write(match.Id);
 		bw.Write(match.InProgress);

@@ -14,7 +14,7 @@ public class StatsDto
 	
 	public long TotalScore { get; set; }
 	public long RankedScore { get; set; }
-	public ushort PP { get; set; }
+	public int PP { get; set; }
 	
 	[Column(TypeName = "FLOAT(6,3)")]
 	public float Accuracy { get; set; }

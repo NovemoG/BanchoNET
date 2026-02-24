@@ -16,7 +16,7 @@ public interface IBanchoSession
     IEnumerable<Channel> Channels { get; }
     Channel LobbyChannel { get; }
     
-    IEnumerable<MultiplayerLobby> Lobbies { get; }
+    IEnumerable<MultiplayerMatch> Lobbies { get; }
 
     void ClearPasswordsCache();
     void InsertPasswordHash(string passwordMD5, string passwordHash);
@@ -46,9 +46,9 @@ public interface IBanchoSession
     void CacheNeedsUpdateBeatmap(string beatmapMD5);
     
     ushort GetFreeMatchId();
-    MultiplayerLobby? GetLobby(ushort id);
-    void InsertLobby(MultiplayerLobby lobby);
-    void RemoveLobby(MultiplayerLobby lobby);
+    MultiplayerMatch? GetLobby(ushort id);
+    void InsertLobby(MultiplayerMatch match);
+    void RemoveLobby(MultiplayerMatch match);
 
     void EnqueueToPlayers(byte[] data);
 }

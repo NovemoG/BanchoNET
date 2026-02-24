@@ -41,6 +41,7 @@ public static class PlayerExtensions
 	/// <summary>
 	/// Sends a message directly to this player. If channel is provided, it will be sent to that channel instead.
 	/// </summary>
+	/// <param name="player"></param>
 	/// <param name="message">Message content</param>
 	/// <param name="source">Player that sent message</param>
 	/// <param name="channel">(optional) channel that this message should be sent to instead of player</param>
@@ -74,7 +75,7 @@ public static class PlayerExtensions
 			}).FinalizeAndGetContent());
 	}
 
-	public static bool JoinMatch(this Player player, MultiplayerLobby lobby, string password)
+	public static bool JoinMatch(this Player player, MultiplayerMatch match, string password)
 	{
 		if (player.InMatch)
 		{
@@ -84,53 +85,53 @@ public static class PlayerExtensions
 			return false;
 		}
 
-		if (lobby.TourneyClients.Contains(player.Id))
+		if (match.TourneyClients.Contains(player.Id))
 		{
 			player.Enqueue(MatchJoinFailData());
 			return false;
 		}
 
 		MultiplayerSlot? slot;
-		if (lobby.HostId != player.Id)
+		if (match.HostId != player.Id)
 		{
-			if (password != lobby.Password && !player.Privileges.HasFlag(PlayerPrivileges.Staff))
+			if (password != match.Password && !player.Privileges.HasFlag(PlayerPrivileges.Staff))
 			{
 				player.Enqueue(MatchJoinFailData());
 
-				Logger.Shared.LogDebug($"{player.Username} tried to join {lobby.LobbyId} with incorrect password.", nameof(PlayerExtensions));
+				Logger.Shared.LogDebug($"{player.Username} tried to join {match.LobbyId} with incorrect password.", nameof(PlayerExtensions));
 				return false;
 			}
 
-			slot = lobby.Slots.FirstOrDefault(s => s.Status == SlotStatus.Open);
+			slot = match.Slots.FirstOrDefault(s => s.Status == SlotStatus.Open);
 			if (slot == null)
 			{
 				player.Enqueue(MatchJoinFailData());
 				return false;
 			}
 		}
-		else slot = lobby.Slots[0];
+		else slot = match.Slots[0];
 
-		if (!player.JoinChannel(lobby.Chat))
+		if (!player.JoinChannel(match.Chat))
 		{
-			Logger.Shared.LogDebug($"{player.Username} failed to join {lobby.Chat.IdName}", nameof(PlayerExtensions));
+			Logger.Shared.LogDebug($"{player.Username} failed to join {match.Chat.IdName}", nameof(PlayerExtensions));
 			return false;
 		}
 		
 		player.LeaveChannel(Session.LobbyChannel);
 
-		if (lobby.Type is LobbyType.TeamVS or LobbyType.TagTeamVS)
+		if (match.Type is LobbyType.TeamVS or LobbyType.TagTeamVS)
 			slot.Team = LobbyTeams.Red;
 
 		slot.Status = SlotStatus.NotReady;
 		slot.Player = player;
-		player.Lobby = lobby;
+		player.Lobby = match;
 		
 		player.Enqueue(new ServerPackets()
-			.MatchJoinSuccess(lobby)
+			.MatchJoinSuccess(match)
 			.FinalizeAndGetContent());
-		lobby.EnqueueState();
+		match.EnqueueState();
 		
-		player.SendBotMessage($"Match created by {player.Username} {lobby.MPLinkEmbed()}", "#multiplayer");
+		player.SendBotMessage($"Match created by {player.Username} {match.MPLinkEmbed()}", "#multiplayer");
 		return true;
 	}
 

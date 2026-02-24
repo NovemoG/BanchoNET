@@ -1,4 +1,5 @@
-﻿using BanchoNET.Core.Models;
+﻿using AkatsukiPp;
+using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Scores;
 using Novelog;

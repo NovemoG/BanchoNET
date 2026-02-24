@@ -1,6 +1,10 @@
 using System.Diagnostics;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using BanchoNET.Commands;
+using BanchoNET.Core.Abstractions;
+using BanchoNET.Core.Abstractions.Bancho.Coordinators;
+using BanchoNET.Core.Abstractions.Bancho.Services;
 using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Repositories.Histories;
 using BanchoNET.Core.Abstractions.Services;
@@ -11,6 +15,8 @@ using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
 using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
+using BanchoNET.Infrastructure.Bancho.Coordinators;
+using BanchoNET.Infrastructure.Bancho.Services;
 using BanchoNET.Middlewares;
 using BanchoNET.Services;
 using BanchoNET.Services.ClientPacketsHandler;
@@ -177,50 +183,56 @@ public class Program
 		
 		#endregion
 		
-		builder.Services.AddHangfire((sp, config) =>
-		{
-			config.UseStorage(new MySqlStorage(hangfireConnectionString, new MySqlStorageOptions
-			{
+		builder.Services.AddHangfire((sp, config) => {
+			config.UseStorage(new MySqlStorage(hangfireConnectionString, new MySqlStorageOptions {
 				TransactionIsolationLevel = (IsolationLevel?)ReadCommitted,
 				QueuePollInterval = TimeSpan.FromSeconds(15),
 				JobExpirationCheckInterval = TimeSpan.FromHours(1),
 				CountersAggregateInterval = TimeSpan.FromMinutes(5),
 				PrepareSchemaIfNecessary = true,
 			})).UseActivator(new AspNetCoreJobActivator(sp.GetRequiredService<IServiceScopeFactory>()));
-		});
-		builder.Services.AddHangfireServer();
-		
-		builder.Services.AddEndpointsApiExplorer();
-		builder.Services.AddAuthorization();
-		builder.Services.AddControllers();
-		
-		builder.Services.AddHttpClient();
+		}).AddHangfireServer();
+
+		builder.Services.AddEndpointsApiExplorer()
+			.AddAuthorization()
+			.AddControllers();
 
 		var mongoSettings = MongoClientSettings.FromConnectionString(mongoConnectionString);
 		mongoSettings.LinqProvider = MongoDB.Driver.Linq.LinqProvider.V3;
+
+		builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConnectionString))
+			.AddSingleton(new MongoClient(mongoSettings))
+			.AddDbContext<BanchoDbContext>(options => {
+				options.UseMySQL(mySqlConnectionString);
+			})
+			.AddSingleton<IHistoriesRepository, HistoriesRepository>();
 		
-		builder.Services.AddSingleton<ILobbyScoresQueue, LobbyScoresQueue>();
-		builder.Services.AddHostedService<LobbyQueueHostedService>();
-		
-		builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConnectionString));
-		builder.Services.AddSingleton(new MongoClient(mongoSettings));
-		builder.Services.AddDbContext<BanchoDbContext>(options =>
-		{
-			options.UseMySQL(mySqlConnectionString);
-		});
-		builder.Services.AddSingleton<IBanchoSession, BanchoSession>();
-		builder.Services.AddSingleton<IHistoriesRepository, HistoriesRepository>();
+		//TODO
 		builder.Services.AddScoped<IBeatmapsRepository, BeatmapsRepository>();
 		builder.Services.AddScoped<IClientsRepository, ClientsRepository>();
 		builder.Services.AddScoped<IMessagesRepository, MessagesRepository>();
 		builder.Services.AddScoped<IPlayersRepository, PlayersRepository>();
 		builder.Services.AddScoped<IScoresRepository, ScoresRepository>();
-		builder.Services.AddScoped<IGeolocService, GeolocService>();
-		builder.Services.AddScoped<IBeatmapHandler, BeatmapHandler>();
-		builder.Services.AddScoped<ICommandProcessor, CommandProcessor>();
-		builder.Services.AddScoped<IClientPacketsHandler, ClientPacketsHandler>();
-		builder.Services.AddTransient<IOsuVersionService, OsuVersionService>();
-		builder.Services.AddTransient<IBackgroundTasks, BackgroundTasks>();
+			
+		builder.Services.AddSingleton<ILobbyScoresQueue, LobbyScoresQueue>()
+			.AddHostedService<LobbyQueueHostedService>();
+		
+		builder.Services.AddScoped<IGeolocService, GeolocService>()
+			.AddScoped<IClientPacketsHandler, ClientPacketsHandler>()
+			.AddScoped<ICommandProcessor, CommandProcessor>()
+			.AddScoped<IBeatmapHandler, BeatmapHandler>();
+		
+		builder.Services.AddTransient<IOsuVersionService, OsuVersionService>()
+			.AddTransient<IBackgroundTasks, BackgroundTasks>();
+		
+		Assembly[] assemblies = [
+			typeof(ICoordinator).Assembly,
+			typeof(PlayerCoordinator).Assembly
+		];
+
+		builder.Services.AddHttpClient()
+			.AddSessionServices(assemblies)
+			.AddMediatR(config => config.RegisterServicesFromAssemblies(assemblies));
 		
 		var app = builder.Build();
 

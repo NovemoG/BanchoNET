@@ -42,7 +42,7 @@ public partial class ClientPacketsHandler
 				.Select(s => s.Player!.Id)
 				.ToList(),
 			MapFinishDate = lobby.MapFinishDate,
-			Lobby = lobby
+			Match = lobby
 		});
 		
 		lobby.UnreadyPlayers(SlotStatus.Complete);

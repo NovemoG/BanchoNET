@@ -1,12 +1,15 @@
 ﻿using System.Collections.Concurrent;
+using BanchoNET.Core.Abstractions;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
+using BanchoNET.Core.Utils.Extensions;
 using Novelog;
 
 namespace BanchoNET.Core.Models.Channels;
 
-public class Channel
+public class Channel : IChannel,
+	IEquatable<Channel>
 {
 	public Channel(string name)
 	{
@@ -50,13 +53,28 @@ public class Channel
 	public ClientPrivileges ReadPrivileges { get; set; } = ClientPrivileges.Player;
 	public ClientPrivileges WritePrivileges { get; set; } = ClientPrivileges.Player;
 
+	public string OnlineId => IdName;
 	public string IdName { get; }
 	public string Name { get; }
-	public string Description { get; set; } = null!;
+	public string Description { get; set; } = string.Empty;
 	
 	private readonly ConcurrentDictionary<Player, bool> _players = [];
 	public IEnumerable<Player> Players => _players.Keys;
 	public int PlayersCount => _players.Count;
 	public void AddPlayer(Player player) => _players.TryAdd(player, false);
 	public void RemovePlayer(Player player) => _players.TryRemove(player, out _);
+
+	#region IEquatable
+
+	public bool Equals(Channel? other) => this.MatchesOnlineID(other);
+
+	public override bool Equals(
+		object? obj
+	) {
+		return ReferenceEquals(this, obj) || obj is Channel other && Equals(other);
+	}
+
+	public override int GetHashCode() => IdName.GetHashCode();
+
+	#endregion
 }

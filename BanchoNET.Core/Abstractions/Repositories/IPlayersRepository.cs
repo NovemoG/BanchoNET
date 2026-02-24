@@ -39,7 +39,7 @@ public interface IPlayersRepository
     Task RecalculatePlayerTopScores(Player player, GameMode mode);
     Task UpdatePlayerRank(Player player, GameMode mode);
     Task<int> GetPlayerGlobalRank(GameMode mode, int playerId);
-    Task InsertPlayerGlobalRank(byte mode, string country, int playerId, ushort pp);
+    Task InsertPlayerGlobalRank(byte mode, string country, int playerId, int pp);
     Task RemovePlayerGlobalRank(byte mode, string country, int playerId);
 
     Task CreatePlayer(string username, string email, string passwordHash, string country);

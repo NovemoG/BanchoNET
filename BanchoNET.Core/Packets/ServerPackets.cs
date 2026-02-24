@@ -206,39 +206,39 @@ public sealed partial class ServerPackets : IDisposable
 	/// <summary>
 	/// Packet id 26
 	/// </summary>
-	public ServerPackets UpdateMatch(MultiplayerLobby lobby, bool sendPassword)
+	public ServerPackets UpdateMatch(MultiplayerMatch match, bool sendPassword)
 	{
 		WritePacketData(ServerPacketId.UpdateMatch, 
-			new PacketData(new LobbyData(lobby, sendPassword), DataType.Match));
+			new PacketData(new LobbyData(match, sendPassword), DataType.Match));
 		return this;
 	}
 	
 	/// <summary>
 	/// Packet id 27
 	/// </summary>
-	public ServerPackets NewMatch(MultiplayerLobby lobby)
+	public ServerPackets NewMatch(MultiplayerMatch match)
 	{
 		WritePacketData(ServerPacketId.NewMatch,
-			new PacketData(new LobbyData(lobby, true), DataType.Match));
+			new PacketData(new LobbyData(match, true), DataType.Match));
 		return this;
 	}
 
 	/// <summary>
 	/// Packet id 28
 	/// </summary>
-	public ServerPackets DisposeMatch(MultiplayerLobby lobby)
+	public ServerPackets DisposeMatch(MultiplayerMatch match)
 	{
-		WritePacketData(ServerPacketId.DisposeMatch, new PacketData((int)lobby.Id, DataType.Int));
+		WritePacketData(ServerPacketId.DisposeMatch, new PacketData((int)match.Id, DataType.Int));
 		return this;
 	}
 
 	/// <summary>
 	/// Packet id 36
 	/// </summary>
-	public ServerPackets MatchJoinSuccess(MultiplayerLobby lobby)
+	public ServerPackets MatchJoinSuccess(MultiplayerMatch match)
 	{
 		WritePacketData(ServerPacketId.MatchJoinSuccess,
-			new PacketData(new LobbyData(lobby, true), DataType.Match));
+			new PacketData(new LobbyData(match, true), DataType.Match));
 		return this;
 	}
 
@@ -254,10 +254,10 @@ public sealed partial class ServerPackets : IDisposable
 	/// <summary>
 	/// Packet id 46
 	/// </summary>
-	public ServerPackets MatchStart(MultiplayerLobby lobby)
+	public ServerPackets MatchStart(MultiplayerMatch match)
 	{
 		WritePacketData(ServerPacketId.MatchStart,
-			new PacketData(new LobbyData(lobby, true), DataType.Match));
+			new PacketData(new LobbyData(match, true), DataType.Match));
 		return this;
 	}
 
@@ -613,44 +613,6 @@ public sealed partial class ServerPackets : IDisposable
 	public ServerPackets RTX(string message)
 	{
 		WritePacketData(ServerPacketId.Rtx, new PacketData(message, DataType.String));
-		return this;
-	}
-
-	/// <summary>
-	/// Enqueues data of other players to player's buffer and if specified it also provides player's data to other players
-	/// </summary>
-	/// <param name="player">Player from which data will be enqueued to others</param>
-	public ServerPackets OtherPlayers(Player? player = null)
-	{
-		var session = BanchoSession.Instance;
-		var toOthers = player != null;
-		
-		using var playerLogin = new ServerPackets();
-		if (toOthers)
-		{
-			playerLogin.UserPresence(player!);
-			playerLogin.UserStats(player!);
-		}
-		var loginData = playerLogin.GetContent();
-		
-		foreach (var bot in session.Bots)
-		{
-			BotPresence(bot);
-			BotStats(bot);
-		}
-		
-		foreach (var user in session.Players)
-		{
-			if (toOthers) user.Enqueue(loginData);
-			UserPresence(user);
-			UserStats(user);
-		}
-
-		if (!toOthers) return this;
-		
-		foreach (var restricted in session.Restricted)
-			restricted.Enqueue(loginData);
-
 		return this;
 	}
 

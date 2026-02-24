@@ -8,12 +8,13 @@ using BanchoNET.Core.Utils.Extensions;
 using Action = BanchoNET.Core.Models.Mongo.Action;
 using static BanchoNET.Core.Utils.Maps.CommandHandlerMap;
 using static BanchoNET.Core.Utils.Extensions.ModsExtensions;
+using MultiplayerMatch = BanchoNET.Core.Models.Multiplayer.MultiplayerMatch;
 
 namespace BanchoNET.Commands;
 
 public partial class CommandProcessor
 {
-    private MultiplayerLobby _lobby = null!;
+    private MultiplayerMatch _match = null!;
     
     [Command("mp",
         PlayerPrivileges.Verified,
@@ -62,33 +63,29 @@ public partial class CommandProcessor
         if (_playerCtx.Lobby != null && _playerCtx.Lobby.Chat != _channelCtx)
             return (true, "");
 
-        _lobby = _playerCtx.Lobby!;
+        _match = _playerCtx.Lobby!;
 
         return args[0] switch
         {
             "help" => (true, await Help(["mp"])),
             "create" => (true, await CreateMultiplayerLobby(args[1..])),
-            "invite" => (false, InviteToLobby(args[1..])),
-            "i" => (false, InviteToLobby(args[1..])),
+            "invite" or "i" => (false, InviteToLobby(args[1..])),
             "name" => (false, ChangeLobbyName(args[1..])),
-            "password" => (false, ChangeLobbyPassword(args[1..])),
-            "p" => (false, ChangeLobbyPassword(args[1..])),
+            "password" or "p" => (false, ChangeLobbyPassword(args[1..])),
             "lock" => (false, LockLobby()),
             "unlock" => (false, UnlockLobby()),
             "size" => (false, SetLobbySize(args[1..])),
             "set" => (false, SetLobbyProperties(args[1..])),
             "move" => (false, MovePlayer(args[1..])),
             "host" => (false, await TransferHost(args[1..])),
-            "clearhost" => (false, await ClearHost()),
-            "ch" => (false, await ClearHost()),
+            "clearhost" or "ch" => (false, await ClearHost()),
             "abort" => (false, await AbortMatch()),
             "team" => (false, MovePlayerToTeam(args[1..])),
             "map" => (false, await ChangeBeatmap(args[1..])),
             "mods" => (false, ChangeMods(args[1..])),
             "start" => (false, StartMatch(args[1..])),
             "timer" => (false, StartTimer(args[1..])),
-            "aborttimer" => (false, AbortTimer()),
-            "at" => (false, AbortTimer()),
+            "aborttimer" or "at" => (false, AbortTimer()),
             "kick" => (false, await KickPlayer(args[1..])),
             "ban" => (false, await BanPlayer(args[1..])),
             "addref" => (false, await AddReferee(args[1..])),
@@ -107,7 +104,7 @@ public partial class CommandProcessor
         var lobbyDetails = string.Join(' ', args).Split('/', 2);
         var beatmap = await beatmaps.GetBeatmap(_playerCtx.LastValidBeatmapId);
         
-        var lobby = new MultiplayerLobby
+        var lobby = new MultiplayerMatch
         {
             Name = lobbyDetails.Length > 0 ? lobbyDetails[0] : $"{_playerCtx.Username}'s match",
             Password = lobbyDetails.Length == 2 ? lobbyDetails[1] : "",
@@ -125,7 +122,7 @@ public partial class CommandProcessor
         
         MultiplayerExtensions.CreateLobby(lobby, _playerCtx, await histories.GetMatchId());
         
-        await histories.InsertMatchHistory(new MultiplayerMatch
+        await histories.InsertMatchHistory(new Core.Models.Mongo.MultiplayerMatch
         {
             MatchId = lobby.LobbyId,
             Name = lobby.Name,
@@ -164,61 +161,61 @@ public partial class CommandProcessor
     
     private string ChangeLobbyName(string[] args)
     {
-        if (!_lobby.Refs.Contains(_playerCtx.Id))
+        if (!_match.Refs.Contains(_playerCtx.Id))
             return "";
         
         if (args.Length == 0)
             return $"No name provided. Use '{Prefix}mp name <name>'.";
         
-        _lobby.Name = string.Join(' ', args);
-        _lobby.EnqueueState();
+        _match.Name = string.Join(' ', args);
+        _match.EnqueueState();
         
-        Console.WriteLine($"[ChangeLobbyName] {_playerCtx.Username} changed the match name to {_lobby.Name} in lobby with id {_lobby.Id}.");
-        return $"Match name changed to {_lobby.Name}";
+        Console.WriteLine($"[ChangeLobbyName] {_playerCtx.Username} changed the match name to {_match.Name} in lobby with id {_match.Id}.");
+        return $"Match name changed to {_match.Name}";
     }
     
     private string ChangeLobbyPassword(string[] args)
     {
-        if (!_lobby.Refs.Contains(_playerCtx.Id))
+        if (!_match.Refs.Contains(_playerCtx.Id))
             return "";
         
         if (args.Length == 0)
         {
-            _lobby.Password = "";
-            _lobby.EnqueueState();
+            _match.Password = "";
+            _match.EnqueueState();
             return "Password removed.";
         }
         
-        _lobby.Password = string.Join(' ', args);
-        _lobby.EnqueueState();
+        _match.Password = string.Join(' ', args);
+        _match.EnqueueState();
         
-        Console.WriteLine($"[ChangeLobbyPassword] {_playerCtx.Username} changed match password to {_lobby.Password} in lobby with id {_lobby.Id}.");
-        return $"Match password changed to {_lobby.Password}.";
+        Console.WriteLine($"[ChangeLobbyPassword] {_playerCtx.Username} changed match password to {_match.Password} in lobby with id {_match.Id}.");
+        return $"Match password changed to {_match.Password}.";
     }
     
     private string LockLobby()
     {
-        if (!_lobby.Refs.Contains(_playerCtx.Id))
+        if (!_match.Refs.Contains(_playerCtx.Id))
             return "";
         
-        _lobby.Locked = true;
+        _match.Locked = true;
         
         return "Locked the lobby.";
     }
     
     private string UnlockLobby()
     {
-        if (!_lobby.Refs.Contains(_playerCtx.Id))
+        if (!_match.Refs.Contains(_playerCtx.Id))
             return "";
         
-        _lobby.Locked = false;
+        _match.Locked = false;
         
         return "Unlocked the lobby.";
     }
     
     private string SetLobbySize(string[] args)
     {
-        if (!_lobby.Refs.Contains(_playerCtx.Id))
+        if (!_match.Refs.Contains(_playerCtx.Id))
             return "";
         
         if (args.Length == 0)
@@ -232,14 +229,14 @@ public partial class CommandProcessor
         
         for (var i = 0; i < size; i++)
         {
-            var slot = _lobby.Slots[i];
+            var slot = _match.Slots[i];
 
             slot.Status = slot.Status != SlotStatus.Locked ? slot.Status : SlotStatus.Open;
         }
 
-        for (var i = size; i < _lobby.Slots.Length; i++)
+        for (var i = size; i < _match.Slots.Length; i++)
         {
-            var slot = _lobby.Slots[i];
+            var slot = _match.Slots[i];
             
             if ((slot.Status & SlotStatus.PlayerInSlot) != 0)
                 slot.Player!.LeaveMatchToLobby();
@@ -248,14 +245,14 @@ public partial class CommandProcessor
             slot.Status = SlotStatus.Locked;
         }
         
-        _lobby.EnqueueState();
+        _match.EnqueueState();
 
         return $"Changed size to: {size}";
     }
     
     private string SetLobbyProperties(string[] args)
     {
-        if (!_lobby.Refs.Contains(_playerCtx.Id))
+        if (!_match.Refs.Contains(_playerCtx.Id))
             return "";
         
         if (args.Length == 0)
@@ -264,10 +261,10 @@ public partial class CommandProcessor
         if (!int.TryParse(args[0], out var teamMode)) 
             return "Invalid team mode provided. Available modes: 0, 1, 2, 3.";
 
-        var scoreMode = (int)_lobby.WinCondition;
+        var scoreMode = (int)_match.WinCondition;
         if (args.Length > 1)
             if (!int.TryParse(args[1], out scoreMode)) 
-                scoreMode = (int)_lobby.WinCondition;
+                scoreMode = (int)_match.WinCondition;
         
         if (teamMode is < 0 or > 3)
             return "Invalid team mode provided. Available modes: 0, 1, 2, 3.";
@@ -275,25 +272,25 @@ public partial class CommandProcessor
         if (scoreMode is < 0 or > 3)
             return "Invalid score mode provided. Available modes: 0, 1, 2, 3.";
 
-        _lobby.Type = (LobbyType)teamMode;
-        _lobby.WinCondition = (WinCondition)scoreMode;
+        _match.Type = (LobbyType)teamMode;
+        _match.WinCondition = (WinCondition)scoreMode;
         
         if (args.Length > 2)
             SetLobbySize(args[2..]);
         
-        _lobby.EnqueueState();
-        return $"Changed lobby properties to: Team mode: {_lobby.Type}, Score mode: {_lobby.WinCondition}, Size: {_lobby.Slots.Count(s => s.Status != SlotStatus.Locked)}.";
+        _match.EnqueueState();
+        return $"Changed lobby properties to: Team mode: {_match.Type}, Score mode: {_match.WinCondition}, Size: {_match.Slots.Count(s => s.Status != SlotStatus.Locked)}.";
     }
     
     private string MovePlayer(string[] args)
     {
-        if (!_lobby.Refs.Contains(_playerCtx.Id))
+        if (!_match.Refs.Contains(_playerCtx.Id))
             return "";
         
         if (args.Length < 2)
             return $"Not enough parameters provided. Use '{Prefix}mp move <username> <slot>'.";
         
-        var oldSlot = _lobby.GetPlayerSlot(username: args[0]);
+        var oldSlot = _match.GetPlayerSlot(username: args[0]);
         if (oldSlot == null)
             return $"{args[0]} is not in the lobby.";
 
@@ -301,10 +298,10 @@ public partial class CommandProcessor
             return "Invalid slot number provided.";
 
         newSlotNumber--;
-        if (newSlotNumber < 0 || newSlotNumber >= _lobby.Slots.Length)
+        if (newSlotNumber < 0 || newSlotNumber >= _match.Slots.Length)
             return "Invalid slot number provided.";
         
-        var newSlot = _lobby.Slots[newSlotNumber];
+        var newSlot = _match.Slots[newSlotNumber];
 
         if (newSlot.Player != null)
         {
@@ -325,30 +322,30 @@ public partial class CommandProcessor
             oldSlot.Status = SlotStatus.Open;
         }
         
-        _lobby.EnqueueState();
+        _match.EnqueueState();
         
         return $"Moved {args[0]} to slot {args[1]}.";
     }
     
     private async Task<string> TransferHost(string[] args)
     {
-        if (!_lobby.Refs.Contains(_playerCtx.Id))
+        if (!_match.Refs.Contains(_playerCtx.Id))
             return "";   
         
         if (args.Length == 0)
             return $"No username provided. Use '{Prefix}mp host <username>'.";
         
-        var slot = _lobby.GetPlayerSlot(args[0]);
+        var slot = _match.GetPlayerSlot(args[0]);
         if (slot == null)
             return $"{args[0]} is not in the lobby.";
         
         var target = slot.Player!;
-        _lobby.HostId = target.Id;
+        _match.HostId = target.Id;
         
-        _lobby.EnqueueState();
+        _match.EnqueueState();
         
         await histories.AddMatchAction(
-            _lobby.LobbyId,
+            _match.LobbyId,
             new ActionEntry
             {
                 Action = Action.HostChanged,
@@ -361,14 +358,14 @@ public partial class CommandProcessor
     
     private async Task<string> ClearHost()
     {
-        if (!_lobby.Refs.Contains(_playerCtx.Id))
+        if (!_match.Refs.Contains(_playerCtx.Id))
             return "";
         
-        _lobby.HostId = -1;
-        _lobby.EnqueueState();
+        _match.HostId = -1;
+        _match.EnqueueState();
         
         await histories.AddMatchAction(
-            _lobby.LobbyId,
+            _match.LobbyId,
             new ActionEntry
             {
                 Action = Action.HostChanged,
@@ -381,31 +378,31 @@ public partial class CommandProcessor
     
     private async Task<string> AbortMatch()
     {
-        if (!_lobby.Refs.Contains(_playerCtx.Id))
+        if (!_match.Refs.Contains(_playerCtx.Id))
             return "";
 
-        if (!_lobby.InProgress)
+        if (!_match.InProgress)
             return "Match is not in progress.";
         
-        _lobby.End();
+        _match.End();
 
-        await histories.MapAborted(_lobby.LobbyId);
+        await histories.MapAborted(_match.LobbyId);
         
         return "Aborted the match.";
     }
     
     private string MovePlayerToTeam(string[] args)
     {
-        if (!_lobby.Refs.Contains(_playerCtx.Id))
+        if (!_match.Refs.Contains(_playerCtx.Id))
             return "";
 
-        if (_lobby.Type is not (LobbyType.TeamVS or LobbyType.TagTeamVS))
+        if (_match.Type is not (LobbyType.TeamVS or LobbyType.TagTeamVS))
             return "This command is only available in team-based lobbies.";
         
         if (args.Length < 2)
             return $"Not enough parameters provided. Use '{Prefix}mp team <username> <team>'.";
         
-        var slot = _lobby.GetPlayerSlot(username: args[0]);
+        var slot = _match.GetPlayerSlot(username: args[0]);
         if (slot == null)
             return $"{args[0]} is not in the lobby.";
 
@@ -422,14 +419,14 @@ public partial class CommandProcessor
         };
         
         slot.Status = SlotStatus.NotReady;
-        _lobby.EnqueueState(false);
+        _match.EnqueueState(false);
         
         return $"Moved {slot.Player!.Username} to {slot.Team} team.";
     }
     
     private async Task<string> ChangeBeatmap(string[] args)
     {
-        if (!_lobby.Refs.Contains(_playerCtx.Id))
+        if (!_match.Refs.Contains(_playerCtx.Id))
             return "";
         
         if (args.Length == 0)
@@ -446,19 +443,19 @@ public partial class CommandProcessor
         if (beatmap == null)
             return "Beatmap not found.";
         
-        _lobby.BeatmapId = beatmapId;
-        _lobby.BeatmapMD5 = beatmap.MD5;
-        _lobby.BeatmapName = beatmap.FullName();
-        _lobby.Mode = gameMode;
+        _match.BeatmapId = beatmapId;
+        _match.BeatmapMD5 = beatmap.MD5;
+        _match.BeatmapName = beatmap.FullName();
+        _match.Mode = gameMode;
         
-        _lobby.EnqueueState();
+        _match.EnqueueState();
         
         return "";
     }
     
     private string ChangeMods(string[] args)
     {
-        if (!_lobby.Refs.Contains(_playerCtx.Id))
+        if (!_match.Refs.Contains(_playerCtx.Id))
             return "";
         
         var result = Mods.None;
@@ -470,11 +467,11 @@ public partial class CommandProcessor
             {
                 if (modMap == Mods.None)
                 {
-                    _lobby.Mods = Mods.None;
+                    _match.Mods = Mods.None;
                     break;
                 }
                 
-                if (_lobby.Mode != GameMode.VanillaMania)
+                if (_match.Mode != GameMode.VanillaMania)
                     if (modMap > Mods.Perfect)
                         continue;
 
@@ -484,21 +481,21 @@ public partial class CommandProcessor
             {
                 if (modParse == Mods.None)
                 {
-                    _lobby.Mods = Mods.None;
+                    _match.Mods = Mods.None;
                     break;
                 }
 
-                if (_lobby.Mode != GameMode.VanillaMania)
+                if (_match.Mode != GameMode.VanillaMania)
                     if (modParse > Mods.Perfect)
                         continue;
 
                 result |= modParse;
             }
-            else _lobby.Chat.SendBotMessage($"Invalid mod: {modName}", session.BanchoBot);
+            else _match.Chat.SendBotMessage($"Invalid mod: {modName}", session.BanchoBot);
             
             if (FreemodAliases.Any(a => a.Equals(modName, StringComparison.CurrentCultureIgnoreCase)))
             {
-                _lobby.Freemods = true;
+                _match.Freemods = true;
                 freeMods = true;
             }
         }
@@ -506,13 +503,13 @@ public partial class CommandProcessor
         if ((result & Mods.InvalidMods) != 0)
             result &= ~Mods.InvalidMods;
         
-        _lobby.Mods = result;
-        _lobby.EnqueueState();
+        _match.Mods = result;
+        _match.EnqueueState();
 
         switch (result)
         {
             case Mods.None when freeMods:
-                _lobby.Freemods = true;
+                _match.Freemods = true;
                 return "Removed all mods and enabled freemods.";
             case Mods.None:
                 return "Removed all mods.";
@@ -523,38 +520,38 @@ public partial class CommandProcessor
     
     private string StartMatch(string[] args)
     {
-        if (!_lobby.Refs.Contains(_playerCtx.Id))
+        if (!_match.Refs.Contains(_playerCtx.Id))
             return "";
         
-        if (_lobby.BeatmapId < 1)
+        if (_match.BeatmapId < 1)
             return "No beatmap is selected.";
         
-        if (_lobby.InProgress)
+        if (_match.InProgress)
             return "Match is already in progress.";
         
         var seconds = args.Length == 0 ? 10 : uint.TryParse(args[0], out var s) ? s : 10;
         
-        if (_lobby.Timer != null)
+        if (_match.Timer != null)
         {
-            _lobby.Timer.Stop();
-            _lobby.Chat.SendBotMessage("Updating current timer.", session.BanchoBot);
+            _match.Timer.Stop();
+            _match.Chat.SendBotMessage("Updating current timer.", session.BanchoBot);
         }
 
-        _lobby.ReadyAllPlayers();
-        _lobby.EnqueueState(false);
+        _match.ReadyAllPlayers();
+        _match.EnqueueState(false);
         
-        _lobby.Timer = new LobbyTimer(_lobby, seconds, true, async () =>
+        _match.Timer = new LobbyTimer(_match, seconds, true, async () =>
             await histories.MapStarted(
-                _lobby.LobbyId,
+                _match.LobbyId,
                 new ScoresEntry
                 {
                     StartDate = DateTime.Now,
-                    GameMode = (byte)_lobby.Mode,
-                    WinCondition = (byte)_lobby.WinCondition,
-                    LobbyType = (byte)_lobby.Type,
-                    LobbyMods = _lobby.Freemods ? 0 : (int)_lobby.Mods,
-                    BeatmapId = _lobby.BeatmapId,
-                    BeatmapName = _lobby.BeatmapName,
+                    GameMode = (byte)_match.Mode,
+                    WinCondition = (byte)_match.WinCondition,
+                    LobbyType = (byte)_match.Type,
+                    LobbyMods = _match.Freemods ? 0 : (int)_match.Mods,
+                    BeatmapId = _match.BeatmapId,
+                    BeatmapName = _match.BeatmapName,
                     Values = []
                 }));
         
@@ -563,7 +560,7 @@ public partial class CommandProcessor
     
     private string StartTimer(string[] args)
     {
-        if (!_lobby.Refs.Contains(_playerCtx.Id))
+        if (!_match.Refs.Contains(_playerCtx.Id))
             return "";
         
         var seconds = args.Length == 0 ? 10 : uint.TryParse(args[0], out var s) ? s : 10;
@@ -571,39 +568,42 @@ public partial class CommandProcessor
         if (seconds == 0)
             return "";
         
-        if (_lobby.Timer != null)
+        if (_match.Timer != null)
         {
-            _lobby.Timer.Stop();
-            _lobby.Chat.SendBotMessage("Updating current timer.", session.BanchoBot);
+            _match.Timer.Stop();
+            _match.Chat.SendBotMessage("Updating current timer.", session.BanchoBot);
         }
         
-        _lobby.Timer = new LobbyTimer(_lobby, seconds);
+        var timer = new LobbyTimer(_match, seconds);
+        _match.Timer = timer;
+        
+        timer.OnSendMessage += message => _match.Chat.SendBotMessage(message, session.BanchoBot);
         
         return "";
     }
     
     private string AbortTimer()
     {
-        if (!_lobby.Refs.Contains(_playerCtx.Id))
+        if (!_match.Refs.Contains(_playerCtx.Id))
             return "";
         
-        if (_lobby.Timer == null)
+        if (_match.Timer == null)
             return "No timer is running.";
         
-        _lobby.Timer.Stop();
+        _match.Timer.Stop();
         
         return "Aborted current timer.";
     }
     
     private async Task<string> KickPlayer(string[] args)
     {
-        if (!_lobby.Refs.Contains(_playerCtx.Id))
+        if (!_match.Refs.Contains(_playerCtx.Id))
             return "";
         
         if (args.Length == 0)
             return $"No username provided. Use '{Prefix}mp kick <username>'.";
         
-        var slot = _lobby.GetPlayerSlot(args[0]);
+        var slot = _match.GetPlayerSlot(args[0]);
         if (slot == null)
             return $"{args[0]} is not in the lobby.";
         
@@ -613,7 +613,7 @@ public partial class CommandProcessor
         player.SendBotMessage("You've been kicked from the lobby.");
         
         await histories.AddMatchAction(
-            _lobby.LobbyId,
+            _match.LobbyId,
             new ActionEntry
             {
                 Action = Action.Left,
@@ -621,10 +621,10 @@ public partial class CommandProcessor
                 Date = DateTime.Now
             });
 
-        if (_lobby.IsEmpty())
+        if (_match.IsEmpty())
         {
             await histories.AddMatchAction(
-                _lobby.LobbyId,
+                _match.LobbyId,
                 new ActionEntry
                 {
                     Action = Action.MatchDisbanded,
@@ -638,7 +638,7 @@ public partial class CommandProcessor
     
     private async Task<string> BanPlayer(string[] args)
     {
-        if (!_lobby.Refs.Contains(_playerCtx.Id))
+        if (!_match.Refs.Contains(_playerCtx.Id))
             return "";
         
         if (args.Length == 0)
@@ -648,13 +648,13 @@ public partial class CommandProcessor
         if (target == null)
             return $"Player {args[0]} does not exist.";
         
-        if (_lobby.BannedPlayers.Contains(target.Id))
+        if (_match.BannedPlayers.Contains(target.Id))
             return $"{target.Username} is already banned.";
 
-        _lobby.Refs.Remove(target.Id);
-        _lobby.BannedPlayers.Add(target.Id);
+        _match.Refs.Remove(target.Id);
+        _match.BannedPlayers.Add(target.Id);
 
-        var slot = _lobby.GetPlayerSlot(target);
+        var slot = _match.GetPlayerSlot(target);
         if (slot != null)
         {
             var player = slot.Player!;
@@ -668,7 +668,7 @@ public partial class CommandProcessor
     
     private async Task<string> AddReferee(string[] args)
     {
-        if (!_lobby.Refs.Contains(_playerCtx.Id))
+        if (!_match.Refs.Contains(_playerCtx.Id))
             return "";
         
         if (args.Length == 0)
@@ -681,29 +681,29 @@ public partial class CommandProcessor
 
             if (player == _playerCtx)
             {
-                _lobby.Chat.SendBotMessage("You're already a referee.", session.BanchoBot);
+                _match.Chat.SendBotMessage("You're already a referee.", session.BanchoBot);
                 continue;
             }
             if (player == null)
             {
-                _lobby.Chat.SendBotMessage($"Player {username} doesn't exist", session.BanchoBot);
+                _match.Chat.SendBotMessage($"Player {username} doesn't exist", session.BanchoBot);
                 continue;
             }
-            if (_lobby.Refs.Contains(player.Id))
+            if (_match.Refs.Contains(player.Id))
             {
-                _lobby.Chat.SendBotMessage($"{player.Username} is already a referee.", session.BanchoBot);
+                _match.Chat.SendBotMessage($"{player.Username} is already a referee.", session.BanchoBot);
                 continue;
             }
-            _lobby.Refs.Add(player.Id);
+            _match.Refs.Add(player.Id);
             count++;
         }
-        Console.WriteLine($"[AddReferee] {_playerCtx.Username} added {count} players as referee(s). in lobby with id {_lobby.Id}.");
+        Console.WriteLine($"[AddReferee] {_playerCtx.Username} added {count} players as referee(s). in lobby with id {_match.Id}.");
         return $"Added {count} players as referee(s).";
     }
     
     private async Task<string> RemoveReferee(string[] args)
     {
-        if (!_lobby.Refs.Contains(_playerCtx.Id))
+        if (!_match.Refs.Contains(_playerCtx.Id))
             return "";
         
         if (args.Length == 0)
@@ -716,46 +716,46 @@ public partial class CommandProcessor
             
             if (player == _playerCtx)
             {
-                _lobby.Chat.SendBotMessage("You can't remove yourself from referees.", session.BanchoBot);
+                _match.Chat.SendBotMessage("You can't remove yourself from referees.", session.BanchoBot);
                 continue;
             }
             if (player == null)
             {
-                _lobby.Chat.SendBotMessage($"Player {username} doesn't exist", session.BanchoBot);
+                _match.Chat.SendBotMessage($"Player {username} doesn't exist", session.BanchoBot);
                 continue;
             }
-            if (!_lobby.Refs.Contains(player.Id))
+            if (!_match.Refs.Contains(player.Id))
             {
-                _lobby.Chat.SendBotMessage($"{player.Username} is not a referee.", session.BanchoBot);
+                _match.Chat.SendBotMessage($"{player.Username} is not a referee.", session.BanchoBot);
                 continue;
             }
-            if (_lobby.CreatorId == player.Id)
+            if (_match.CreatorId == player.Id)
             {
-                _lobby.Chat.SendBotMessage("Can't remove creator of the lobby.", session.BanchoBot);
+                _match.Chat.SendBotMessage("Can't remove creator of the lobby.", session.BanchoBot);
                 continue;
             }
             
-            _lobby.Refs.Remove(player.Id);
+            _match.Refs.Remove(player.Id);
             count++;
         }
         
-        Console.WriteLine($"[AddReferee] {_playerCtx.Username} removed {count} players from referees. In lobby with id {_lobby.Id}.");
+        Console.WriteLine($"[AddReferee] {_playerCtx.Username} removed {count} players from referees. In lobby with id {_match.Id}.");
         return $"Removed {count} players from referees.";
     }
     
     private async Task<string> ListReferees()
     {
-        return $"{string.Join(", ", await players.GetPlayerNames(_lobby.Refs))}";
+        return $"{string.Join(", ", await players.GetPlayerNames(_match.Refs))}";
     }
     
     private async Task<string> CloseLobby()
     {
-        if (!_lobby.Refs.Contains(_playerCtx.Id))
+        if (!_match.Refs.Contains(_playerCtx.Id))
             return "";
 
         var actions = new List<ActionEntry>();
         
-        foreach (var slot in _lobby.Slots)
+        foreach (var slot in _match.Slots)
         {
             if (slot.Player == null) continue;
             
@@ -776,7 +776,7 @@ public partial class CommandProcessor
             Date = DateTime.Now
         });
 
-        await histories.AddMatchActions(_lobby.LobbyId, actions);
+        await histories.AddMatchActions(_match.LobbyId, actions);
         
         return "";
     }

@@ -600,7 +600,7 @@ public class PlayersRepository : IPlayersRepository
 		return (int)(await _redis.SortedSetRankAsync($"bancho:leaderboard:{(byte)mode}", playerId, Order.Descending))! + 1;
 	}
 
-	public async Task InsertPlayerGlobalRank(byte mode, string country, int playerId, ushort pp)
+	public async Task InsertPlayerGlobalRank(byte mode, string country, int playerId, int pp)
 	{
 		await _redis.SortedSetAddAsync($"bancho:leaderboard:{mode}", playerId, pp);
 		await _redis.SortedSetAddAsync($"bancho:leaderboard:{mode}:{country}", playerId, pp);
