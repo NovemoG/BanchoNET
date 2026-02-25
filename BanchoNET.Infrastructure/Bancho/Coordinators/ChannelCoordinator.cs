@@ -4,10 +4,11 @@ using Novelog.Abstractions;
 
 namespace BanchoNET.Infrastructure.Bancho.Coordinators;
 
-public class BeatmapCoordinator(
+public class ChannelCoordinator(
     ILogger logger,
-    IBeatmapService beatmaps
-) : IBeatmapCoordinator
+    IChannelService channels,
+    IPlayerService players
+) : IChannelCoordinator
 {
     
 }

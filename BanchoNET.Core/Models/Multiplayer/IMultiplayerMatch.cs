@@ -5,7 +5,7 @@ namespace BanchoNET.Core.Models.Multiplayer;
 public interface IMultiplayerMatch : IHasOnlineId<int>,
     IEquatable<IMultiplayerMatch>
 {
-    ushort Id { get; init; }
+    ushort Id { get; set; }
     
     string Name { get; set; }
     bool InProgress { get; set; }

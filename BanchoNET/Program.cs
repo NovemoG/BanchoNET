@@ -216,11 +216,10 @@ public class Program
 			
 		builder.Services.AddSingleton<ILobbyScoresQueue, LobbyScoresQueue>()
 			.AddHostedService<LobbyQueueHostedService>();
-		
+
 		builder.Services.AddScoped<IGeolocService, GeolocService>()
 			.AddScoped<IClientPacketsHandler, ClientPacketsHandler>()
-			.AddScoped<ICommandProcessor, CommandProcessor>()
-			.AddScoped<IBeatmapHandler, BeatmapHandler>();
+			.AddScoped<ICommandProcessor, CommandProcessor>();
 		
 		builder.Services.AddTransient<IOsuVersionService, OsuVersionService>()
 			.AddTransient<IBackgroundTasks, BackgroundTasks>();

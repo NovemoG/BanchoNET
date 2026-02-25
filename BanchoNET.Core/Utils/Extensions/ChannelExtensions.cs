@@ -1,7 +1,7 @@
 ﻿using System.Collections.Immutable;
 using BanchoNET.Core.Models.Channels;
-using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
+using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Packets;
 
 namespace BanchoNET.Core.Utils.Extensions;
@@ -55,19 +55,19 @@ public static class ChannelExtensions
 		Channel channel
 	) {
 		public bool PlayerInChannel(
-			Player player
+			User player
 		) {
 			return channel.Players.Any(p => p.Id == player.Id);
 		}
 
 		public bool CanPlayerRead(
-			Player player
+			User player
 		) {
 			return player.ToBanchoPrivileges().CompareHighestPrivileges(channel.ReadPrivileges);
 		}
 
 		public bool CanPlayerWrite(
-			Player player
+			User player
 		) {
 			return player.ToBanchoPrivileges().CompareHighestPrivileges(channel.WritePrivileges);
 		}
@@ -95,7 +95,7 @@ public static class ChannelExtensions
 
 		public void SendBotMessage(
 			string message,
-			Player from
+			User from
 		) {
 			if (message.Length >= 31979)
 				message = $"message would have crashed games ({message.Length} characters).";

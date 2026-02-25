@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using BanchoNET.Core.Models.Multiplayer;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
@@ -40,6 +41,7 @@ public sealed class User : IUser, IDisposable,
     public Dictionary<GameMode, ModeStats> Stats { get; } = new();
     public List<int> Friends { get; } = [];
     public List<int> Blocked { get; } = [];
+    public List<string> Channels { get; } = [];
     
     public PlayerPrivileges Privileges { get; set; }
     public bool IsRestricted => !Privileges.HasPrivilege(PlayerPrivileges.Unrestricted);

@@ -15,9 +15,7 @@ public static class ServiceCollectionExtensions
 
         foreach (var type in types)
         {
-            var isService = type.BaseType is { IsGenericType: true }
-                            && type.BaseType.GetGenericTypeDefinition() == typeof(StatefulService<,>);
-
+            var isService = InheritsFromOpenGeneric(type, typeof(StatefulService<,>));
             var isCoordinator = typeof(ICoordinator).IsAssignableFrom(type);
 
             if (!isService && !isCoordinator) continue;
@@ -30,5 +28,21 @@ public static class ServiceCollectionExtensions
         }
 
         return services;
+    }
+
+    private static bool InheritsFromOpenGeneric(
+        Type type,
+        Type openGenericType
+    ) {
+        var currentType = type.BaseType;
+        while (currentType != null && currentType != typeof(object))
+        {
+            if (currentType.IsGenericType && currentType.GetGenericTypeDefinition() == openGenericType)
+            {
+                return true;
+            }
+            currentType = currentType.BaseType;
+        }
+        return false;
     }
 }

@@ -1,10 +1,10 @@
-﻿using BanchoNET.Core.Models.Players;
+﻿using BanchoNET.Core.Models.Users;
 
 namespace BanchoNET.Core.Models.Multiplayer;
 
 public class MultiplayerSlot
 {
-	public Player? Player { get; set; }
+	public User? Player { get; set; }
 	public SlotStatus Status { get; set; }
 	public LobbyTeams Team { get; set; }
 	public Mods Mods { get; set; }

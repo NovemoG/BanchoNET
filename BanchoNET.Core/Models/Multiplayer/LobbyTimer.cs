@@ -1,10 +1,9 @@
 ﻿using System.Timers;
-using BanchoNET.Core.Utils.Extensions;
 using Timer = System.Timers.Timer;
 
 namespace BanchoNET.Core.Models.Multiplayer;
 
-public class LobbyTimer : IDisposable
+public sealed class LobbyTimer : IDisposable
 {
     private readonly MultiplayerMatch _match;
     private readonly string _alertMessage;

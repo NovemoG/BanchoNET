@@ -1,8 +1,7 @@
 ﻿using System.Collections.Concurrent;
-using BanchoNET.Core.Abstractions;
 using BanchoNET.Core.Models.Dtos;
-using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
+using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Utils.Extensions;
 using Novelog;
 
@@ -18,7 +17,10 @@ public class Channel : IChannel,
 		if (name.StartsWith("#multi_"))
 			Name = "#multiplayer";
 		else if (name.StartsWith("#s_"))
+		{
 			Name = "#spectator";
+			Spectator = true;
+		}
 		else Name = name;
 	}
 
@@ -50,6 +52,7 @@ public class Channel : IChannel,
 	public bool Hidden { get; set; }
 	public bool ReadOnly { get; set; }
 	public bool Instance { get; set; }
+	public bool Spectator { get; set; }
 	public ClientPrivileges ReadPrivileges { get; set; } = ClientPrivileges.Player;
 	public ClientPrivileges WritePrivileges { get; set; } = ClientPrivileges.Player;
 
@@ -58,11 +61,11 @@ public class Channel : IChannel,
 	public string Name { get; }
 	public string Description { get; set; } = string.Empty;
 	
-	private readonly ConcurrentDictionary<Player, bool> _players = [];
-	public IEnumerable<Player> Players => _players.Keys;
+	private readonly ConcurrentDictionary<User, bool> _players = [];
+	public IEnumerable<User> Players => _players.Keys;
 	public int PlayersCount => _players.Count;
-	public void AddPlayer(Player player) => _players.TryAdd(player, false);
-	public void RemovePlayer(Player player) => _players.TryRemove(player, out _);
+	public void AddPlayer(User player) => _players.TryAdd(player, false);
+	public void RemovePlayer(User player) => _players.TryRemove(player, out _);
 
 	#region IEquatable
 

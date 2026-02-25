@@ -17,12 +17,12 @@ public sealed class MultiplayerMatch : IMultiplayerMatch, IDisposable,
 	/// <summary>
 	/// Used by osu for multiplayer lobby identification
 	/// </summary>
-	public ushort Id { get; init; }
+	public ushort Id { get; set; }
 	
 	/// <summary>
 	/// Used by database for identification
 	/// </summary>
-	public int LobbyId { get; init; }
+	public int LobbyId { get; set; }
 	public int OnlineId => LobbyId;
 	
 	public required string Name { get; set; }
