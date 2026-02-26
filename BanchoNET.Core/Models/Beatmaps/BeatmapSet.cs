@@ -1,9 +1,12 @@
 ﻿using BanchoNET.Core.Models.Dtos;
+using BanchoNET.Core.Utils.Extensions;
 
 namespace BanchoNET.Core.Models.Beatmaps;
 
-public class BeatmapSet
+public class BeatmapSet : IBeatmapSet,
+	IEquatable<BeatmapSet>
 {
+	public int OnlineId => Id;
 	public int Id { get; set; }
 	public List<Beatmap> Beatmaps { get; } = [];
 	
@@ -59,6 +62,19 @@ public class BeatmapSet
 			map.Set = this;
 		}
 	}
+
+	#endregion
+
+	#region IEquatable
+
+	public bool Equals(BeatmapSet? other) => this.MatchesOnlineId(other);
+    
+	public override bool Equals(
+		object? obj
+	) {
+		return ReferenceEquals(this, obj) || obj is BeatmapSet other && Equals(other);
+	}
+	public override int GetHashCode() => Id.GetHashCode();
 
 	#endregion
 }

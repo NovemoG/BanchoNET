@@ -25,7 +25,7 @@ public static class BeatmapExtensions
 
 	public static string Url(this Beatmap beatmap)
 	{
-		return $"https://osu.{AppSettings.Domain}/b/{beatmap.MapId}";
+		return $"https://osu.{AppSettings.Domain}/b/{beatmap.Id}";
 	}
 
 	public static string Url(this BeatmapSet set)
@@ -98,7 +98,7 @@ public static class BeatmapExtensions
 	{
 		return new BeatmapDto
 		{
-			MapId = beatmap.MapId,
+			MapId = beatmap.Id,
 			SetId = beatmap.SetId,
 			Private = beatmap.Private,
 			Mode = (byte)beatmap.Mode,

@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using BanchoNET.Core.Models.Multiplayer;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
@@ -77,12 +76,24 @@ public sealed class User : IUser, IDisposable,
     
     public bool IsOnlineOnStable => SessionId != Guid.Empty;
     public bool IsOnlineOnLazer { get; set; } //TODO
-    
+
     public override string ToString() => Username;
     
+    #region IEquatable
+    
     public bool Equals(User? other) => this.MatchesOnlineID(other);
+    
+    public override bool Equals(
+        object? obj
+    ) {
+        return ReferenceEquals(this, obj) || obj is User other && Equals(other);
+    }
+    
     public override int GetHashCode() => Id.GetHashCode();
 
+
+    #endregion
+    
     #region StablePacketQueue
 
     private readonly ServerPackets _queue = new();

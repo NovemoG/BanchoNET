@@ -10,7 +10,7 @@ namespace BanchoNET.Infrastructure.Bancho.Services;
 public class ChannelService(
     ILogger logger,
     IPlayerService players
-) : ChannelStateService(logger), IChannelService
+) : StatefulService<string, Channel>(logger), IChannelService
 {
     public IEnumerable<Channel> Channels => Items.Values;
     
@@ -32,7 +32,12 @@ public class ChannelService(
     public bool InsertChannel(
         Channel channel
     ) {
-        return TryAdd(channel);
+        var added = base.TryAdd(channel);
+        
+        if (!added)
+            Logger.LogWarning($"Failed to add channel {channel.IdName}");
+        
+        return added;
     }
 
     public bool RemoveChannel(
@@ -133,5 +138,28 @@ public class ChannelService(
         
         Logger.LogDebug($"{player.Username} failed to leave channel {id}");
         return false;
+    }
+    
+    protected bool TryAdd(
+        string key,
+        Channel channel
+    ) {
+        var added = base.TryAdd(channel);
+        
+        if (!added)
+            Logger.LogWarning($"Failed to add channel {key}");
+        
+        return added;
+    }
+
+    protected bool TryRemove(
+        string key
+    ) {
+        var removed = base.TryRemove(key, out _);
+        
+        if (!removed)
+            Logger.LogWarning($"Failed to remove channel {key}");
+        
+        return removed;
     }
 }

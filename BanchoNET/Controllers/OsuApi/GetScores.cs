@@ -36,9 +36,18 @@ public partial class OsuController
 		if (session.BeatmapNeedsUpdate(mapMD5))
 			return Responses.BytesContentResult("1|false");
 		
-		if (session.IsBeatmapNotSubmitted(mapMD5))
-			return Responses.BytesContentResult("-1|false");
-
+		var beatmap = await beatmaps.GetBeatmap(beatmapMD5: mapMD5, setId: setId);
+		if (beatmap == null)
+		{
+			if (await beatmapHandler.CheckIfMapExistsOnBanchoByFilename(mapFilename))
+			{
+				session.CacheNeedsUpdateBeatmap(mapMD5);
+				return Ok("1|false");
+			}
+			//any string can be provided through this endpoint so we shouldn't cache any
+			return Ok("-1|false");
+		}
+		
 		var mods = (Mods)modsValue;
 		if (mods.HasMod(Mods.Relax))
 		{
@@ -68,18 +77,6 @@ public partial class OsuController
 					.FinalizeAndGetContent());
 			}
 		}
-		
-		var beatmap = await beatmaps.GetBeatmap(beatmapMD5: mapMD5, setId: setId);
-		if (beatmap == null)
-		{
-			if (await beatmapHandler.CheckIfMapExistsOnBanchoByFilename(mapFilename))
-			{
-				session.CacheNeedsUpdateBeatmap(mapMD5);
-				return Ok("1|false");
-			}
-			session.CacheNotSubmittedBeatmap(mapMD5);
-			return Ok("-1|false");
-		}
 
 		if (beatmap.Status < BeatmapStatus.Ranked)
 			return Responses.BytesContentResult($"{(int)beatmap.Status}|false");
@@ -94,7 +91,7 @@ public partial class OsuController
 		string response;
 		var responseLines = new List<string>
 		{
-			$"{(int)beatmap.Status}|false|{beatmap.MapId}|{beatmap.SetId}|{leaderboard.Scores.Count}|0|",
+			$"{(int)beatmap.Status}|false|{beatmap.Id}|{beatmap.SetId}|{leaderboard.Scores.Count}|0|",
 			$"0\n{beatmap.FullName()}\n{rating}"
 		};
 

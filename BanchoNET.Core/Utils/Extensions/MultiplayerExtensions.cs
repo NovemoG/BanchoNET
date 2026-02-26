@@ -134,7 +134,7 @@ public static class MultiplayerExtensions
 		}
 	}
 	
-	public static void InviteToLobby(Player player, Player? target)
+	public static void InviteToLobby(User player, User? target)
 	{
 		if (target == null) return;
 		if (target.IsBot)

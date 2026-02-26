@@ -3,6 +3,7 @@ using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Channels;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
+using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
@@ -336,7 +337,7 @@ public partial class ChoController
 	/// </summary>
 	/// <param name="packets">Packets to which data will be enqueued</param>
 	/// <param name="player">Player from which data will be enqueued to others</param>
-	public ServerPackets EnqueueOtherPlayers(ServerPackets packets, Player? player = null)
+	public ServerPackets EnqueueOtherPlayers(ServerPackets packets, User? player = null)
 	{
 		var toOthers = player != null;
 		

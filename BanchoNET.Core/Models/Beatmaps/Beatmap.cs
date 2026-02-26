@@ -3,11 +3,13 @@ using BanchoNET.Core.Utils.Extensions;
 
 namespace BanchoNET.Core.Models.Beatmaps;
 
-public class Beatmap
+public class Beatmap : IBeatmap,
+	IEquatable<Beatmap>
 {
 	public BeatmapSet? Set { get; set; }
-	
-	public int MapId { get; set; }
+
+	public int OnlineId => Id;
+	public int Id { get; set; }
 	public int SetId { get; set; }
 	public bool Private { get; set; }
 	public GameMode Mode { get; set; }
@@ -45,12 +47,14 @@ public class Beatmap
 	public int NotesCount { get; set; }
 	public int SlidersCount { get; set; }
 	public int SpinnersCount { get; set; }
+	
+	//TODO ToString
 
 	#region Constructors
 
 	public Beatmap(ApiBeatmap apiBeatmap)
 	{
-		MapId = apiBeatmap.BeatmapId;
+		Id = apiBeatmap.BeatmapId;
 		SetId = apiBeatmap.BeatmapsetId;
 		Private = apiBeatmap.DownloadUnavailable;
 		Mode = (GameMode)apiBeatmap.Mode;
@@ -77,7 +81,7 @@ public class Beatmap
 
 	public Beatmap(OsuApiBeatmap apiBeatmap)
 	{
-		MapId = int.Parse(apiBeatmap.BeatmapId);
+		Id = int.Parse(apiBeatmap.BeatmapId);
 		SetId = int.Parse(apiBeatmap.BeatmapsetId);
 		Private = apiBeatmap.DownloadUnavailable == "1";
 		Mode = (GameMode)int.Parse(apiBeatmap.Mode);
@@ -108,7 +112,7 @@ public class Beatmap
 
 	public Beatmap(BeatmapDto beatmapDto)
 	{
-		MapId = beatmapDto.MapId;
+		Id = beatmapDto.MapId;
 		SetId = beatmapDto.SetId;
 		Private = beatmapDto.Private;
 		Mode = (GameMode)beatmapDto.Mode;
@@ -137,6 +141,19 @@ public class Beatmap
 		SlidersCount = beatmapDto.SlidersCount;
 		SpinnersCount = beatmapDto.SpinnersCount;
 	}
+
+	#endregion
+
+	#region IEquatable
+
+	public bool Equals(Beatmap? other) => this.MatchesOnlineId(other);
+    
+	public override bool Equals(
+		object? obj
+	) {
+		return ReferenceEquals(this, obj) || obj is Beatmap other && Equals(other);
+	}
+	public override int GetHashCode() => Id.GetHashCode();
 
 	#endregion
 }

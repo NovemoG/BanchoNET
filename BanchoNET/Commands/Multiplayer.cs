@@ -111,7 +111,7 @@ public partial class CommandProcessor
             HostId = _playerCtx.Id,
             CreatorId = _playerCtx.Id,
             Freemods = true,
-            BeatmapId = beatmap?.MapId ?? -1,
+            BeatmapId = beatmap?.Id ?? -1,
             BeatmapMD5 = beatmap?.MD5 ?? "",
             BeatmapName = beatmap?.FullName() ?? "",
             Seed = Random.Shared.Next(),

@@ -2,11 +2,9 @@
 using BanchoNET.Core.Abstractions.Repositories.Histories;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Models.Channels;
-using BanchoNET.Core.Models.Players;
+using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
-using BanchoNET.Services;
-using BanchoNET.Services.Repositories;
 using static BanchoNET.Core.Utils.Maps.CommandHandlerMap;
 
 namespace BanchoNET.Commands;
@@ -22,7 +20,7 @@ public partial class CommandProcessor(
 {
     private static readonly string Prefix = AppSettings.CommandPrefix;
 
-    private Player _playerCtx = null!;
+    private User _playerCtx = null!;
     private Channel? _channelCtx;
     private string _commandBase = null!;
 
@@ -36,7 +34,7 @@ public partial class CommandProcessor(
     /// chat instead of only to player</returns>
     public async Task<(bool ToPlayer, string Response)> Execute(
         string command,
-        Player player,
+        User player,
         Channel? channel = null)
     {
         command = command[Prefix.Length..];

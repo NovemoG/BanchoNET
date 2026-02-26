@@ -37,7 +37,7 @@ public class BeatmapsRepository(
 		var beatmapSet = await GetBeatmapSet(setId, mapId);
 
 		return beatmapSet != null
-			? beatmapSet.Beatmaps.FirstOrDefault(b => b.MapId == mapId)
+			? beatmapSet.Beatmaps.FirstOrDefault(b => b.Id == mapId)
 			: beatmap;
 	}
 	
@@ -62,7 +62,7 @@ public class BeatmapsRepository(
 				if (apiMap == null) return null;
 
 				setId = apiMap.SetId;
-				mapId = apiMap.MapId;
+				mapId = apiMap.Id;
 			}
 		}
 
@@ -98,7 +98,7 @@ public class BeatmapsRepository(
 		}
 
 		if (!didApiRequest && mapId > 0)
-			if (beatmapSet.Beatmaps.All(b => b.MapId != mapId) /*or expired (maps can be updated without md5 being changed)*/)
+			if (beatmapSet.Beatmaps.All(b => b.Id != mapId) /*or expired (maps can be updated without md5 being changed)*/)
 				await UpdateBeatmapSet(setId);
 		
 		return beatmapSet;
@@ -119,7 +119,7 @@ public class BeatmapsRepository(
 	/// <param name="beatmap">Beatmap for which to update stats</param>
 	public async Task UpdateBeatmapPlayCount(Beatmap beatmap)
 	{
-		await dbContext.Beatmaps.Where(b => b.MapId == beatmap.MapId)
+		await dbContext.Beatmaps.Where(b => b.MapId == beatmap.Id)
 		                .ExecuteUpdateAsync(p => 
 			                p.SetProperty(b => b.Plays, beatmap.Plays)
 			                 .SetProperty(b => b.Passes, beatmap.Passes));

@@ -64,7 +64,7 @@ public partial class ClientPacketsHandler
 
 			if (beatmap != null)
 			{
-				lobby.BeatmapId = beatmap.MapId;
+				lobby.BeatmapId = beatmap.Id;
 				lobby.BeatmapName = beatmap.FullName();
 				lobby.BeatmapMD5 = beatmap.MD5;
 				lobby.Mode = host.Player!.Status.Mode.AsVanilla();

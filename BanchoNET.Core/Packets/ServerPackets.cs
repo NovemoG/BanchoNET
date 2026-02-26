@@ -1,6 +1,7 @@
 ﻿using BanchoNET.Core.Models.Channels;
 using BanchoNET.Core.Models.Multiplayer;
 using BanchoNET.Core.Models.Players;
+using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
 using Microsoft.AspNetCore.Mvc;
@@ -98,7 +99,7 @@ public sealed partial class ServerPackets : IDisposable
 	/// <summary>
 	/// Packet id 11
 	/// </summary>
-	public ServerPackets UserStats(Player player)
+	public ServerPackets UserStats(User player)
 	{
 		WritePacketData(ServerPacketId.UserStats, new PacketData(player, DataType.Stats));
 		return this;
@@ -107,7 +108,7 @@ public sealed partial class ServerPackets : IDisposable
 	/// <summary>
 	/// Packet id 11
 	/// </summary>
-	public ServerPackets BotStats(Player player)
+	public ServerPackets BotStats(User player)
 	{
 		WritePacketData(ServerPacketId.UserStats, new PacketData(player, DataType.BotStats));
 		return this;
@@ -327,13 +328,13 @@ public sealed partial class ServerPackets : IDisposable
 	/// <summary>
 	/// Packet id 88
 	/// </summary>
-	public ServerPackets MatchInvite(Player player, string targetName)
+	public ServerPackets MatchInvite(User player, string targetName)
 	{
 		WritePacketData(ServerPacketId.MatchInvite , new PacketData(
 			new Message
 			{
 				Sender = player.Username,
-				Content = $"Come join my game: {player.Lobby!.Embed()}",
+				Content = $"Come join my game: {player.Match!.Embed()}",
 				Destination = targetName,
 				SenderId = player.Id
 			},
@@ -472,7 +473,7 @@ public sealed partial class ServerPackets : IDisposable
 	/// <summary>
 	/// Packet id 83
 	/// </summary>
-	public ServerPackets BotPresence(Player player)
+	public ServerPackets BotPresence(User player)
 	{
 		WritePacketData(ServerPacketId.UserPresence, new PacketData(player, DataType.BotPresence));
 		return this;
@@ -481,7 +482,7 @@ public sealed partial class ServerPackets : IDisposable
 	/// <summary>
 	/// Packet id 83
 	/// </summary>
-	public ServerPackets UserPresence(Player player)
+	public ServerPackets UserPresence(User player)
 	{
 		WritePacketData(ServerPacketId.UserPresence, new PacketData(player, DataType.Presence));
 		return this;

@@ -118,9 +118,9 @@ public partial class OsuController
             ? await scores.GetPlayerBestScoreWithModsOnMap(player.Id, beatmapMD5, score.Mode, score.Mods)
             : null;
         
-        if (await beatmapHandler.EnsureLocalBeatmapFile(beatmap.MapId, beatmapMD5))
+        if (await beatmapHandler.EnsureLocalBeatmapFile(beatmap.Id, beatmapMD5))
         {
-            score.CalculatePerformance(beatmap.MapId);
+            score.CalculatePerformance(beatmap.Id);
 
             if (score.Passed)
             {
@@ -159,7 +159,7 @@ public partial class OsuController
                     && (score.Misses > 0 || beatmap.MaxCombo - score.MaxCombo > 15))
                 {
                     var fcPP = AkatsukiPpMethods.ComputeNoMissesScorePp(
-                        beatmap.MapId,
+                        beatmap.Id,
                         score,
                         beatmap.MaxCombo);
 					
@@ -227,7 +227,7 @@ public partial class OsuController
         {
             List<string> submissionCharts =
             [
-                $"beatmapId:{beatmap.MapId}",
+                $"beatmapId:{beatmap.Id}",
                 $"beatmapSetId:{beatmap.SetId}",
                 $"beatmapPlaycount:{(int)beatmap.Plays}",
                 $"beatmapPasscount:{(int)beatmap.Passes}",
