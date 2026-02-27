@@ -1,4 +1,4 @@
-﻿using BanchoNET.Core.Models.Players;
+﻿using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils.Extensions;
 
@@ -6,7 +6,7 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private Task UserStatsRequest(Player player, BinaryReader br)
+	private Task UserStatsRequest(User player, BinaryReader br)
 	{
 		var ids = br.ReadOsuListInt32();
 		ids.Remove(player.Id);
@@ -15,7 +15,7 @@ public partial class ClientPacketsHandler
 
 		foreach (var id in ids)
 		{
-			var user = session.GetPlayerById(id);
+			var user = playerService.GetPlayer(id);
 			if (user == null) continue;
 			
 			if (user.IsBot) statsPacket.BotStats(user);

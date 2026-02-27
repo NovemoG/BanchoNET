@@ -21,7 +21,7 @@ public class ClientsRepository(BanchoDbContext dbContext) : IClientsRepository
 			.ExecuteUpdateAsync(p =>
 				p.SetProperty(x => x.OsuVersion, osuVersion)
 					.SetProperty(x => x.ReleaseStream, stream)
-					.SetProperty(x => x.LoginTime, DateTime.Now));
+					.SetProperty(x => x.LoginTime, DateTime.UtcNow));
 
 		if (hasLoginData > 0) return;
 		
@@ -31,7 +31,7 @@ public class ClientsRepository(BanchoDbContext dbContext) : IClientsRepository
 			Ip = ip.ToString(),
 			OsuVersion = osuVersion,
 			ReleaseStream = stream,
-			LoginTime = DateTime.Now
+			LoginTime = DateTime.UtcNow
 		});
 		await dbContext.SaveChangesAsync();
 	}
@@ -78,14 +78,14 @@ public class ClientsRepository(BanchoDbContext dbContext) : IClientsRepository
 					ch.PlayerId == playerId
 					&& ch.Uninstall == uninstall)
 				.ExecuteUpdateAsync(p =>
-					p.SetProperty(h => h.LatestTime, DateTime.Now))
+					p.SetProperty(h => h.LatestTime, DateTime.UtcNow))
 			: await dbContext.ClientHashes.Where(ch =>
 					ch.PlayerId == playerId
 					&& ch.Uninstall == uninstall
 					&& ch.Adapters == adapters
 					&& ch.DiskSerial == diskSerial)
 				.ExecuteUpdateAsync(p =>
-					p.SetProperty(h => h.LatestTime, DateTime.Now));
+					p.SetProperty(h => h.LatestTime, DateTime.UtcNow));
 		
 		if (hasClientHash > 0) return false;
 		
@@ -96,7 +96,7 @@ public class ClientsRepository(BanchoDbContext dbContext) : IClientsRepository
 			Adapters = adapters,
 			Uninstall = uninstall,
 			DiskSerial = diskSerial,
-			LatestTime = DateTime.Now
+			LatestTime = DateTime.UtcNow
 		});
 		await dbContext.SaveChangesAsync();
 		return false;

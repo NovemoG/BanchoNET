@@ -1,17 +1,17 @@
-﻿using BanchoNET.Core.Models.Players;
+﻿using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Packets;
 
 namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private Task RequestStatusUpdate(Player player, BinaryReader br)
+	private Task RequestStatusUpdate(User player, BinaryReader br)
 	{
-		session.EnqueueToPlayers(new ServerPackets()
+		playerService.EnqueueToPlayers(new ServerPackets()
 			.UserStats(player)
 			.FinalizeAndGetContent());
 		
-		player.LastActivityTime = DateTime.Now;
+		player.LastActivityTime = DateTime.UtcNow;
 		return Task.CompletedTask;
 	}
 }

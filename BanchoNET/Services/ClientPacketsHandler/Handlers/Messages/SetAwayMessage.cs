@@ -1,11 +1,11 @@
-﻿using BanchoNET.Core.Models.Players;
+﻿using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Utils.Extensions;
 
 namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private Task SetAwayMessage(Player player, BinaryReader br)
+	private Task SetAwayMessage(User player, BinaryReader br)
 	{
 		var message = br.ReadOsuString();
 		player.AwayMessage = message;

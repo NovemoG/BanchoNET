@@ -1,29 +1,27 @@
 ﻿using BanchoNET.Core.Models.Multiplayer;
-using BanchoNET.Core.Models.Players;
+using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Utils.Extensions;
 
 namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private Task MatchChangeSlot(Player player, BinaryReader br)
+	private Task MatchChangeSlot(User player, BinaryReader br)
 	{
 		var slotId = br.ReadInt32();
-		var lobby = player.Lobby;
+		var match = player.Match;
 		
-		if (lobby == null) return Task.CompletedTask;
-		if (lobby.Locked) return Task.CompletedTask;
-		if (slotId is < 0 or > 15) return Task.CompletedTask;
+		if (match == null || match.Locked || slotId is < 0 or > 15) return Task.CompletedTask;
 
-		var targetSlot = lobby.Slots[slotId];
+		var targetSlot = match.Slots[slotId];
 		if (targetSlot.Status != SlotStatus.Open) return Task.CompletedTask;
 
-		var slot = lobby.GetPlayerSlot(player)!;
+		var slot = match.GetPlayerSlot(player)!;
 
 		targetSlot.CopyStatusFrom(slot);
 		slot.Reset();
 		
-		lobby.EnqueueState();
+		multiplayerCoordinator.EnqueueStateTo(match);
 		return Task.CompletedTask;
 	}
 }

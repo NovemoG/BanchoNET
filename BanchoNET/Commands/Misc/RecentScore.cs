@@ -1,8 +1,8 @@
 ﻿using AkatsukiPp;
 using BanchoNET.Core.Attributes;
-using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
 using BanchoNET.Core.Models.Scores;
+using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Utils.Extensions;
 using static BanchoNET.Core.Utils.Maps.CommandHandlerMap;
 
@@ -16,7 +16,7 @@ public partial class CommandProcessor
         aliases: ["rs"])]
     private async Task<(bool, string)> RecentScore(string[] args)
     {
-        Player? player;
+        User? player;
         Score? score;
         if (args.Length > 0)
         {

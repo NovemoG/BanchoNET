@@ -1,5 +1,5 @@
 ﻿using BanchoNET.Core.Models.Mongo;
-using BanchoNET.Core.Models.Players;
+using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils.Extensions;
 using Action = BanchoNET.Core.Models.Mongo.Action;
@@ -8,12 +8,12 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private async Task CreateMatch(Player player, BinaryReader br)
+	private async Task CreateMatch(User player, BinaryReader br)
 	{
 		var matchData = br.ReadOsuMatch();
 		matchData.CreatorId = matchData.HostId;
 		
-		if (player.Restricted)
+		if (player.IsRestricted)
 		{
 			player.Enqueue(new ServerPackets()
 				.MatchJoinFail()
@@ -22,7 +22,7 @@ public partial class ClientPacketsHandler
 			return;
 		}
 
-		if (player.Silenced)
+		if (player.IsSilenced)
 		{
 			player.Enqueue(new ServerPackets()
 				.MatchJoinFail()
@@ -30,9 +30,9 @@ public partial class ClientPacketsHandler
 				.FinalizeAndGetContent());
 			return;
 		}
-		
-		MultiplayerExtensions.CreateLobby(matchData, player, await histories.GetMatchId());
-		player.LastActivityTime = DateTime.Now;
+
+		await multiplayerCoordinator.CreateMatchAsync(matchData, player);
+		player.LastActivityTime = DateTime.UtcNow;
 
 		await histories.InsertMatchHistory(new MultiplayerMatch
 		{
@@ -48,7 +48,7 @@ public partial class ClientPacketsHandler
 			{
 				Action = Action.MatchCreated,
 				PlayerId = player.Id,
-				Date = DateTime.Now
+				Date = DateTime.UtcNow
 			});
 	}
 }

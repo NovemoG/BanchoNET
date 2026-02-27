@@ -1,5 +1,6 @@
 ﻿using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Players;
+using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils.Extensions;
 
@@ -7,7 +8,7 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private Task ChangeAction(Player player, BinaryReader br)
+	private Task ChangeAction(User player, BinaryReader br)
 	{
 		var status = player.Status;
 
@@ -38,11 +39,11 @@ public partial class ClientPacketsHandler
 		if (beatmapId > 0)
 			player.LastValidBeatmapId = beatmapId;
 		
-		session.EnqueueToPlayers(new ServerPackets()
+		playerService.EnqueueToPlayers(new ServerPackets()
 			.UserStats(player)
 			.FinalizeAndGetContent());
 
-		player.LastActivityTime = DateTime.Now;
+		player.LastActivityTime = DateTime.UtcNow;
 		return Task.CompletedTask;
 	}
 }

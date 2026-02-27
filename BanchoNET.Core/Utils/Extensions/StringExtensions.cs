@@ -67,4 +67,11 @@ public static class StringExtensions
         
 		return Convert.ToHexString(hash).ToLower();
 	}
+
+	public static bool VerifyPassword(
+		this string md5,
+		string hash
+	) {
+		return BCrypt.Net.BCrypt.Verify(md5, hash);
+	}
 }

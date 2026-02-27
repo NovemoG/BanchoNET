@@ -1,3 +1,4 @@
+using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Multiplayer;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
@@ -10,21 +11,15 @@ namespace BanchoNET.Core.Models.Users;
 public sealed class User : IUser, IDisposable,
     IEquatable<User>
 {
-    public User(
-        Guid? id = null,
-        DateTime? loginTime = null
-    ) {
-        SessionId = id ?? Guid.Empty;
-        LoginTime = loginTime ?? DateTime.UtcNow;
-    }
-    
     public bool IsBot { get; set; }
     
-    public int Id { get; init; } = 1;
+    public int Id { get; init; }
     public int OnlineId => Id;
     public Guid SessionId { get; set; }
+    public string PasswordHash { get; init; }
+    public string? ApiKey { get; set; }
     
-    public string Username { get; set; } = string.Empty;
+    public string Username { get; set; }
     public string SafeName => Username.MakeSafe();
     public string[] PreviousUsernames = [];
     
@@ -36,6 +31,8 @@ public sealed class User : IUser, IDisposable,
     }
     
     public Geoloc Geoloc { get; set; }
+    public sbyte TimeZone { get; set; }
+    
     public ClientDetails? ClientDetails { get; set; }
     public Dictionary<GameMode, ModeStats> Stats { get; } = new();
     public List<int> Friends { get; } = [];
@@ -51,7 +48,7 @@ public sealed class User : IUser, IDisposable,
     public PlayerStatus Status { get; } = new();
     
     public bool AppearOffline { get; set; } //TODO
-    public string AwayMessage { get; set; } = string.Empty;
+    public string? AwayMessage { get; set; }
     public bool PmFriendsOnly { get; set; }
     public PresenceFilter Presence { get; set; }
     
@@ -73,10 +70,30 @@ public sealed class User : IUser, IDisposable,
     
     public DateTime LoginTime { get; }
     public DateTime LastActivityTime { get; set; }
-    
+
+    public bool IsOnline => IsOnlineOnStable || IsOnlineOnLazer;
     public bool IsOnlineOnStable => SessionId != Guid.Empty;
     public bool IsOnlineOnLazer { get; set; } //TODO
 
+    public User(
+        PlayerDto userInfo, 
+        Guid? id = null,
+        DateTime? loginTime = null,
+        sbyte timeZone = 0
+    ) {
+        Id = userInfo.Id;
+        Username = userInfo.Username;
+        SessionId = id ?? Guid.Empty;
+        PasswordHash = userInfo.PasswordHash;
+        LoginTime = loginTime ?? DateTime.UtcNow;
+        TimeZone = timeZone;
+        Privileges = (PlayerPrivileges)userInfo.Privileges;
+        RemainingSilence = userInfo.RemainingSilence;
+        RemainingSupporter = userInfo.RemainingSupporter;
+        AwayMessage = userInfo.AwayMessage;
+        ApiKey = userInfo.ApiKey;
+    }
+    
     public override string ToString() => Username;
     
     #region IEquatable

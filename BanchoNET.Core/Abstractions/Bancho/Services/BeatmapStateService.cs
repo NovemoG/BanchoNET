@@ -9,7 +9,6 @@ public class BeatmapStateService(ILogger logger) : StatefulService<int, Beatmap>
     //BeatmapsById already exist in StatefulService
     protected readonly ConcurrentDictionary<string, Beatmap> BeatmapsByMD5 = new();
     protected readonly ConcurrentDictionary<int, BeatmapSet> BeatmapSets = new();
-
-    protected readonly ConcurrentDictionary<string, bool> NotSubmittedBeatmaps = new();
+    
     protected readonly ConcurrentDictionary<string, bool> NeedUpdateBeatmaps = new();
 }

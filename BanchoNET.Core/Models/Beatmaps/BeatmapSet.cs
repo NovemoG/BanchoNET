@@ -21,7 +21,7 @@ public class BeatmapSet : IBeatmapSet,
 	public BeatmapSet(List<ApiBeatmap> apiBeatmaps)
 	{
 		Id = apiBeatmaps[0].BeatmapsetId;
-		LastApiCheck = DateTime.Now;
+		LastApiCheck = DateTime.UtcNow;
 
 		foreach (var beatmap in apiBeatmaps)
 		{
@@ -36,7 +36,7 @@ public class BeatmapSet : IBeatmapSet,
 	
 	public BeatmapSet(List<OsuApiBeatmap> apiBeatmaps)
 	{
-		LastApiCheck = DateTime.Now;
+		LastApiCheck = DateTime.UtcNow;
 		
 		foreach (var beatmap in apiBeatmaps)
 		{

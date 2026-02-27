@@ -57,8 +57,8 @@ public sealed class Player
 
 	public bool Online => Token != Guid.Empty;
 	public bool InMatch => Lobby != null;
-	public bool Silenced => RemainingSilence > DateTime.Now;
-	public bool Supporter => RemainingSupporter > DateTime.Now;
+	public bool Silenced => RemainingSilence > DateTime.UtcNow;
+	public bool Supporter => RemainingSupporter > DateTime.UtcNow;
 	public bool Restricted => !Privileges.HasPrivilege(Unrestricted);
 	public bool IsSpectating => Spectating != null;
 	public bool HasSpectators => Spectators.Count > 0;
@@ -75,7 +75,7 @@ public sealed class Player
 		
 		Token = token != Guid.Empty ? token : Guid.Empty;
 		
-		LoginTime = loginTime ?? DateTime.Now;
+		LoginTime = loginTime ?? DateTime.UtcNow;
 		
 		Username = playerData.Username;
 		SafeName = playerData.SafeName;

@@ -1,4 +1,5 @@
-﻿using BanchoNET.Core.Abstractions.Repositories;
+﻿using BanchoNET.Core.Abstractions.Bancho.Services;
+using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Attributes;
 using Microsoft.AspNetCore.Mvc;
@@ -9,8 +10,10 @@ namespace BanchoNET.Controllers.OsuApi;
 [ApiController]
 [SubdomainAuthorize("osu")]
 public partial class OsuController(
-    IBanchoSession session,
+    IPlayerService playerService,
+    IBeatmapService beatmapService,
     IPlayersRepository players,
+    IChannelService channels,
     IBeatmapsRepository beatmaps,
     IScoresRepository scores,
     IBeatmapHandler beatmapHandler,

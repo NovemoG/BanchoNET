@@ -1,6 +1,6 @@
 ﻿using BanchoNET.Core.Models.Channels;
 using BanchoNET.Core.Models.Multiplayer;
-using BanchoNET.Core.Models.Players;
+using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Utils.Extensions;
 
 namespace BanchoNET.Core.Packets;
@@ -22,10 +22,10 @@ public sealed partial class ServerPackets
 		[DataType.Message] = (bw, data) => bw.WriteOsuMessage((Message)data),
 		[DataType.Channel] = (bw, data) => bw.WriteOsuChannel((Channel)data),
 		[DataType.Match] = (bw, data) => bw.WriteOsuMatch((LobbyData)data),
-		[DataType.Stats] = (bw, data) => bw.WriteUserStats((Player)data),
-		[DataType.BotStats] = (bw, data) => bw.WriteBotStats((Player)data),
-		[DataType.Presence] = (bw, data) => bw.WriteUserPresence((Player)data),
-		[DataType.BotPresence] = (bw, data) => bw.WriteBotPresence((Player)data),
+		[DataType.Stats] = (bw, data) => bw.WriteUserStats((User)data),
+		[DataType.BotStats] = (bw, data) => bw.WriteBotStats((User)data),
+		[DataType.Presence] = (bw, data) => bw.WriteUserPresence((User)data),
+		[DataType.BotPresence] = (bw, data) => bw.WriteBotPresence((User)data),
 		[DataType.ScoreFrame] = (bw, data) => bw.Write((byte)data),
 		[DataType.MapInfoRequest] = (bw, data) => bw.Write((sbyte)data),
 		[DataType.MapInfoReply] = (bw, data) => bw.Write((byte)data),

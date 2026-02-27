@@ -1,4 +1,4 @@
-﻿using BanchoNET.Core.Models.Players;
+﻿using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Utils;
 using Microsoft.AspNetCore.Mvc;
 
@@ -31,7 +31,7 @@ public partial class OsuController
         if (!AppSettings.Debug)
             return Ok("");
         
-        Player? player;
+        User? player;
         if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(passwordMD5))
         {
             player = await players.GetPlayerFromLogin(username, passwordMD5);

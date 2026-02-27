@@ -1,15 +1,21 @@
 ﻿using System.ComponentModel;
+using BanchoNET.Core.Abstractions.Bancho.Coordinators;
+using BanchoNET.Core.Abstractions.Bancho.Services;
 using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Repositories.Histories;
 using BanchoNET.Core.Abstractions.Services;
-using BanchoNET.Core.Models.Players;
+using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils.Maps;
 
 namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler(
-	IBanchoSession session,
+	IPlayerService playerService,
+	IPlayerCoordinator playerCoordinator,
+	IChannelService channels,
+	IMultiplayerService multiplayer,
+	IMultiplayerCoordinator multiplayerCoordinator,
 	IPlayersRepository players,
 	IHistoriesRepository histories,
 	IBeatmapsRepository beatmaps,
@@ -20,7 +26,7 @@ public partial class ClientPacketsHandler(
 {
 	private static readonly string[] IgnoredChannels = ["#highlight", "#userlog"];
 	
-	public async Task ReadPackets(Stream stream, Player player)
+	public async Task ReadPackets(Stream stream, User player)
 	{
 		using var ms = new MemoryStream();
 		await stream.CopyToAsync(ms);

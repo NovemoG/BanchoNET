@@ -235,7 +235,7 @@ public static class BufferExtensions
 		) {
 			bw.Write(player.Id);
 			bw.WriteOsuString(player.Username);
-			bw.Write((byte)(player.Geoloc.TimeZone + 24));
+			bw.Write((byte)(player.TimeZone + 24));
 			bw.Write((byte)player.Geoloc.Country.Numeric);
 			bw.Write((byte)((int)player.ToBanchoPrivileges() | ((int)player.Status.Mode.AsVanilla() << 5)));
 			bw.Write(player.Geoloc.Longitude);

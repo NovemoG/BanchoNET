@@ -17,21 +17,21 @@ public partial class CommandProcessor
     {
         if (args.Length == 0)
         {
-            session.LogoutPlayer(_playerCtx);
+            playerCoordinator.LogoutPlayer(_playerCtx);
             return Task.FromResult("");
         }
 
         if (args.Length > 0 && !_playerCtx.CanUseCommand(PlayerPrivileges.Administrator))
             return Task.FromResult("Not enough privileges to reconnect other players.");
         
-        var targetPlayer = session.GetPlayerByName(args[0]);
+        var targetPlayer = playerService.GetPlayer(args[0]);
         if (targetPlayer == null)
             return Task.FromResult(PlayerNotFound);
         
         if (targetPlayer.IsBot)
             return Task.FromResult("Dummy, you can't reconnect a bot \ud83d\udc7c");
             
-        session.LogoutPlayer(targetPlayer);
+        playerCoordinator.LogoutPlayer(targetPlayer);
 
         return Task.FromResult($"{targetPlayer.Username} has been reconnected.");
     }

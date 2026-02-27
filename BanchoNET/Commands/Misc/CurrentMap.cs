@@ -13,7 +13,7 @@ public partial class CommandProcessor
         aliases: ["c"])]
     private async Task<(bool, string)> CurrentMap(string[] args)
     {
-        var lobby = _playerCtx.Lobby;
+        var lobby = _playerCtx.Match;
         if (lobby == null)
             return (true, "You can only use this command in a multiplayer lobby.");
         

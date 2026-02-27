@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using BanchoNET.Core.Abstractions.Bancho.Services;
 using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Repositories.Histories;
 using BanchoNET.Core.Abstractions.Services;
@@ -6,7 +7,6 @@ using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Privileges;
 using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils;
-using BanchoNET.Services.Repositories;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
@@ -14,10 +14,10 @@ using StackExchange.Redis;
 namespace BanchoNET.Services;
 
 public class BackgroundTasks(
-    IBanchoSession session,
     ILogger logger,
-    IServiceScopeFactory scopeFactory
-    ) : IBackgroundTasks
+    IServiceScopeFactory scopeFactory,
+    IPlayerService playerService
+) : IBackgroundTasks
 {
     public async Task Init()
     {
@@ -54,11 +54,6 @@ public class BackgroundTasks(
             "0 0 */2 * *"); // every 2 days at midnight
         
         RecurringJob.AddOrUpdate(
-            "clearCache",
-            () => ClearPasswordsCache(),
-            "0 0 1 * *"); // every 1st day of the month at midnight
-        
-        RecurringJob.AddOrUpdate(
             "appendMonthlyHistory",
             () => AppendPlayerMonthlyHistory(),
             "0 0 1 * *"); // every 1st day of the month at midnight
@@ -67,22 +62,18 @@ public class BackgroundTasks(
         logger.LogInfo($"Initiated background tasks in {stopwatch.Elapsed}");
     }
 
-    public void ClearPasswordsCache()
-    {
-        logger.LogInfo("Clearing passwords cache.", caller: nameof(BackgroundTasks));
-        
-        session.ClearPasswordsCache();
-    }
-
     #region Rank History
 
     public async Task AppendPlayerRankHistory()
     {
-        logger.LogInfo($"Appending players' daily rank history ({DateTime.Now})", caller: nameof(BackgroundTasks));
-        
-        await Parallel.ForAsync(0, 8, async (i, _) => await ProcessRankHistory((byte)i));
-        
-        logger.LogInfo($"Finished updating players' rank history ({DateTime.Now})", caller: nameof(BackgroundTasks));
+        logger.LogInfo($"Appending players' daily rank history ({DateTime.UtcNow})", caller: nameof(BackgroundTasks));
+
+        for (var i = 0; i < 8; i++)
+        {
+            await ProcessRankHistory((byte)i); //TODO fix with batch updates
+        }
+
+        logger.LogInfo($"Finished updating players' rank history ({DateTime.UtcNow})", caller: nameof(BackgroundTasks));
     }
 
     private async Task ProcessRankHistory(byte mode)
@@ -103,7 +94,7 @@ public class BackgroundTasks(
         mode = mode == 7 ? (byte)(mode + 1) : mode;
         
         var iter = 0;
-        for (int i = 0; i < playerCount; i += limit)
+        for (var i = 0; i < playerCount; i += limit)
         {
             var ranks = await redis.SortedSetRangeByRankWithScoresAsync(
                 key: key,
@@ -111,7 +102,7 @@ public class BackgroundTasks(
                 stop: limit + iter * limit - 1,
                 order: Order.Descending);
                 
-            for (int j = 0; j < ranks.Length; j++)
+            for (var j = 0; j < ranks.Length; j++)
             {
                 var playerId = int.Parse(ranks[j].Element!);
 
@@ -135,11 +126,14 @@ public class BackgroundTasks(
 
     public async Task AppendPlayerMonthlyHistory()
     {
-        logger.LogInfo($"Appending players' monthly history ({DateTime.Now})", caller: nameof(BackgroundTasks));
+        logger.LogInfo($"Appending players' monthly history ({DateTime.UtcNow})", caller: nameof(BackgroundTasks));
+
+        for (var i = 0; i < 8; i++)
+        {
+            await ProcessMonthlyHistory((byte)i); //TODO fix with batch updates
+        }
         
-        await Parallel.ForAsync(0, 8, async (i, _) => await ProcessMonthlyHistory((byte)i));
-        
-        logger.LogInfo($"Finished updating players' monthly history ({DateTime.Now})", caller: nameof(BackgroundTasks));
+        logger.LogInfo($"Finished updating players' monthly history ({DateTime.UtcNow})", caller: nameof(BackgroundTasks));
     }
     
     private async Task ProcessMonthlyHistory(byte mode)
@@ -195,7 +189,7 @@ public class BackgroundTasks(
         var db = scope.ServiceProvider.GetRequiredService<BanchoDbContext>();
         
         var inactivePlayers = await db.Players              //TODO make it configurable
-            .Where(p => !p.Inactive && p.LastActivityTime < DateTime.Now.AddDays(-14))
+            .Where(p => !p.Inactive && p.LastActivityTime < DateTime.UtcNow.AddDays(-14))
             .ExecuteUpdateAsync(p => p.SetProperty(u => u.Inactive, true));
         
         logger.LogInfo($"Marked {inactivePlayers} players as inactive.", caller: nameof(BackgroundTasks));
@@ -227,7 +221,7 @@ public class BackgroundTasks(
 
         foreach (var supporter in expiredSupporters)
         {
-            var player = session.GetPlayerById(supporter);
+            var player = playerService.GetPlayer(supporter);
             if (player == null) continue;
             
             player.Privileges &= ~PlayerPrivileges.Supporter;
@@ -248,7 +242,7 @@ public class BackgroundTasks(
         var random = new Random();
         var botStatuses = AppSettings.BotStatuses;
 
-        foreach (var bot in session.Bots)
+        foreach (var bot in playerService.Bots)
         {
             var status = botStatuses[random.Next(0, botStatuses.Count)];
             var botStatus = bot.Status;

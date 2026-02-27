@@ -1,14 +1,12 @@
-﻿using BanchoNET.Core.Models.Players;
-using BanchoNET.Core.Utils.Extensions;
+﻿using BanchoNET.Core.Models.Users;
 
 namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-    private Task StopSpectating(Player player, BinaryReader br)
+    private Task StopSpectating(User player, BinaryReader br)
     {
         var host = player.Spectating;
-
         if (host == null)
         {
             Console.WriteLine($"{player.Username} tried to stop spectating when not spectating anyone");

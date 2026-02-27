@@ -57,13 +57,13 @@ public partial class CommandProcessor
         if (args.Length == 0)
             return (true, $"No parameter(s) provided. Check available options using '{prefix}mp help' or '{prefix}help mp'.");
 
-        if (_playerCtx.Lobby == null && args[0].ToLower() is not ("help" or "create"))
+        if (_playerCtx.Match == null && args[0].ToLower() is not ("help" or "create"))
             return (true, "You're not in a multiplayer lobby. Use 'mp create [<name>] [<password>]' to create one.");
 
-        if (_playerCtx.Lobby != null && _playerCtx.Lobby.Chat != _channelCtx)
+        if (_playerCtx.Match != null && !_playerCtx.Match.Chat.Equals(_channelCtx))
             return (true, "");
 
-        _match = _playerCtx.Lobby!;
+        _match = _playerCtx.Match!;
 
         return args[0] switch
         {
@@ -98,7 +98,7 @@ public partial class CommandProcessor
 
     private async Task<string> CreateMultiplayerLobby(string[] args)
     {
-        if (_playerCtx.Lobby != null)
+        if (_playerCtx.Match != null)
             return "";
         
         var lobbyDetails = string.Join(' ', args).Split('/', 2);
@@ -119,8 +119,8 @@ public partial class CommandProcessor
 
         foreach (var slot in lobby.Slots)
             slot.Status = SlotStatus.Open;
-        
-        MultiplayerExtensions.CreateLobby(lobby, _playerCtx, await histories.GetMatchId());
+
+        await multiplayer.CreateMatchAsync(lobby, _playerCtx);
         
         await histories.InsertMatchHistory(new Core.Models.Mongo.MultiplayerMatch
         {
@@ -136,7 +136,7 @@ public partial class CommandProcessor
             {
                 Action = Action.MatchCreated,
                 PlayerId = _playerCtx.Id,
-                Date = DateTime.Now
+                Date = DateTime.UtcNow
             });
         
         return "";
@@ -147,7 +147,7 @@ public partial class CommandProcessor
         if (args.Length == 0)
             return $"No username provided. Use '{Prefix}mp invite <username>'.";
 
-        var target = session.GetPlayerByName(args[0]);
+        var target = playerService.GetPlayer(args[0]);
         if (target == null)
             return $"{args[0]} is either offline or you misspelled the username.";
 
@@ -168,7 +168,7 @@ public partial class CommandProcessor
             return $"No name provided. Use '{Prefix}mp name <name>'.";
         
         _match.Name = string.Join(' ', args);
-        _match.EnqueueState();
+        multiplayer.EnqueueStateTo(_match);
         
         Console.WriteLine($"[ChangeLobbyName] {_playerCtx.Username} changed the match name to {_match.Name} in lobby with id {_match.Id}.");
         return $"Match name changed to {_match.Name}";
@@ -182,12 +182,12 @@ public partial class CommandProcessor
         if (args.Length == 0)
         {
             _match.Password = "";
-            _match.EnqueueState();
+            multiplayer.EnqueueStateTo(_match);
             return "Password removed.";
         }
         
         _match.Password = string.Join(' ', args);
-        _match.EnqueueState();
+        multiplayer.EnqueueStateTo(_match);
         
         Console.WriteLine($"[ChangeLobbyPassword] {_playerCtx.Username} changed match password to {_match.Password} in lobby with id {_match.Id}.");
         return $"Match password changed to {_match.Password}.";
@@ -239,13 +239,13 @@ public partial class CommandProcessor
             var slot = _match.Slots[i];
             
             if ((slot.Status & SlotStatus.PlayerInSlot) != 0)
-                slot.Player!.LeaveMatchToLobby();
+                multiplayer.LeavePlayerToLobby(slot.Player!);
             
             slot.Reset();
             slot.Status = SlotStatus.Locked;
         }
         
-        _match.EnqueueState();
+        multiplayer.EnqueueStateTo(_match);
 
         return $"Changed size to: {size}";
     }
@@ -278,7 +278,7 @@ public partial class CommandProcessor
         if (args.Length > 2)
             SetLobbySize(args[2..]);
         
-        _match.EnqueueState();
+        multiplayer.EnqueueStateTo(_match);
         return $"Changed lobby properties to: Team mode: {_match.Type}, Score mode: {_match.WinCondition}, Size: {_match.Slots.Count(s => s.Status != SlotStatus.Locked)}.";
     }
     
@@ -322,7 +322,7 @@ public partial class CommandProcessor
             oldSlot.Status = SlotStatus.Open;
         }
         
-        _match.EnqueueState();
+        multiplayer.EnqueueStateTo(_match);
         
         return $"Moved {args[0]} to slot {args[1]}.";
     }
@@ -342,7 +342,7 @@ public partial class CommandProcessor
         var target = slot.Player!;
         _match.HostId = target.Id;
         
-        _match.EnqueueState();
+        multiplayer.EnqueueStateTo(_match);
         
         await histories.AddMatchAction(
             _match.LobbyId,
@@ -350,7 +350,7 @@ public partial class CommandProcessor
             {
                 Action = Action.HostChanged,
                 PlayerId = target.Id,
-                Date = DateTime.Now
+                Date = DateTime.UtcNow
             });
         
         return $"Changed host to {target.Username}.";
@@ -362,7 +362,7 @@ public partial class CommandProcessor
             return "";
         
         _match.HostId = -1;
-        _match.EnqueueState();
+        multiplayer.EnqueueStateTo(_match);
         
         await histories.AddMatchAction(
             _match.LobbyId,
@@ -370,7 +370,7 @@ public partial class CommandProcessor
             {
                 Action = Action.HostChanged,
                 PlayerId = 0,
-                Date = DateTime.Now
+                Date = DateTime.UtcNow
             });
         
         return "Removed host.";
@@ -384,7 +384,7 @@ public partial class CommandProcessor
         if (!_match.InProgress)
             return "Match is not in progress.";
         
-        _match.End();
+        multiplayer.EndMatch(_match);
 
         await histories.MapAborted(_match.LobbyId);
         
@@ -419,7 +419,7 @@ public partial class CommandProcessor
         };
         
         slot.Status = SlotStatus.NotReady;
-        _match.EnqueueState(false);
+        multiplayer.EnqueueStateTo(_match, false);
         
         return $"Moved {slot.Player!.Username} to {slot.Team} team.";
     }
@@ -448,7 +448,7 @@ public partial class CommandProcessor
         _match.BeatmapName = beatmap.FullName();
         _match.Mode = gameMode;
         
-        _match.EnqueueState();
+        multiplayer.EnqueueStateTo(_match);
         
         return "";
     }
@@ -491,7 +491,7 @@ public partial class CommandProcessor
 
                 result |= modParse;
             }
-            else _match.Chat.SendBotMessage($"Invalid mod: {modName}", session.BanchoBot);
+            else _match.Chat.SendBotMessage($"Invalid mod: {modName}", playerService.BanchoBot);
             
             if (FreemodAliases.Any(a => a.Equals(modName, StringComparison.CurrentCultureIgnoreCase)))
             {
@@ -504,7 +504,7 @@ public partial class CommandProcessor
             result &= ~Mods.InvalidMods;
         
         _match.Mods = result;
-        _match.EnqueueState();
+        multiplayer.EnqueueStateTo(_match);
 
         switch (result)
         {
@@ -534,18 +534,18 @@ public partial class CommandProcessor
         if (_match.Timer != null)
         {
             _match.Timer.Stop();
-            _match.Chat.SendBotMessage("Updating current timer.", session.BanchoBot);
+            _match.Chat.SendBotMessage("Updating current timer.", playerService.BanchoBot);
         }
 
         _match.ReadyAllPlayers();
-        _match.EnqueueState(false);
+        multiplayer.EnqueueStateTo(_match, false);
         
         _match.Timer = new LobbyTimer(_match, seconds, true, async () =>
             await histories.MapStarted(
                 _match.LobbyId,
                 new ScoresEntry
                 {
-                    StartDate = DateTime.Now,
+                    StartDate = DateTime.UtcNow,
                     GameMode = (byte)_match.Mode,
                     WinCondition = (byte)_match.WinCondition,
                     LobbyType = (byte)_match.Type,
@@ -571,13 +571,13 @@ public partial class CommandProcessor
         if (_match.Timer != null)
         {
             _match.Timer.Stop();
-            _match.Chat.SendBotMessage("Updating current timer.", session.BanchoBot);
+            _match.Chat.SendBotMessage("Updating current timer.", playerService.BanchoBot);
         }
         
         var timer = new LobbyTimer(_match, seconds);
         _match.Timer = timer;
         
-        timer.OnSendMessage += message => _match.Chat.SendBotMessage(message, session.BanchoBot);
+        timer.OnSendMessage += message => _match.Chat.SendBotMessage(message, playerService.BanchoBot);
         
         return "";
     }
@@ -609,7 +609,7 @@ public partial class CommandProcessor
         
         var player = slot.Player!;
         
-        player.LeaveMatchToLobby();
+        multiplayer.LeavePlayerToLobby(player);
         player.SendBotMessage("You've been kicked from the lobby.");
         
         await histories.AddMatchAction(
@@ -618,7 +618,7 @@ public partial class CommandProcessor
             {
                 Action = Action.Left,
                 PlayerId = player.Id,
-                Date = DateTime.Now
+                Date = DateTime.UtcNow
             });
 
         if (_match.IsEmpty())
@@ -629,7 +629,7 @@ public partial class CommandProcessor
                 {
                     Action = Action.MatchDisbanded,
                     PlayerId = player.Id,
-                    Date = DateTime.Now
+                    Date = DateTime.UtcNow
                 });
         }
         
@@ -659,7 +659,7 @@ public partial class CommandProcessor
         {
             var player = slot.Player!;
             
-            player.LeaveMatchToLobby();
+            multiplayer.LeavePlayerToLobby(player);
             player.SendBotMessage("You've been banned from the lobby.");
         }
         
@@ -679,19 +679,19 @@ public partial class CommandProcessor
         {
             var player = await players.GetPlayerOrOffline(username);
 
-            if (player == _playerCtx)
-            {
-                _match.Chat.SendBotMessage("You're already a referee.", session.BanchoBot);
-                continue;
-            }
             if (player == null)
             {
-                _match.Chat.SendBotMessage($"Player {username} doesn't exist", session.BanchoBot);
+                _match.Chat.SendBotMessage($"Player {username} doesn't exist", playerService.BanchoBot);
+                continue;
+            }
+            if (player.Equals(_playerCtx))
+            {
+                _match.Chat.SendBotMessage("You're already a referee.", playerService.BanchoBot);
                 continue;
             }
             if (_match.Refs.Contains(player.Id))
             {
-                _match.Chat.SendBotMessage($"{player.Username} is already a referee.", session.BanchoBot);
+                _match.Chat.SendBotMessage($"{player.Username} is already a referee.", playerService.BanchoBot);
                 continue;
             }
             _match.Refs.Add(player.Id);
@@ -714,24 +714,24 @@ public partial class CommandProcessor
         {
             var player = await players.GetPlayerOrOffline(username);
             
-            if (player == _playerCtx)
-            {
-                _match.Chat.SendBotMessage("You can't remove yourself from referees.", session.BanchoBot);
-                continue;
-            }
             if (player == null)
             {
-                _match.Chat.SendBotMessage($"Player {username} doesn't exist", session.BanchoBot);
+                _match.Chat.SendBotMessage($"Player {username} doesn't exist", playerService.BanchoBot);
+                continue;
+            }
+            if (player.Equals(_playerCtx))
+            {
+                _match.Chat.SendBotMessage("You can't remove yourself from referees.", playerService.BanchoBot);
                 continue;
             }
             if (!_match.Refs.Contains(player.Id))
             {
-                _match.Chat.SendBotMessage($"{player.Username} is not a referee.", session.BanchoBot);
+                _match.Chat.SendBotMessage($"{player.Username} is not a referee.", playerService.BanchoBot);
                 continue;
             }
             if (_match.CreatorId == player.Id)
             {
-                _match.Chat.SendBotMessage("Can't remove creator of the lobby.", session.BanchoBot);
+                _match.Chat.SendBotMessage("Can't remove creator of the lobby.", playerService.BanchoBot);
                 continue;
             }
             
@@ -763,17 +763,17 @@ public partial class CommandProcessor
             {
                 Action = Action.Left,
                 PlayerId = slot.Player.Id,
-                Date = DateTime.Now
+                Date = DateTime.UtcNow
             });
             
-            slot.Player.LeaveMatchToLobby();
+            multiplayer.LeavePlayerToLobby(slot.Player);
         }
         
         actions.Add(new ActionEntry
         {
             Action = Action.MatchDisbanded,
             PlayerId = _playerCtx.Id,
-            Date = DateTime.Now
+            Date = DateTime.UtcNow
         });
 
         await histories.AddMatchActions(_match.LobbyId, actions);

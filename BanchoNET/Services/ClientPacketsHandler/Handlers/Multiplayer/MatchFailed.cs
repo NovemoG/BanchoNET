@@ -1,4 +1,4 @@
-﻿using BanchoNET.Core.Models.Players;
+﻿using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils.Extensions;
 
@@ -6,16 +6,18 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private Task MatchFailed(Player player, BinaryReader br)
+	private Task MatchFailed(User player, BinaryReader br)
 	{
-		var lobby = player.Lobby;
-		if (lobby == null) return Task.CompletedTask;
+		var match = player.Match;
+		if (match == null) return Task.CompletedTask;
 
-		var slotId = lobby.GetPlayerSlotId(player);
+		var slotId = match.GetPlayerSlotId(player);
 		if (slotId == -1) throw new Exception("Player was not found in expected lobby");
 		
-		lobby.Enqueue(new ServerPackets().MatchPlayerFailed(slotId).FinalizeAndGetContent(),
-			toLobby: false);
+		multiplayerCoordinator.EnqueueTo(match,
+			new ServerPackets().MatchPlayerFailed(slotId).FinalizeAndGetContent(),
+			toLobby: false
+		);
 		
 		return Task.CompletedTask;
 	}

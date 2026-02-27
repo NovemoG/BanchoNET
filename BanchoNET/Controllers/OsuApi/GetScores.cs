@@ -3,6 +3,7 @@ using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Scores;
+using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
@@ -24,8 +25,8 @@ public partial class OsuController
 		[FromQuery(Name = "i")] int setId,
 		[FromQuery(Name = "mods")] int modsValue,
 		[FromQuery(Name = "h")] string? mapPackageHash,
-		[FromQuery(Name = "a")] string? aqnFilesFoundValue)
-	{
+		[FromQuery(Name = "a")] string? aqnFilesFoundValue
+	) {
 		var fromEditor = fromEditorValue == "1";
 		var aqnFilesFound = aqnFilesFoundValue == "1";
 		
@@ -33,7 +34,7 @@ public partial class OsuController
 		if (player == null)
 			return Unauthorized("auth fail");
 
-		if (session.BeatmapNeedsUpdate(mapMD5))
+		if (beatmapService.BeatmapNeedsUpdate(mapMD5))
 			return Responses.BytesContentResult("1|false");
 		
 		var beatmap = await beatmaps.GetBeatmap(beatmapMD5: mapMD5, setId: setId);
@@ -41,7 +42,7 @@ public partial class OsuController
 		{
 			if (await beatmapHandler.CheckIfMapExistsOnBanchoByFilename(mapFilename))
 			{
-				session.CacheNeedsUpdateBeatmap(mapMD5);
+				beatmapService.InsertNeedsUpdateBeatmap(mapMD5);
 				return Ok("1|false");
 			}
 			//any string can be provided through this endpoint so we shouldn't cache any
@@ -70,9 +71,9 @@ public partial class OsuController
 			player.Status.Mode = mode;
 			player.Status.CurrentMods = mods;
 
-			if (!player.Restricted)
+			if (!player.IsRestricted)
 			{
-				session.EnqueueToPlayers(new ServerPackets()
+				playerService.EnqueueToPlayers(new ServerPackets()
 					.UserStats(player)
 					.FinalizeAndGetContent());
 			}
@@ -116,8 +117,8 @@ public partial class OsuController
 		Beatmap beatmap,
 		GameMode mode,
 		Mods mods,
-		Player player)
-	{
+		User player
+	) {
 		var type = (LeaderboardType)leaderboardType;
 		var leaderboard = await scores.GetBeatmapLeaderboard(beatmap.MD5, mode, type, mods, player);
 		
@@ -142,7 +143,7 @@ public partial class OsuController
 		return $"{(int)dto.Id}|{dto.Player.Username}|{(int)(scoreAsPp ? MathF.Round(dto.PP) : dto.Score)}|{dto.MaxCombo}|{dto.Count50}|{dto.Count100}|{dto.Count300}|{dto.Misses}|{dto.Katus}|{dto.Gekis}|{dto.Perfect}|{dto.Mods}|{dto.PlayerId}|{position}|{DateTimeToUnix(dto.PlayTime)}|1";	//TODO this '1' tells client whether score has a saved replay
 	}
 
-	private static string FormatBestScore(Score score, Player player)
+	private static string FormatBestScore(Score score, User player)
 	{
 		var scoreAsPp = score.Mode >= GameMode.RelaxStd || AppSettings.SortLeaderboardByPP;
 		return $"{(int)score.Id!}|{player.Username}|{(int)(scoreAsPp ? MathF.Round(score.PP) : score.TotalScore)}|{score.MaxCombo}|{score.Count50}|{score.Count100}|{score.Count300}|{score.Misses}|{score.Katus}|{score.Gekis}|{score.Perfect}|{(int)score.Mods}|{player.Id}|{score.LeaderboardPosition}|{DateTimeToUnix(score.ClientTime)}|1"; //TODO this '1' tells client whether score has a saved replay

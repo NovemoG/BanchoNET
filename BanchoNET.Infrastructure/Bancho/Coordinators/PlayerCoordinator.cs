@@ -16,8 +16,8 @@ public class PlayerCoordinator(
     public bool LogoutPlayer(
         User player
     ) {
-        logger.LogDebug($"Logout time difference: {DateTime.Now - player.LoginTime}");
-        if (DateTime.Now - player.LoginTime < TimeSpan.FromSeconds(1)) return false;
+        logger.LogDebug($"Logout time difference: {DateTime.UtcNow - player.LoginTime}");
+        if (DateTime.UtcNow - player.LoginTime < TimeSpan.FromSeconds(1)) return false;
 
         if (player.InMatch) multiplayer.LeavePlayer(player);
 

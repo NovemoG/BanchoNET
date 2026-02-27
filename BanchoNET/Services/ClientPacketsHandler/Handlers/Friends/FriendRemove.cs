@@ -1,13 +1,13 @@
-﻿using BanchoNET.Core.Models.Players;
+﻿using BanchoNET.Core.Models.Users;
 
 namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-    private async Task FriendRemove(Player player, BinaryReader br)
+    private async Task FriendRemove(User player, BinaryReader br)
     {
         var friendId = br.ReadInt32();
-        var target = session.GetPlayerById(friendId);
+        var target = playerService.GetPlayer(friendId);
 
         if (target == null)
         {
@@ -18,7 +18,7 @@ public partial class ClientPacketsHandler
         if (target.IsBot)
             return;
         
-        player.LastActivityTime = DateTime.Now;
+        player.LastActivityTime = DateTime.UtcNow;
         await players.RemoveFriend(player, target.Id);
     }
 }

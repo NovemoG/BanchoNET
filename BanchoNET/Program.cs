@@ -13,6 +13,7 @@ using BanchoNET.Core.Models.Channels;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
+using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
 using BanchoNET.Infrastructure.Bancho.Coordinators;
@@ -302,19 +303,19 @@ public class Program
 	{
 		var db = scope.ServiceProvider.GetRequiredService<BanchoDbContext>();
 		var players = scope.ServiceProvider.GetRequiredService<IPlayersRepository>();
-		var session = scope.ServiceProvider.GetRequiredService<IBanchoSession>();
+		var playerService = scope.ServiceProvider.GetRequiredService<IPlayerService>();
 
 		var dbBanchoBot = db.Players.FirstOrDefault(p => p.Id == 1);
 		if (dbBanchoBot != null)
 		{
-			dbBanchoBot.RemainingSupporter = DateTime.Now.AddYears(100);
-			dbBanchoBot.LastActivityTime = DateTime.Now.AddYears(100);
+			dbBanchoBot.RemainingSupporter = DateTime.UtcNow.AddYears(100);
+			dbBanchoBot.LastActivityTime = DateTime.UtcNow.AddYears(100);
 			db.SaveChanges();
 
-			var banchoBot = new Player(dbBanchoBot);
+			var banchoBot = new User(dbBanchoBot);
 
 			players.GetPlayerRelationships(banchoBot);
-			session.AppendBot(banchoBot);
+			playerService.InsertPlayer(banchoBot, true);
 			return;
 		}
 
@@ -335,20 +336,20 @@ public class Program
 			Email = "ban@cho.bot",
 			PasswordHash = "1",
 			Country = "a2",
-			RemainingSupporter = DateTime.Now.AddYears(100),
-			CreationTime = DateTime.Now,
-			LastActivityTime = DateTime.Now.AddYears(100),
+			RemainingSupporter = DateTime.UtcNow.AddYears(100),
+			CreationTime = DateTime.UtcNow,
+			LastActivityTime = DateTime.UtcNow.AddYears(100),
 			Privileges = (int)(PlayerPrivileges.Verified | PlayerPrivileges.Staff | PlayerPrivileges.Unrestricted),
 		});
 		db.SaveChanges();
 		
-		session.AppendBot(new Player(entry.Entity));
+		playerService.InsertPlayer(new User(entry.Entity), true);
 	}
 
 	private static void InitChannels(IServiceScope scope)
 	{
 		var db = scope.ServiceProvider.GetRequiredService<BanchoDbContext>();
-		var session = scope.ServiceProvider.GetRequiredService<IBanchoSession>();
+		var channels = scope.ServiceProvider.GetRequiredService<IChannelService>();
 
 		if (!db.Channels.Any())
 		{
@@ -367,7 +368,7 @@ public class Program
 					WritePrivileges = (int)channel.WritePrivileges
 				});
 				
-				session.InsertChannel(channel);
+				channels.InsertChannel(channel);
 			}
 
 			db.SaveChanges();
@@ -377,7 +378,7 @@ public class Program
 			Logger.Shared.LogInfo("Loading channels from database.", "Init");
 			
 			foreach (var channel in db.Channels.ToList())
-				session.InsertChannel(new Channel(channel));
+				channels.InsertChannel(new Channel(channel));
 		}
 	}
 

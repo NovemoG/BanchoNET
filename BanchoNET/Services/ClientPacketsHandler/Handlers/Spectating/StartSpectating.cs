@@ -1,16 +1,14 @@
-﻿using BanchoNET.Core.Models.Players;
+﻿using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Packets;
-using BanchoNET.Core.Utils.Extensions;
 
 namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-    private Task StartSpectating(Player player, BinaryReader br)
+    private Task StartSpectating(User player, BinaryReader br)
     {
         var targetId = br.ReadInt32();
-        var target = session.GetPlayerById(targetId);
-
+        var target = playerService.GetPlayer(targetId);
         if (target == null)
         {
             Console.WriteLine("Tried spectating a player that doesn't exist");
@@ -21,7 +19,7 @@ public partial class ClientPacketsHandler
         var currentHost = player.Spectating;
         if (currentHost != null)
         {
-            if (currentHost == target)
+            if (currentHost.Equals(target))
             {
                 target.Enqueue(new ServerPackets()
                     .SpectatorJoined(player.Id)

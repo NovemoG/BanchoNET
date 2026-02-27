@@ -1,4 +1,5 @@
 ﻿using BanchoNET.Core.Models.Players;
+using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
@@ -7,11 +8,11 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private async Task SendPrivateMessage(Player player, BinaryReader br)
+	private async Task SendPrivateMessage(User player, BinaryReader br)
 	{
 		var message = br.ReadOsuMessage();
 
-		if (player.Silenced) return;
+		if (player.IsSilenced) return;
 
 		var txt = message.Content.Trim();
 		if (txt == string.Empty) return;
@@ -26,7 +27,7 @@ public partial class ClientPacketsHandler
 			return;
 		}
 
-		if (!target.Online)
+		if (!target.IsOnline)
 			await players.GetPlayerRelationships(target);
 		
 		if (target.PmFriendsOnly && !target.Friends.Contains(player.Id))
@@ -37,7 +38,7 @@ public partial class ClientPacketsHandler
 			return;
 		}
 
-		if (target.Silenced)
+		if (target.IsSilenced)
 		{
 			player.Enqueue(new ServerPackets()
 				.TargetSilenced(target.Username)
@@ -57,10 +58,10 @@ public partial class ClientPacketsHandler
 		if (target.Status.Activity == Activity.Afk && !string.IsNullOrEmpty(target.AwayMessage))
 			player.SendMessage(target.AwayMessage, target);
 
-		if (session.Bots.FirstOrDefault(b => b.Username == target.Username) == null)
+		if (playerService.Bots.FirstOrDefault(b => b.Username == target.Username) == null)
 		{
 			var read = false;
-			if (target.Online)
+			if (target.IsOnline)
 			{
 				target.SendMessage(txt, player);
 				read = true;
@@ -105,6 +106,6 @@ public partial class ClientPacketsHandler
 			}
 		}
 		
-		player.LastActivityTime = DateTime.Now;
+		player.LastActivityTime = DateTime.UtcNow;
 	}
 }

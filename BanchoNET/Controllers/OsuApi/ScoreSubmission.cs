@@ -8,6 +8,7 @@ using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Channels;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Scores;
+using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
@@ -104,9 +105,9 @@ public partial class OsuController
             player.Status.Mode = score.Mode;
             player.Status.CurrentMods = score.Mods;
 			
-            if (!player.Restricted)
+            if (!player.IsRestricted)
             {
-                session.EnqueueToPlayers(new ServerPackets()
+                playerService.EnqueueToPlayers(new ServerPackets()
                     .UserStats(player)
                     .FinalizeAndGetContent());
             }
@@ -175,7 +176,7 @@ public partial class OsuController
         }
         
         score.Player = player;
-        player.RecentScore = await scores.InsertScore(score, beatmap.MD5, player.Restricted);
+        player.RecentScore = await scores.InsertScore(score, beatmap.MD5, player.IsRestricted);
 
         if (score.Passed)
         {
@@ -188,7 +189,7 @@ public partial class OsuController
             {
                 logger.LogWarning($"{player.Username} submitted a replay file with invalid length.");
 
-                if (!player.Restricted)
+                if (!player.IsRestricted)
                     await players.RestrictPlayer(player, "Submitted score with invalid replay length");
             }
         }
@@ -207,9 +208,9 @@ public partial class OsuController
         await RecalculatePlayerStats(beatmap, stats, player, score, previousBest, bestWithMods);
         await players.UpdatePlayerStats(player, score.Mode);
 
-        if (!player.Restricted)
+        if (!player.IsRestricted)
         {
-            session.EnqueueToPlayers(new ServerPackets()
+            playerService.EnqueueToPlayers(new ServerPackets()
                 .UserStats(player)
                 .FinalizeAndGetContent());
 
@@ -260,7 +261,7 @@ public partial class OsuController
                 $"achievements-new:{achievements}",
             ];
 
-            if (beatmap.AwardsPP() && !player.Restricted)
+            if (beatmap.AwardsPP() && !player.IsRestricted)
             {
                 //var unlockedAchievements = new List<Achievement>();
                 //TODO server achievements
@@ -321,7 +322,7 @@ public partial class OsuController
     private async Task RecalculatePlayerStats(
         Beatmap beatmap,
         ModeStats stats,
-        Player player,
+        User player,
         Score score,
         Score? prevBest,
         Score? bestWithMods)
@@ -370,11 +371,11 @@ public partial class OsuController
         }
     }
 
-    private async Task AnnounceNewFirstScore(Score score, Player player, Beatmap beatmap)
+    private async Task AnnounceNewFirstScore(Score score, User player, Beatmap beatmap)
     {
-        if (score.LeaderboardPosition == 1 && !player.Restricted)
+        if (score.LeaderboardPosition == 1 && !player.IsRestricted)
         {
-            var announceChannel = session.GetChannel("#announce");
+            var announceChannel = channels.GetChannel("#announce");
             var announcement = $@"\x01ACTION achieved #1 on {beatmap.Embed()} with {score.Acc:F2}% and {score.PP}pp.";
 			
             var currentBest = await scores.GetBestBeatmapScore(beatmap.MD5, score.Mode);

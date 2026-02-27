@@ -1,4 +1,5 @@
 ﻿using BanchoNET.Core.Models.Channels;
+using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Multiplayer;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
@@ -154,7 +155,7 @@ public static class PlayerExtensions
 		Logger.Shared.LogDebug($"{target.Username} is no longer spectating {host.Username}", nameof(PlayerExtensions));
 	}
 
-	public static bool BlockedByPlayer(this Player player, int targetId)
+	public static bool BlockedByPlayer(this User player, int targetId)
 	{
 		return player.Blocked.Contains(targetId);
 	}

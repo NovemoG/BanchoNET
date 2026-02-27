@@ -1,33 +1,33 @@
 ﻿using BanchoNET.Core.Models;
-using BanchoNET.Core.Models.Players;
+using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Utils.Extensions;
 
 namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private Task MatchChangeMods(Player player, BinaryReader br)
+	private Task MatchChangeMods(User player, BinaryReader br)
 	{
 		var mods = (Mods)br.ReadInt32();
-		var lobby = player.Lobby;
+		var match = player.Match;
 
-		if (lobby == null) return Task.CompletedTask;
-		if (lobby.Freemods)
+		if (match == null) return Task.CompletedTask;
+		if (match.Freemods)
 		{
-			if (player.Id == lobby.HostId)
-				lobby.Mods = mods & Mods.SpeedChangingMods;
+			if (player.Id == match.HostId)
+				match.Mods = mods & Mods.SpeedChangingMods;
 
-			lobby.GetPlayerSlot(player)!.Mods = mods & ~Mods.SpeedChangingMods;
+			match.GetPlayerSlot(player)!.Mods = mods & ~Mods.SpeedChangingMods;
 		}
 		else
 		{
-			if (player.Id != lobby.HostId)
+			if (player.Id != match.HostId)
 				return Task.CompletedTask;
 
-			lobby.Mods = mods;
+			match.Mods = mods;
 		}
 
-		lobby.EnqueueState();
+		multiplayerCoordinator.EnqueueStateTo(match);
 		return Task.CompletedTask;
 	}
 }

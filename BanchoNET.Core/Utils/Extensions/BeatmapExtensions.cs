@@ -6,6 +6,12 @@ namespace BanchoNET.Core.Utils.Extensions;
 
 public static class BeatmapExtensions
 {
+	private static readonly TimeSpan[] ApiCheckIntervals = [
+		TimeSpan.FromDays(1),
+		TimeSpan.FromDays(3),
+		TimeSpan.FromDays(7)
+	];
+	
 	public static BeatmapStatus ToBeatmapStatus(this string status)
 	{
 		return status switch
@@ -92,6 +98,20 @@ public static class BeatmapExtensions
 			8 => 4,
 			_ => 4
 		};
+	}
+	
+	public static bool ShouldRecheckApi(
+		this Beatmap map
+	) {
+		if (map.IsRankedOfficially) return false;
+		if (map.NextApiCheck < DateTime.UtcNow)
+		{
+			map.NextApiCheck = DateTime.UtcNow.Add(ApiCheckIntervals[map.ApiChecks]);
+			if (map.ApiChecks < 3) map.ApiChecks++;
+			return true;
+		}
+
+		return false;
 	}
 
 	public static BeatmapDto ToDto(this Beatmap beatmap)

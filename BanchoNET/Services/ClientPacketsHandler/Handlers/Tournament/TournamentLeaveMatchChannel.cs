@@ -1,22 +1,21 @@
-﻿using BanchoNET.Core.Models.Players;
-using BanchoNET.Core.Utils.Extensions;
+﻿using BanchoNET.Core.Models.Users;
 
 namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-    private Task TournamentLeaveMatchChannel(Player player, BinaryReader br)
+    private Task TournamentLeaveMatchChannel(User player, BinaryReader br)
     {
         var matchId = br.ReadInt32();
         
         if (matchId is < 0 or > short.MaxValue)
             return Task.CompletedTask;
         
-        var match = session.GetLobby((ushort)matchId);
+        var match = multiplayer.GetMatch((ushort)matchId);
         if (match == null)
             return Task.CompletedTask;
-        
-        player.LeaveChannel(match.Chat);
+
+        channels.LeavePlayer(match.Chat, player);
         match.TourneyClients.Remove(player.Id);
         
         return Task.CompletedTask;

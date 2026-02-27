@@ -1,5 +1,5 @@
 ﻿using BanchoNET.Core.Models.Multiplayer;
-using BanchoNET.Core.Models.Players;
+using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils.Extensions;
 
@@ -7,18 +7,20 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private Task MatchLoadComplete(Player player, BinaryReader br)
+	private Task MatchLoadComplete(User player, BinaryReader br)
 	{
-		var lobby = player.Lobby;
-		if (lobby == null) return Task.CompletedTask;
+		var match = player.Match;
+		if (match == null) return Task.CompletedTask;
 
-		var slot = lobby.GetPlayerSlot(player)!;
+		var slot = match.GetPlayerSlot(player)!;
 		slot.Loaded = true;
 
-		if (!lobby.Slots.Any(s => s is { Status: SlotStatus.Playing, Loaded: false }))
+		if (!match.Slots.Any(s => s is { Status: SlotStatus.Playing, Loaded: false }))
 		{
-			lobby.Enqueue(new ServerPackets().MatchAllPlayersLoaded().FinalizeAndGetContent(),
-				toLobby: false);
+			multiplayerCoordinator.EnqueueTo(match,
+				new ServerPackets().MatchAllPlayersLoaded().FinalizeAndGetContent(),
+				toLobby: false
+			);
 		}
 
 		return Task.CompletedTask;

@@ -59,7 +59,7 @@ public partial class CommandProcessor
         var player = await players.GetPlayerOrOffline(username);
         if (player == null) return PlayerNotFound;
 
-        if (player.RemainingSilence < DateTime.Now)
+        if (player.RemainingSilence < DateTime.UtcNow)
             return "Player is not silenced.";
 
         var result = await players.UnsilencePlayer(player, reason);

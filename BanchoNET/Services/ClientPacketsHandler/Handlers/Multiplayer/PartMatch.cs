@@ -1,5 +1,5 @@
 ﻿using BanchoNET.Core.Models.Mongo;
-using BanchoNET.Core.Models.Players;
+using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Utils.Extensions;
 using Action = BanchoNET.Core.Models.Mongo.Action;
 
@@ -7,33 +7,33 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private async Task PartMatch(Player player, BinaryReader br)
+	private async Task PartMatch(User player, BinaryReader br)
 	{
-		var lobby = player.Lobby;
-
-		if (player.LeaveMatch())
+		var match = player.Match;
+		
+		if (multiplayerCoordinator.LeavePlayer(player))
 		{
 			await histories.AddMatchAction(
-				lobby!.LobbyId,
+				match!.LobbyId,
 				new ActionEntry
 				{
 					Action = Action.Left,
 					PlayerId = player.Id,
-					Date = DateTime.Now
+					Date = DateTime.UtcNow
 				});
 
-			if (lobby.IsEmpty())
+			if (match.IsEmpty())
 			{
 				await histories.AddMatchAction(
-					lobby.LobbyId,
+					match.LobbyId,
 					new ActionEntry
 					{
 						Action = Action.MatchDisbanded,
 						PlayerId = player.Id,
-						Date = DateTime.Now
+						Date = DateTime.UtcNow
 					});
 			}
 		}
-		player.LastActivityTime = DateTime.Now;
+		player.LastActivityTime = DateTime.UtcNow;
 	}
 }

@@ -1,4 +1,6 @@
-﻿using BanchoNET.Core.Abstractions.Repositories;
+﻿using BanchoNET.Core.Abstractions.Bancho.Coordinators;
+using BanchoNET.Core.Abstractions.Bancho.Services;
+using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Attributes;
 using BanchoNET.Core.Packets;
@@ -10,7 +12,9 @@ namespace BanchoNET.Controllers.Cho;
 [ApiController]
 [SubdomainAuthorize("c", "c4", "cho")]
 public partial class ChoController(
-	IBanchoSession session,
+	IPlayerService playerService,
+	IPlayerCoordinator playerCoordinator,
+	IChannelService channels,
 	IGeolocService geoloc,
 	IOsuVersionService version,
 	IPlayersRepository players,
@@ -27,7 +31,7 @@ public partial class ChoController(
 		if (string.IsNullOrEmpty(osuToken))
 			return await Login();
 
-		var player = session.GetPlayerByToken(new Guid(osuToken));
+		var player = playerService.GetPlayer(new Guid(osuToken));
 		if (player == null)
 		{
 			return new ServerPackets()

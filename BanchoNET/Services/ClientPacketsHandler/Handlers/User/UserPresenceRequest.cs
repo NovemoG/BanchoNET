@@ -1,4 +1,4 @@
-﻿using BanchoNET.Core.Models.Players;
+﻿using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils.Extensions;
 
@@ -6,13 +6,13 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-    private Task UserPresenceRequest(Player player, BinaryReader br)
+    private Task UserPresenceRequest(User player, BinaryReader br)
     {
         var userIds = br.ReadOsuListInt32();
         
         foreach (var id in userIds)
         {
-            var target = session.GetPlayerById(id);
+            var target = playerService.GetPlayer(id);
             if (target == null) continue;
             
             using var presencePacket = new ServerPackets();

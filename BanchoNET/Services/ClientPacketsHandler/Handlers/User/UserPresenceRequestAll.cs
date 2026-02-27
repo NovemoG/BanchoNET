@@ -1,11 +1,11 @@
-﻿using BanchoNET.Core.Models.Players;
+﻿using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Packets;
 
 namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-    private Task UserPresenceRequestAll(Player player, BinaryReader br)
+    private Task UserPresenceRequestAll(User player, BinaryReader br)
     {
         // Only used when there are >256 players seen by client
         
@@ -13,10 +13,10 @@ public partial class ClientPacketsHandler
         
         using var presencePacket = new ServerPackets();
         
-        foreach (var p in session.Players)
+        foreach (var p in playerService.Players)
             presencePacket.UserPresence(p);
 
-        foreach (var bot in session.Bots)
+        foreach (var bot in playerService.Bots)
             presencePacket.BotPresence(bot);
         
         player.Enqueue(presencePacket.GetContent());

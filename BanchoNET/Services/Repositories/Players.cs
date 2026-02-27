@@ -1,12 +1,14 @@
-﻿using BanchoNET.Core.Abstractions.Repositories;
+﻿using BanchoNET.Core.Abstractions.Bancho.Coordinators;
+using BanchoNET.Core.Abstractions.Bancho.Services;
+using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Repositories.Histories;
-using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Mongo;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
 using BanchoNET.Core.Models.Scores;
+using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils.Extensions;
 using Microsoft.EntityFrameworkCore;
@@ -16,18 +18,24 @@ namespace BanchoNET.Services.Repositories;
 
 public class PlayersRepository : IPlayersRepository
 {
-	private readonly IBanchoSession _session;
 	private readonly BanchoDbContext _dbContext;
+	private readonly IPlayerService _players;
+	private readonly IPlayerCoordinator _playerCoordinator;
+	private readonly IMultiplayerCoordinator _multiplayer;
 	private readonly IDatabase _redis;
 	private readonly IHistoriesRepository _histories;
 	
 	public PlayersRepository(
-		IBanchoSession session,
 		BanchoDbContext dbContext,
+		IPlayerService players,
+		IPlayerCoordinator playerCoordinator,
+		IMultiplayerCoordinator multiplayer,
 		IConnectionMultiplexer redis,
 		IHistoriesRepository histories)
 	{
-		_session = session;
+		_players = players;
+		_playerCoordinator = playerCoordinator;
+		_multiplayer = multiplayer;
 		_dbContext = dbContext;
 		_redis = redis.GetDatabase();
 		_histories = histories;
@@ -68,7 +76,7 @@ public class PlayersRepository : IPlayersRepository
 			.ToListAsync();
 	}
 
-	public async Task AddFriend(Player player, int targetId)
+	public async Task AddFriend(User player, int targetId)
 	{
 		if (player.Friends.Contains(targetId))
 			return;
@@ -84,7 +92,7 @@ public class PlayersRepository : IPlayersRepository
 		await _dbContext.SaveChangesAsync();
 	}
 	
-	public async Task RemoveFriend(Player player, int targetId)
+	public async Task RemoveFriend(User player, int targetId)
 	{
 		if (!player.Friends.Contains(targetId))
 			return;
@@ -96,37 +104,37 @@ public class PlayersRepository : IPlayersRepository
 			.ExecuteDeleteAsync();
 	}
 	
-	public async Task<Player?> GetPlayerFromLogin(string username, string passwordMD5)
+	public async Task<User?> GetPlayerFromLogin(string username, string passwordMD5)
 	{
 		var player = await GetPlayerOrOffline(username);
 		if (player == null) return null;
 
-		return _session.CheckHashes(passwordMD5, player.PasswordHash) ? player : null;
+		return passwordMD5.VerifyPassword(player.PasswordHash) ? player : null;
 	}
 	
-	public async Task<Player?> GetPlayerOrOffline(string username)
+	public async Task<User?> GetPlayerOrOffline(string username)
 	{
-		var sessionPlayer = _session.GetPlayerByName(username);
+		var sessionPlayer = _players.GetPlayer(username);
 		if (sessionPlayer != null) return sessionPlayer;
 		
 		var dbPlayer = await _dbContext.Players.FirstOrDefaultAsync(p => p.SafeName == username.MakeSafe());
 
-		return dbPlayer == null ? null : new Player(dbPlayer);
+		return dbPlayer == null ? null : new User(dbPlayer);
 	}
 	
-	public async Task<Player?> GetPlayerOrOffline(int playerId)
+	public async Task<User?> GetPlayerOrOffline(int playerId)
 	{
-		var sessionPlayer = _session.GetPlayerById(playerId);
+		var sessionPlayer = _players.GetPlayer(playerId);
 		if (sessionPlayer != null) return sessionPlayer;
 		
 		var dbPlayer = await _dbContext.Players.FirstOrDefaultAsync(p => p.Id == playerId);
 
-		return dbPlayer == null ? null : new Player(dbPlayer);
+		return dbPlayer == null ? null : new User(dbPlayer);
 	}
 	
-	public async Task UpdateLatestActivity(Player player)
+	public async Task UpdateLatestActivity(User player)
 	{
-		player.LastActivityTime = DateTime.Now;
+		player.LastActivityTime = DateTime.UtcNow;
 		
 		await UpdateLatestActivity(player.Id);
 	}
@@ -136,11 +144,11 @@ public class PlayersRepository : IPlayersRepository
 		await _dbContext.Players
 			.Where(p => p.Id == playerId)
 			.ExecuteUpdateAsync(p => 
-				p.SetProperty(u => u.LastActivityTime, DateTime.Now)
+				p.SetProperty(u => u.LastActivityTime, DateTime.UtcNow)
 				 .SetProperty(u => u.Inactive, false));
 	}
 	
-	public async Task UpdatePlayerCountry(Player player, string country)
+	public async Task UpdatePlayerCountry(User player, string country)
 	{
 		await _dbContext.Players
 			.Where(p => p.Id == player.Id)
@@ -169,7 +177,7 @@ public class PlayersRepository : IPlayersRepository
 		return await _dbContext.Players.FirstOrDefaultAsync(p => p.LoginName == username.MakeSafe());
 	}
 	
-	public async Task GetPlayerStats(Player player)
+	public async Task GetPlayerStats(User player)
 	{
 		var stats = await _dbContext.Stats.Where(s => s.PlayerId == player.Id).ToListAsync();
 		
@@ -209,7 +217,7 @@ public class PlayersRepository : IPlayersRepository
 		return await _dbContext.Stats.FirstOrDefaultAsync(s => s.PlayerId == playerId && s.Mode == mode);
 	}
 
-	public async Task UpdatePlayerStats(Player player, GameMode mode)
+	public async Task UpdatePlayerStats(User player, GameMode mode)
 	{
 		var stats = player.Stats[mode];
 		
@@ -241,7 +249,7 @@ public class PlayersRepository : IPlayersRepository
 		await _dbContext.SaveChangesAsync();
 	}
 	
-	public async Task GetPlayerRelationships(Player player)
+	public async Task GetPlayerRelationships(User player)
 	{
 		var relationships = await _dbContext.Relationships.Where(p => p.PlayerId == player.Id).ToListAsync();
 		
@@ -259,7 +267,7 @@ public class PlayersRepository : IPlayersRepository
 		}
 	}
 	
-	public async Task UpdatePlayerPrivileges(Player player, PlayerPrivileges playerPrivileges, bool remove)
+	public async Task UpdatePlayerPrivileges(User player, PlayerPrivileges playerPrivileges, bool remove)
 	{
 		if (remove)
 			player.Privileges &= ~playerPrivileges;
@@ -270,7 +278,7 @@ public class PlayersRepository : IPlayersRepository
 		               .ExecuteUpdateAsync(p => 
 			               p.SetProperty(u => u.Privileges, (int)player.Privileges));
 
-		if (player.Online)
+		if (player.IsOnlineOnStable)
 		{
 			player.Enqueue(new ServerPackets()
 				.BanchoPrivileges((int)player.ToBanchoPrivileges())
@@ -278,7 +286,7 @@ public class PlayersRepository : IPlayersRepository
 		}
 	}
 
-	public async Task RecalculatePlayerTopScores(Player player, GameMode mode)
+	public async Task RecalculatePlayerTopScores(User player, GameMode mode)
 	{
 		var bestScores = await _dbContext.Scores
 			.Where(s => s.PlayerId == player.Id
@@ -307,12 +315,12 @@ public class PlayersRepository : IPlayersRepository
 		stats.PP = (ushort)MathF.Round(weightedPp + bonusPp);
 	}
 
-	public async Task UpdatePlayerRank(Player player, GameMode mode)
+	public async Task UpdatePlayerRank(User player, GameMode mode)
 	{
 		var country = player.Geoloc.Country.Acronym;
 		var stats = player.Stats[mode];
 
-		switch (player.Restricted)
+		switch (player.IsRestricted)
 		{
 			case false:
 				await InsertPlayerGlobalRank((byte)mode, country, player.Id, stats.PP);
@@ -332,7 +340,7 @@ public class PlayersRepository : IPlayersRepository
 				new PeakRank
 				{
 					Value = stats.PeakRank,
-					Date = DateTime.Now
+					Date = DateTime.UtcNow
 				});
 		}
 	}
@@ -348,8 +356,8 @@ public class PlayersRepository : IPlayersRepository
 			PasswordHash = passwordHash,
 			Privileges = 1,
 			Country = country,
-			CreationTime = DateTime.Now,
-			LastActivityTime = DateTime.Now
+			CreationTime = DateTime.UtcNow,
+			LastActivityTime = DateTime.UtcNow
 		};
 		
 		var player = await _dbContext.Players.AddAsync(playerDto);
@@ -380,7 +388,7 @@ public class PlayersRepository : IPlayersRepository
 					PeakRank = new PeakRank
 					{
 						Value = rank,
-						Date = DateTime.Now
+						Date = DateTime.UtcNow
 					},
 					Entries = [rank]
 				}),
@@ -406,12 +414,12 @@ public class PlayersRepository : IPlayersRepository
 	{
 		var playerId = player.Id;
 		
-		var online = _session.GetPlayerById(playerId);
+		var online = _players.GetPlayer(playerId);
 		if (online != null)
 		{
 			if (!force) return false;
 			
-			_session.LogoutPlayer(online);
+			_playerCoordinator.LogoutPlayer(online);
 		}
 
 		var batch = _redis.CreateBatch();
@@ -455,10 +463,10 @@ public class PlayersRepository : IPlayersRepository
 		return true;
 	}
 
-	public async Task<bool> SilencePlayer(Player player, TimeSpan duration, string reason)
+	public async Task<bool> SilencePlayer(User player, TimeSpan duration, string reason)
 	{
 		var modified = await _dbContext.Players.Where(p => p.Id == player.Id)
-			.ExecuteUpdateAsync(s => s.SetProperty(p => p.RemainingSilence, DateTime.Now + duration));
+			.ExecuteUpdateAsync(s => s.SetProperty(p => p.RemainingSilence, DateTime.UtcNow + duration));
 
 		if (modified != 1) return false;
 		
@@ -466,24 +474,24 @@ public class PlayersRepository : IPlayersRepository
 			.SilenceEnd((int) duration.TotalSeconds)
 			.FinalizeAndGetContent());
 		
-		_session.EnqueueToPlayers(new ServerPackets()
+		_players.EnqueueToPlayers(new ServerPackets()
 			.UserSilenced(player.Id)
 			.FinalizeAndGetContent());
 		
 		//TODO store in db
 
 		if (player.InMatch)
-			player.LeaveMatch();
+			_multiplayer.LeavePlayer(player);
 
 		return true;
 	}
 	
-	public async Task<bool> UnsilencePlayer(Player player, string reason)
+	public async Task<bool> UnsilencePlayer(User player, string reason)
 	{
 		var entity = await _dbContext.Players.FirstOrDefaultAsync(p => p.Id == player.Id);
 		if (entity == null) return false;
 		
-		entity.RemainingSilence = DateTime.Now;
+		entity.RemainingSilence = DateTime.UtcNow;
 		await _dbContext.SaveChangesAsync();
 		
 		player.Enqueue(new ServerPackets()
@@ -493,7 +501,7 @@ public class PlayersRepository : IPlayersRepository
 		return true;
 	}
 
-	public async Task<bool> RestrictPlayer(Player player, string reason)
+	public async Task<bool> RestrictPlayer(User player, string reason)
 	{
 		var entity = await _dbContext.Players.FirstOrDefaultAsync(p => p.Id == player.Id);
 		if (entity == null) return false;
@@ -510,12 +518,12 @@ public class PlayersRepository : IPlayersRepository
 			await RemovePlayerGlobalRank(mode, player.Geoloc.Country.Acronym, player.Id);
 		}
 
-		_session.LogoutPlayer(player);
+		_playerCoordinator.LogoutPlayer(player);
 
 		return true;
 	}
 
-	public async Task<bool> UnrestrictPlayer(Player player, string reason)
+	public async Task<bool> UnrestrictPlayer(User player, string reason)
 	{
 		var entity = await _dbContext.Players.FirstOrDefaultAsync(p => p.Id == player.Id);
 		if (entity == null) return false;
@@ -523,13 +531,13 @@ public class PlayersRepository : IPlayersRepository
 		entity.Privileges |= (int)PlayerPrivileges.Unrestricted;
 		await _dbContext.SaveChangesAsync();
 
-		if (!player.Online)
+		if (!player.IsOnlineOnStable)
 			await GetPlayerStats(player);
 
 		foreach (var stats in player.Stats)
 			await InsertPlayerGlobalRank((byte)stats.Key, player.Geoloc.Country.Acronym, player.Id, stats.Value.PP);
 		
-		_session.LogoutPlayer(player);
+		_playerCoordinator.LogoutPlayer(player);
 
 		return true;
 	}
@@ -582,7 +590,7 @@ public class PlayersRepository : IPlayersRepository
 	public async Task<List<int>> GetPlayerIdsWithExpiredSupporter()
 	{
 		var query = _dbContext.Players
-			.Where(p => p.RemainingSupporter < DateTime.Now
+			.Where(p => p.RemainingSupporter < DateTime.UtcNow
 			            && (p.Privileges & (int)PlayerPrivileges.Supporter) == (int)PlayerPrivileges.Supporter);
 		
 		// Saving IDs before update

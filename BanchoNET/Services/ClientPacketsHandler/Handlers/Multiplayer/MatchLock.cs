@@ -1,27 +1,24 @@
 ﻿using BanchoNET.Core.Models.Multiplayer;
-using BanchoNET.Core.Models.Players;
-using BanchoNET.Core.Utils.Extensions;
+using BanchoNET.Core.Models.Users;
 
 namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private Task MatchLock(Player player, BinaryReader br)
+	private Task MatchLock(User player, BinaryReader br)
 	{
 		var slotId = br.ReadInt32();
-		var lobby = player.Lobby;
+		var match = player.Match;
 		
-		if (lobby == null) return Task.CompletedTask;
-		if (player.Id != lobby.HostId) return Task.CompletedTask;
-		if (slotId is < 0 or > 15) return Task.CompletedTask;
+		if (match == null || player.Id != match.HostId || slotId is < 0 or > 15) return Task.CompletedTask;
 
-		var slot = lobby.Slots[slotId];
+		var slot = match.Slots[slotId];
 
 		if (slot.Status == SlotStatus.Locked)
 			slot.Status = SlotStatus.Open;
 		else
 		{
-			if (slot.Player?.Id == lobby.HostId)
+			if (slot.Player?.Id == match.HostId)
 				return Task.CompletedTask;
 			
 			//TODO check if osu handles this properly...
@@ -29,7 +26,7 @@ public partial class ClientPacketsHandler
 			slot.Status = SlotStatus.Locked;
 		}
 
-		lobby.EnqueueState();
+		multiplayerCoordinator.EnqueueStateTo(match);
 		return Task.CompletedTask;
 	}
 }

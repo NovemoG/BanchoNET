@@ -3,6 +3,7 @@ using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Scores;
+using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Utils;
 using Microsoft.EntityFrameworkCore;
 
@@ -164,8 +165,8 @@ public class ScoresRepository(BanchoDbContext dbContext) : IScoresRepository
         GameMode mode,
         LeaderboardType type,
         Mods mods,
-        Player player)
-    {
+        User player
+    ) {
         var isCountry = type == LeaderboardType.Country;
         var countryCode = player.Geoloc.Country.Acronym;
 		
@@ -209,7 +210,7 @@ public class ScoresRepository(BanchoDbContext dbContext) : IScoresRepository
     public async Task<List<long>> DeleteOldScores(short differenceInHours = 48)
     {
         //TODO maybe instead of deleting just move to other table so we can keep the data?
-        var date = DateTime.Now - TimeSpan.FromHours(differenceInHours);
+        var date = DateTime.UtcNow - TimeSpan.FromHours(differenceInHours);
 
         // Saving IDs of scores that are not failed (we don't store failed scores replays)
         var scoreIds = await dbContext.Scores

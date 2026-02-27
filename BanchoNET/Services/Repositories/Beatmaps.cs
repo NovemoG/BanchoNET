@@ -1,4 +1,5 @@
-﻿using BanchoNET.Core.Abstractions.Repositories;
+﻿using BanchoNET.Core.Abstractions.Bancho.Services;
+using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Beatmaps;
@@ -8,16 +9,25 @@ using Microsoft.EntityFrameworkCore;
 namespace BanchoNET.Services.Repositories;
 
 public class BeatmapsRepository(
-	IBanchoSession session,
 	BanchoDbContext dbContext,
+	IBeatmapService beatmaps,
 	IBeatmapHandler beatmapHandler,
 	IScoresRepository scores
-	) : IBeatmapsRepository
+) : IBeatmapsRepository
 {
-	public async Task<Beatmap?> GetBeatmap(int mapId, int setId = -1)
-	{
-		var beatmap = session.GetBeatmapById(mapId);
-		if (beatmap != null) return beatmap;
+	public async Task<Beatmap?> GetBeatmap(
+		int mapId,
+		int setId = -1
+	) {
+		var beatmap = beatmaps.GetBeatmap(mapId);
+		if (beatmap != null)
+		{
+			if (!beatmap.ShouldRecheckApi())
+				return beatmap;
+			
+			var set = await GetBeatmapSet(beatmap.SetId, mapId, true);
+			return set?.Beatmaps.FirstOrDefault(b => b.Id == mapId);
+		}
 
 		if (setId < 1)
 		{
@@ -40,11 +50,20 @@ public class BeatmapsRepository(
 			? beatmapSet.Beatmaps.FirstOrDefault(b => b.Id == mapId)
 			: beatmap;
 	}
-	
-	public async Task<Beatmap?> GetBeatmap(string beatmapMD5, int setId = -1)
-	{
-		var beatmap = session.GetBeatmapByMD5(beatmapMD5);
-		if (beatmap != null) return beatmap;
+
+	public async Task<Beatmap?> GetBeatmap(
+		string beatmapMD5,
+		int setId = -1
+	) {
+		var beatmap = beatmaps.GetBeatmap(beatmapMD5);
+		if (beatmap != null)
+		{
+			if (!beatmap.ShouldRecheckApi())
+				return beatmap;
+			
+			var set = await GetBeatmapSet(beatmap.SetId, beatmap.Id, true);
+			return set?.Beatmaps.FirstOrDefault(b => b.MD5 == beatmapMD5);
+		}
 		
 		var mapId = 0;
 		if (setId < 1)
@@ -72,11 +91,14 @@ public class BeatmapsRepository(
 			? beatmapSet.Beatmaps.FirstOrDefault(b => b.MD5 == beatmapMD5)
 			: beatmap;
 	}
-	
-	public async Task<BeatmapSet?> GetBeatmapSet(int setId, int mapId = -1)
-	{
+
+	public async Task<BeatmapSet?> GetBeatmapSet(
+		int setId,
+		int mapId = -1,
+		bool recheckApi = false
+	) {
 		var didApiRequest = false;
-		var beatmapSet = session.GetBeatmapSet(setId);
+		var beatmapSet = beatmaps.GetBeatmapSet(setId);
 		
 		if (beatmapSet == null)
 		{
@@ -94,35 +116,38 @@ public class BeatmapsRepository(
 			}
 			else beatmapSet = new BeatmapSet(dbBeatmaps);
 			
-			session.CacheBeatmapSet(beatmapSet);
+			beatmaps.InsertBeatmapSet(beatmapSet);
 		}
 
 		if (!didApiRequest && mapId > 0)
-			if (beatmapSet.Beatmaps.All(b => b.Id != mapId) /*or expired (maps can be updated without md5 being changed)*/)
+			if (beatmapSet.Beatmaps.All(b => b.Id != mapId) || recheckApi)
 				await UpdateBeatmapSet(setId);
 		
 		return beatmapSet;
 	}
-	
-	public async Task UpdateBeatmapSet(int setId)
-	{
+
+	public async Task UpdateBeatmapSet(
+		int setId
+	) {
 		var beatmapSet = await beatmapHandler.GetBeatmapSetFromApi(setId);
 		if (beatmapSet == null) return;
 		
-		session.CacheBeatmapSet(beatmapSet);
+		beatmaps.InsertBeatmapSet(beatmapSet);
 		await InsertBeatmapSet(beatmapSet);
 	}
-	
+
 	/// <summary>
 	/// Updates Playcount and Passcount of a beatmap in database
 	/// </summary>
 	/// <param name="beatmap">Beatmap for which to update stats</param>
-	public async Task UpdateBeatmapPlayCount(Beatmap beatmap)
-	{
+	public async Task UpdateBeatmapPlayCount(
+		Beatmap beatmap
+	) {
 		await dbContext.Beatmaps.Where(b => b.MapId == beatmap.Id)
-		                .ExecuteUpdateAsync(p => 
-			                p.SetProperty(b => b.Plays, beatmap.Plays)
-			                 .SetProperty(b => b.Passes, beatmap.Passes));
+			.ExecuteUpdateAsync(p =>
+				p.SetProperty(b => b.Plays, beatmap.Plays)
+					.SetProperty(b => b.Passes, beatmap.Passes)
+			);
 	}
 
 	/// <summary>
@@ -130,12 +155,11 @@ public class BeatmapsRepository(
 	/// </summary>
 	/// <param name="targetStatus">Target status to which the current one will be changed</param>
 	/// <param name="mapId">Id of a beatmap to update</param>
-	/// <param name="setId">Id of a set to update</param>
 	/// <returns>Number of maps that were affected</returns>
 	public async Task<int> UpdateBeatmapStatus(
 		BeatmapStatus targetStatus,
-		int mapId)
-	{
+		int mapId
+	) {
 		if (mapId < 1) return 0;
 		
 		var cachedMap = await GetBeatmap(mapId);
@@ -149,8 +173,8 @@ public class BeatmapsRepository(
 	
 	public async Task<int> UpdateBeatmapSetStatus(
 		BeatmapStatus targetStatus,
-		int setId)
-	{
+		int setId
+	) {
 		if (setId < 1) return 0;
 		
 		var cachedSet = await GetBeatmapSet(setId);
@@ -163,8 +187,9 @@ public class BeatmapsRepository(
 			.ExecuteUpdateAsync(p => p.SetProperty(b => b.Status, (int)targetStatus));
 	}
 
-	public async Task InsertBeatmapSet(BeatmapSet set)
-	{
+	public async Task InsertBeatmapSet(
+		BeatmapSet set
+	) {
 		foreach (var beatmap in set.Beatmaps)
 		{
 			//var dbBeatmap = await dbContext.Beatmaps.FirstOrDefaultAsync(b => b.MapId == beatmap.MapId);

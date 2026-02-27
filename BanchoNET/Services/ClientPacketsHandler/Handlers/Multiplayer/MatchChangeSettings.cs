@@ -1,42 +1,42 @@
 ﻿using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Multiplayer;
-using BanchoNET.Core.Models.Players;
+using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Utils.Extensions;
 
 namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private async Task MatchChangeSettings(Player player, BinaryReader br)
+	private async Task MatchChangeSettings(User player, BinaryReader br)
 	{
 		var matchData = br.ReadOsuMatch();
 		
 		if (!player.InMatch) return;
 		
-		var lobby = player.Lobby!;
-		if (lobby.HostId != player.Id) return;
+		var match = player.Match!;
+		if (match.HostId != player.Id) return;
 
-		var host = lobby.GetHostSlot();
-		var slots = lobby.Slots;
+		var host = match.GetHostSlot();
+		var slots = match.Slots;
 		
-		if (matchData.Freemods != lobby.Freemods)
+		if (matchData.Freemods != match.Freemods)
 		{
-			lobby.Freemods = matchData.Freemods;
+			match.Freemods = matchData.Freemods;
 
 			if (matchData.Freemods)
 			{
 				foreach (var slot in slots)
                 {
                 	if (slot.Player == null) continue;
-                	slot.Mods = lobby.Mods & ~Mods.SpeedChangingMods;
+                	slot.Mods = match.Mods & ~Mods.SpeedChangingMods;
                 }
                 
-                lobby.Mods &= Mods.SpeedChangingMods;
+                match.Mods &= Mods.SpeedChangingMods;
 			}
 			else
 			{
-				lobby.Mods &= Mods.SpeedChangingMods;
-				lobby.Mods |= host.Mods;
+				match.Mods &= Mods.SpeedChangingMods;
+				match.Mods |= host.Mods;
 				
 				foreach (var slot in slots)
 				{
@@ -48,37 +48,37 @@ public partial class ClientPacketsHandler
 
 		if (matchData.BeatmapId == -1)
 		{
-			lobby.UnreadyPlayers();
-			lobby.PreviousBeatmapId = matchData.LobbyId;
+			match.UnreadyPlayers();
+			match.PreviousBeatmapId = matchData.LobbyId;
 
-			lobby.BeatmapId = -1;
-			lobby.BeatmapName = "";
-			lobby.BeatmapMD5 = "";
+			match.BeatmapId = -1;
+			match.BeatmapName = "";
+			match.BeatmapMD5 = "";
 		}
-		else if (lobby.BeatmapId == -1)
+		else if (match.BeatmapId == -1)
 		{
-			if (lobby.PreviousBeatmapId != matchData.BeatmapId)
-				lobby.Chat.SendBotMessage($"Selected: {matchData.MapEmbed()}", session.BanchoBot);
+			if (match.PreviousBeatmapId != matchData.BeatmapId)
+				match.Chat.SendBotMessage($"Selected: {matchData.MapEmbed()}", playerService.BanchoBot);
 
 			var beatmap = await beatmaps.GetBeatmap(matchData.BeatmapMD5);
 
 			if (beatmap != null)
 			{
-				lobby.BeatmapId = beatmap.Id;
-				lobby.BeatmapName = beatmap.FullName();
-				lobby.BeatmapMD5 = beatmap.MD5;
-				lobby.Mode = host.Player!.Status.Mode.AsVanilla();
+				match.BeatmapId = beatmap.Id;
+				match.BeatmapName = beatmap.FullName();
+				match.BeatmapMD5 = beatmap.MD5;
+				match.Mode = host.Player!.Status.Mode.AsVanilla();
 			}
 			else
 			{
-				lobby.BeatmapId = matchData.BeatmapId;
-				lobby.BeatmapName = matchData.BeatmapName;
-				lobby.BeatmapMD5 = matchData.BeatmapMD5;
-				lobby.Mode = matchData.Mode;
+				match.BeatmapId = matchData.BeatmapId;
+				match.BeatmapName = matchData.BeatmapName;
+				match.BeatmapMD5 = matchData.BeatmapMD5;
+				match.Mode = matchData.Mode;
 			}
 		}
 
-		if (lobby.Type != matchData.Type)
+		if (match.Type != matchData.Type)
 		{
 			var newType = matchData.Type is LobbyType.HeadToHead or LobbyType.TagCoop
 				? LobbyTeams.Neutral
@@ -88,14 +88,14 @@ public partial class ClientPacketsHandler
 				if (slot.Player != null)
 					slot.Team = newType;
 
-			lobby.Type = matchData.Type;
+			match.Type = matchData.Type;
 		}
 
-		if (lobby.WinCondition != matchData.WinCondition)
-			lobby.WinCondition = matchData.WinCondition;
+		if (match.WinCondition != matchData.WinCondition)
+			match.WinCondition = matchData.WinCondition;
 		
-		lobby.Name = matchData.Name;
+		match.Name = matchData.Name;
 		
-		lobby.EnqueueState();
+		multiplayerCoordinator.EnqueueStateTo(match);
 	}
 }

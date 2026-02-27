@@ -1,5 +1,5 @@
 ﻿using BanchoNET.Core.Models.Mongo;
-using BanchoNET.Core.Models.Players;
+using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils.Extensions;
 using Action = BanchoNET.Core.Models.Mongo.Action;
@@ -8,7 +8,7 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private async Task JoinMatch(Player player, BinaryReader br)
+	private async Task JoinMatch(User player, BinaryReader br)
 	{
 		var lobbyId = br.ReadInt32();
 		var password = br.ReadOsuString();
@@ -16,7 +16,7 @@ public partial class ClientPacketsHandler
 		if (lobbyId is < 0 or > ushort.MaxValue)
 			return;
 		
-		if (player.Restricted)
+		if (player.IsRestricted)
 		{
 			player.Enqueue(new ServerPackets()
 				.MatchJoinFail()
@@ -25,7 +25,7 @@ public partial class ClientPacketsHandler
 			return;
 		}
 
-		if (player.Silenced)
+		if (player.IsSilenced)
 		{
 			player.Enqueue(new ServerPackets()
 				.MatchJoinFail()
@@ -34,8 +34,8 @@ public partial class ClientPacketsHandler
 			return;
 		}
 		
-		var lobby = session.GetLobby((ushort)lobbyId);
-		if (lobby == null)
+		var match = multiplayer.GetMatch((ushort)lobbyId);
+		if (match == null)
 		{
 			Console.WriteLine($"[JoinMatch] {player.Username} tried to join a non-existent lobby ({lobbyId})");
 			
@@ -45,7 +45,7 @@ public partial class ClientPacketsHandler
 			return;
 		}
 
-		if (lobby.BannedPlayers.Contains(player.Id))
+		if (match.BannedPlayers.Contains(player.Id))
 		{
 			player.Enqueue(new ServerPackets()
 				.MatchJoinFail()
@@ -54,19 +54,19 @@ public partial class ClientPacketsHandler
 			return;
 		}
 		
-		player.LastActivityTime = DateTime.Now;
-		if (player.JoinMatch(lobby, password))
+		player.LastActivityTime = DateTime.UtcNow;
+		if (multiplayerCoordinator.JoinPlayer(match.Id, password, player))
 		{
 			await histories.AddMatchAction(
-				lobby.LobbyId,
+				match.LobbyId,
 				new ActionEntry
 				{
 					Action = Action.Joined,
 					PlayerId = player.Id,
-					Date = DateTime.Now
+					Date = DateTime.UtcNow
 				});
 		}
 
-		player.SendBotMessage($"Match created by {player.Username} {lobby.MPLinkEmbed()}", "#multiplayer");
+		player.SendBotMessage($"Match created by {player.Username} {match.MPLinkEmbed()}", "#multiplayer");
 	}
 }

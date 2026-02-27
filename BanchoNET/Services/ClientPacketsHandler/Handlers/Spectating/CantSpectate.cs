@@ -1,11 +1,11 @@
-﻿using BanchoNET.Core.Models.Players;
+﻿using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Packets;
 
 namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-    private Task CantSpectate(Player player, BinaryReader br)
+    private Task CantSpectate(User player, BinaryReader br)
     {
         if (player.Spectating == null)
         {

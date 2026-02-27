@@ -1,6 +1,7 @@
 ﻿using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Players;
+using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Utils.Extensions;
 
 namespace BanchoNET.Core.Models.Scores;
@@ -11,7 +12,7 @@ public class Score
 	public string? BeatmapMD5 { get; set; }
 	public Beatmap? Beatmap { get; set; }
 	public int PlayerId { get; set; }
-	public Player? Player { get; set; }
+	public User? Player { get; set; }
 
 	public float PP	{ get; set; }
 	public float Acc { get; set; }
@@ -40,7 +41,7 @@ public class Score
 	
 	public Score() { }
 	
-	public Score(IReadOnlyList<string> scoreData, Beatmap beatmap, Player player)
+	public Score(IReadOnlyList<string> scoreData, Beatmap beatmap, User player)
 	{
 		if (!Enum.TryParse(scoreData[10], out Grade grade))
 			return;

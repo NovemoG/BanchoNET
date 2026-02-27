@@ -1,6 +1,6 @@
 ﻿using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Multiplayer;
-using BanchoNET.Core.Models.Players;
+using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils.Extensions;
 
@@ -8,19 +8,19 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private async Task MatchComplete(Player player, BinaryReader br)
+	private async Task MatchComplete(User player, BinaryReader br)
 	{
-		var lobby = player.Lobby;
-		if (lobby == null) return;
+		var match = player.Match;
+		if (match == null) return;
 
-		var slots = lobby.Slots;
+		var slots = match.Slots;
 		
-		var slot = lobby.GetPlayerSlot(player)!;
+		var slot = match.GetPlayerSlot(player)!;
 		slot.Status = SlotStatus.Complete;
 		
 		// assigning UtcNow instead of Now because the ClientTime date of score is in UTC
-		if (lobby.MapFinishDate == DateTime.MinValue)
-			lobby.MapFinishDate = DateTime.UtcNow;
+		if (match.MapFinishDate == DateTime.MinValue)
+			match.MapFinishDate = DateTime.UtcNow;
         
 		if (slots.Any(s => s.Status == SlotStatus.Playing))
 			return;
@@ -41,20 +41,22 @@ public partial class ClientPacketsHandler
 				.Where(s => s.Status == SlotStatus.Complete)
 				.Select(s => s.Player!.Id)
 				.ToList(),
-			MapFinishDate = lobby.MapFinishDate,
-			Match = lobby
+			MapFinishDate = match.MapFinishDate,
+			Match = match
 		});
 		
-		lobby.UnreadyPlayers(SlotStatus.Complete);
-		lobby.ResetPlayersLoadedStatuses();
-		lobby.InProgress = false;
+		match.UnreadyPlayers(SlotStatus.Complete);
+		match.ResetPlayersLoadedStatuses();
+		match.InProgress = false;
 		
-		lobby.Enqueue(new ServerPackets().MatchComplete().FinalizeAndGetContent(),
+		multiplayerCoordinator.EnqueueTo(match,
+			new ServerPackets().MatchComplete().FinalizeAndGetContent(),
 			notPlayingIds,
-			false);
-		lobby.EnqueueState();
+			false
+		);
+		multiplayerCoordinator.EnqueueStateTo(match);
 		
 		// reset map finish date
-		lobby.MapFinishDate = DateTime.MinValue;
+		match.MapFinishDate = DateTime.MinValue;
 	}
 }

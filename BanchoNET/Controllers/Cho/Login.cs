@@ -76,12 +76,12 @@ public partial class ChoController
 				.FinalizeAndGetContentResult();
 		}
 
-		var player = session.GetPlayerByName(loginData.Username);
+		var player = playerService.GetPlayer(loginData.Username);
 		if (player != null && loginData.OsuVersion.Stream != "tourney")
 		{
-			logger.LogDebug($"Login time difference: {DateTime.Now - player.LastActivityTime}");
+			logger.LogDebug($"Login time difference: {DateTime.UtcNow - player.LastActivityTime}");
 			
-			if (DateTime.Now - player.LastActivityTime < TimeSpan.FromSeconds(15))
+			if (DateTime.UtcNow - player.LastActivityTime < TimeSpan.FromSeconds(15))
 			{
 				Response.Headers["cho-token"] = "user-already-logged-in";
 
@@ -91,7 +91,7 @@ public partial class ChoController
 					.FinalizeAndGetContentResult();
 			}
 
-			session.LogoutPlayer(player);
+			playerCoordinator.LogoutPlayer(player);
 		}
 		
 		var userInfo = await players.GetPlayerInfoFromLogin(loginData.Username);
@@ -117,7 +117,7 @@ public partial class ChoController
 				.FinalizeAndGetContentResult();
 		}
 		
-		if (!session.CheckHashes(loginData.PasswordMD5, userInfo.PasswordHash))
+		if (!loginData.PasswordMD5.VerifyPassword(userInfo.PasswordHash))
 		{
 			Response.Headers["cho-token"] = "incorrect-password";
 
@@ -167,8 +167,8 @@ public partial class ChoController
 				.PlayerId(-1)
 				.FinalizeAndGetContentResult();
 		}
-		
-		player = new Player(userInfo, Guid.NewGuid(), DateTime.Now, loginData.TimeZone)
+
+		player = new User(userInfo, timeZone: loginData.TimeZone)
 		{
 			Geoloc = _geoloc.Value,
 			ClientDetails = new ClientDetails
@@ -194,7 +194,7 @@ public partial class ChoController
 
 		#region Append AutoJoin Channels
 
-		foreach (var channel in session.Channels)
+		foreach (var channel in channels.Channels)
 		{
 			if (!channel.AutoJoin || 
 			    !channel.CanPlayerRead(player) ||
@@ -209,7 +209,7 @@ public partial class ChoController
 			
 			loginPackets.WriteBytes(chanInfoBytes);
 			
-			foreach (var sessionPlayer in session.Players)
+			foreach (var sessionPlayer in playerService.Players)
 				if (channel.CanPlayerRead(sessionPlayer))
 					sessionPlayer.Enqueue(chanInfoBytes);
 		}
@@ -224,12 +224,12 @@ public partial class ChoController
 		await players.GetPlayerRelationships(player);
 
 		loginPackets.FriendsList(player.Friends)
-			.SilenceEnd(Math.Max(0, (int)(player.RemainingSilence - DateTime.Now).TotalSeconds))
+			.SilenceEnd(Math.Max(0, (int)(player.RemainingSilence - DateTime.UtcNow).TotalSeconds))
 			.UserPresence(player)
 			.UserStats(player);
 
-		var banchoBot = session.BanchoBot;
-		if (!player.Restricted)
+		var banchoBot = playerService.BanchoBot;
+		if (!player.IsRestricted)
 		{
 			EnqueueOtherPlayers(loginPackets, player);
 			
@@ -270,7 +270,7 @@ public partial class ChoController
 			});
 		}
 		
-		session.AppendPlayer(player);
+		playerService.InsertPlayer(player);
 		
 		var unreadMessages = await messages.GetUnreadMessages(player.Id);
 		if (unreadMessages.Count > 0)
@@ -291,7 +291,7 @@ public partial class ChoController
 		}
 		
 		logger.LogDebug($"[Login] {player.Username} Logged in");
-		Response.Headers["cho-token"] = player.Token.ToString();
+		Response.Headers["cho-token"] = player.SessionId.ToString();
 		
 		return loginPackets.GetContentResult();
 	}
@@ -349,13 +349,13 @@ public partial class ChoController
 		}
 		var loginData = playerLogin.GetContent();
 		
-		foreach (var bot in session.Bots)
+		foreach (var bot in playerService.Bots)
 		{
 			packets.BotPresence(bot);
 			packets.BotStats(bot);
 		}
 		
-		foreach (var user in session.Players)
+		foreach (var user in playerService.Players)
 		{
 			if (toOthers) user.Enqueue(loginData);
 			packets.UserPresence(user);
@@ -364,7 +364,7 @@ public partial class ChoController
 
 		if (!toOthers) return packets;
 		
-		foreach (var restricted in session.Restricted)
+		foreach (var restricted in playerService.Restricted)
 			restricted.Enqueue(loginData);
 
 		return packets;

@@ -1,22 +1,22 @@
-﻿using BanchoNET.Core.Models.Players;
+﻿using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Utils.Extensions;
 
 namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private Task MatchInvite(Player player, BinaryReader br)
+	private Task MatchInvite(User player, BinaryReader br)
 	{
 		var playerId = br.ReadInt32();
 		
-		var lobby = player.Lobby;
-		if (lobby == null) return Task.CompletedTask;
+		var match = player.Match;
+		if (match == null) return Task.CompletedTask;
 		
-		var target = session.GetPlayerById(playerId);
+		var target = playerService.GetPlayer(playerId);
 		
 		MultiplayerExtensions.InviteToLobby(player, target);
 		
-		player.LastActivityTime = DateTime.Now;
+		player.LastActivityTime = DateTime.UtcNow;
 		return Task.CompletedTask;
 	}
 }

@@ -1,5 +1,6 @@
 ﻿using BanchoNET.Core.Models.Channels;
 using BanchoNET.Core.Models.Players;
+using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
@@ -8,11 +9,11 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private async Task SendPublicMessage(Player player, BinaryReader br)
+	private async Task SendPublicMessage(User player, BinaryReader br)
 	{
 		var message = br.ReadOsuMessage();
 
-		if (player.Silenced) return;
+		if (player.IsSilenced) return;
 
 		var txt = message.Content.Trim();
 		if (txt == string.Empty) return;
@@ -30,16 +31,16 @@ public partial class ClientPacketsHandler
 				else if (player.HasSpectators) spectatorId = player.Id;
 				else return;
 			
-				channel = session.GetChannel($"#s_{spectatorId}", true);
+				channel = channels.GetChannel($"#s_{spectatorId}");
 				break;
 			}
-			case "#multiplayer" when player.Lobby == null:
+			case "#multiplayer" when player.Match == null:
 				return;
 			case "#multiplayer":
-				channel = player.Lobby.Chat;
+				channel = player.Match.Chat;
 				break;
 			default:
-				channel = session.GetChannel(message.Destination);
+				channel = channels.GetChannel(message.Destination);
 				break;
 		}
 
@@ -66,13 +67,13 @@ public partial class ClientPacketsHandler
 		else
 			SendNpMessage(txt, message, player, channel);
 		
-		player.LastActivityTime = DateTime.Now;
+		player.LastActivityTime = DateTime.UtcNow;
 	}
 
 	private async Task SendCommandMessage(
 		string txt,
 		Message message,
-		Player player,
+		User player,
 		Channel channel)
 	{
 		var command = await commands.Execute(txt, player, channel);
@@ -90,7 +91,7 @@ public partial class ClientPacketsHandler
 					Destination = message.Destination,
 					SenderId = player.Id
 				});
-				channel.SendBotMessage(command.Response, session.BanchoBot);
+				channel.SendBotMessage(command.Response, playerService.BanchoBot);
 			}
 		}
 	}
@@ -98,7 +99,7 @@ public partial class ClientPacketsHandler
 	private void SendNpMessage(
 		string txt,
 		Message message,
-		Player player,
+		User player,
 		Channel channel)
 	{
 		var npMatch = Regexes.NowPlaying.Match(txt);

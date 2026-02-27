@@ -1,23 +1,23 @@
-﻿using BanchoNET.Core.Models.Players;
+﻿using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Utils.Extensions;
 
 namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private Task ChannelJoin(Player player, BinaryReader br)
+	private Task ChannelJoin(User player, BinaryReader br)
 	{
 		var channelName = br.ReadOsuString();
 
 		if (IgnoredChannels.Contains(channelName))
 			return Task.CompletedTask;
 		
-		var channel = session.GetChannel(channelName);
+		var channel = channels.GetChannel(channelName);
 
-		if (channel == null || !player.JoinChannel(channel))
+		if (channel == null || !channels.JoinPlayer(channel, player))
 			Console.WriteLine($"[ChannelJoin] {player.Username} failed to join {channelName}");
 		
-		player.LastActivityTime = DateTime.Now;
+		player.LastActivityTime = DateTime.UtcNow;
 		return Task.CompletedTask;
 	}
 }
