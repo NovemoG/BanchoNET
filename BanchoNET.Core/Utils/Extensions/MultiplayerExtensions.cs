@@ -1,7 +1,6 @@
 ﻿using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Multiplayer;
 using BanchoNET.Core.Models.Players;
-using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Packets;
 using Novelog;
 

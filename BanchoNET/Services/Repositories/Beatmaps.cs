@@ -25,7 +25,7 @@ public class BeatmapsRepository(
 			if (!beatmap.ShouldRecheckApi())
 				return beatmap;
 			
-			var set = await GetBeatmapSet(beatmap.SetId, mapId, true);
+			var set = await GetBeatmapSet(beatmap.SetId, mapId, true); //TODO resets status locally (in db stays correct)
 			return set?.Beatmaps.FirstOrDefault(b => b.Id == mapId);
 		}
 

@@ -1,10 +1,10 @@
 ﻿using AkatsukiPp;
 using BanchoNET.Core.Attributes;
+using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
 using BanchoNET.Core.Models.Scores;
-using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Utils.Extensions;
-using static BanchoNET.Core.Utils.Maps.CommandHandlerMap;
+using static BanchoNET.Commands.CommandHandlerMap;
 
 namespace BanchoNET.Commands;
 

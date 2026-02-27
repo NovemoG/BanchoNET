@@ -3,7 +3,6 @@ using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Scores;
-using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Utils;
 using Microsoft.EntityFrameworkCore;
 

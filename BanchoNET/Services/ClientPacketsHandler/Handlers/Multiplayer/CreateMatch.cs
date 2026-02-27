@@ -1,5 +1,5 @@
 ﻿using BanchoNET.Core.Models.Mongo;
-using BanchoNET.Core.Models.Users;
+using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils.Extensions;
 using Action = BanchoNET.Core.Models.Mongo.Action;

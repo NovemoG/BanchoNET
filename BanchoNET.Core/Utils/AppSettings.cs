@@ -9,11 +9,6 @@ public static class AppSettings
     {
         Domain = Environment.GetEnvironmentVariable("DOMAIN")!;
         
-        var dataPath = Environment.GetEnvironmentVariable("DATA_PATH");
-        DataPath = string.IsNullOrEmpty(dataPath)
-            ? "/home/user/BanchoNET/.data"
-            : dataPath;
-        
         var banchoNetVersion = Environment.GetEnvironmentVariable("BANCHONET_VERSION");
         BanchoNETVersion = string.IsNullOrEmpty(banchoNetVersion)
             ? "0.11.0"
@@ -145,6 +140,11 @@ public static class AppSettings
         VersionFetchHoursInterval = string.IsNullOrEmpty(versionFetchHours)
             ? 1
             : int.Parse(versionFetchHours);
+        
+        var daysUntilInactive = Environment.GetEnvironmentVariable("DAYS_UNTIL_PLAYER_IS_MARKED_INACTIVE");
+        DaysUntilPlayerIsMarkedInactive = string.IsNullOrEmpty(daysUntilInactive)
+            ? 1
+            : int.Parse(daysUntilInactive);
 
         var osuApiKey = Environment.GetEnvironmentVariable("OSU_API_KEY");
         OsuApiKey = string.IsNullOrEmpty(osuApiKey)
@@ -163,7 +163,6 @@ public static class AppSettings
     public static readonly bool DisplayScoreInNotification;
     public static readonly string MenuIconUrl;
     public static readonly string MenuOnclickUrl;
-    public static readonly string DataPath;
     public static readonly string BanchoBotName;
     public static readonly List<string> DisallowedNames;
     public static readonly List<string> OsuDirectSearchEndpoints;
@@ -174,6 +173,7 @@ public static class AppSettings
     public static readonly string RestrictedMessage;
     public static readonly int BotStatusUpdateInterval;
     public static readonly int VersionFetchHoursInterval;
+    public static readonly int DaysUntilPlayerIsMarkedInactive;
     public static readonly string CommandPrefix;
     public static readonly string OsuApiKey;
 }

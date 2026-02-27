@@ -8,7 +8,6 @@ using BanchoNET.Core.Models.Mongo;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
 using BanchoNET.Core.Models.Scores;
-using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils.Extensions;
 using Microsoft.EntityFrameworkCore;

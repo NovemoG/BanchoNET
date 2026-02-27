@@ -1,9 +1,9 @@
-﻿using System.Web;
+﻿using System.Text.Json;
+using System.Web;
 using BanchoNET.Core.Models;
 using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
 using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
 
 namespace BanchoNET.Controllers.OsuApi;
 
@@ -59,7 +59,7 @@ public partial class OsuController
         if (statusCode != StatusCodes.Status200OK)
             return Responses.BytesContentResult("-1\nFailed to retrieve data from the beatmap mirror.");
         
-        var osuDirectResponse = JsonConvert.DeserializeObject<List<DirectBeatmapSet>>(responseJson)!;
+        var osuDirectResponse = JsonSerializer.Deserialize<List<DirectBeatmapSet>>(responseJson)!;
 
         var returnResponse = new List<string>
         {

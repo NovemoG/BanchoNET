@@ -1,10 +1,10 @@
 ﻿using System.Diagnostics;
+using System.Text.Json;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Models;
 using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
 using Hangfire;
-using Newtonsoft.Json;
 
 namespace BanchoNET.Services;
 
@@ -15,7 +15,6 @@ public class OsuVersionService(ILogger logger) : IOsuVersionService
     private readonly Dictionary<string, OsuVersion> _streams = new()
     {
         { "stable40", new OsuVersion() },
-        { "beta40", new OsuVersion() },
         { "cuttingedge", new OsuVersion() },
     };
 
@@ -44,7 +43,7 @@ public class OsuVersionService(ILogger logger) : IOsuVersionService
             
             if (!content.IsValidResponse()) continue;
             
-            var changelog = JsonConvert.DeserializeObject<ClientBuildVersions>(content);
+            var changelog = JsonSerializer.Deserialize<ClientBuildVersions>(content);
             foreach (var build in changelog!.Builds) //Can't be null because we check for valid content length
             {
                 _streams[clientStream.Key] = OsuVersion.Parse(clientStream.Key, build.Version);

@@ -1,15 +1,20 @@
 ﻿services:
   banchonet:
     image: banchonet
+    hostname: banchonet
+    container_name: banchonet
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: BanchoNET/Dockerfile
     ports:
       - ${SERVER_PORT}:5000
     env_file:
       - .env
     volumes:
-      - "./data:/app/publish/.data"
+      - ${DATA_PATH:-./data}:/app/files
+    restart: unless-stopped
+    networks:
+      - banchonet
     depends_on:
       mariadb:
         condition: service_healthy
@@ -17,36 +22,72 @@
         condition: service_started
       MongoDB:
         condition: service_started
+
   mariadb:
     image: mariadb
     hostname: banchonet-mysql
+    container_name: banchonet-mysql
     environment:
       MARIADB_DATABASE: ${MYSQL_DB}
       MARIADB_USER: ${MYSQL_USER}
       MARIADB_PASSWORD: ${MYSQL_PASS}
-      MARIADB_ROOT_PASSWORD: ${MYSQL_PASS}
-      MARIADB_PORT: ${MYSQL_PORT}
-      MARIADB_HOST: ${MYSQL_HOST}
+      MARIADB_RANDOM_ROOT_PASSWORD: 1
+    configs:
+      - source: init_db
+        target: /docker-entrypoint-initdb.d/second.sh
+        mode: 0644
+    volumes:
+      - banchonet-mysql-data:/var/lib/mysql
     ports:
-      - ${MYSQL_PORT}:${MYSQL_PORT}
+      - ${MYSQL_PORT}:3306
+    restart: unless-stopped
+    networks:
+      - banchonet
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 2s
       timeout: 20s
       retries: 10
+
   redis:
     image: redis
     hostname: banchonet-redis
+    container_name: banchonet-redis
     environment:
       REDIS_HOST: ${REDIS_HOST}
       REDIS_PORT: ${REDIS_PORT}
       REDIS_PASSWORD: ${REDIS_PASS}
+    restart: unless-stopped
+    networks:
+      - banchonet
+
   MongoDB:
     image: mongo
     hostname: banchonet-mongo
+    container_name: banchonet-mongo
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASS}
       MONGO_INITDB_DATABASE: ${MONGO_DB}
     ports:
       - ${MONGO_PORT}:${MONGO_PORT}
+    restart: unless-stopped
+    networks:
+      - banchonet
+
+networks:
+  banchonet:
+    name: banchonet
+
+volumes:
+  banchonet-mysql-data:
+
+configs:
+  init_db:
+    content: |
+      mysql_note "Creating web database and user"
+      docker_process_sql <<'EOF'
+          CREATE DATABASE IF NOT EXISTS `hangfire`;
+          GRANT ALL PRIVILEGES ON `hangfire`.* TO '${MYSQL_USER}'@'%';
+          FLUSH PRIVILEGES;
+      EOF

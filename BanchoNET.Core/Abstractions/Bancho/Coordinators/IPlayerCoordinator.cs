@@ -1,4 +1,4 @@
-﻿using BanchoNET.Core.Models.Users;
+﻿using BanchoNET.Core.Models.Players;
 
 namespace BanchoNET.Core.Abstractions.Bancho.Coordinators;
 

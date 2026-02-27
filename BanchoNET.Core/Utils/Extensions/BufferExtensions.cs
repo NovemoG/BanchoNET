@@ -2,8 +2,8 @@
 using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Channels;
 using BanchoNET.Core.Models.Multiplayer;
+using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Replay;
-using BanchoNET.Core.Models.Users;
 using Novelog;
 
 namespace BanchoNET.Core.Utils.Extensions;

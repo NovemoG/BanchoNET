@@ -1,7 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using BanchoNET.Core.Models.Dtos;
+using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
-using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Utils.Extensions;
 using Novelog;
 

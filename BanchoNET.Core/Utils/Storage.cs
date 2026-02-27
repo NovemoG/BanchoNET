@@ -13,8 +13,8 @@ public static class Storage
 		CreateDirectoryIfNotExists(MedalIconsPath);
 		CreateDirectoryIfNotExists(LogsPath);
 	}
-	
-	private static readonly string BasePath = AppSettings.DataPath;
+
+	private const string BasePath = "/app/files";
 	private static readonly string BeatmapsPath = Path.Combine(BasePath, "Beatmaps");
 	private static readonly string ReplaysPath = Path.Combine(BasePath, "Replays");
 	private static readonly string AvatarsPath = Path.Combine(BasePath, "Avatars");

@@ -1,7 +1,7 @@
 ﻿using System.Collections.Immutable;
 using BanchoNET.Core.Models.Channels;
+using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
-using BanchoNET.Core.Models.Users;
 
 namespace BanchoNET.Core.Utils.Extensions;
 

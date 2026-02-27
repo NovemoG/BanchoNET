@@ -4,9 +4,8 @@ using BanchoNET.Core.Abstractions.Bancho.Services;
 using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Repositories.Histories;
 using BanchoNET.Core.Abstractions.Services;
-using BanchoNET.Core.Models.Users;
+using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Packets;
-using BanchoNET.Core.Utils.Maps;
 
 namespace BanchoNET.Services.ClientPacketsHandler;
 

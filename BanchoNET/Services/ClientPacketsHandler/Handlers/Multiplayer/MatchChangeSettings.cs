@@ -1,6 +1,6 @@
 ﻿using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Multiplayer;
-using BanchoNET.Core.Models.Users;
+using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Utils.Extensions;
 
 namespace BanchoNET.Services.ClientPacketsHandler;

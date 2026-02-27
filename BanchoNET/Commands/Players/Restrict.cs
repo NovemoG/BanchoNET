@@ -1,7 +1,7 @@
 ﻿using BanchoNET.Core.Attributes;
 using BanchoNET.Core.Models.Privileges;
 using BanchoNET.Core.Utils.Extensions;
-using static BanchoNET.Core.Utils.Maps.CommandHandlerMap;
+using static BanchoNET.Commands.CommandHandlerMap;
 
 namespace BanchoNET.Commands;
 

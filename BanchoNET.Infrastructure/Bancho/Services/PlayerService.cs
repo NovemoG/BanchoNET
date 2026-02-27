@@ -1,7 +1,7 @@
 ﻿using BanchoNET.Core.Abstractions.Bancho.Coordinators;
 using BanchoNET.Core.Abstractions.Bancho.Services;
 using BanchoNET.Core.Models.Channels;
-using BanchoNET.Core.Models.Users;
+using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils.Extensions;
 using Novelog.Abstractions;
@@ -10,7 +10,7 @@ namespace BanchoNET.Infrastructure.Bancho.Services;
 
 public sealed class PlayerService(ILogger logger) : PlayerStateService(logger), IPlayerService
 {
-    public User BanchoBot => BotsById[2];
+    public User BanchoBot => BotsById[1];
     public IEnumerable<User> Players => Items.Values;
     public new IEnumerable<User> PlayersInLobby => base.PlayersInLobby.Keys;
     public IEnumerable<User> Restricted => RestrictedById.Values;

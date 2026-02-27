@@ -13,7 +13,6 @@ using BanchoNET.Core.Models.Channels;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
-using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
 using BanchoNET.Infrastructure.Bancho.Coordinators;
@@ -96,7 +95,6 @@ public class Program
 		var requiredEnvVars = new[]
 		{
 			"MYSQL_HOST",
-			"MYSQL_PORT",
 			"MYSQL_USER",
 			"MYSQL_DB",
 			"REDIS_HOST",
@@ -132,7 +130,7 @@ public class Program
 		
 		var mySqlConnectionString = 
 			$"server={dbConnections.MysqlHost};" +
-			$"port={dbConnections.MysqlPort};" +
+			$"port=3306;" +
 			$"user={dbConnections.MysqlUser};" +
 			$"password={dbConnections.MysqlPass};";
 		
@@ -143,7 +141,7 @@ public class Program
 		var hangfirePass = dbConnections.MysqlPass;
 		var hangfireConnectionString =
 			$"server={dbConnections.MysqlHost};" +
-			$"port={dbConnections.MysqlPort};" +
+			$"port=3306;" +
 			$"user={dbConnections.MysqlUser};" +
 			$"{(string.IsNullOrEmpty(hangfirePass) ? "" : $"password={hangfirePass};")}" +
 			$"database=hangfire;" +
@@ -199,7 +197,6 @@ public class Program
 			.AddControllers();
 
 		var mongoSettings = MongoClientSettings.FromConnectionString(mongoConnectionString);
-		mongoSettings.LinqProvider = MongoDB.Driver.Linq.LinqProvider.V3;
 
 		builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConnectionString))
 			.AddSingleton(new MongoClient(mongoSettings))
@@ -214,6 +211,7 @@ public class Program
 		builder.Services.AddScoped<IMessagesRepository, MessagesRepository>();
 		builder.Services.AddScoped<IPlayersRepository, PlayersRepository>();
 		builder.Services.AddScoped<IScoresRepository, ScoresRepository>();
+		builder.Services.AddScoped<IBeatmapHandler, BeatmapHandler>();
 			
 		builder.Services.AddSingleton<ILobbyScoresQueue, LobbyScoresQueue>()
 			.AddHostedService<LobbyQueueHostedService>();

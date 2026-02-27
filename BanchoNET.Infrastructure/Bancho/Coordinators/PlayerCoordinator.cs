@@ -1,7 +1,7 @@
 ﻿using BanchoNET.Core.Abstractions.Bancho.Coordinators;
 using BanchoNET.Core.Abstractions.Bancho.Services;
 using BanchoNET.Core.Models.Channels;
-using BanchoNET.Core.Models.Users;
+using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils.Extensions;
 using Novelog.Abstractions;

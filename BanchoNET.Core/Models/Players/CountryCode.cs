@@ -1,6 +1,6 @@
 using System.ComponentModel;
 
-namespace BanchoNET.Core.Models.Users;
+namespace BanchoNET.Core.Models.Players;
 
 public enum CountryCode
 {

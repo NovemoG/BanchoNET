@@ -1,13 +1,12 @@
 using System.Collections.Concurrent;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Multiplayer;
-using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
 using BanchoNET.Core.Models.Scores;
 using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils.Extensions;
 
-namespace BanchoNET.Core.Models.Users;
+namespace BanchoNET.Core.Models.Players;
 
 public sealed class User : IUser, IDisposable,
     IEquatable<User>

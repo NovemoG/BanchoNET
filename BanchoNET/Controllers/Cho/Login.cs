@@ -3,7 +3,6 @@ using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Channels;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
-using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
@@ -46,7 +45,16 @@ public partial class ChoController
 		if (!AppSettings.DisallowOldClients)
 		{
 			var clientStream = loginData.OsuVersion.Stream;
-			if (clientStream is "stable" or "beta") clientStream += "40";
+			if (clientStream is "beta")
+			{
+				Response.Headers["cho-token"] = "client-too-old";
+
+				return new ServerPackets()
+					.VersionUpdate()
+					.PlayerId(-2)
+					.FinalizeAndGetContentResult();
+			}
+			if (clientStream is "stable") clientStream += "40";
 			
 			//TODO this changelog doesnt provide version info for tourney/dev client
 
@@ -337,7 +345,7 @@ public partial class ChoController
 	/// </summary>
 	/// <param name="packets">Packets to which data will be enqueued</param>
 	/// <param name="player">Player from which data will be enqueued to others</param>
-	public ServerPackets EnqueueOtherPlayers(ServerPackets packets, User? player = null)
+	private ServerPackets EnqueueOtherPlayers(ServerPackets packets, User? player = null)
 	{
 		var toOthers = player != null;
 		

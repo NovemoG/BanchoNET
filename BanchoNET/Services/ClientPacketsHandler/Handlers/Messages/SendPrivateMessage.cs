@@ -1,5 +1,4 @@
 ﻿using BanchoNET.Core.Models.Players;
-using BanchoNET.Core.Models.Users;
 using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;

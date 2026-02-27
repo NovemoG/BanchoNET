@@ -3,7 +3,7 @@ using System.Text.Json;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Players;
-using BanchoNET.Core.Utils.Maps;
+using BanchoNET.Core.Utils;
 
 namespace BanchoNET.Services;
 

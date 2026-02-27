@@ -14,11 +14,11 @@ public class Beatmap : IBeatmap,
 	public bool Private { get; set; }
 	public GameMode Mode { get; set; }
 	public BeatmapStatus Status { get; set; }
-	
+
 	/// <summary>
 	/// Only if map is not ranked on official server
 	/// </summary>
-	public DateTime NextApiCheck { get; set; }
+	public DateTime NextApiCheck { get; set; } = DateTime.UtcNow.Add(TimeSpan.FromDays(1));
 	public int ApiChecks { get; set; }
 	public bool IsRankedOfficially { get; set; }
 	
@@ -75,8 +75,7 @@ public class Beatmap : IBeatmap,
 		Od = apiBeatmap.DiffOverall;
 		Hp = apiBeatmap.DiffDrain;
 		StarRating = (float)apiBeatmap.DifficultyRating;
-
-		NextApiCheck = DateTime.UtcNow;
+		
 		IsRankedOfficially = Status is BeatmapStatus.Ranked or BeatmapStatus.Approved;
 	}
 
@@ -106,8 +105,7 @@ public class Beatmap : IBeatmap,
 		NotesCount = int.Parse(apiBeatmap.CountNormal);
 		SlidersCount = int.Parse(apiBeatmap.CountSlider);
 		SpinnersCount = int.Parse(apiBeatmap.CountSpinner);
-
-		NextApiCheck = DateTime.UtcNow;
+		
 		IsRankedOfficially = Status is BeatmapStatus.Ranked or BeatmapStatus.Approved;
 	}
 
@@ -141,7 +139,6 @@ public class Beatmap : IBeatmap,
 		NotesCount = beatmapDto.NotesCount;
 		SlidersCount = beatmapDto.SlidersCount;
 		SpinnersCount = beatmapDto.SpinnersCount;
-		NextApiCheck = DateTime.UtcNow;
 	}
 
 	#endregion

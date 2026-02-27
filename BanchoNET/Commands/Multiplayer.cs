@@ -6,7 +6,7 @@ using BanchoNET.Core.Models.Privileges;
 using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
 using Action = BanchoNET.Core.Models.Mongo.Action;
-using static BanchoNET.Core.Utils.Maps.CommandHandlerMap;
+using static BanchoNET.Commands.CommandHandlerMap;
 using static BanchoNET.Core.Utils.Extensions.ModsExtensions;
 using MultiplayerMatch = BanchoNET.Core.Models.Multiplayer.MultiplayerMatch;
 

@@ -1,6 +1,5 @@
 ﻿using BanchoNET.Core.Attributes;
 using BanchoNET.Core.Models.Privileges;
-using BanchoNET.Core.Utils.Maps;
 
 namespace BanchoNET.Commands;
 

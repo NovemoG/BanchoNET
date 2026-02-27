@@ -1,4 +1,4 @@
-﻿namespace BanchoNET.Core.Utils.Maps;
+﻿namespace BanchoNET.Core.Utils;
 
 public static class CountryMap
 {

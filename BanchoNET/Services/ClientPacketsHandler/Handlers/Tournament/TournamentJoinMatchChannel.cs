@@ -1,5 +1,5 @@
-﻿using BanchoNET.Core.Models.Privileges;
-using BanchoNET.Core.Models.Users;
+﻿using BanchoNET.Core.Models.Players;
+using BanchoNET.Core.Models.Privileges;
 using BanchoNET.Core.Utils.Extensions;
 
 namespace BanchoNET.Services.ClientPacketsHandler;

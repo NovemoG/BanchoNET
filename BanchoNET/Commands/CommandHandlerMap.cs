@@ -1,9 +1,9 @@
 ﻿using System.Diagnostics;
 using System.Reflection;
 using BanchoNET.Core.Attributes;
-using Novelog;
+using BanchoNET.Core.Utils;
 
-namespace BanchoNET.Core.Utils.Maps;
+namespace BanchoNET.Commands;
 
 public static class CommandHandlerMap
 {

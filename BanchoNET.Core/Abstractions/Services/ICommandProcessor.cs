@@ -1,5 +1,5 @@
 ﻿using BanchoNET.Core.Models.Channels;
-using BanchoNET.Core.Models.Users;
+using BanchoNET.Core.Models.Players;
 
 namespace BanchoNET.Core.Abstractions.Services;
 

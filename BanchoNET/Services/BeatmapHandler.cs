@@ -1,8 +1,8 @@
-﻿using BanchoNET.Core.Abstractions.Services;
+﻿using System.Text.Json;
+using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
-using Newtonsoft.Json;
 
 namespace BanchoNET.Services;
 
@@ -54,8 +54,8 @@ public class BeatmapHandler(HttpClient httpClient) : IBeatmapHandler
 		
 		if (response.IsSuccessStatusCode && content.IsValidResponse())
 			return osuApiKeyProvided
-				? new Beatmap(JsonConvert.DeserializeObject<List<OsuApiBeatmap>>(content)![0])
-				: new Beatmap(JsonConvert.DeserializeObject<List<ApiBeatmap>>(content)![0]);
+				? new Beatmap(JsonSerializer.Deserialize<List<OsuApiBeatmap>>(content)![0])
+				: new Beatmap(JsonSerializer.Deserialize<List<ApiBeatmap>>(content)![0]);
 
 		return null;
 	}
@@ -75,8 +75,8 @@ public class BeatmapHandler(HttpClient httpClient) : IBeatmapHandler
 
 		if (response.IsSuccessStatusCode && content.IsValidResponse())
 			return osuApiKeyProvided
-				? new BeatmapSet(JsonConvert.DeserializeObject<List<OsuApiBeatmap>>(content)!)
-				: new BeatmapSet(JsonConvert.DeserializeObject<List<ApiBeatmap>>(content)!);
+				? new BeatmapSet(JsonSerializer.Deserialize<List<OsuApiBeatmap>>(content)!)
+				: new BeatmapSet(JsonSerializer.Deserialize<List<ApiBeatmap>>(content)!);
 
 		return null;
 	}

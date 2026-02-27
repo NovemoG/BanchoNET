@@ -1,5 +1,4 @@
 ﻿using BanchoNET.Core.Models.Players;
-using BanchoNET.Core.Models.Users;
 
 namespace BanchoNET.Services.ClientPacketsHandler;
 

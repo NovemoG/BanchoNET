@@ -188,8 +188,8 @@ public class BackgroundTasks(
         await using var scope = scopeFactory.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<BanchoDbContext>();
         
-        var inactivePlayers = await db.Players              //TODO make it configurable
-            .Where(p => !p.Inactive && p.LastActivityTime < DateTime.UtcNow.AddDays(-14))
+        var inactivePlayers = await db.Players
+            .Where(p => !p.Inactive && p.LastActivityTime < DateTime.UtcNow.AddDays(-AppSettings.DaysUntilPlayerIsMarkedInactive))
             .ExecuteUpdateAsync(p => p.SetProperty(u => u.Inactive, true));
         
         logger.LogInfo($"Marked {inactivePlayers} players as inactive.", caller: nameof(BackgroundTasks));

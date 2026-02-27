@@ -4,10 +4,10 @@ using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Repositories.Histories;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Models.Channels;
-using BanchoNET.Core.Models.Users;
+using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
-using static BanchoNET.Core.Utils.Maps.CommandHandlerMap;
+using static BanchoNET.Commands.CommandHandlerMap;
 
 namespace BanchoNET.Commands;
 
