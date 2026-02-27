@@ -605,7 +605,9 @@ public class PlayersRepository : IPlayersRepository
 
 	public async Task<int> GetPlayerGlobalRank(GameMode mode, int playerId)
 	{
-		return (int)(await _redis.SortedSetRankAsync($"bancho:leaderboard:{(byte)mode}", playerId, Order.Descending))! + 1;
+		var rank = await _redis.SortedSetRankAsync($"bancho:leaderboard:{(byte)mode}", playerId, Order.Descending);
+		if (rank == null) return 0;
+		return (int)rank + 1;
 	}
 
 	public async Task InsertPlayerGlobalRank(byte mode, string country, int playerId, int pp)

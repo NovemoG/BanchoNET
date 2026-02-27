@@ -29,16 +29,16 @@ public partial class ClientPacketsHandler
                     .FellowSpectatorJoined(player.Id)
                     .FinalizeAndGetContent();
                 
-                foreach (var spectator in target.Spectators.Where(spectator => spectator != player))
+                foreach (var spectator in target.Spectators.Where(spectator => !spectator.Equals(player)))
                     spectator.Enqueue(bytes);
 
                 return Task.CompletedTask;
             }
             
-            currentHost.RemoveSpectator(player);
+            playerCoordinator.RemoveSpectator(currentHost, player);
         }
         
-        target.AddSpectator(player);
+        playerCoordinator.AddSpectator(target, player);
         
         return Task.CompletedTask;
     }

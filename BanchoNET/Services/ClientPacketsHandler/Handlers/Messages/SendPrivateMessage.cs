@@ -56,14 +56,14 @@ public partial class ClientPacketsHandler
 		}
 
 		if (target.Status.Activity == Activity.Afk && !string.IsNullOrEmpty(target.AwayMessage))
-			player.SendMessage(target.AwayMessage, target);
+			playerService.SendMessageTo(player, target.AwayMessage, target);
 
 		if (playerService.Bots.FirstOrDefault(b => b.Username == target.Username) == null)
 		{
 			var read = false;
 			if (target.IsOnline)
 			{
-				target.SendMessage(txt, player);
+				playerService.SendMessageTo(target, txt, player);
 				read = true;
 			}
 			else
@@ -82,7 +82,7 @@ public partial class ClientPacketsHandler
 				var command = await commands.Execute(txt, player);
 			
 				if (!string.IsNullOrEmpty(command.Response))
-					player.SendMessage(command.Response, target);
+					playerService.SendMessageTo(player, command.Response, target);
 			}
 			else
 			{

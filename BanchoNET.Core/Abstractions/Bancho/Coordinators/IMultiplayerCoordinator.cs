@@ -11,6 +11,7 @@ public interface IMultiplayerCoordinator : ICoordinator
     
     void JoinLobby(User player);
     void LeavePlayerToLobby(User player);
+    void InviteToLobby(User player, User? target);
     
     void StartMatch(MultiplayerMatch match);
     void EndMatch(MultiplayerMatch match);

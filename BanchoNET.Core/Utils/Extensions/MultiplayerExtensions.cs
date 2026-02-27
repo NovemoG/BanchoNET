@@ -133,20 +133,4 @@ public static class MultiplayerExtensions
 			};
 		}
 	}
-	
-	public static void InviteToLobby(User player, User? target)
-	{
-		if (target == null) return;
-		if (target.IsBot)
-		{
-			player.SendBotMessage("I'm too busy right now! Maybe later \ud83d\udc7c"); //TODO
-			return;
-		}
-		
-		target.Enqueue(new ServerPackets()
-			.MatchInvite(player, target.Username)
-			.FinalizeAndGetContent());
-		
-		Logger.Shared.LogDebug($"{player.Username} invited {target.Username} to their match.", nameof(MultiplayerExtensions));
-	}
 }

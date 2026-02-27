@@ -2,7 +2,6 @@
 using BanchoNET.Core.Models.Channels;
 using BanchoNET.Core.Models.Privileges;
 using BanchoNET.Core.Models.Users;
-using BanchoNET.Core.Packets;
 
 namespace BanchoNET.Core.Utils.Extensions;
 
@@ -70,45 +69,6 @@ public static class ChannelExtensions
 			User player
 		) {
 			return player.ToBanchoPrivileges().CompareHighestPrivileges(channel.WritePrivileges);
-		}
-
-		public void SendMessage(
-			Message message,
-			bool toSelf = false
-		) {
-			var messageBytes = new ServerPackets()
-				.SendMessage(new Message
-				{
-					Sender = message.Sender,
-					Content = message.Content,
-					Destination = channel.Name,
-					SenderId = message.SenderId
-				})
-				.FinalizeAndGetContent();
-		
-			foreach (var player in channel.Players)
-			{
-				if (!player.BlockedByPlayer(message.SenderId) && (toSelf || player.Id != message.SenderId))
-					player.Enqueue(messageBytes);
-			}
-		}
-
-		public void SendBotMessage(
-			string message,
-			User from
-		) {
-			if (message.Length >= 31979)
-				message = $"message would have crashed games ({message.Length} characters).";
-		
-			channel.EnqueueToPlayers(new ServerPackets()
-				.SendMessage(new Message
-				{
-					Sender = from.Username,
-					Content = message,
-					Destination = channel.Name,
-					SenderId = from.Id
-				})
-				.FinalizeAndGetContent());
 		}
 
 		public void EnqueueToPlayers(

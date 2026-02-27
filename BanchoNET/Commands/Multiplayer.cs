@@ -151,10 +151,10 @@ public partial class CommandProcessor
         if (target == null)
             return $"{args[0]} is either offline or you misspelled the username.";
 
-        if (target == _playerCtx)
+        if (target.Equals(_playerCtx))
             return "Why would you want to invite yourself?";
         
-        MultiplayerExtensions.InviteToLobby(_playerCtx, target);
+        multiplayer.InviteToLobby(_playerCtx, target);
         
         return $"Invite sent to {target.Username}.";
     }
@@ -491,7 +491,7 @@ public partial class CommandProcessor
 
                 result |= modParse;
             }
-            else _match.Chat.SendBotMessage($"Invalid mod: {modName}", playerService.BanchoBot);
+            else channels.SendBotMessageTo(_match.Chat, $"Invalid mod: {modName}", playerService.BanchoBot);
             
             if (FreemodAliases.Any(a => a.Equals(modName, StringComparison.CurrentCultureIgnoreCase)))
             {
@@ -529,18 +529,22 @@ public partial class CommandProcessor
         if (_match.InProgress)
             return "Match is already in progress.";
         
-        var seconds = args.Length == 0 ? 10 : uint.TryParse(args[0], out var s) ? s : 10;
+        var seconds = args.Length == 0
+            ? 5
+            : int.TryParse(args[0], out var s)
+                ? s < 0 ? 0: s
+                : 5;
         
         if (_match.Timer != null)
         {
             _match.Timer.Stop();
-            _match.Chat.SendBotMessage("Updating current timer.", playerService.BanchoBot);
+            channels.SendBotMessageTo(_match.Chat, "Updating current timer.", playerService.BanchoBot);
         }
 
         _match.ReadyAllPlayers();
         multiplayer.EnqueueStateTo(_match, false);
         
-        _match.Timer = new LobbyTimer(_match, seconds, true, async () =>
+        _match.Timer = new LobbyTimer(seconds, true, async () =>
             await histories.MapStarted(
                 _match.LobbyId,
                 new ScoresEntry
@@ -553,7 +557,9 @@ public partial class CommandProcessor
                     BeatmapId = _match.BeatmapId,
                     BeatmapName = _match.BeatmapName,
                     Values = []
-                }));
+                }),
+            msg => channels.SendBotMessageTo(_match.Chat, msg, playerService.BanchoBot)
+        );
         
         return "";
     }
@@ -563,7 +569,11 @@ public partial class CommandProcessor
         if (!_match.Refs.Contains(_playerCtx.Id))
             return "";
         
-        var seconds = args.Length == 0 ? 10 : uint.TryParse(args[0], out var s) ? s : 10;
+        var seconds = args.Length == 0
+            ? 5
+            : int.TryParse(args[0], out var s)
+                ? s < 0 ? 0: s
+                : 5;
 
         if (seconds == 0)
             return "";
@@ -571,13 +581,14 @@ public partial class CommandProcessor
         if (_match.Timer != null)
         {
             _match.Timer.Stop();
-            _match.Chat.SendBotMessage("Updating current timer.", playerService.BanchoBot);
+            channels.SendBotMessageTo(_match.Chat, "Updating current timer.", playerService.BanchoBot);
         }
-        
-        var timer = new LobbyTimer(_match, seconds);
+
+        var timer = new LobbyTimer(
+            seconds,
+            sendMessage: msg => channels.SendBotMessageTo(_match.Chat, msg, playerService.BanchoBot)
+        );
         _match.Timer = timer;
-        
-        timer.OnSendMessage += message => _match.Chat.SendBotMessage(message, playerService.BanchoBot);
         
         return "";
     }
@@ -610,7 +621,7 @@ public partial class CommandProcessor
         var player = slot.Player!;
         
         multiplayer.LeavePlayerToLobby(player);
-        player.SendBotMessage("You've been kicked from the lobby.");
+        playerService.SendBotMessageTo(player, "You've been kicked from the lobby.");
         
         await histories.AddMatchAction(
             _match.LobbyId,
@@ -632,7 +643,7 @@ public partial class CommandProcessor
                     Date = DateTime.UtcNow
                 });
         }
-        
+
         return $"{slot.Player!.Username} has been kicked.";
     }
     
@@ -660,7 +671,7 @@ public partial class CommandProcessor
             var player = slot.Player!;
             
             multiplayer.LeavePlayerToLobby(player);
-            player.SendBotMessage("You've been banned from the lobby.");
+            playerService.SendBotMessageTo(player, "You've been banned from the lobby.");
         }
         
         return $"{target.Username} has been banned.";
@@ -674,24 +685,24 @@ public partial class CommandProcessor
         if (args.Length == 0)
             return $"No referee(s) provided. Use '{Prefix}mp addref <username> [<username>] ...'.";
 
-        int count = 0;
+        var count = 0;
         foreach (var username in args)
         {
             var player = await players.GetPlayerOrOffline(username);
 
             if (player == null)
             {
-                _match.Chat.SendBotMessage($"Player {username} doesn't exist", playerService.BanchoBot);
+                channels.SendBotMessageTo(_match.Chat, $"Player {username} doesn't exist", playerService.BanchoBot);
                 continue;
             }
             if (player.Equals(_playerCtx))
             {
-                _match.Chat.SendBotMessage("You're already a referee.", playerService.BanchoBot);
+                channels.SendBotMessageTo(_match.Chat, "You're already a referee.", playerService.BanchoBot);
                 continue;
             }
             if (_match.Refs.Contains(player.Id))
             {
-                _match.Chat.SendBotMessage($"{player.Username} is already a referee.", playerService.BanchoBot);
+                channels.SendBotMessageTo(_match.Chat, $"{player.Username} is already a referee.", playerService.BanchoBot);
                 continue;
             }
             _match.Refs.Add(player.Id);
@@ -716,22 +727,22 @@ public partial class CommandProcessor
             
             if (player == null)
             {
-                _match.Chat.SendBotMessage($"Player {username} doesn't exist", playerService.BanchoBot);
+                channels.SendBotMessageTo(_match.Chat, $"Player {username} doesn't exist", playerService.BanchoBot);
                 continue;
             }
             if (player.Equals(_playerCtx))
             {
-                _match.Chat.SendBotMessage("You can't remove yourself from referees.", playerService.BanchoBot);
+                channels.SendBotMessageTo(_match.Chat, "You can't remove yourself from referees.", playerService.BanchoBot);
                 continue;
             }
             if (!_match.Refs.Contains(player.Id))
             {
-                _match.Chat.SendBotMessage($"{player.Username} is not a referee.", playerService.BanchoBot);
+                channels.SendBotMessageTo(_match.Chat, $"{player.Username} is not a referee.", playerService.BanchoBot);
                 continue;
             }
             if (_match.CreatorId == player.Id)
             {
-                _match.Chat.SendBotMessage("Can't remove creator of the lobby.", playerService.BanchoBot);
+                channels.SendBotMessageTo(_match.Chat, "Can't remove creator of the lobby.", playerService.BanchoBot);
                 continue;
             }
             

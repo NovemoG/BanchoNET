@@ -65,7 +65,7 @@ public partial class OsuController
         {
             var versionDate = DateTime.ParseExact(osuVersion[..8], "yyyyMMdd", null);
             
-            if (versionDate != player.ClientDetails.OsuVersion.Date)
+            if (versionDate != player.ClientDetails?.OsuVersion.Date)
                 throw new Exception("osu! version mismatch");
 			
             if (clientHash != player.ClientDetails.ClientHash)
@@ -86,6 +86,7 @@ public partial class OsuController
         }
         catch (Exception e)
         {
+            //TODO CHECK THIS
             logger.LogError("Mismatching hashes on score submission", e);
 
             await players.RestrictPlayer(player, "Mismatching hashes on score submission");
@@ -386,8 +387,9 @@ public partial class OsuController
             if (currentBest != null)
                 if (currentBest.PlayerId != score.PlayerId)
                     announcement += $" (Previous #1: [https://{AppSettings.Domain}/u/{currentBest.PlayerId} {currentBest.Player.Username}])";
-					
-            announceChannel?.SendMessage(new Message
+
+            if (announceChannel is null) return;
+            channels.SendMessageTo(announceChannel, new Message
             {
                 Sender = player.Username,
                 Content = announcement,

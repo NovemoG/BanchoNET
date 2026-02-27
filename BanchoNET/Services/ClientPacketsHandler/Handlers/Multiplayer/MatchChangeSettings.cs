@@ -58,7 +58,7 @@ public partial class ClientPacketsHandler
 		else if (match.BeatmapId == -1)
 		{
 			if (match.PreviousBeatmapId != matchData.BeatmapId)
-				match.Chat.SendBotMessage($"Selected: {matchData.MapEmbed()}", playerService.BanchoBot);
+				channels.SendBotMessageTo(match.Chat, $"Selected: {matchData.MapEmbed()}", playerService.BanchoBot);
 
 			var beatmap = await beatmaps.GetBeatmap(matchData.BeatmapMD5);
 

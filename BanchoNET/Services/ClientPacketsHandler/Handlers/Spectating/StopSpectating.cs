@@ -14,7 +14,7 @@ public partial class ClientPacketsHandler
             return Task.CompletedTask;
         }
         
-        host.RemoveSpectator(player);
+        playerCoordinator.RemoveSpectator(host, player);
 
         return Task.CompletedTask;
     }

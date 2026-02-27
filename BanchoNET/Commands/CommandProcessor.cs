@@ -15,6 +15,7 @@ public partial class CommandProcessor(
     IPlayerService playerService,
     IPlayerCoordinator playerCoordinator,
     IMultiplayerCoordinator multiplayer,
+    IChannelService channels,
     IScoresRepository scores,
     IPlayersRepository players,
     IBeatmapsRepository beatmaps,

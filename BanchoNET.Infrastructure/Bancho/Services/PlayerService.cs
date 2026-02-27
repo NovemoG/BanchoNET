@@ -1,6 +1,8 @@
 ﻿using BanchoNET.Core.Abstractions.Bancho.Coordinators;
 using BanchoNET.Core.Abstractions.Bancho.Services;
+using BanchoNET.Core.Models.Channels;
 using BanchoNET.Core.Models.Users;
+using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils.Extensions;
 using Novelog.Abstractions;
 
@@ -93,6 +95,52 @@ public sealed class PlayerService(ILogger logger) : PlayerStateService(logger), 
         
         Logger.LogWarning($"Failed to remove player {player.Username} from the lobby");
         return false;
+    }
+    
+    
+
+    /// <summary>
+    /// Sends a message directly to this player. If channel is provided, it will be sent to that channel instead.
+    /// </summary>
+    /// <param name="player"></param>
+    /// <param name="message">Message content</param>
+    /// <param name="from">Player that sent message</param>
+    /// <param name="toChannel">(optional) channel that this message should be sent to instead of player</param>
+    public void SendMessageTo(
+        User player,
+        string message,
+        User from,
+        Channel? toChannel = null
+    ) {
+        player.Enqueue(new ServerPackets()
+            .SendMessage(new Message
+            {
+                Sender = from.Username,
+                Content = message,
+                Destination = toChannel != null ? toChannel.Name : player.Username,
+                SenderId = from.Id
+            }).FinalizeAndGetContent());
+    }
+
+    /// <summary>
+    /// Sends a bot message to a specified player. If a channel name is provided, the message will be sent to that channel instead.
+    /// </summary>
+    /// <param name="player">The player who will receive the message.</param>
+    /// <param name="message">The content of the message to be sent.</param>
+    /// <param name="toChannel">(optional) The name of the channel to which the message should be sent.</param>
+    public void SendBotMessageTo(
+        User player,
+        string message,
+        string toChannel = ""
+    ) {
+        player.Enqueue(new ServerPackets()
+            .SendMessage(new Message
+            {
+                Sender = BanchoBot.Username,
+                Content = message,
+                Destination = string.IsNullOrEmpty(toChannel) ? player.Username : toChannel,
+                SenderId = BanchoBot.Id
+            }).FinalizeAndGetContent());
     }
     
     public void EnqueueToPlayers(byte[] data)

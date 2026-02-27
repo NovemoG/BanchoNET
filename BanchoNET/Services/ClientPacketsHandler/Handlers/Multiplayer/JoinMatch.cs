@@ -67,6 +67,8 @@ public partial class ClientPacketsHandler
 				});
 		}
 
-		player.SendBotMessage($"Match created by {player.Username} {match.MPLinkEmbed()}", "#multiplayer");
+		playerService.SendBotMessageTo(player,
+			$"Match created by {player.Username} {match.MPLinkEmbed()}", "#multiplayer"
+		);
 	}
 }

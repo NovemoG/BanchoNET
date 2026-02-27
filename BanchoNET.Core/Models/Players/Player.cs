@@ -1,130 +1,152 @@
-﻿using BanchoNET.Core.Models.Channels;
+using System.Collections.Concurrent;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Multiplayer;
+using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
 using BanchoNET.Core.Models.Scores;
 using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils.Extensions;
-using static BanchoNET.Core.Models.Privileges.PlayerPrivileges;
 
-namespace BanchoNET.Core.Models.Players;
+namespace BanchoNET.Core.Models.Users;
 
-public sealed class Player
+public sealed class User : IUser, IDisposable,
+    IEquatable<User>
 {
-	private readonly ServerPackets _queue = new();
-	private readonly Lock _queueLock = new();
-	
-	private bool _logout;
-	
-	public readonly int Id;
-	public readonly Guid Token;
-	
-	public string Username { get; set; }
-	public string SafeName { get; set; }
-	public string LoginName { get; set; }
-	public string PasswordHash { get; set; }
-	public PlayerPrivileges Privileges { get; set; }
-	public Player? Spectating { get; set; }
-	public MultiplayerMatch? Lobby { get; set; }
-	public bool InLobby { get; set; }
-	public Geoloc Geoloc { get; init; }
-	public sbyte TimeZone { get; set; }
-	public bool PmFriendsOnly { get; set; }
-	public DateTime RemainingSilence { get; set; }
-	public DateTime RemainingSupporter { get; set; }
-	public DateTime LoginTime { get; set; }
-	public DateTime LastActivityTime { get; set; }
-	public string? AwayMessage { get; set; }
-	public bool IsBot { get; set; }
-	public bool Stealth { get; set; } //TODO
+    public bool IsBot { get; set; }
+    
+    public int Id { get; init; }
+    public int OnlineId => Id;
+    public Guid SessionId { get; set; }
+    public string PasswordHash { get; init; }
+    public string? ApiKey { get; set; }
+    
+    public string Username { get; set; }
+    public string SafeName => Username.MakeSafe();
+    public string[] PreviousUsernames = [];
+    
+    private string _countryCodeString = null!;
+    public CountryCode CountryCode
+    {
+        get => Enum.TryParse(_countryCodeString, out CountryCode result) ? result : CountryCode.Unknown;
+        set => _countryCodeString = value.ToString();
+    }
+    
+    public Geoloc Geoloc { get; set; }
+    public sbyte TimeZone { get; set; }
+    
+    public ClientDetails? ClientDetails { get; set; }
+    public Dictionary<GameMode, ModeStats> Stats { get; } = new();
+    public List<int> Friends { get; } = [];
+    public List<int> Blocked { get; } = [];
+    public List<string> Channels { get; } = [];
+    
+    public PlayerPrivileges Privileges { get; set; }
+    public bool IsRestricted => !Privileges.HasPrivilege(PlayerPrivileges.Unrestricted);
+    
+    public int LastValidBeatmapId { get; set; }
+    public LastNp? LastNp { get; set; }
+    public Score? RecentScore { get; set; }
+    public PlayerStatus Status { get; } = new();
+    
+    public bool AppearOffline { get; set; } //TODO
+    public string? AwayMessage { get; set; }
+    public bool PmFriendsOnly { get; set; }
+    public PresenceFilter Presence { get; set; }
+    
+    public int SupportLevel;
+    public DateTime RemainingSupporter { get; set; }
+    public bool IsSupporter => RemainingSupporter > DateTime.UtcNow;
+    
+    public DateTime RemainingSilence { get; set; }
+    public bool IsSilenced => RemainingSilence > DateTime.UtcNow;
+    
+    public bool InLobby { get; set; }
+    public MultiplayerMatch? Match { get; set; }
+    public bool InMatch => Match != null;
+    
+    public User? Spectating { get; set; }
+    public bool IsSpectating => Spectating != null;
+    
+    public bool HasSpectators => !_spectators.IsEmpty;
+    public IEnumerable<User> Spectators => _spectators.Keys;
+    public int SpectatorsCount => _spectators.Count;
+    private readonly ConcurrentDictionary<User, bool> _spectators = new();
+    public bool AddSpectator(User player) => _spectators.TryAdd(player, true);
+    public bool RemoveSpectator(User player) => _spectators.TryAdd(player, true);
+    
+    public DateTime LoginTime { get; }
+    public DateTime LastActivityTime { get; set; }
 
-	public ClientDetails ClientDetails { get; set; } = null!;
-	public PresenceFilter PresenceFilter { get; set; }
-	public PlayerStatus Status { get; }
-	public Dictionary<GameMode, ModeStats> Stats { get; }
-	
-	public List<int> Friends { get; }
-	public List<int> Blocked { get; }
-	public List<Channel> Channels { get; }
-	public List<Player> Spectators { get; }
-	
-	public int LastValidBeatmapId { get; set; }
-	public LastNp? LastNp { get; set; }
-	public Score? RecentScore { get; set; }
-	
-	//public Club Club { get; set; }
-	//public int ClubPrivileges { get; set; }
+    public bool IsOnline => IsOnlineOnStable || IsOnlineOnLazer;
+    public bool IsOnlineOnStable => SessionId != Guid.Empty;
+    public bool IsOnlineOnLazer { get; set; } //TODO
 
-	public bool Online => Token != Guid.Empty;
-	public bool InMatch => Lobby != null;
-	public bool Silenced => RemainingSilence > DateTime.UtcNow;
-	public bool Supporter => RemainingSupporter > DateTime.UtcNow;
-	public bool Restricted => !Privileges.HasPrivilege(Unrestricted);
-	public bool IsSpectating => Spectating != null;
-	public bool HasSpectators => Spectators.Count > 0;
-	
-	public string? ApiKey { get; set; }
-	
-	public Player(
-		PlayerDto playerData,
-		Guid token = new(),
-		DateTime? loginTime = null,
-		sbyte timeZone = 0)
-	{
-		Id = playerData.Id;
-		
-		Token = token != Guid.Empty ? token : Guid.Empty;
-		
-		LoginTime = loginTime ?? DateTime.UtcNow;
-		
-		Username = playerData.Username;
-		SafeName = playerData.SafeName;
-		LoginName = playerData.LoginName;
-		PasswordHash = playerData.PasswordHash;
-		Privileges = (PlayerPrivileges)playerData.Privileges;
-		TimeZone = timeZone;
-		RemainingSilence = playerData.RemainingSilence;
-		RemainingSupporter = playerData.RemainingSupporter;
-		AwayMessage = playerData.AwayMessage;
-		ApiKey = playerData.ApiKey;
+    public User(
+        PlayerDto userInfo, 
+        Guid? id = null,
+        DateTime? loginTime = null,
+        sbyte timeZone = 0
+    ) {
+        Id = userInfo.Id;
+        Username = userInfo.Username;
+        SessionId = id ?? Guid.Empty;
+        PasswordHash = userInfo.PasswordHash;
+        LoginTime = loginTime ?? DateTime.UtcNow;
+        TimeZone = timeZone;
+        Privileges = (PlayerPrivileges)userInfo.Privileges;
+        RemainingSilence = userInfo.RemainingSilence;
+        RemainingSupporter = userInfo.RemainingSupporter;
+        AwayMessage = userInfo.AwayMessage;
+        ApiKey = userInfo.ApiKey;
+    }
+    
+    public override string ToString() => Username;
+    
+    #region IEquatable
+    
+    public bool Equals(User? other) => this.MatchesOnlineID(other);
+    
+    public override bool Equals(
+        object? obj
+    ) {
+        return ReferenceEquals(this, obj) || obj is User other && Equals(other);
+    }
+    
+    public override int GetHashCode() => Id.GetHashCode();
 
-		Status = new PlayerStatus
-		{
-			Activity = Activity.Idle,
-			ActivityDescription = "",
-			BeatmapMD5 = "",
-			CurrentMods = Mods.None,
-			Mode = GameMode.VanillaStd,
-			BeatmapId = 0
-		};
 
-		Stats = [];
-		Friends = [];
-		Blocked = [];
-		Channels = [];
-		Spectators = [];
-	}
-	
-	public void Enqueue(byte[] dataBytes)
-	{
-		lock (_queueLock)
-			_queue.WriteBytes(dataBytes);
-	}
+    #endregion
+    
+    #region StablePacketQueue
 
-	public byte[] Dequeue()
-	{
-		lock (_queueLock)
-		{
-			var bytes = _queue.GetContent();
-			
-			_queue.Clear();
-			
-			if (_logout)
-				_queue.Dispose();
+    private readonly ServerPackets _queue = new();
+    private readonly Lock _queueLock = new();
+    private bool _logout;
+    
+    public void Logout() => _logout = true;
+    
+    public void Enqueue(byte[] dataBytes)
+    {
+        lock (_queueLock)
+            _queue.WriteBytes(dataBytes);
+    }
 
-			return bytes;
-		}
-	}
+    public byte[] Dequeue()
+    {
+        lock (_queueLock)
+        {
+            var bytes = _queue.GetContent();
+            
+            _queue.Clear();
+            if (_logout) _queue.Dispose();
+            
+            return bytes;
+        }
+    }
 
-	public void Logout() => _logout = true;
+    #endregion
+
+    public void Dispose() {
+        _queue.Dispose();
+    }
 }

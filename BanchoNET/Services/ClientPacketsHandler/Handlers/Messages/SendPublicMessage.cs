@@ -74,24 +74,24 @@ public partial class ClientPacketsHandler
 		string txt,
 		Message message,
 		User player,
-		Channel channel)
-	{
+		Channel channel
+	) {
 		var command = await commands.Execute(txt, player, channel);
 			
 		if (!string.IsNullOrEmpty(command.Response))
 		{
 			if (command.ToPlayer)
-				player.SendBotMessage(command.Response, channel.Name);
+				playerService.SendBotMessageTo(player, command.Response, channel.Name);
 			else
 			{
-				channel.SendMessage(new Message
+				channels.SendMessageTo(channel, new Message
 				{
 					Sender = player.Username,
 					Content = txt,
 					Destination = message.Destination,
 					SenderId = player.Id
 				});
-				channel.SendBotMessage(command.Response, playerService.BanchoBot);
+				channels.SendBotMessageTo(channel, command.Response, playerService.BanchoBot);
 			}
 		}
 	}
@@ -100,8 +100,8 @@ public partial class ClientPacketsHandler
 		string txt,
 		Message message,
 		User player,
-		Channel channel)
-	{
+		Channel channel
+	) {
 		var npMatch = Regexes.NowPlaying.Match(txt);
 
 		if (npMatch.Success)
@@ -118,8 +118,8 @@ public partial class ClientPacketsHandler
 					: player.Status.Mode
 			};
 		}
-			
-		channel.SendMessage(new Message
+		
+		channels.SendMessageTo(channel, new Message
 		{
 			Sender = player.Username,
 			Content = txt,

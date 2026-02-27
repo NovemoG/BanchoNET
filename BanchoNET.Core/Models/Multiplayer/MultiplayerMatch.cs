@@ -48,7 +48,7 @@ public sealed class MultiplayerMatch : IMultiplayerMatch, IDisposable,
 	public Channel Chat { get; set; } = null!;
 	public MultiplayerSlot[] Slots { get; set; }
 	public bool Locked { get; set; }
-	public LobbyTimer Timer { get; set; }
+	public LobbyTimer? Timer { get; set; }
 
 	#region IEquatable
 
@@ -65,6 +65,6 @@ public sealed class MultiplayerMatch : IMultiplayerMatch, IDisposable,
 	#endregion
 	
 	public void Dispose() {
-		Timer.Dispose();
+		Timer?.Dispose();
 	}
 }

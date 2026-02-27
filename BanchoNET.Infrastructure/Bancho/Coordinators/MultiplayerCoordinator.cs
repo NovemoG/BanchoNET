@@ -109,6 +109,7 @@ public class MultiplayerCoordinator(
         EnqueueStateTo(match);
         
         //TODO mediatr player joined match (then mediatr sends chat message)
+        
         //player.SendBotMessage($"Match created by {player.Username} {match.MPLinkEmbed()}", "#multiplayer");
         return true;
     }
@@ -122,40 +123,39 @@ public class MultiplayerCoordinator(
             return false;
         }
 
-        var lobby = player.Match!;
-        var slot = lobby.Slots.First(s => s.Player == player);
+        var match = player.Match!;
+        var slot = match.Slots.First(s => s.Player != null && s.Player.Equals(player));
 		
         slot.Reset(slot.Status == SlotStatus.Locked ? SlotStatus.Locked : SlotStatus.Open);
-        channels.LeavePlayer(lobby.Chat, player);
+        channels.LeavePlayer(match.Chat, player);
 
-        if (lobby.IsEmpty())
+        if (match.IsEmpty())
         {
-            logger.LogDebug($"Match \"{lobby.Name}\" is empty, removing.");
-
-            lobby.Timer.Stop();
-            matches.RemoveLobby(lobby);
-            channels.RemoveChannel(lobby.Chat);
-            EnqueueDisposeFor(lobby);
+            logger.LogDebug($"Match \"{match.Name}\" is empty, removing.");
+            
+            matches.RemoveLobby(match);
+            channels.RemoveChannel(match.Chat);
+            EnqueueDisposeFor(match);
         }
         else
         {
-            if (lobby.HostId == player.Id)
+            if (match.HostId == player.Id)
             {
-                var firstOccupiedSlot = lobby.Slots.First(s => s.Player != null);
-                lobby.HostId = firstOccupiedSlot.Player!.Id;
+                var firstOccupiedSlot = match.Slots.First(s => s.Player != null);
+                match.HostId = firstOccupiedSlot.Player!.Id;
                 firstOccupiedSlot.Player.Enqueue(new ServerPackets()
                     .MatchTransferHost()
                     .FinalizeAndGetContent());
             }
 
-            if (lobby.CreatorId != player.Id && lobby.Refs.Remove(player.Id)) ;
-            //TODO mediatr player joined match (then mediatr sends chat message)
-            //lobby.Chat.SendBotMessage($"Removed {player.Username} from match referees.");
+            if (match.CreatorId != player.Id && match.Refs.Remove(player.Id))
+                channels.SendBotMessageTo(match.Chat, $"Removed {player.Username} from match referees.", players.BanchoBot);
 			
-            EnqueueStateTo(lobby);
+            EnqueueStateTo(match);
         }
 
         player.Match = null;
+        match.Dispose();
         return true;
     }
 
@@ -178,6 +178,22 @@ public class MultiplayerCoordinator(
         JoinLobby(player);
         channels.JoinPlayer(channels.LobbyChannel, player); 
         LeavePlayer(player);
+    }
+    
+    public void InviteToLobby(User player, User? target)
+    {
+        if (target == null) return;
+        if (target.IsBot)
+        {
+            players.SendBotMessageTo(player, "I'm too busy right now! Maybe later \ud83d\udc7c");
+            return;
+        }
+		
+        target.Enqueue(new ServerPackets()
+            .MatchInvite(player, target.Username)
+            .FinalizeAndGetContent());
+		
+        logger.LogDebug($"{player.Username} invited {target.Username} to their match.", nameof(MultiplayerExtensions));
     }
 
     public void StartMatch(MultiplayerMatch match)

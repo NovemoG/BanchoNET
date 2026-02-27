@@ -139,6 +139,47 @@ public class ChannelService(
         Logger.LogDebug($"{player.Username} failed to leave channel {id}");
         return false;
     }
+
+    public void SendMessageTo(
+        Channel channel,
+        Message message,
+        bool toSelf = false
+    ) {
+        var messageBytes = new ServerPackets()
+            .SendMessage(new Message
+            {
+                Sender = message.Sender,
+                Content = message.Content,
+                Destination = channel.Name,
+                SenderId = message.SenderId
+            })
+            .FinalizeAndGetContent();
+		
+        foreach (var player in channel.Players)
+        {
+            if (!player.BlockedByPlayer(message.SenderId) && (toSelf || player.Id != message.SenderId))
+                player.Enqueue(messageBytes);
+        }
+    }
+
+    public void SendBotMessageTo(
+        Channel channel,
+        string message,
+        User from
+    ) {
+        if (message.Length >= 31979)
+            message = $"message would have crashed games ({message.Length} characters).";
+		
+        channel.EnqueueToPlayers(new ServerPackets()
+            .SendMessage(new Message
+            {
+                Sender = from.Username,
+                Content = message,
+                Destination = channel.Name,
+                SenderId = from.Id
+            })
+            .FinalizeAndGetContent());
+    }
     
     protected bool TryAdd(
         string key,
