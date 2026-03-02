@@ -20,19 +20,12 @@ public class BeatmapsRepository(
 		int setId = -1
 	) {
 		var beatmap = beatmaps.GetBeatmap(mapId);
-		if (beatmap != null)
-		{
-			if (!beatmap.ShouldRecheckApi())
-				return beatmap;
-			
-			var set = await GetBeatmapSet(beatmap.SetId, mapId, true); //TODO resets status locally (in db stays correct)
-			return set?.Beatmaps.FirstOrDefault(b => b.Id == mapId);
-		}
+		if (beatmap != null && !beatmap.ShouldRecheckApi())
+			return beatmap;
 
 		if (setId < 1)
 		{
 			var map = await dbContext.Beatmaps.FirstOrDefaultAsync(b => b.MapId == mapId);
-			
 			if (map != null)
 				setId = map.SetId;
 			else
@@ -44,7 +37,7 @@ public class BeatmapsRepository(
 			}
 		}
 
-		var beatmapSet = await GetBeatmapSet(setId, mapId);
+		var beatmapSet = await GetBeatmapSet(setId, mapId, recheckApi: true);
 
 		return beatmapSet != null
 			? beatmapSet.Beatmaps.FirstOrDefault(b => b.Id == mapId)
@@ -56,20 +49,13 @@ public class BeatmapsRepository(
 		int setId = -1
 	) {
 		var beatmap = beatmaps.GetBeatmap(beatmapMD5);
-		if (beatmap != null)
-		{
-			if (!beatmap.ShouldRecheckApi())
-				return beatmap;
-			
-			var set = await GetBeatmapSet(beatmap.SetId, beatmap.Id, true);
-			return set?.Beatmaps.FirstOrDefault(b => b.MD5 == beatmapMD5);
-		}
+		if (beatmap != null && !beatmap.ShouldRecheckApi())
+			return beatmap;
 		
-		var mapId = 0;
+		var mapId = beatmap?.Id;
 		if (setId < 1)
 		{
 			var map = await dbContext.Beatmaps.FirstOrDefaultAsync(b => b.MD5 == beatmapMD5);
-
 			if (map != null)
 			{
 				setId = map.SetId;
@@ -85,7 +71,7 @@ public class BeatmapsRepository(
 			}
 		}
 
-		var beatmapSet = await GetBeatmapSet(setId, mapId);
+		var beatmapSet = await GetBeatmapSet(setId, mapId ?? 0, recheckApi: true);
 		
 		return beatmapSet != null
 			? beatmapSet.Beatmaps.FirstOrDefault(b => b.MD5 == beatmapMD5)
@@ -118,7 +104,7 @@ public class BeatmapsRepository(
 			
 			beatmaps.InsertBeatmapSet(beatmapSet);
 		}
-
+		
 		if (!didApiRequest && mapId > 0)
 			if (beatmapSet.Beatmaps.All(b => b.Id != mapId) || recheckApi)
 				await UpdateBeatmapSet(setId);
@@ -131,6 +117,9 @@ public class BeatmapsRepository(
 	) {
 		var beatmapSet = await beatmapHandler.GetBeatmapSetFromApi(setId);
 		if (beatmapSet == null) return;
+		
+		foreach (var beatmap in beatmapSet.Beatmaps)
+			beatmap.UpdateApiChecks();
 		
 		beatmaps.InsertBeatmapSet(beatmapSet);
 		await InsertBeatmapSet(beatmapSet);
@@ -182,7 +171,7 @@ public class BeatmapsRepository(
 		
 		foreach (var map in cachedSet.Beatmaps)
 			map.Status = targetStatus;
-				
+		
 		return await dbContext.Beatmaps.Where(b => b.SetId == setId)
 			.ExecuteUpdateAsync(p => p.SetProperty(b => b.Status, (int)targetStatus));
 	}
@@ -194,7 +183,6 @@ public class BeatmapsRepository(
 		{
 			//var dbBeatmap = await dbContext.Beatmaps.FirstOrDefaultAsync(b => b.MapId == beatmap.MapId);
 			var dbBeatmap = await dbContext.Beatmaps.FirstOrDefaultAsync(b => b.MD5 == beatmap.MD5);
-			
 			if (dbBeatmap != null)
 			{
 				dbContext.Update(dbBeatmap.UpdateWith(beatmap));

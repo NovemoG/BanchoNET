@@ -7,8 +7,8 @@ namespace BanchoNET.Core.Utils.Extensions;
 public static class BeatmapExtensions
 {
 	private static readonly TimeSpan[] ApiCheckIntervals = [
-		TimeSpan.FromDays(1),
 		TimeSpan.FromDays(3),
+		TimeSpan.FromDays(5),
 		TimeSpan.FromDays(7)
 	];
 	
@@ -24,38 +24,55 @@ public static class BeatmapExtensions
 		};
 	}
 	
-	public static string FullName(this Beatmap beatmap)
-	{
-		return $"{beatmap.Artist} - {beatmap.Title} [{beatmap.Name}]";
-	}
-
-	public static string Url(this Beatmap beatmap)
-	{
-		return $"https://osu.{AppSettings.Domain}/b/{beatmap.Id}";
-	}
-
 	public static string Url(this BeatmapSet set)
 	{
 		return $"https://osu.{AppSettings.Domain}/s/{set.Id}";
 	}
+	
+	extension(
+		Beatmap beatmap
+	) {
+		public string Url() {
+			return $"https://osu.{AppSettings.Domain}/b/{beatmap.Id}";
+		}
 
-	public static string Embed(this Beatmap beatmap)
-	{
-		return $"[{beatmap.Url()} {beatmap.FullName()}]";
-	}
+		public string FullName() {
+			return $"{beatmap.Artist} - {beatmap.Title} [{beatmap.Name}]";
+		}
 
-	public static bool HasLeaderboard(this Beatmap beatmap)
-	{
-		return beatmap.Status is
-			BeatmapStatus.Approved or
-			BeatmapStatus.Ranked or
-			BeatmapStatus.Loved or
-			BeatmapStatus.Qualified;
-	}
+		public string Embed() {
+			return $"[{beatmap.Url()} {beatmap.FullName()}]";
+		}
 
-	public static bool AwardsPP(this Beatmap beatmap)
-	{
-		return beatmap.Status is BeatmapStatus.Approved or BeatmapStatus.Ranked;
+		public bool HasLeaderboard() {
+			return beatmap.Status is
+				BeatmapStatus.Approved or
+				BeatmapStatus.Ranked or
+				BeatmapStatus.Loved or
+				BeatmapStatus.Qualified;
+		}
+
+		public bool AwardsPP()
+		{
+			return beatmap.Status is BeatmapStatus.Approved or BeatmapStatus.Ranked;
+		}
+
+		public bool ShouldRecheckApi() {
+			if (beatmap.IsRankedOfficially) return false;
+			if (beatmap.Status < BeatmapStatus.LatestPending) return false;
+			if (beatmap.NextApiCheck < DateTime.UtcNow)
+			{
+				beatmap.UpdateApiChecks();
+				return true;
+			}
+
+			return false;
+		}
+
+		public void UpdateApiChecks() {
+			beatmap.NextApiCheck = DateTime.UtcNow.Add(ApiCheckIntervals[beatmap.ApiChecks]);
+			if (beatmap.ApiChecks < ApiCheckIntervals.Length - 1) beatmap.ApiChecks++;
+		}
 	}
 
 	public static bool CheckLocalBeatmapMD5(this string beatmapFile, string beatmapMD5)
@@ -99,20 +116,6 @@ public static class BeatmapExtensions
 			_ => 4
 		};
 	}
-	
-	public static bool ShouldRecheckApi(
-		this Beatmap map
-	) {
-		if (map.IsRankedOfficially) return false;
-		if (map.NextApiCheck < DateTime.UtcNow)
-		{
-			map.NextApiCheck = DateTime.UtcNow.Add(ApiCheckIntervals[map.ApiChecks]);
-			if (map.ApiChecks < 3) map.ApiChecks++;
-			return true;
-		}
-
-		return false;
-	}
 
 	public static BeatmapDto ToDto(this Beatmap beatmap)
 	{
@@ -149,7 +152,7 @@ public static class BeatmapExtensions
 
 	public static BeatmapDto UpdateWith(this BeatmapDto currentBeatmap, Beatmap newBeatmap)
 	{
-		currentBeatmap.Status = newBeatmap.IsRankedOfficially || newBeatmap.Status == BeatmapStatus.Qualified
+		currentBeatmap.Status = newBeatmap.IsRankedOfficially //TODO preservestatusonranked .env
 			? (sbyte)newBeatmap.Status
 			: currentBeatmap.Status;
 		currentBeatmap.IsRankedOfficially = newBeatmap.IsRankedOfficially;

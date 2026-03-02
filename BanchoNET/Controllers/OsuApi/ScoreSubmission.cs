@@ -88,8 +88,8 @@ public partial class OsuController
             //TODO CHECK THIS
             logger.LogError("Mismatching hashes on score submission", e);
 
-            await players.RestrictPlayer(player, "Mismatching hashes on score submission");
-            return Ok("error: ban");
+            //await players.RestrictPlayer(player, "Mismatching hashes on score submission");
+            //return Ok("error: ban");
         }
 
         if (await scores.ScoreExists(score.ClientChecksum))
@@ -148,12 +148,12 @@ public partial class OsuController
             if (beatmap.HasLeaderboard())
             {
                 var scoreNotification = $"You achieved #{score.LeaderboardPosition} on a leaderboard!\n";
-				
-                if (AppSettings.DisplayPPInNotification)
-                    scoreNotification += $"({score.PP:F2}pp)";
 
                 if (AppSettings.DisplayScoreInNotification)
-                    scoreNotification += $" ({score.TotalScore.SplitNumber()} score)";
+                    scoreNotification += $"({score.TotalScore.SplitNumber()} score)\n";
+                
+                if (AppSettings.DisplayPPInNotification)
+                    scoreNotification += $"({score.PP:F2}pp) ";
 
                 //Subject to change
                 if (AppSettings.DisplayPPInNotification
@@ -164,7 +164,7 @@ public partial class OsuController
                         score,
                         beatmap.MaxCombo);
 					
-                    scoreNotification += $"\n[{fcPP:F2}pp if FC]";
+                    scoreNotification += $"[{fcPP:F2}pp if FC]";
                 }
                 
                 player.Enqueue(new ServerPackets()
@@ -183,6 +183,7 @@ public partial class OsuController
             if (replayFile.Length >= 24)
             {
                 await using var fileStream = new FileStream(Storage.GetReplayPath(score.Id), FileMode.Create, FileAccess.ReadWrite);
+                //TODO unreadable replay
                 await replayFile.CopyToAsync(fileStream);
             }
             else
@@ -194,6 +195,7 @@ public partial class OsuController
             }
         }
 
+        
         var stats = player.Stats[score.Mode];
         var prevStats = stats.Copy();
 

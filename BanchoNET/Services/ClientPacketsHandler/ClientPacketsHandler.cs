@@ -20,7 +20,8 @@ public partial class ClientPacketsHandler(
 	IBeatmapsRepository beatmaps,
 	IMessagesRepository messages,
 	ICommandProcessor commands,
-	ILobbyScoresQueue scoresQueue
+	ILobbyScoresQueue scoresQueue,
+	ILogger logger
 	) : IClientPacketsHandler
 {
 	private static readonly string[] IgnoredChannels = ["#highlight", "#userlog"];

@@ -11,4 +11,10 @@
       <ProjectReference Include="..\BanchoNET.Infrastructure\BanchoNET.Infrastructure.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Controllers\Api\" />
+      <Folder Include="Controllers\OAuth\" />
+      <Folder Include="Services\" />
+    </ItemGroup>
+
 </Project>

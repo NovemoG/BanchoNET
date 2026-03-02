@@ -96,8 +96,6 @@ public sealed class PlayerService(ILogger logger) : PlayerStateService(logger), 
         Logger.LogWarning($"Failed to remove player {player.Username} from the lobby");
         return false;
     }
-    
-    
 
     /// <summary>
     /// Sends a message directly to this player. If channel is provided, it will be sent to that channel instead.

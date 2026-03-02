@@ -33,8 +33,13 @@ public class GeolocService(HttpClient httpClient) : IGeolocService
 				ipString = forwarded[0];
 		}
 		else ipString = headers["X-Real-IP"].ToString();
+		
+		if (AppSettings.Debug)
+			return IPAddress.Parse("1.1.1.1");
 
-		return IPAddress.Parse(ipString);
+		return string.IsNullOrEmpty(ipString) //TODO handle invalid ips
+			? IPAddress.Any
+			: IPAddress.Parse(ipString);
 	}
 
 	private static Geoloc? FromCloudflare(IHeaderDictionary headers)

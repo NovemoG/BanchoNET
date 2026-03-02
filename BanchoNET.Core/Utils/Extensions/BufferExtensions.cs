@@ -191,7 +191,7 @@ public static class BufferExtensions
 			var modeRankedScore = modeStats.RankedScore;
 			var modePP = modeStats.PP;
 
-			if (modeStats.PP > short.MaxValue)
+			if (modeStats.PP > ushort.MaxValue)
 			{
 				modeRankedScore = modePP;
 				modePP = 0;
@@ -209,7 +209,7 @@ public static class BufferExtensions
 			bw.Write(modeStats.PlayCount);
 			bw.Write(modeStats.TotalScore);
 			bw.Write(modeStats.Rank);
-			bw.Write((short)modePP);
+			bw.Write((ushort)modePP);
 		}
 
 		public void WriteBotStats(
@@ -227,7 +227,7 @@ public static class BufferExtensions
 			bw.Write((int)0);
 			bw.Write((long)0);
 			bw.Write((int)0);
-			bw.Write((short)0);
+			bw.Write((ushort)0);
 		}
 
 		public void WriteUserPresence(

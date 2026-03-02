@@ -289,7 +289,8 @@ public class PlayersRepository : IPlayersRepository
 	{
 		var bestScores = await _dbContext.Scores
 			.Where(s => s.PlayerId == player.Id
-			            && s.Status == (int)SubmissionStatus.Best)
+			            && s.Status == (int)SubmissionStatus.Best
+			            && s.Mode == (int)mode)
 			.OrderByDescending(s => s.PP)
 			.Take(100)
 			.ToListAsync();
@@ -602,9 +603,21 @@ public class PlayersRepository : IPlayersRepository
 		return playerIds;
 	}
 
-	public async Task<int> GetPlayerGlobalRank(GameMode mode, int playerId)
-	{
+	public async Task<int> GetPlayerGlobalRank(
+		GameMode mode,
+		int playerId
+	) {
 		var rank = await _redis.SortedSetRankAsync($"bancho:leaderboard:{(byte)mode}", playerId, Order.Descending);
+		if (rank == null) return 0;
+		return (int)rank + 1;
+	}
+
+	public async Task<int> GetPlayerCountryRank(
+		GameMode mode,
+		string country,
+		int playerId
+	) {
+		var rank = await _redis.SortedSetRankAsync($"bancho:leaderboard:{(byte)mode}:{country}", playerId, Order.Descending);
 		if (rank == null) return 0;
 		return (int)rank + 1;
 	}

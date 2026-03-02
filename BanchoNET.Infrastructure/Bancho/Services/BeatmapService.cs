@@ -15,11 +15,11 @@ public class BeatmapService(
         Logger.LogDebug($"Caching beatmap set with id: {set.Id}");
         
         BeatmapSets.AddOrUpdate(set.Id, set, (_, _) => set);
-
+        
         foreach (var beatmap in set.Beatmaps)
         {
-            BeatmapsByMD5.AddOrUpdate(beatmap.MD5, beatmap, (_, _) => beatmap);
-            Items.AddOrUpdate(beatmap.Id, beatmap, (_, _) => beatmap);
+            BeatmapsByMD5.AddOrUpdate(beatmap.MD5, beatmap, (_, prev) => UpdateStatus(beatmap, prev));
+            Items.AddOrUpdate(beatmap.Id, beatmap, (_, prev) => UpdateStatus(beatmap, prev));
         }
     }
 
@@ -53,5 +53,19 @@ public class BeatmapService(
         int setId
     ) {
         return BeatmapSets.TryGetValue(setId, out var beatmapSet) ? beatmapSet : null;
+    }
+
+    private static Beatmap UpdateStatus(
+        Beatmap currentBeatmap,
+        Beatmap prevBeatmap
+    ) {
+        if (!currentBeatmap.IsRankedOfficially)
+        {
+            currentBeatmap.Status = prevBeatmap.Status;
+            currentBeatmap.ApiChecks = prevBeatmap.ApiChecks;
+            currentBeatmap.NextApiCheck = prevBeatmap.NextApiCheck;
+        }
+
+        return currentBeatmap;
     }
 }

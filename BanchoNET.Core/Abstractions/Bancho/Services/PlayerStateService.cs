@@ -53,7 +53,6 @@ public abstract class PlayerStateService(ILogger logger) : StatefulService<int, 
             if (value.InLobby)
                 PlayersInLobby.TryRemove(value, out _);
             
-            value.Dispose();
             Logger.LogDebug($"Removed player {value.Username}");
             return true;
         }
@@ -62,7 +61,6 @@ public abstract class PlayerStateService(ILogger logger) : StatefulService<int, 
             && RestrictedByUsername.TryRemove(value.SafeName, out _)
             && RestrictedByToken.TryRemove(value.SessionId, out _))
         {
-            value.Dispose();
             Logger.LogDebug($"Removed restricted player {value.Username}");
             return true;
         }
@@ -70,7 +68,6 @@ public abstract class PlayerStateService(ILogger logger) : StatefulService<int, 
         if (BotsById.TryRemove(value.Id, out _)
             && BotsByUsername.TryRemove(value.SafeName, out _))
         {
-            value.Dispose();
             Logger.LogDebug($"Removed bot {value.Username}");
             return true;
         }

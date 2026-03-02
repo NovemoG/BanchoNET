@@ -34,7 +34,7 @@ public sealed class User : IUser, IDisposable,
     public sbyte TimeZone { get; set; }
     
     public ClientDetails? ClientDetails { get; set; }
-    public Dictionary<GameMode, ModeStats> Stats { get; } = new();
+    public ConcurrentDictionary<GameMode, ModeStats> Stats { get; } = new();
     public List<int> Friends { get; } = [];
     public List<int> Blocked { get; } = [];
     public List<string> Channels { get; } = [];

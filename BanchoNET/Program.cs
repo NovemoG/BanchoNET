@@ -240,6 +240,7 @@ public class Program
 
 		app.UseMiddleware<SubdomainMiddleware>();
 		app.UseMiddleware<RequestTimingMiddleware>();
+		app.UseMiddleware<RequestLoggingMiddleware>();
 		
 		app.MapControllers();
 
