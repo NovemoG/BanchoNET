@@ -7,7 +7,7 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-    private Task TournamentMatchInfoRequest(User player, BinaryReader br)
+    private Task TournamentMatchInfoRequest(Player player, BinaryReader br)
     {
         var matchId = br.ReadInt32();
         if (matchId is < 0 or > short.MaxValue

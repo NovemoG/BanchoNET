@@ -6,7 +6,7 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private Task MatchScoreUpdate(User player, BinaryReader br)
+	private Task MatchScoreUpdate(Player player, BinaryReader br)
 	{
 		var rawData = br.ReadRawData();
 		if (rawData.Length == 0) return Task.CompletedTask;

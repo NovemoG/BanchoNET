@@ -75,7 +75,7 @@ public class PlayersRepository : IPlayersRepository
 			.ToListAsync();
 	}
 
-	public async Task AddFriend(User player, int targetId)
+	public async Task AddFriend(Player player, int targetId)
 	{
 		if (player.Friends.Contains(targetId))
 			return;
@@ -91,7 +91,7 @@ public class PlayersRepository : IPlayersRepository
 		await _dbContext.SaveChangesAsync();
 	}
 	
-	public async Task RemoveFriend(User player, int targetId)
+	public async Task RemoveFriend(Player player, int targetId)
 	{
 		if (!player.Friends.Contains(targetId))
 			return;
@@ -103,7 +103,7 @@ public class PlayersRepository : IPlayersRepository
 			.ExecuteDeleteAsync();
 	}
 	
-	public async Task<User?> GetPlayerFromLogin(string username, string passwordMD5)
+	public async Task<Player?> GetPlayerFromLogin(string username, string passwordMD5)
 	{
 		var player = await GetPlayerOrOffline(username);
 		if (player == null) return null;
@@ -111,27 +111,27 @@ public class PlayersRepository : IPlayersRepository
 		return passwordMD5.VerifyPassword(player.PasswordHash) ? player : null;
 	}
 	
-	public async Task<User?> GetPlayerOrOffline(string username)
+	public async Task<Player?> GetPlayerOrOffline(string username)
 	{
 		var sessionPlayer = _players.GetPlayer(username);
 		if (sessionPlayer != null) return sessionPlayer;
 		
 		var dbPlayer = await _dbContext.Players.FirstOrDefaultAsync(p => p.SafeName == username.MakeSafe());
 
-		return dbPlayer == null ? null : new User(dbPlayer);
+		return dbPlayer == null ? null : new Player(dbPlayer);
 	}
 	
-	public async Task<User?> GetPlayerOrOffline(int playerId)
+	public async Task<Player?> GetPlayerOrOffline(int playerId)
 	{
 		var sessionPlayer = _players.GetPlayer(playerId);
 		if (sessionPlayer != null) return sessionPlayer;
 		
 		var dbPlayer = await _dbContext.Players.FirstOrDefaultAsync(p => p.Id == playerId);
 
-		return dbPlayer == null ? null : new User(dbPlayer);
+		return dbPlayer == null ? null : new Player(dbPlayer);
 	}
 	
-	public async Task UpdateLatestActivity(User player)
+	public async Task UpdateLatestActivity(Player player)
 	{
 		player.LastActivityTime = DateTime.UtcNow;
 		
@@ -147,7 +147,7 @@ public class PlayersRepository : IPlayersRepository
 				 .SetProperty(u => u.Inactive, false));
 	}
 	
-	public async Task UpdatePlayerCountry(User player, string country)
+	public async Task UpdatePlayerCountry(Player player, string country)
 	{
 		await _dbContext.Players
 			.Where(p => p.Id == player.Id)
@@ -176,7 +176,7 @@ public class PlayersRepository : IPlayersRepository
 		return await _dbContext.Players.FirstOrDefaultAsync(p => p.LoginName == username.MakeSafe());
 	}
 	
-	public async Task GetPlayerStats(User player)
+	public async Task GetPlayerStats(Player player)
 	{
 		var stats = await _dbContext.Stats.Where(s => s.PlayerId == player.Id).ToListAsync();
 		
@@ -216,7 +216,7 @@ public class PlayersRepository : IPlayersRepository
 		return await _dbContext.Stats.FirstOrDefaultAsync(s => s.PlayerId == playerId && s.Mode == mode);
 	}
 
-	public async Task UpdatePlayerStats(User player, GameMode mode)
+	public async Task UpdatePlayerStats(Player player, GameMode mode)
 	{
 		var stats = player.Stats[mode];
 		
@@ -248,7 +248,7 @@ public class PlayersRepository : IPlayersRepository
 		await _dbContext.SaveChangesAsync();
 	}
 	
-	public async Task GetPlayerRelationships(User player)
+	public async Task GetPlayerRelationships(Player player)
 	{
 		var relationships = await _dbContext.Relationships.Where(p => p.PlayerId == player.Id).ToListAsync();
 		
@@ -266,7 +266,7 @@ public class PlayersRepository : IPlayersRepository
 		}
 	}
 	
-	public async Task UpdatePlayerPrivileges(User player, PlayerPrivileges playerPrivileges, bool remove)
+	public async Task UpdatePlayerPrivileges(Player player, PlayerPrivileges playerPrivileges, bool remove)
 	{
 		if (remove)
 			player.Privileges &= ~playerPrivileges;
@@ -285,7 +285,7 @@ public class PlayersRepository : IPlayersRepository
 		}
 	}
 
-	public async Task RecalculatePlayerTopScores(User player, GameMode mode)
+	public async Task RecalculatePlayerTopScores(Player player, GameMode mode)
 	{
 		var bestScores = await _dbContext.Scores
 			.Where(s => s.PlayerId == player.Id
@@ -315,7 +315,7 @@ public class PlayersRepository : IPlayersRepository
 		stats.PP = (ushort)MathF.Round(weightedPp + bonusPp);
 	}
 
-	public async Task UpdatePlayerRank(User player, GameMode mode)
+	public async Task UpdatePlayerRank(Player player, GameMode mode)
 	{
 		var country = player.Geoloc.Country.Acronym;
 		var stats = player.Stats[mode];
@@ -463,7 +463,7 @@ public class PlayersRepository : IPlayersRepository
 		return true;
 	}
 
-	public async Task<bool> SilencePlayer(User player, TimeSpan duration, string reason)
+	public async Task<bool> SilencePlayer(Player player, TimeSpan duration, string reason)
 	{
 		var modified = await _dbContext.Players.Where(p => p.Id == player.Id)
 			.ExecuteUpdateAsync(s => s.SetProperty(p => p.RemainingSilence, DateTime.UtcNow + duration));
@@ -486,7 +486,7 @@ public class PlayersRepository : IPlayersRepository
 		return true;
 	}
 	
-	public async Task<bool> UnsilencePlayer(User player, string reason)
+	public async Task<bool> UnsilencePlayer(Player player, string reason)
 	{
 		var entity = await _dbContext.Players.FirstOrDefaultAsync(p => p.Id == player.Id);
 		if (entity == null) return false;
@@ -501,7 +501,7 @@ public class PlayersRepository : IPlayersRepository
 		return true;
 	}
 
-	public async Task<bool> RestrictPlayer(User player, string reason)
+	public async Task<bool> RestrictPlayer(Player player, string reason)
 	{
 		var entity = await _dbContext.Players.FirstOrDefaultAsync(p => p.Id == player.Id);
 		if (entity == null) return false;
@@ -523,7 +523,7 @@ public class PlayersRepository : IPlayersRepository
 		return true;
 	}
 
-	public async Task<bool> UnrestrictPlayer(User player, string reason)
+	public async Task<bool> UnrestrictPlayer(Player player, string reason)
 	{
 		var entity = await _dbContext.Players.FirstOrDefaultAsync(p => p.Id == player.Id);
 		if (entity == null) return false;

@@ -54,19 +54,19 @@ public static class ChannelExtensions
 		Channel channel
 	) {
 		public bool PlayerInChannel(
-			User player
+			Player player
 		) {
 			return channel.Players.Any(p => p.Id == player.Id);
 		}
 
 		public bool CanPlayerRead(
-			User player
+			Player player
 		) {
 			return player.ToBanchoPrivileges().CompareHighestPrivileges(channel.ReadPrivileges);
 		}
 
 		public bool CanPlayerWrite(
-			User player
+			Player player
 		) {
 			return player.ToBanchoPrivileges().CompareHighestPrivileges(channel.WritePrivileges);
 		}

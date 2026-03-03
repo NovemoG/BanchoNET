@@ -22,7 +22,7 @@ public class MultiplayerCoordinator(
 {
     public async Task CreateMatchAsync(
         MultiplayerMatch matchData,
-        User player
+        Player player
     ) {
         var matchChannel = new Channel($"multi_{matchData.Id}")
         {
@@ -46,7 +46,7 @@ public class MultiplayerCoordinator(
     public bool JoinPlayer(
         ushort id,
         string password,
-        User player
+        Player player
     ) {
         var match = matches.GetMatch(id);
         if (match is null)
@@ -115,7 +115,7 @@ public class MultiplayerCoordinator(
     }
 
     public bool LeavePlayer(
-        User player
+        Player player
     ) {
         if (!player.InMatch)
         {
@@ -160,7 +160,7 @@ public class MultiplayerCoordinator(
     }
 
     public void JoinLobby(
-        User player
+        Player player
     ) {
         players.JoinLobby(player);
 
@@ -173,14 +173,14 @@ public class MultiplayerCoordinator(
     }
 
     public void LeavePlayerToLobby(
-        User player
+        Player player
     ) {
         JoinLobby(player);
         channels.JoinPlayer(channels.LobbyChannel, player); 
         LeavePlayer(player);
     }
     
-    public void InviteToLobby(User player, User? target)
+    public void InviteToLobby(Player player, Player? target)
     {
         if (target == null) return;
         if (target.IsBot)

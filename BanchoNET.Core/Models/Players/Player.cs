@@ -8,8 +8,8 @@ using BanchoNET.Core.Utils.Extensions;
 
 namespace BanchoNET.Core.Models.Players;
 
-public sealed class User : IUser, IDisposable,
-    IEquatable<User>
+public sealed class Player : IPlayer, IDisposable,
+    IEquatable<Player>
 {
     public bool IsBot { get; set; }
     
@@ -63,15 +63,15 @@ public sealed class User : IUser, IDisposable,
     public MultiplayerMatch? Match { get; set; }
     public bool InMatch => Match != null;
     
-    public User? Spectating { get; set; }
+    public Player? Spectating { get; set; }
     public bool IsSpectating => Spectating != null;
     
     public bool HasSpectators => !_spectators.IsEmpty;
-    public IEnumerable<User> Spectators => _spectators.Keys;
+    public IEnumerable<Player> Spectators => _spectators.Keys;
     public int SpectatorsCount => _spectators.Count;
-    private readonly ConcurrentDictionary<User, bool> _spectators = new();
-    public bool AddSpectator(User player) => _spectators.TryAdd(player, true);
-    public bool RemoveSpectator(User player) => _spectators.TryAdd(player, true);
+    private readonly ConcurrentDictionary<Player, bool> _spectators = new();
+    public bool AddSpectator(Player player) => _spectators.TryAdd(player, true);
+    public bool RemoveSpectator(Player player) => _spectators.TryAdd(player, true);
     
     public DateTime LoginTime { get; }
     public DateTime LastActivityTime { get; set; }
@@ -80,7 +80,7 @@ public sealed class User : IUser, IDisposable,
     public bool IsOnlineOnStable => SessionId != Guid.Empty;
     public bool IsOnlineOnLazer { get; set; } //TODO
 
-    public User(
+    public Player(
         PlayerDto userInfo, 
         Guid? id = null,
         DateTime? loginTime = null,
@@ -103,12 +103,12 @@ public sealed class User : IUser, IDisposable,
     
     #region IEquatable
     
-    public bool Equals(User? other) => this.MatchesOnlineID(other);
+    public bool Equals(Player? other) => this.MatchesOnlineID(other);
     
     public override bool Equals(
         object? obj
     ) {
-        return ReferenceEquals(this, obj) || obj is User other && Equals(other);
+        return ReferenceEquals(this, obj) || obj is Player other && Equals(other);
     }
     
     public override int GetHashCode() => Id.GetHashCode();

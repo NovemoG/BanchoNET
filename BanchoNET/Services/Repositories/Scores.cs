@@ -164,7 +164,7 @@ public class ScoresRepository(BanchoDbContext dbContext) : IScoresRepository
         GameMode mode,
         LeaderboardType type,
         Mods mods,
-        User player
+        Player player
     ) {
         var isCountry = type == LeaderboardType.Country;
         var countryCode = player.Geoloc.Country.Acronym;

@@ -5,13 +5,13 @@ namespace BanchoNET.Core.Abstractions.Bancho.Coordinators;
 
 public interface IMultiplayerCoordinator : ICoordinator
 {
-    Task CreateMatchAsync(MultiplayerMatch matchData, User player);
-    bool JoinPlayer(ushort id, string password, User player);
-    bool LeavePlayer(User player);
+    Task CreateMatchAsync(MultiplayerMatch matchData, Player player);
+    bool JoinPlayer(ushort id, string password, Player player);
+    bool LeavePlayer(Player player);
     
-    void JoinLobby(User player);
-    void LeavePlayerToLobby(User player);
-    void InviteToLobby(User player, User? target);
+    void JoinLobby(Player player);
+    void LeavePlayerToLobby(Player player);
+    void InviteToLobby(Player player, Player? target);
     
     void StartMatch(MultiplayerMatch match);
     void EndMatch(MultiplayerMatch match);

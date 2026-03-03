@@ -4,5 +4,5 @@ namespace BanchoNET.Core.Abstractions.Services;
 
 public interface IClientPacketsHandler
 {
-    Task ReadPackets(Stream stream, User player);
+    Task ReadPackets(Stream stream, Player player);
 }

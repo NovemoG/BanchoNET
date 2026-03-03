@@ -6,7 +6,7 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private Task MatchFailed(User player, BinaryReader br)
+	private Task MatchFailed(Player player, BinaryReader br)
 	{
 		var match = player.Match;
 		if (match == null) return Task.CompletedTask;

@@ -31,7 +31,7 @@ public partial class OsuController
         if (!AppSettings.Debug)
             return Ok("");
         
-        User? player;
+        Player? player;
         if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(passwordMD5))
         {
             player = await players.GetPlayerFromLogin(username, passwordMD5);

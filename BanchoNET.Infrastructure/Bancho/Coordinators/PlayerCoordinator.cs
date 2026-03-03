@@ -16,7 +16,7 @@ public class PlayerCoordinator(
 ) : IPlayerCoordinator
 {
     public bool LogoutPlayer(
-        User player
+        Player player
     ) {
         logger.LogDebug($"Logout time difference: {DateTime.UtcNow - player.LoginTime}");
         if (DateTime.UtcNow - player.LoginTime < TimeSpan.FromSeconds(1)) return false;
@@ -43,8 +43,8 @@ public class PlayerCoordinator(
     }
 
     public bool AddSpectator(
-        User host,
-        User target
+        Player host,
+        Player target
     ) {
         var channelName = $"s_{host.Id}";
         var spectatorChannel = channels.GetChannel(channelName);
@@ -93,8 +93,8 @@ public class PlayerCoordinator(
     }
 
     public void RemoveSpectator(
-        User host,
-        User target
+        Player host,
+        Player target
     ) {
         host.RemoveSpectator(target);
         target.Spectating = null;

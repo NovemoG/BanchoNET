@@ -55,7 +55,7 @@ public class GeolocService(HttpClient httpClient) : IGeolocService
 		
 		return new Geoloc
 		{
-			Country = new Country
+			Country = new GeolocCountry
 			{
 				Acronym = countryCode,
 				Numeric = CountryMap.CountryCodes[countryCode],
@@ -78,7 +78,7 @@ public class GeolocService(HttpClient httpClient) : IGeolocService
 		
 		return new Geoloc
 		{
-			Country = new Country
+			Country = new GeolocCountry
 			{
 				Acronym = countryCode,
 				Numeric = CountryMap.CountryCodes[countryCode],
@@ -101,7 +101,7 @@ public class GeolocService(HttpClient httpClient) : IGeolocService
 		
 		return new Geoloc
 		{
-			Country = new Country
+			Country = new GeolocCountry
 			{
 				Acronym = countryCode,
 				Numeric = CountryMap.CountryCodes[countryCode],

@@ -61,11 +61,11 @@ public class Channel : IChannel,
 	public string Name { get; }
 	public string Description { get; set; } = string.Empty;
 	
-	private readonly ConcurrentDictionary<User, bool> _players = [];
-	public IEnumerable<User> Players => _players.Keys;
+	private readonly ConcurrentDictionary<Player, bool> _players = [];
+	public IEnumerable<Player> Players => _players.Keys;
 	public int PlayersCount => _players.Count;
-	public void AddPlayer(User player) => _players.TryAdd(player, false);
-	public void RemovePlayer(User player) => _players.TryRemove(player, out _);
+	public void AddPlayer(Player player) => _players.TryAdd(player, false);
+	public void RemovePlayer(Player player) => _players.TryRemove(player, out _);
 
 	#region IEquatable
 

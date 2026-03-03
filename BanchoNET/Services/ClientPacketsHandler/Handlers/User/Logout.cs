@@ -4,7 +4,7 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private async Task Logout(User player, BinaryReader br)
+	private async Task Logout(Player player, BinaryReader br)
 	{
 		br.ReadInt32();
 		

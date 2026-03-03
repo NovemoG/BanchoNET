@@ -11,7 +11,7 @@ public class Score
 	public string? BeatmapMD5 { get; set; }
 	public Beatmap? Beatmap { get; set; }
 	public int PlayerId { get; set; }
-	public User? Player { get; set; }
+	public Player? Player { get; set; }
 
 	public float PP	{ get; set; }
 	public float Acc { get; set; }
@@ -40,7 +40,7 @@ public class Score
 	
 	public Score() { }
 	
-	public Score(IReadOnlyList<string> scoreData, Beatmap beatmap, User player)
+	public Score(IReadOnlyList<string> scoreData, Beatmap beatmap, Player player)
 	{
 		if (!Enum.TryParse(scoreData[10], out Grade grade))
 			return;

@@ -10,26 +10,26 @@ namespace BanchoNET.Infrastructure.Bancho.Services;
 
 public sealed class PlayerService(ILogger logger) : PlayerStateService(logger), IPlayerService
 {
-    public User BanchoBot => BotsById[1];
-    public IEnumerable<User> Players => Items.Values;
-    public new IEnumerable<User> PlayersInLobby => base.PlayersInLobby.Keys;
-    public IEnumerable<User> Restricted => RestrictedById.Values;
-    public IEnumerable<User> Bots => BotsById.Values;
+    public Player BanchoBot => BotsById[1];
+    public IEnumerable<Player> Players => Items.Values;
+    public new IEnumerable<Player> PlayersInLobby => base.PlayersInLobby.Keys;
+    public IEnumerable<Player> Restricted => RestrictedById.Values;
+    public IEnumerable<Player> Bots => BotsById.Values;
 
     public bool InsertPlayer(
-        User player,
+        Player player,
         bool isBot = false
     ) {
         return isBot ? TryAddBot(player) : TryAdd(player);
     }
 
     public bool RemovePlayer(
-        User player
+        Player player
     ) {
         return TryRemove(player);
     }
     
-    public User? GetPlayer(int id)
+    public Player? GetPlayer(int id)
     {
         if (id < 2) return null;
 
@@ -43,7 +43,7 @@ public sealed class PlayerService(ILogger logger) : PlayerStateService(logger), 
         return sessionPlayer;
     }
 
-    public User? GetPlayer(string? username)
+    public Player? GetPlayer(string? username)
     {
         if (string.IsNullOrEmpty(username)) return null;
 
@@ -59,7 +59,7 @@ public sealed class PlayerService(ILogger logger) : PlayerStateService(logger), 
         return sessionPlayer;
     }
 
-    public User? GetPlayer(Guid token)
+    public Player? GetPlayer(Guid token)
     {
         return PlayersByToken.TryGetValue(token, out var sessionPlayer)
             ? sessionPlayer
@@ -71,7 +71,7 @@ public sealed class PlayerService(ILogger logger) : PlayerStateService(logger), 
     /// <summary>
     /// For player to see multiplayer matches use <see cref="IMultiplayerCoordinator.JoinLobby"/>
     /// </summary>
-    public bool JoinLobby(User player)
+    public bool JoinLobby(Player player)
     {
         if (base.PlayersInLobby.TryAdd(player, false))
         {
@@ -84,7 +84,7 @@ public sealed class PlayerService(ILogger logger) : PlayerStateService(logger), 
         return false;
     }
 
-    public bool LeaveLobby(User player)
+    public bool LeaveLobby(Player player)
     {
         if (base.PlayersInLobby.TryRemove(player, out _))
         {
@@ -105,9 +105,9 @@ public sealed class PlayerService(ILogger logger) : PlayerStateService(logger), 
     /// <param name="from">Player that sent message</param>
     /// <param name="toChannel">(optional) channel that this message should be sent to instead of player</param>
     public void SendMessageTo(
-        User player,
+        Player player,
         string message,
-        User from,
+        Player from,
         Channel? toChannel = null
     ) {
         player.Enqueue(new ServerPackets()
@@ -127,7 +127,7 @@ public sealed class PlayerService(ILogger logger) : PlayerStateService(logger), 
     /// <param name="message">The content of the message to be sent.</param>
     /// <param name="toChannel">(optional) The name of the channel to which the message should be sent.</param>
     public void SendBotMessageTo(
-        User player,
+        Player player,
         string message,
         string toChannel = ""
     ) {

@@ -15,7 +15,7 @@ public static class PlayerExtensions
 	};
 	
 	extension(
-		User player
+		Player player
 	) {
 		public ClientPrivileges ToBanchoPrivileges()
 		{

@@ -6,7 +6,7 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private Task UserStatsRequest(User player, BinaryReader br)
+	private Task UserStatsRequest(Player player, BinaryReader br)
 	{
 		var ids = br.ReadOsuListInt32();
 		ids.Remove(player.Id);

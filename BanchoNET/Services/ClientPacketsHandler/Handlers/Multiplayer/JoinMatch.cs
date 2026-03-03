@@ -8,7 +8,7 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private async Task JoinMatch(User player, BinaryReader br)
+	private async Task JoinMatch(Player player, BinaryReader br)
 	{
 		var lobbyId = br.ReadInt32();
 		var password = br.ReadOsuString();

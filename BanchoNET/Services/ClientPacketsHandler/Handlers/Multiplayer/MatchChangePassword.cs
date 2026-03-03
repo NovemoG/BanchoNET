@@ -5,7 +5,7 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private Task MatchChangePassword(User player, BinaryReader br)
+	private Task MatchChangePassword(Player player, BinaryReader br)
 	{
 		var matchData = br.ReadOsuMatch();
 

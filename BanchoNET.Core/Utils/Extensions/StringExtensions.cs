@@ -1,4 +1,7 @@
-﻿namespace BanchoNET.Core.Utils.Extensions;
+﻿using System.Security.Cryptography;
+using System.Text;
+
+namespace BanchoNET.Core.Utils.Extensions;
 
 public static class StringExtensions
 {
@@ -73,5 +76,26 @@ public static class StringExtensions
 		string hash
 	) {
 		return BCrypt.Net.BCrypt.Verify(md5, hash);
+	}
+
+	public static string HashStringSHA256(
+		this string plain
+	) {
+        var bytes = Encoding.UTF8.GetBytes(plain);
+        var hash = SHA256.HashData(bytes);
+        return Convert.ToHexString(hash).ToLowerInvariant();
+    }
+
+	public static string RandomBase64Url(
+		int bytes = 48
+	) {
+		var b = new byte[bytes];
+		RandomNumberGenerator.Fill(b);
+		return Convert.ToBase64String(b).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+	}
+
+	public static string Gen6DigitCode() {
+		var rng = RandomNumberGenerator.GetInt32(0, 1_000_000);
+		return rng.ToString("D6");
 	}
 }

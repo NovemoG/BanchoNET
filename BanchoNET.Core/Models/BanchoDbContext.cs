@@ -1,4 +1,5 @@
-﻿using BanchoNET.Core.Models.Dtos;
+﻿using BanchoNET.Core.Models.Auth;
+using BanchoNET.Core.Models.Dtos;
 using Microsoft.EntityFrameworkCore;
 
 namespace BanchoNET.Core.Models;
@@ -14,4 +15,7 @@ public sealed class BanchoDbContext(DbContextOptions<BanchoDbContext> options) :
 	public DbSet<ClientHashesDto> ClientHashes { get; init; } = null!;
 	public DbSet<MessageDto> Messages { get; init; } = null!;
 	public DbSet<ChannelDto> Channels { get; init; } = null!;
+
+	public DbSet<RefreshToken> RefreshTokens { get; init; } = null!;
+	public DbSet<SessionVerification> SessionVerifications { get; init; } = null!;
 }

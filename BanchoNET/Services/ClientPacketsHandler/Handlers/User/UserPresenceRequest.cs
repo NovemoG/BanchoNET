@@ -6,7 +6,7 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-    private Task UserPresenceRequest(User player, BinaryReader br)
+    private Task UserPresenceRequest(Player player, BinaryReader br)
     {
         var userIds = br.ReadOsuListInt32();
         

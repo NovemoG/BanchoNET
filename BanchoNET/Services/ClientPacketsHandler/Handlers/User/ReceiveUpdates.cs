@@ -4,7 +4,7 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private Task ReceiveUpdates(User player, BinaryReader br)
+	private Task ReceiveUpdates(Player player, BinaryReader br)
 	{
 		var value = br.ReadInt32();
 		

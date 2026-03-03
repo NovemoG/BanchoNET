@@ -4,7 +4,7 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-    private Task TournamentLeaveMatchChannel(User player, BinaryReader br)
+    private Task TournamentLeaveMatchChannel(Player player, BinaryReader br)
     {
         var matchId = br.ReadInt32();
         

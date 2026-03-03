@@ -15,16 +15,16 @@ public interface IChannelService
 
     bool JoinPlayer(
         Channel channel,
-        User player
+        Player player
     );
     bool LeavePlayer(
         Channel channel,
-        User player,
+        Player player,
         bool kick = true
     );
     bool LeavePlayer(
         string id,
-        User player,
+        Player player,
         bool kick = true
     );
 
@@ -36,6 +36,6 @@ public interface IChannelService
     public void SendBotMessageTo(
         Channel channel,
         string message,
-        User from
+        Player from
     );
 }

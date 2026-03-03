@@ -6,7 +6,7 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-    private Task SpectateFrames(User player, BinaryReader br)
+    private Task SpectateFrames(Player player, BinaryReader br)
     {
         //TODO idk how would server-side validation work so I'm just gonna send raw frames back (for now)
         //var frameBundle = br.ReadSpectateFrames();

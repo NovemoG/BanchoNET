@@ -5,7 +5,7 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private Task MatchLock(User player, BinaryReader br)
+	private Task MatchLock(Player player, BinaryReader br)
 	{
 		var slotId = br.ReadInt32();
 		var match = player.Match;

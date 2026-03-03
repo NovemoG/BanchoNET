@@ -13,31 +13,31 @@ public interface IPlayersRepository
     Task<bool> ChangeUsername(string oldUsername, string newUsername);
     Task<List<string>> GetPlayerNames(List<int> ids);
     
-    Task AddFriend(User player, int targetId);
-    Task RemoveFriend(User player, int targetId);
+    Task AddFriend(Player player, int targetId);
+    Task RemoveFriend(Player player, int targetId);
     
-    Task<User?> GetPlayerFromLogin(string username, string passwordMD5);
-    Task<User?> GetPlayerOrOffline(string username);
-    Task<User?> GetPlayerOrOffline(int playerId);
+    Task<Player?> GetPlayerFromLogin(string username, string passwordMD5);
+    Task<Player?> GetPlayerOrOffline(string username);
+    Task<Player?> GetPlayerOrOffline(int playerId);
     Task<PlayerDto?> GetPlayerInfoFromLogin(string username);
     Task<PlayerDto?> GetPlayerInfo(int playerId);
     Task<PlayerDto?> GetPlayerInfo(string username);
     
-    Task UpdateLatestActivity(User player);
+    Task UpdateLatestActivity(Player player);
     Task UpdateLatestActivity(int playerId);
-    Task UpdatePlayerCountry(User player, string country);
+    Task UpdatePlayerCountry(Player player, string country);
 
-    Task GetPlayerStats(User player);
+    Task GetPlayerStats(Player player);
     Task<StatsDto?> GetPlayerModeStats(int playerId, byte mode);
     Task<List<PlayerHistoryStats>> GetPlayersModeStatsRange(byte mode, int count, int skip = 0, bool reset = false);
-    Task UpdatePlayerStats(User player, GameMode mode);
+    Task UpdatePlayerStats(Player player, GameMode mode);
     Task ResetPlayersStats(byte mode);
     
-    Task GetPlayerRelationships(User player);
-    Task UpdatePlayerPrivileges(User player, PlayerPrivileges playerPrivileges, bool remove);
+    Task GetPlayerRelationships(Player player);
+    Task UpdatePlayerPrivileges(Player player, PlayerPrivileges playerPrivileges, bool remove);
 
-    Task RecalculatePlayerTopScores(User player, GameMode mode);
-    Task UpdatePlayerRank(User player, GameMode mode);
+    Task RecalculatePlayerTopScores(Player player, GameMode mode);
+    Task UpdatePlayerRank(Player player, GameMode mode);
     Task<int> GetPlayerGlobalRank(GameMode mode, int playerId);
     Task<int> GetPlayerCountryRank(GameMode mode, string country, int playerId);
     Task InsertPlayerGlobalRank(byte mode, string country, int playerId, int pp);
@@ -45,10 +45,10 @@ public interface IPlayersRepository
 
     Task CreatePlayer(string username, string email, string passwordHash, string country);
     Task<bool> DeletePlayer(PlayerDto player, bool deleteScores, bool force);
-    Task<bool> SilencePlayer(User player, TimeSpan duration, string reason);
-    Task<bool> UnsilencePlayer(User player, string reason);
-    Task<bool> RestrictPlayer(User player, string reason);
-    Task<bool> UnrestrictPlayer(User player, string reason);
+    Task<bool> SilencePlayer(Player player, TimeSpan duration, string reason);
+    Task<bool> UnsilencePlayer(Player player, string reason);
+    Task<bool> RestrictPlayer(Player player, string reason);
+    Task<bool> UnrestrictPlayer(Player player, string reason);
 
     Task<int> TotalPlayerCount(bool countRestricted = false);
     Task<List<int>> GetPlayerIdsWithExpiredSupporter();

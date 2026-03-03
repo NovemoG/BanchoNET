@@ -5,7 +5,7 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private Task SetAwayMessage(User player, BinaryReader br)
+	private Task SetAwayMessage(Player player, BinaryReader br)
 	{
 		var message = br.ReadOsuString();
 		player.AwayMessage = message;

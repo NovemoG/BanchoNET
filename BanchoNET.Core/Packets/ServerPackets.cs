@@ -98,7 +98,7 @@ public sealed partial class ServerPackets : IDisposable
 	/// <summary>
 	/// Packet id 11
 	/// </summary>
-	public ServerPackets UserStats(User player)
+	public ServerPackets UserStats(Player player)
 	{
 		WritePacketData(ServerPacketId.UserStats, new PacketData(player, DataType.Stats));
 		return this;
@@ -107,7 +107,7 @@ public sealed partial class ServerPackets : IDisposable
 	/// <summary>
 	/// Packet id 11
 	/// </summary>
-	public ServerPackets BotStats(User player)
+	public ServerPackets BotStats(Player player)
 	{
 		WritePacketData(ServerPacketId.UserStats, new PacketData(player, DataType.BotStats));
 		return this;
@@ -327,7 +327,7 @@ public sealed partial class ServerPackets : IDisposable
 	/// <summary>
 	/// Packet id 88
 	/// </summary>
-	public ServerPackets MatchInvite(User player, string targetName)
+	public ServerPackets MatchInvite(Player player, string targetName)
 	{
 		WritePacketData(ServerPacketId.MatchInvite , new PacketData(
 			new Message
@@ -472,7 +472,7 @@ public sealed partial class ServerPackets : IDisposable
 	/// <summary>
 	/// Packet id 83
 	/// </summary>
-	public ServerPackets BotPresence(User player)
+	public ServerPackets BotPresence(Player player)
 	{
 		WritePacketData(ServerPacketId.UserPresence, new PacketData(player, DataType.BotPresence));
 		return this;
@@ -481,7 +481,7 @@ public sealed partial class ServerPackets : IDisposable
 	/// <summary>
 	/// Packet id 83
 	/// </summary>
-	public ServerPackets UserPresence(User player)
+	public ServerPackets UserPresence(Player player)
 	{
 		WritePacketData(ServerPacketId.UserPresence, new PacketData(player, DataType.Presence));
 		return this;

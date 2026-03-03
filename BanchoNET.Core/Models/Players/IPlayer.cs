@@ -2,8 +2,8 @@ using BanchoNET.Core.Abstractions;
 
 namespace BanchoNET.Core.Models.Players;
 
-public interface IUser : IHasOnlineId<int>,
-    IEquatable<IUser>
+public interface IPlayer : IHasOnlineId<int>,
+    IEquatable<IPlayer>
 {
     string Username { get; }
     
@@ -11,7 +11,7 @@ public interface IUser : IHasOnlineId<int>,
     
     bool IsBot { get; }
     
-    bool IEquatable<IUser>.Equals(IUser? other)
+    bool IEquatable<IPlayer>.Equals(IPlayer? other)
     {
         if (other == null)
             return false;

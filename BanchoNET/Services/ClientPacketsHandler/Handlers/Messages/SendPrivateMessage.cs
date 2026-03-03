@@ -7,7 +7,7 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private async Task SendPrivateMessage(User player, BinaryReader br)
+	private async Task SendPrivateMessage(Player player, BinaryReader br)
 	{
 		var message = br.ReadOsuMessage();
 

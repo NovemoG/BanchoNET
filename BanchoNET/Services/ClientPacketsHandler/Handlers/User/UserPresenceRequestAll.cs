@@ -5,7 +5,7 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-    private Task UserPresenceRequestAll(User player, BinaryReader br)
+    private Task UserPresenceRequestAll(Player player, BinaryReader br)
     {
         // Only used when there are >256 players seen by client
         

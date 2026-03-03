@@ -5,7 +5,7 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private async Task MatchStart(User player, BinaryReader br)
+	private async Task MatchStart(Player player, BinaryReader br)
 	{
 		var match = player.Match;
 		if (match == null) return;

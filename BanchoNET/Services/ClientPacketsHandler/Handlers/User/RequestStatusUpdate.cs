@@ -5,7 +5,7 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private Task RequestStatusUpdate(User player, BinaryReader br)
+	private Task RequestStatusUpdate(Player player, BinaryReader br)
 	{
 		playerService.EnqueueToPlayers(new ServerPackets()
 			.UserStats(player)

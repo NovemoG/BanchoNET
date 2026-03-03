@@ -5,7 +5,7 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-    private Task StartSpectating(User player, BinaryReader br)
+    private Task StartSpectating(Player player, BinaryReader br)
     {
         var targetId = br.ReadInt32();
         var target = playerService.GetPlayer(targetId);

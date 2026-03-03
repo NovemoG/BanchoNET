@@ -5,7 +5,7 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-    private Task CantSpectate(User player, BinaryReader br)
+    private Task CantSpectate(Player player, BinaryReader br)
     {
         if (player.Spectating == null)
         {

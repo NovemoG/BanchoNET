@@ -7,7 +7,7 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private async Task MatchChangeSettings(User player, BinaryReader br)
+	private async Task MatchChangeSettings(Player player, BinaryReader br)
 	{
 		var matchData = br.ReadOsuMatch();
 		

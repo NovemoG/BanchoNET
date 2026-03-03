@@ -8,12 +8,12 @@ namespace BanchoNET.Core.Utils.Extensions;
 public static class ModelExtensions
 {
     extension(
-        User? instance
+        Player? instance
     ) {
-        public bool MatchesOnlineID(User? other) => instance.matchesOnlineID(other);
+        public bool MatchesOnlineID(Player? other) => instance.matchesOnlineID(other);
 
         private bool matchesOnlineID(
-            User? other
+            Player? other
         ) {
             if (instance is null || other is null)
                 return false;

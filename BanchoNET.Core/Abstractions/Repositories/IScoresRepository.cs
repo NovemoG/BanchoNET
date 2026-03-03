@@ -19,7 +19,7 @@ public interface IScoresRepository
     Task<Score?> GetPlayerBestScoreWithModsOnMap(int playerId, string beatmapMD5, GameMode mode, Mods mods);
     Task<ScoreDto?> GetBestBeatmapScore(string beatmapMD5, GameMode mode);
     Task SetScoreLeaderboardPosition(string beatmapMD5, Score score, bool withMods, Mods mods = Mods.None);
-    Task<List<ScoreDto>> GetBeatmapLeaderboard(string beatmapMD5, GameMode mode, LeaderboardType type, Mods mods, User player);
+    Task<List<ScoreDto>> GetBeatmapLeaderboard(string beatmapMD5, GameMode mode, LeaderboardType type, Mods mods, Player player);
     Task ToggleBeatmapScoresVisibility(string beatmapMD5, bool visible);
     Task<List<long>> DeleteOldScores(short differenceInHours = 48);
 }

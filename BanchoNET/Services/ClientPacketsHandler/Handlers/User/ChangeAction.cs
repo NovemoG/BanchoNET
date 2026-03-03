@@ -7,7 +7,7 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private Task ChangeAction(User player, BinaryReader br)
+	private Task ChangeAction(Player player, BinaryReader br)
 	{
 		var status = player.Status;
 

@@ -26,7 +26,7 @@ public partial class ClientPacketsHandler(
 {
 	private static readonly string[] IgnoredChannels = ["#highlight", "#userlog"];
 	
-	public async Task ReadPackets(Stream stream, User player)
+	public async Task ReadPackets(Stream stream, Player player)
 	{
 		using var ms = new MemoryStream();
 		await stream.CopyToAsync(ms);

@@ -25,7 +25,7 @@ public partial class CommandProcessor(
 {
     private static readonly string Prefix = AppSettings.CommandPrefix;
 
-    private User _playerCtx = null!;
+    private Player _playerCtx = null!;
     private Channel? _channelCtx;
     private string _commandBase = null!;
 
@@ -39,7 +39,7 @@ public partial class CommandProcessor(
     /// chat instead of only to player</returns>
     public async Task<(bool ToPlayer, string Response)> Execute(
         string command,
-        User player,
+        Player player,
         Channel? channel = null)
     {
         command = command[Prefix.Length..];

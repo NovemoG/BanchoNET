@@ -5,7 +5,7 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private Task ChannelJoin(User player, BinaryReader br)
+	private Task ChannelJoin(Player player, BinaryReader br)
 	{
 		var channelName = br.ReadOsuString();
 

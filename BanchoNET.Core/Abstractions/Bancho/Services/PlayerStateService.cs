@@ -4,23 +4,23 @@ using Novelog.Abstractions;
 
 namespace BanchoNET.Core.Abstractions.Bancho.Services;
 
-public abstract class PlayerStateService(ILogger logger) : StatefulService<int, User>(logger)
+public abstract class PlayerStateService(ILogger logger) : StatefulService<int, Player>(logger)
 {
     //PlayersById already exist in StatefulService
-    protected readonly ConcurrentDictionary<string, User> PlayersByUsername = new();
-    protected readonly ConcurrentDictionary<Guid, User> PlayersByToken = new();
+    protected readonly ConcurrentDictionary<string, Player> PlayersByUsername = new();
+    protected readonly ConcurrentDictionary<Guid, Player> PlayersByToken = new();
     
-    protected readonly ConcurrentDictionary<User, bool> PlayersInLobby = new();
+    protected readonly ConcurrentDictionary<Player, bool> PlayersInLobby = new();
     
-    protected readonly ConcurrentDictionary<int, User> RestrictedById = new();
-    protected readonly ConcurrentDictionary<string, User> RestrictedByUsername = new();
-    protected readonly ConcurrentDictionary<Guid, User> RestrictedByToken = new();
+    protected readonly ConcurrentDictionary<int, Player> RestrictedById = new();
+    protected readonly ConcurrentDictionary<string, Player> RestrictedByUsername = new();
+    protected readonly ConcurrentDictionary<Guid, Player> RestrictedByToken = new();
     
-    protected readonly ConcurrentDictionary<int, User> BotsById = new();
-    protected readonly ConcurrentDictionary<string, User> BotsByUsername = new();
+    protected readonly ConcurrentDictionary<int, Player> BotsById = new();
+    protected readonly ConcurrentDictionary<string, Player> BotsByUsername = new();
 
     protected override bool TryAdd(
-        User value
+        Player value
     ) {
         if (value.IsRestricted)
         {
@@ -35,7 +35,7 @@ public abstract class PlayerStateService(ILogger logger) : StatefulService<int, 
     }
 
     protected bool TryAddBot(
-        User value
+        Player value
     ) {
         value.IsBot = true;
         
@@ -44,7 +44,7 @@ public abstract class PlayerStateService(ILogger logger) : StatefulService<int, 
     }
 
     protected bool TryRemove(
-        User value
+        Player value
     ) {
         if (PlayersByUsername.TryRemove(value.SafeName, out _)
             && PlayersByToken.TryRemove(value.SessionId, out _)

@@ -55,7 +55,7 @@ public static class MultiplayerExtensions
 		}
 
 		public MultiplayerSlot? GetPlayerSlot(
-			User player
+			Player player
 		) {
 			return match.Slots.FirstOrDefault(s => s.Player == player);
 		}
@@ -74,7 +74,7 @@ public static class MultiplayerExtensions
 		}
 
 		public int GetPlayerSlotId(
-			User player
+			Player player
 		) {
 			for (int i = 0; i < match.Slots.Length; i++)
 				if (match.Slots[i].Player == player)

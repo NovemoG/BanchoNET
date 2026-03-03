@@ -8,7 +8,7 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private async Task SendPublicMessage(User player, BinaryReader br)
+	private async Task SendPublicMessage(Player player, BinaryReader br)
 	{
 		var message = br.ReadOsuMessage();
 
@@ -72,7 +72,7 @@ public partial class ClientPacketsHandler
 	private async Task SendCommandMessage(
 		string txt,
 		Message message,
-		User player,
+		Player player,
 		Channel channel
 	) {
 		var command = await commands.Execute(txt, player, channel);
@@ -98,7 +98,7 @@ public partial class ClientPacketsHandler
 	private void SendNpMessage(
 		string txt,
 		Message message,
-		User player,
+		Player player,
 		Channel channel
 	) {
 		var npMatch = Regexes.NowPlaying.Match(txt);

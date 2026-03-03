@@ -185,7 +185,7 @@ public static class BufferExtensions
 		}
 
 		public void WriteUserStats(
-			User player
+			Player player
 		) {
 			var modeStats = player.Stats[player.Status.Mode];
 			var modeRankedScore = modeStats.RankedScore;
@@ -213,7 +213,7 @@ public static class BufferExtensions
 		}
 
 		public void WriteBotStats(
-			User player
+			Player player
 		) {
 			bw.Write(player.Id);
 			bw.Write((byte)player.Status.Activity);
@@ -231,7 +231,7 @@ public static class BufferExtensions
 		}
 
 		public void WriteUserPresence(
-			User player
+			Player player
 		) {
 			bw.Write(player.Id);
 			bw.WriteOsuString(player.Username);
@@ -244,7 +244,7 @@ public static class BufferExtensions
 		}
 
 		public void WriteBotPresence(
-			User player
+			Player player
 		) {
 			var timezone = TimeZoneInfo.Local.GetUtcOffset(DateTime.UtcNow);
 		

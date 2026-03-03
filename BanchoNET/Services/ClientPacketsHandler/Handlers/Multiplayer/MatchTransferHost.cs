@@ -7,7 +7,7 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private async Task MatchTransferHost(User player, BinaryReader br)
+	private async Task MatchTransferHost(Player player, BinaryReader br)
 	{
 		var slotId = br.ReadInt32();
 

@@ -6,7 +6,7 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private Task MatchChangeTeam(User player, BinaryReader br)
+	private Task MatchChangeTeam(Player player, BinaryReader br)
 	{
 		var match = player.Match;
 		if (match == null || match.Locked) return Task.CompletedTask;

@@ -60,7 +60,7 @@ public class ChannelService(
 
     public bool JoinPlayer(
         Channel channel,
-        User player
+        Player player
     ) {
         if (channel.PlayerInChannel(player) ||
             !channel.CanPlayerRead(player) ||
@@ -94,7 +94,7 @@ public class ChannelService(
 
     public bool LeavePlayer(
         Channel channel,
-        User player,
+        Player player,
         bool kick = true
     ) {
         if (!channel.PlayerInChannel(player))
@@ -130,7 +130,7 @@ public class ChannelService(
 
     public bool LeavePlayer(
         string id,
-        User player,
+        Player player,
         bool kick = true
     ) {
         if (TryGet(id, out var channel))
@@ -165,7 +165,7 @@ public class ChannelService(
     public void SendBotMessageTo(
         Channel channel,
         string message,
-        User from
+        Player from
     ) {
         if (message.Length >= 31979)
             message = $"message would have crashed games ({message.Length} characters).";

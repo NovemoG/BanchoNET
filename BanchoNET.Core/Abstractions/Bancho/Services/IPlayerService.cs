@@ -5,33 +5,33 @@ namespace BanchoNET.Core.Abstractions.Bancho.Services;
 
 public interface IPlayerService : IDisposable
 {
-    User BanchoBot { get; }
-    IEnumerable<User> Players { get; }
-    IEnumerable<User> PlayersInLobby { get; }
-    IEnumerable<User> Restricted { get; }
-    IEnumerable<User> Bots { get; }
+    Player BanchoBot { get; }
+    IEnumerable<Player> Players { get; }
+    IEnumerable<Player> PlayersInLobby { get; }
+    IEnumerable<Player> Restricted { get; }
+    IEnumerable<Player> Bots { get; }
     
     bool InsertPlayer(
-        User player,
+        Player player,
         bool isBot = false
     );
-    bool RemovePlayer(User player);
+    bool RemovePlayer(Player player);
     
-    User? GetPlayer(int id);
-    User? GetPlayer(string? username);
-    User? GetPlayer(Guid token);
+    Player? GetPlayer(int id);
+    Player? GetPlayer(string? username);
+    Player? GetPlayer(Guid token);
     
-    bool JoinLobby(User player);
-    bool LeaveLobby(User player);
+    bool JoinLobby(Player player);
+    bool LeaveLobby(Player player);
     
     public void SendMessageTo(
-        User player,
+        Player player,
         string message,
-        User from,
+        Player from,
         Channel? toChannel = null
     );
     public void SendBotMessageTo(
-        User player,
+        Player player,
         string message,
         string toChannel = ""
     );

@@ -3,7 +3,6 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using BanchoNET.Commands;
 using BanchoNET.Core.Abstractions;
-using BanchoNET.Core.Abstractions.Bancho.Coordinators;
 using BanchoNET.Core.Abstractions.Bancho.Services;
 using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Repositories.Histories;
@@ -16,7 +15,6 @@ using BanchoNET.Core.Models.Privileges;
 using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
 using BanchoNET.Infrastructure.Bancho.Coordinators;
-using BanchoNET.Infrastructure.Bancho.Services;
 using BanchoNET.Middlewares;
 using BanchoNET.Services;
 using BanchoNET.Services.ClientPacketsHandler;
@@ -31,6 +29,7 @@ using MongoDB.Driver;
 using MySql.Data.MySqlClient;
 using Novelog.Config;
 using StackExchange.Redis;
+using BanchoNET.Infrastructure;
 using static System.Data.IsolationLevel;
 using IsolationLevel = System.Transactions.IsolationLevel;
 using LogLevel = Novelog.Types.LogLevel;
@@ -194,6 +193,7 @@ public class Program
 
 		builder.Services.AddEndpointsApiExplorer()
 			.AddAuthorization()
+			.AddOAuth()
 			.AddControllers();
 
 		var mongoSettings = MongoClientSettings.FromConnectionString(mongoConnectionString);
@@ -236,11 +236,11 @@ public class Program
 
 		app.UseHangfireDashboard();
 		app.UseHttpsRedirection();
+		app.UseAuthentication();
 		app.UseAuthorization();
 
 		app.UseMiddleware<SubdomainMiddleware>();
 		app.UseMiddleware<RequestTimingMiddleware>();
-		app.UseMiddleware<RequestLoggingMiddleware>();
 		
 		app.MapControllers();
 
@@ -261,7 +261,7 @@ public class Program
 		// redis leaderboards on startup
 		InitRedis(app.Services.CreateScope(), dbConnections.RedisHost, dbConnections.RedisPort);
 		
-		app.Services.GetRequiredService<IOsuVersionService>().Init().Wait();
+		//app.Services.GetRequiredService<IOsuVersionService>().Init().Wait();
 		app.Services.GetRequiredService<IBackgroundTasks>().Init().Wait();
 
 		#endregion
@@ -311,7 +311,7 @@ public class Program
 			dbBanchoBot.LastActivityTime = DateTime.UtcNow.AddYears(100);
 			db.SaveChanges();
 
-			var banchoBot = new User(dbBanchoBot);
+			var banchoBot = new Player(dbBanchoBot);
 
 			players.GetPlayerRelationships(banchoBot);
 			playerService.InsertPlayer(banchoBot, true);
@@ -342,7 +342,7 @@ public class Program
 		});
 		db.SaveChanges();
 		
-		playerService.InsertPlayer(new User(entry.Entity), true);
+		playerService.InsertPlayer(new Player(entry.Entity), true);
 	}
 
 	private static void InitChannels(IServiceScope scope)

@@ -324,7 +324,7 @@ public partial class OsuController
     private async Task RecalculatePlayerStats(
         Beatmap beatmap,
         ModeStats stats,
-        User player,
+        Player player,
         Score score,
         Score? prevBest,
         Score? bestWithMods)
@@ -373,7 +373,7 @@ public partial class OsuController
         }
     }
 
-    private async Task AnnounceNewFirstScore(Score score, User player, Beatmap beatmap)
+    private async Task AnnounceNewFirstScore(Score score, Player player, Beatmap beatmap)
     {
         if (score.LeaderboardPosition == 1 && !player.IsRestricted)
         {

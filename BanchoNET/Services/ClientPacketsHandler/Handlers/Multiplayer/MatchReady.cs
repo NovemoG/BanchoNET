@@ -6,7 +6,7 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private Task MatchReady(User player, BinaryReader br)
+	private Task MatchReady(Player player, BinaryReader br)
 	{
 		var match = player.Match;
 		if (match == null) return Task.CompletedTask;

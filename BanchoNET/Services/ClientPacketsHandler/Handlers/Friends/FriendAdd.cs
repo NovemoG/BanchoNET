@@ -4,7 +4,7 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-    private async Task FriendAdd(User player, BinaryReader br)
+    private async Task FriendAdd(Player player, BinaryReader br)
     {
         var friendId = br.ReadInt32();
         var target = playerService.GetPlayer(friendId);

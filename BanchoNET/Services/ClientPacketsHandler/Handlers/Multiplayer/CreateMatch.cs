@@ -8,7 +8,7 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-	private async Task CreateMatch(User player, BinaryReader br)
+	private async Task CreateMatch(Player player, BinaryReader br)
 	{
 		var matchData = br.ReadOsuMatch();
 		matchData.CreatorId = matchData.HostId;

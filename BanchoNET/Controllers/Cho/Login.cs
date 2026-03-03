@@ -176,7 +176,7 @@ public partial class ChoController
 				.FinalizeAndGetContentResult();
 		}
 
-		player = new User(userInfo, timeZone: loginData.TimeZone)
+		player = new Player(userInfo, timeZone: loginData.TimeZone)
 		{
 			Geoloc = _geoloc.Value,
 			ClientDetails = new ClientDetails
@@ -345,7 +345,7 @@ public partial class ChoController
 	/// </summary>
 	/// <param name="packets">Packets to which data will be enqueued</param>
 	/// <param name="player">Player from which data will be enqueued to others</param>
-	private ServerPackets EnqueueOtherPlayers(ServerPackets packets, User? player = null)
+	private ServerPackets EnqueueOtherPlayers(ServerPackets packets, Player? player = null)
 	{
 		var toOthers = player != null;
 		

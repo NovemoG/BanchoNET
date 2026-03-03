@@ -16,7 +16,7 @@ public partial class CommandProcessor
         aliases: ["rs"])]
     private async Task<(bool, string)> RecentScore(string[] args)
     {
-        User? player;
+        Player? player;
         Score? score;
         if (args.Length > 0)
         {

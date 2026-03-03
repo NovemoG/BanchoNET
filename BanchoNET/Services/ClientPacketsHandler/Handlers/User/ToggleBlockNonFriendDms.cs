@@ -4,7 +4,7 @@ namespace BanchoNET.Services.ClientPacketsHandler;
 
 public partial class ClientPacketsHandler
 {
-    private Task ToggleBlockNonFriendDms(User player, BinaryReader br)
+    private Task ToggleBlockNonFriendDms(Player player, BinaryReader br)
     {
         var value = br.ReadInt32();
         

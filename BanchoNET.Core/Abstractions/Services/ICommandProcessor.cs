@@ -7,7 +7,7 @@ public interface ICommandProcessor
 {
     Task<(bool ToPlayer, string Response)> Execute(
         string command,
-        User player,
+        Player player,
         Channel? channel = null
     );
 }
