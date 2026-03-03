@@ -50,6 +50,11 @@ public class PlayersRepository : IPlayersRepository
 		return await _dbContext.Players.AnyAsync(p => p.SafeName == username.MakeSafe());
 	}
 
+	public async Task<bool> PlayerExists(int userId)
+	{
+		return await _dbContext.Players.AnyAsync(p => p.Id == userId);
+	}
+
 	public async Task<bool> PlayerExists(string username)
 	{
 		return await _dbContext.Players.AnyAsync(p => p.SafeName == username.MakeSafe());
@@ -381,7 +386,7 @@ public class PlayersRepository : IPlayersRepository
 			var rank = await GetPlayerGlobalRank((GameMode)mode, playerId);
 
 			await Task.WhenAll(
-				_histories.InsertRankHistory(new RankHistory
+				_histories.InsertRankHistory(new RankHistoryEntry
 				{
 					PlayerId = playerId,
 					Mode = mode,

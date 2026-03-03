@@ -1,11 +1,27 @@
 ﻿using System.Text;
 using BanchoNET.Core.Models;
+using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
+using EnumsNET;
 
 namespace BanchoNET.Core.Utils.Extensions;
 
 public static class EnumExtensions
 {
+	static EnumExtensions() {
+		var codes = Enum.GetValues<CountryCode>();
+		var dict = new Dictionary<CountryCode, string>();
+
+		foreach (var code in codes)
+		{
+			dict[code] = code.AsString(EnumFormat.Description) ?? "Unknown";
+		}
+		
+		CountryCodeMap = dict;
+	}
+
+	public static readonly IReadOnlyDictionary<CountryCode, string> CountryCodeMap;
+	
 	private static readonly (Mods Mod, string ShortCode)[] ModMap =
 	{
 		(Mods.NoFail, "NF"),

@@ -22,8 +22,8 @@ public sealed class Player : IPlayer, IDisposable,
     public string Username { get; set; }
     public string SafeName => Username.MakeSafe();
     public string[] PreviousUsernames = [];
-    
-    private string _countryCodeString = null!;
+
+    private string _countryCodeString;
     public CountryCode CountryCode
     {
         get => Enum.TryParse(_countryCodeString, out CountryCode result) ? result : CountryCode.Unknown;

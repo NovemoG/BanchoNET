@@ -1,5 +1,6 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
+using BanchoNET.Core.Models.Players;
 
 namespace BanchoNET.Core.Utils.Extensions;
 
@@ -76,6 +77,19 @@ public static class StringExtensions
 		string hash
 	) {
 		return BCrypt.Net.BCrypt.Verify(md5, hash);
+	}
+	
+	public static Country ParseCountry(this string input)
+	{
+		if (Enum.TryParse<CountryCode>(input.ToUpper(), out var country))
+		{
+			return new Country {
+				Code = country.ToString(),
+				Name = EnumExtensions.CountryCodeMap[country]
+			};
+		}
+
+		return new Country();
 	}
 
 	public static string HashStringSHA256(

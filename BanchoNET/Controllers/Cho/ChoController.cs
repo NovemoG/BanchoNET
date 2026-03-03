@@ -21,8 +21,8 @@ public partial class ChoController(
 	IClientsRepository clients,
 	IClientPacketsHandler clientPackets,
 	IMessagesRepository messages,
-	ILogger logger)
-	: ControllerBase
+	ILogger logger
+) : ControllerBase
 {
 	[HttpPost("/")]
 	public async Task<IActionResult> BanchoHandler()

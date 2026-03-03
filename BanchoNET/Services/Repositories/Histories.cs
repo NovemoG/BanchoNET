@@ -10,7 +10,7 @@ public class HistoriesRepository : IHistoriesRepository
     #region Constructor
 
     private readonly IMongoCollection<MultiplayerMatch> _multiplayerMatches;
-    private readonly IMongoCollection<RankHistory> _rankHistories;
+    private readonly IMongoCollection<RankHistoryEntry> _rankHistories;
     private readonly IMongoCollection<ReplayViewsHistory> _replayViewsHistories;
     private readonly IMongoCollection<PlayCountHistory> _playCountHistories;
 
@@ -31,7 +31,7 @@ public class HistoriesRepository : IHistoriesRepository
             mongoDatabase.CreateCollection("multiplayerMatches");
         
         _multiplayerMatches = mongoDatabase.GetCollection<MultiplayerMatch>("multiplayerMatches");
-        _rankHistories = mongoDatabase.GetCollection<RankHistory>("rankHistories");
+        _rankHistories = mongoDatabase.GetCollection<RankHistoryEntry>("rankHistories");
         _replayViewsHistories = mongoDatabase.GetCollection<ReplayViewsHistory>("replayViewsHistories");
         _playCountHistories = mongoDatabase.GetCollection<PlayCountHistory>("playCountHistories");
     }
@@ -43,9 +43,9 @@ public class HistoriesRepository : IHistoriesRepository
     private static FilterDefinition<MultiplayerMatch>? MatchFilter(int matchId) =>
         Builders<MultiplayerMatch>.Filter.Eq("MatchId", matchId);
 
-    private static FilterDefinition<RankHistory> RankFilter(int playerId, byte mode) =>
-        Builders<RankHistory>.Filter.Eq("PlayerId", playerId)
-        & Builders<RankHistory>.Filter.Eq("Mode", mode);
+    private static FilterDefinition<RankHistoryEntry> RankFilter(int playerId, byte mode) =>
+        Builders<RankHistoryEntry>.Filter.Eq("PlayerId", playerId)
+        & Builders<RankHistoryEntry>.Filter.Eq("Mode", mode);
     
     private static FilterDefinition<ReplayViewsHistory> ReplayFilter(int playerId, byte mode) =>
         Builders<ReplayViewsHistory>.Filter.Eq("PlayerId", playerId)
@@ -150,16 +150,16 @@ public class HistoriesRepository : IHistoriesRepository
             Console.WriteLine("[Histories] Couldn't update scores, match not found in multiplayer history");
     }
     
-    public async Task InsertRankHistory(RankHistory history)
+    public async Task InsertRankHistory(RankHistoryEntry history)
     {
         await _rankHistories.InsertOneAsync(history);
     }
 
-    public async Task<PeakRank> GetPeakRank(int playerId, byte mode)
+    public async Task<PeakRank?> GetPeakRank(int playerId, byte mode)
     {
-        var result = await _rankHistories.Find(RankFilter(playerId, mode)).SingleAsync();
+        var result = await _rankHistories.Find(RankFilter(playerId, mode)).FirstOrDefaultAsync();
 
-        return result.PeakRank;
+        return result?.PeakRank;
     }
 
     public async Task<List<int>> GetRankHistory(int playerId, byte mode)
@@ -172,12 +172,12 @@ public class HistoriesRepository : IHistoriesRepository
     public async Task AddRankHistory(int playerId, byte mode, int entry)
     {
         var filter = RankFilter(playerId, mode);
-        var update = Builders<RankHistory>.Update.Push("Entries", entry);
+        var update = Builders<RankHistoryEntry>.Update.Push("Entries", entry);
         
         var history = await _rankHistories.Find(filter).SingleAsync();
         if (history.Entries.Count == 90)
         {
-            var pop = Builders<RankHistory>.Update.PopFirst("Entries");
+            var pop = Builders<RankHistoryEntry>.Update.PopFirst("Entries");
             
             await _rankHistories.UpdateOneAsync(filter, pop);
         }
@@ -190,7 +190,7 @@ public class HistoriesRepository : IHistoriesRepository
     
     public async Task UpdatePeakRank(int playerId, byte mode, PeakRank peakRank)
     {
-        var update = Builders<RankHistory>.Update.Set("PeakRank", peakRank);
+        var update = Builders<RankHistoryEntry>.Update.Set("PeakRank", peakRank);
         
         var result = await _rankHistories.UpdateOneAsync(RankFilter(playerId, mode), update);
         
@@ -244,7 +244,7 @@ public class HistoriesRepository : IHistoriesRepository
 
     public async Task DeletePlayerData(int playerId)
     {
-        var rankFilter = Builders<RankHistory>.Filter.Eq("PlayerId", playerId);
+        var rankFilter = Builders<RankHistoryEntry>.Filter.Eq("PlayerId", playerId);
         var replayFilter = Builders<ReplayViewsHistory>.Filter.Eq("PlayerId", playerId);
         var playCountFilter = Builders<PlayCountHistory>.Filter.Eq("PlayerId", playerId);
         

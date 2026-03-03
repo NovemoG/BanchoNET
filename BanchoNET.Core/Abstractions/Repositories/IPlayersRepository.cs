@@ -9,6 +9,7 @@ public interface IPlayersRepository
 {
     Task<bool> EmailTaken(string email);
     Task<bool> UsernameTaken(string username);
+    Task<bool> PlayerExists(int userId);
     Task<bool> PlayerExists(string username);
     Task<bool> ChangeUsername(string oldUsername, string newUsername);
     Task<List<string>> GetPlayerNames(List<int> ids);

@@ -31,7 +31,7 @@ public sealed class PlayerService(ILogger logger) : PlayerStateService(logger), 
     
     public Player? GetPlayer(int id)
     {
-        if (id < 2) return null;
+        if (id < 1) return null;
 
         Items.TryGetValue(id, out var sessionPlayer);
         if (sessionPlayer != null) return sessionPlayer;

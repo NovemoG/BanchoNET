@@ -1,15 +1,24 @@
-﻿using BanchoNET.Core.Attributes;
-using BanchoNET.Core.Models;
+﻿using BanchoNET.Core.Abstractions.Repositories;
+using BanchoNET.Core.Abstractions.Services;
+using BanchoNET.Core.Attributes;
 using BanchoNET.Core.Models.Auth;
-using BanchoNET.Infrastructure.Services;
+using BanchoNET.Core.Utils.Extensions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BanchoNET.Infrastructure.Controllers.OAuth;
 
 [ApiController]
 [SubdomainAuthorize("osu")]
-public class OAuthController(BanchoDbContext db, AuthService auth) : ControllerBase
+public class OAuthController(
+    IPlayersRepository players,
+    IAuthService auth
+) : ControllerBase
 {
+    [HttpGet("test")]
+    public async Task Test() {
+        await players.CreatePlayer("Cossin", "nig@ger.com", BCrypt.Net.BCrypt.HashPassword("nigger123".CreateMD5()), "pl");
+    }
+    
     [HttpPost("/oauth/token")]
     public async Task<IActionResult> Token(
         [FromForm] TokenRequestDto req

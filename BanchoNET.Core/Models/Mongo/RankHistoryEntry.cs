@@ -3,7 +3,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace BanchoNET.Core.Models.Mongo;
 
-public class RankHistory
+public class RankHistoryEntry
 {
     [BsonId]
     [BsonIgnoreIfDefault]

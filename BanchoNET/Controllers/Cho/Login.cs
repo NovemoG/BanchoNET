@@ -163,7 +163,7 @@ public partial class ChoController
 					.FinalizeAndGetContentResult();
 			}
 		}
-		//TODO assign club
+		//TODO assign lazer team
 		
 		var _geoloc = await geoloc.GetGeoloc(Request.Headers);
 		if (_geoloc == null)
@@ -175,7 +175,7 @@ public partial class ChoController
 				.PlayerId(-1)
 				.FinalizeAndGetContentResult();
 		}
-
+		
 		player = new Player(userInfo, timeZone: loginData.TimeZone)
 		{
 			Geoloc = _geoloc.Value,

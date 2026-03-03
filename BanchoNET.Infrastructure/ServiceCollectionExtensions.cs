@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,7 +12,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddOAuth(
         this IServiceCollection services
     ) {
-        services.AddScoped<AuthService>();
+        services.AddScoped<IAuthService, AuthService>();
 
         var key = Encoding.UTF8.GetBytes("FGc9GAtyHzeQDshWP5Ah7dega8hJACAJpQtw6OXk");
         services.AddAuthentication(options =>

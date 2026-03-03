@@ -2,6 +2,7 @@
 using System.Security.Claims;
 using System.Text;
 using BanchoNET.Core.Abstractions.Repositories;
+using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Auth;
 using BanchoNET.Core.Models.Players;
@@ -11,8 +12,10 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace BanchoNET.Infrastructure.Services;
 
-//TODO repository
-public class AuthService(BanchoDbContext db, IPlayersRepository players)
+public class AuthService(
+    BanchoDbContext db,
+    IPlayersRepository players
+) : IAuthService
 {
     public async Task<Player?> ValidateUserCredentials(
         string username,
@@ -83,8 +86,8 @@ public class AuthService(BanchoDbContext db, IPlayersRepository players)
         if (dbToken == null || dbToken.Revoked || dbToken.ExpiresAt < DateTime.UtcNow)
             return null;
         
-        var user = await db.Players.FindAsync(dbToken.UserId);
-        if (user == null) return null;
+        var exists = await players.PlayerExists(dbToken.UserId);
+        if (!exists) return null;
 
         dbToken.Revoked = true;
         var newPlain = StringExtensions.RandomBase64Url(64);
@@ -92,7 +95,7 @@ public class AuthService(BanchoDbContext db, IPlayersRepository players)
         var newDb = new RefreshToken
         {
             TokenHash = newHash,
-            UserId = user.Id,
+            UserId = dbToken.UserId,
             ExpiresAt = DateTime.UtcNow.AddDays(30),
             Revoked = false,
             Jti = Guid.NewGuid().ToString()
@@ -108,7 +111,7 @@ public class AuthService(BanchoDbContext db, IPlayersRepository players)
         var expires = now.AddMinutes(15);
         
         var claims = new[] {
-            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new Claim(JwtRegisteredClaimNames.Sub, dbToken.UserId.ToString()),
             new Claim(JwtRegisteredClaimNames.Aud, "5"),
             new Claim(JwtRegisteredClaimNames.Jti, jti),
             new Claim("scopes", "*"),
@@ -162,6 +165,7 @@ public class AuthService(BanchoDbContext db, IPlayersRepository players)
             .Where(s => s.UserId == userId && !s.Used && s.ExpiresAt >= DateTime.UtcNow)
             .OrderByDescending(s => s.Id)
             .FirstOrDefaultAsync();
+        
         if (session == null) return false;
         if (session.CodeHash != hash) return false;
         

@@ -71,6 +71,8 @@
       MONGO_INITDB_DATABASE: ${MONGO_DB}
     ports:
       - ${MONGO_PORT}:27017
+    volumes:
+      - banchonet-mongo-data:/data/db
     restart: unless-stopped
     networks:
       - banchonet
@@ -81,6 +83,7 @@ networks:
 
 volumes:
   banchonet-mysql-data:
+  banchonet-mongo-data:
 
 configs:
   init_db:
