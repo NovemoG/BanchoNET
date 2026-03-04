@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
-using BanchoNET.Core.Models.Players;
+using BanchoNET.Core.Models.Api.Player;
 
 namespace BanchoNET.Core.Utils.Json;
 

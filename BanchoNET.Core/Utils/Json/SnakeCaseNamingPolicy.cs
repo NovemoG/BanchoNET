@@ -12,8 +12,15 @@ public class SnakeCaseNamingPolicy : JsonNamingPolicy
         PropertyNameCaseInsensitive = true,
     };
     
+    public static readonly JsonSerializerOptions ApiPlayerOptions = new()
+    {
+        PropertyNamingPolicy = new SnakeCaseNamingPolicy(),
+        DictionaryKeyPolicy = new SnakeCaseNamingPolicy(),
+        PropertyNameCaseInsensitive = true,
+    };
+    
     static SnakeCaseNamingPolicy() {
-        Options.Converters.Add(new ApiPlayerConverter());
+        ApiPlayerOptions.Converters.Add(new ApiPlayerConverter());
     }
 
     public override string ConvertName(

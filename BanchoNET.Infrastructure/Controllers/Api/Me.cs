@@ -1,6 +1,6 @@
 ﻿using BanchoNET.Core.Models;
+using BanchoNET.Core.Models.Api.Player;
 using BanchoNET.Core.Models.Mongo;
-using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Utils.Extensions;
 using BanchoNET.Core.Utils.Json;
 using Microsoft.AspNetCore.Mvc;
@@ -18,12 +18,13 @@ public partial class ApiController
     };
     
     [HttpGet("me")]
-    public async Task<ActionResult<ApiPlayer?>> GetMe() {
-        var sub = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
-        if (!int.TryParse(sub, out var uid)) return Unauthorized();
+    public async Task<ActionResult<MeResponse?>> GetMe() {
+        if (!TryGetUserId(out var uid)) return Unauthorized();
 
         var userInfo = await players.GetPlayerInfo(uid);
         if (userInfo == null) return NotFound();
+        
+        //TODO MOVE THIS TO A SERVICE ASAP
         
         var country = userInfo.Country.ParseCountry();
         var mainMode = "osu"; //TODO
@@ -64,11 +65,11 @@ public partial class ApiController
             Rank = new Rank{ Country = countryRank }
         };
         
-        var apiPlayer = new ApiPlayer
+        var apiPlayer = new MeResponse
         {
             SessionVerified = true,
             CountryCode = country.Code,
-            ID = uid,
+            Id = uid,
             IsActive = !userInfo.Inactive,
             IsBot = false,
             IsDeleted = false, //TODO
@@ -98,8 +99,8 @@ public partial class ApiController
             //TODO achievements
         };
         
-        apiPlayer.DailyChallengeUserStats.UserID = uid;
-        apiPlayer.MatchmakingStats[0].UserID = uid;
+        apiPlayer.DailyChallengeUserStats.UserId = uid;
+        apiPlayer.MatchmakingStats[0].UserId = uid;
         apiPlayer.MatchmakingStats[0].Rank = rank;
         
         for (var i = playcountHistory.Count - 1; i >= 0; i--)
@@ -126,6 +127,6 @@ public partial class ApiController
             apiPlayer.RankHistory.Data[i] = rankHistory[i];
         }
         
-        return new JsonResult(apiPlayer, SnakeCaseNamingPolicy.Options); //TODO
+        return new JsonResult(apiPlayer, SnakeCaseNamingPolicy.ApiPlayerOptions); //TODO
     }
 }

@@ -17,5 +17,10 @@ public partial class ApiController(
     IHistoriesRepository histories
 ) : ControllerBase
 {
-    
+    private bool TryGetUserId(
+        out int userId
+    ) {
+        var sub = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
+        return int.TryParse(sub, out userId);
+    }
 }

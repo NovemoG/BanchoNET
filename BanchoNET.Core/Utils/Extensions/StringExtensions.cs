@@ -1,5 +1,6 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
+using BanchoNET.Core.Models.Api.Player;
 using BanchoNET.Core.Models.Players;
 
 namespace BanchoNET.Core.Utils.Extensions;
