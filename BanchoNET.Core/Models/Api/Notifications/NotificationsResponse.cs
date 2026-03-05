@@ -6,5 +6,5 @@ public class NotificationsResponse
     public Stack[] Stacks { get; set; } = [];
     public DateTimeOffset Timestamp { get; set; }
     public Type[] Types { get; set; } = [];
-    public readonly string NotificationEndpoint = "wss://notify.ppy.sh"; //TODO
+    public string NotificationEndpoint => "wss://notify.ppy.sh"; //TODO
 }

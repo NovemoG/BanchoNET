@@ -14,6 +14,8 @@ using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
 using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
+using BanchoNET.Handlers.Lazer;
+using BanchoNET.Handlers.Lazer.Hubs;
 using BanchoNET.Infrastructure.Bancho.Coordinators;
 using BanchoNET.Middlewares;
 using BanchoNET.Services;
@@ -30,6 +32,7 @@ using MySql.Data.MySqlClient;
 using Novelog.Config;
 using StackExchange.Redis;
 using BanchoNET.Infrastructure;
+using BanchoNET.Infrastructure.Services;
 using static System.Data.IsolationLevel;
 using IsolationLevel = System.Transactions.IsolationLevel;
 using LogLevel = Novelog.Types.LogLevel;
@@ -230,7 +233,9 @@ public class Program
 
 		builder.Services.AddHttpClient()
 			.AddSessionServices(assemblies)
-			.AddMediatR(config => config.RegisterServicesFromAssemblies(assemblies));
+			.AddMediatR(config => config.RegisterServicesFromAssemblies(assemblies))
+			.AddSignalR()
+			.AddMessagePackProtocol();
 		
 		var app = builder.Build();
 
@@ -238,9 +243,16 @@ public class Program
 		app.UseHttpsRedirection();
 		app.UseAuthentication();
 		app.UseAuthorization();
-
+		app.UseWebSockets();
+		
 		app.UseMiddleware<SubdomainMiddleware>();
+		app.UseMiddleware<NotifyMiddleware>();
 		app.UseMiddleware<RequestTimingMiddleware>();
+
+		//TODO wss://notify.ppy.sh
+		app.MapHub<MetadataHub>("/metadata");
+		app.MapHub<SpectatorHub>("/spectator");
+		app.MapHub<MultiplayerHub>("/multiplayer");
 		
 		app.MapControllers();
 

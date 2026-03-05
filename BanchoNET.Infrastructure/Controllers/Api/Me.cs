@@ -19,7 +19,7 @@ public partial class ApiController
     
     [HttpGet("me")]
     public async Task<ActionResult<MeResponse?>> GetMe() {
-        if (!TryGetUserId(out var uid)) return Unauthorized();
+        if (!User.TryGetUserId(out var uid)) return Unauthorized();
 
         var userInfo = await players.GetPlayerInfo(uid);
         if (userInfo == null) return NotFound();

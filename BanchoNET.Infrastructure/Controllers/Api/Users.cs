@@ -8,14 +8,13 @@ namespace BanchoNET.Infrastructure.Controllers.Api;
 
 public partial class ApiController
 {
-    //https://osu.ppy.sh/api/v2/users/2/?key=id
     [HttpGet("users/{userId:int}/{forMode?}")]
     public async Task<ActionResult<ApiPlayer?>> GetUsers(
         int userId,
         string? forMode = null,
         [FromQuery] string? key = "id"
     ) {
-        if (!TryGetUserId(out _)) return Unauthorized();
+        if (!User.TryGetUserId(out _)) return Unauthorized();
 
         var userInfo = await players.GetPlayerInfo(userId);
         if (userInfo == null) return NotFound();

@@ -1,4 +1,5 @@
 using BanchoNET.Core.Models.Api.Relationships;
+using BanchoNET.Core.Utils.Extensions;
 using BanchoNET.Core.Utils.Json;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,7 +9,7 @@ public partial class ApiController
 {
     [HttpGet("friends")]
     public ActionResult<Relationship[]> GetFriends() {
-        if (!TryGetUserId(out var uid)) return Unauthorized();
+        if (!User.TryGetUserId(out var uid)) return Unauthorized();
         
         //TODO get friends
         
