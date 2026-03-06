@@ -74,7 +74,6 @@ public class ApiPlayer
     public int ScoresPinnedCount { get; set; }
     public int ScoresRecentCount { get; set; }
     public Statistics Statistics { get; set; } = new(); //TODO statistics for mode set in playmode
-    public StatisticsRulesets StatisticsRulesets { get; set; } = new();
     public int SupportLevel { get; set; }
     public Team? Team { get; set; }
     public UserAchievements[] UserAchievements { get; set; } = [];

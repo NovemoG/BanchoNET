@@ -1,9 +1,18 @@
+using System.Text.Json.Serialization;
+
 namespace BanchoNET.Core.Models.Api.Player;
 
 public class StatisticsRulesets
 {
-    public Statistics Osu { get; set; } = new();
-    public Statistics Taiko { get; set; } = new();
-    public Statistics Fruits { get; set; } = new();
-    public Statistics Mania { get; set; } = new();
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Statistics? Osu { get; set; }
+    
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Statistics? Taiko { get; set; }
+    
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Statistics? Fruits { get; set; }
+    
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Statistics? Mania { get; set; }
 }

@@ -30,13 +30,19 @@ public class PlayerDto
 	[Column(TypeName = "CHAR(2)"), Unicode(false)]
 	public required string Country { get; set; }
 	public int Privileges { get; set; }
+	public bool PmFriendsOnly { get; set; }
+	public bool HideOnlineActivity { get; set; }
 	
 	public bool Inactive { get; set; }
+	public bool Deleted { get; set; } //TODO
 	
 	[Column(TypeName = "DATETIME")]
 	public DateTime RemainingSilence { get; set; }
 	[Column(TypeName = "DATETIME")]
 	public DateTime RemainingSupporter { get; set; }
+	public bool HasSupported { get; set; } //TODO
+	[Column(TypeName = "TINYINT(2)")]
+	public byte SupporterLevel { get; set; } //TODO
 	
 	[Column(TypeName = "DATETIME")]
 	public DateTime CreationTime { get; set; }

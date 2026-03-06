@@ -18,7 +18,7 @@ public class Beatmap : IBeatmap,
 	/// <summary>
 	/// Only if map is not ranked on official server
 	/// </summary>
-	public DateTime NextApiCheck { get; set; } = DateTime.UtcNow.Add(TimeSpan.FromDays(1));
+	public DateTime NextApiCheck { get; set; } = DateTime.MinValue;
 	public int ApiChecks { get; set; }
 	public bool IsRankedOfficially { get; set; }
 	

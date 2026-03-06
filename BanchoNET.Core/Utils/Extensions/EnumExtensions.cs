@@ -22,6 +22,22 @@ public static class EnumExtensions
 
 	public static readonly IReadOnlyDictionary<CountryCode, string> CountryCodeMap;
 	
+	public static readonly Dictionary<string, GameMode> ToModeMap = new()
+	{
+		{ "osu", GameMode.VanillaStd },
+		{ "taiko", GameMode.VanillaTaiko },
+		{ "mania", GameMode.VanillaMania },
+		{ "fruits", GameMode.VanillaCatch }
+	};
+    
+	public static readonly Dictionary<GameMode, string> FromModeMap = new()
+	{
+		{ GameMode.VanillaStd, "osu" },
+		{ GameMode.VanillaTaiko, "taiko" },
+		{ GameMode.VanillaMania, "mania" },
+		{ GameMode.VanillaCatch, "fruits" }
+	};
+	
 	private static readonly (Mods Mod, string ShortCode)[] ModMap =
 	{
 		(Mods.NoFail, "NF"),

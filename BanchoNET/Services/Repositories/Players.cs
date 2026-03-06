@@ -3,6 +3,7 @@ using BanchoNET.Core.Abstractions.Bancho.Services;
 using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Repositories.Histories;
 using BanchoNET.Core.Models;
+using BanchoNET.Core.Models.Api.Player;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Mongo;
 using BanchoNET.Core.Models.Players;
@@ -23,15 +24,15 @@ public class PlayersRepository : IPlayersRepository
 	private readonly IMultiplayerCoordinator _multiplayer;
 	private readonly IDatabase _redis;
 	private readonly IHistoriesRepository _histories;
-	
+
 	public PlayersRepository(
 		BanchoDbContext dbContext,
 		IPlayerService players,
 		IPlayerCoordinator playerCoordinator,
 		IMultiplayerCoordinator multiplayer,
 		IConnectionMultiplexer redis,
-		IHistoriesRepository histories)
-	{
+		IHistoriesRepository histories
+	) {
 		_players = players;
 		_playerCoordinator = playerCoordinator;
 		_multiplayer = multiplayer;
@@ -135,7 +136,184 @@ public class PlayersRepository : IPlayersRepository
 
 		return dbPlayer == null ? null : new Player(dbPlayer);
 	}
-	
+
+	public async Task<MeResponse?> GetFullPlayerInfo(
+		int playerId
+	) {
+		var player = await GetPlayerInfoForMode<MeResponse>(playerId);
+		if (player == null) return null;
+		
+		var vanillaModes = new[] {
+			GameMode.VanillaStd,
+			GameMode.VanillaTaiko,
+			GameMode.VanillaMania,
+			GameMode.VanillaCatch
+		};
+
+		var preferred = EnumExtensions.ToModeMap[player.Playmode];
+		var otherModes = vanillaModes.Where(m => m != preferred).ToArray();
+		
+		AssignStatistics(player.StatisticsRulesets, preferred, player.Statistics);
+		
+		foreach (var mode in otherModes)
+		{
+			AssignStatistics(
+				player.StatisticsRulesets,
+				mode,
+				await FetchModeStatistics(playerId, mode, player.CountryCode)
+			);
+		}
+		
+		return player;
+	}
+
+	private static void AssignStatistics(
+		StatisticsRulesets target,
+		GameMode mode,
+		Statistics? stats
+	) {
+		switch (mode)
+		{
+			case GameMode.VanillaStd: target.Osu = stats; break;
+			case GameMode.VanillaTaiko: target.Taiko = stats; break;
+			case GameMode.VanillaCatch: target.Fruits = stats; break;
+			case GameMode.VanillaMania: target.Mania = stats; break;
+		}
+	}
+
+	public async Task<T?> GetPlayerInfoForMode<T>(
+		int playerId,
+		GameMode mode = GameMode.RelaxStd //dummy default if the preferred mode is not known
+	) where T : ApiPlayer, new() {
+		var userInfo = await GetPlayerInfo(playerId);
+		if (userInfo == null) return null;
+
+		mode = mode >= GameMode.RelaxStd ? (GameMode)userInfo.PreferredMode : mode;
+		var country = userInfo.Country.ParseCountry();
+		
+		var peakRank = await _histories.GetPeakRank(playerId, (byte)mode) ?? new PeakRank();
+		var playcountHistory = await _histories.GetPlayCountHistory(playerId, (byte)mode);
+		var replaysHistory = await _histories.GetReplaysHistory(playerId, (byte)mode);
+		var rankHistory = await _histories.GetRankHistory(playerId, (byte)mode);
+		
+		var stats = await FetchModeStatistics(playerId, mode, userInfo.Country);
+
+		var player = new T
+		{
+			CountryCode = country.Code,
+			Id = playerId,
+			IsActive = !userInfo.Inactive,
+			IsBot = false,
+			IsDeleted = userInfo.Deleted,
+			IsOnline = true, //TODO if hideOnlineActivity then return false
+			IsSupporter = userInfo.RemainingSupporter > DateTime.UtcNow,
+			SupportLevel = userInfo.SupporterLevel,
+			LastVisit = userInfo.LastActivityTime, //TODO if hideOnlineActivity then return null
+			PmFriendsOnly = userInfo.PmFriendsOnly,
+			Username = userInfo.Username,
+			HasSupported = userInfo.HasSupported,
+			JoinDate = userInfo.CreationTime,
+			Playmode = EnumExtensions.FromModeMap[mode],
+			Country = country,
+			IsRestricted = (userInfo.Privileges & 1) == 0,
+			MonthlyPlaycounts = new MonthlyPlaycounts[playcountHistory.Count],
+			ReplaysWatchedCounts = new ReplaysWatchedCounts[replaysHistory.Count],
+			RankHighest = new RankHighest {
+				Rank = peakRank.Value,
+				UpdatedAt = peakRank.Date
+			},
+			ScoresBestCount = 0, //TODO number of top plays
+			ScoresFirstCount = 0, //TODO
+			ScoresPinnedCount = 0, //TODO
+			ScoresRecentCount = 0, //TODO
+			Statistics = stats,
+			DailyChallengeUserStats = {
+				UserId = playerId
+			}
+			//TODO team
+			//TODO achievements
+		};
+		
+		//TODO
+		player.MatchmakingStats[0].UserId = playerId;
+		player.MatchmakingStats[0].Rank = stats.GlobalRank ?? 0;  //TODO
+        
+		for (var i = playcountHistory.Count - 1; i >= 0; i--)
+		{
+			player.MonthlyPlaycounts[i] = new MonthlyPlaycounts
+			{
+				StartDate = userInfo.CreationTime.AddMonths(-(i - playcountHistory.Count + 1)),
+				Count = playcountHistory[i]
+			};
+		}
+
+		for (var i = replaysHistory.Count - 1; i >= 0; i--)
+		{
+			player.ReplaysWatchedCounts[i] = new ReplaysWatchedCounts
+			{
+				StartDate = userInfo.CreationTime.AddMonths(-(i - replaysHistory.Count + 1)),
+				Count = replaysHistory[i]
+			};
+		}
+
+		player.RankHistory.Data = new int[rankHistory.Count];
+		for (var i = rankHistory.Count - 1; i >= 0; i--)
+		{
+			player.RankHistory.Data[i] = rankHistory[i];
+		}
+
+		return player;
+	}
+
+	private async Task<Statistics> FetchModeStatistics(
+		int playerId,
+		GameMode mode,
+		string country
+	) {
+		var dbStats = (await GetPlayerModeStats(playerId, (byte)mode))!;
+		var rank = await GetPlayerGlobalRank(mode, playerId);
+		var countryRank = await GetPlayerCountryRank(mode, country, playerId);
+		
+		var stats = new Statistics {
+			Count100 = dbStats.Total100s,
+			Count300 = dbStats.Total300s,
+			Count50 = dbStats.Total50s,
+			CountMiss = dbStats.TotalMisses,
+			TotalHits = mode switch
+			{
+				GameMode.VanillaStd => dbStats.TotalStdHits,
+				GameMode.VanillaTaiko => dbStats.TotalTaikoHits,
+				GameMode.VanillaMania => dbStats.TotalManiaHits,
+				GameMode.VanillaCatch => dbStats.TotalCatchHits,
+				_ => 0
+			},
+			GlobalRank = rank,
+			GlobalRankPercent = 0.0000001d, //TODO
+			Pp = dbStats.PP,
+			RankedScore = dbStats.RankedScore,
+			HitAccuracy = dbStats.Accuracy,
+			Accuracy = dbStats.Accuracy / 100f,
+			PlayCount = dbStats.PlayCount,
+			PlayTime = dbStats.PlayTime,
+			TotalScore = dbStats.TotalScore,
+			MaximumCombo = dbStats.MaxCombo,
+			ReplaysWatchedByOthers = dbStats.ReplayViews,
+			IsRanked = dbStats.IsRanked,
+			GradeCounts = new GradeCounts {
+				Ss = dbStats.XCount,
+				Ssh = dbStats.XHCount,
+				S = dbStats.SCount,
+				Sh = dbStats.SHCount,
+				A = dbStats.ACount
+			},
+			CountryRank = countryRank,
+			Rank = new Rank{ Country = countryRank }
+			//TODO if mania add variant for 4k and 7k
+		};
+
+		return stats;
+	}
+
 	public async Task UpdateLatestActivity(Player player)
 	{
 		player.LastActivityTime = DateTime.UtcNow;
@@ -159,7 +337,17 @@ public class PlayersRepository : IPlayersRepository
 			.ExecuteUpdateAsync(p =>
 				p.SetProperty(u => u.Country, country));
 	}
-	
+
+	public async Task UpdatePlayerPmSetting(
+		Player player,
+		bool pmFriendsOnly
+	) {
+		await _dbContext.Players
+			.Where(p => p.Id == player.Id)
+			.ExecuteUpdateAsync(p =>
+				p.SetProperty(u => u.PmFriendsOnly, pmFriendsOnly));
+	}
+
 	public async Task<PlayerDto?> GetPlayerInfo(int playerId)
 	{
 		if (playerId <= 1) return null;
@@ -211,7 +399,8 @@ public class PlayersRepository : IPlayersRepository
 				TotalKatus = stat.TotalKatus,
 				Total300s = stat.Total300s,
 				Total100s = stat.Total100s,
-				Total50s = stat.Total50s
+				Total50s = stat.Total50s,
+				TotalMisses = stat.TotalMisses,
 			};
 		}
 	}
@@ -247,7 +436,8 @@ public class PlayersRepository : IPlayersRepository
 			TotalKatus = stats.TotalKatus,
 			Total300s = stats.Total300s,
 			Total100s = stats.Total100s,
-			Total50s = stats.Total50s
+			Total50s = stats.Total50s,
+			TotalMisses = stats.TotalMisses
 		};
 		_dbContext.Update(dbStats);
 		await _dbContext.SaveChangesAsync();
@@ -622,7 +812,7 @@ public class PlayersRepository : IPlayersRepository
 		string country,
 		int playerId
 	) {
-		var rank = await _redis.SortedSetRankAsync($"bancho:leaderboard:{(byte)mode}:{country}", playerId, Order.Descending);
+		var rank = await _redis.SortedSetRankAsync($"bancho:leaderboard:{(byte)mode}:{country.ToLower()}", playerId, Order.Descending);
 		if (rank == null) return 0;
 		return (int)rank + 1;
 	}
@@ -630,12 +820,12 @@ public class PlayersRepository : IPlayersRepository
 	public async Task InsertPlayerGlobalRank(byte mode, string country, int playerId, int pp)
 	{
 		await _redis.SortedSetAddAsync($"bancho:leaderboard:{mode}", playerId, pp);
-		await _redis.SortedSetAddAsync($"bancho:leaderboard:{mode}:{country}", playerId, pp);
+		await _redis.SortedSetAddAsync($"bancho:leaderboard:{mode}:{country.ToLower()}", playerId, pp);
 	}
 
 	public async Task RemovePlayerGlobalRank(byte mode, string country, int playerId)
 	{
 		await _redis.SortedSetRemoveAsync($"bancho:leaderboard:{mode}", playerId);
-		await _redis.SortedSetRemoveAsync($"bancho:leaderboard:{mode}:{country}", playerId);
+		await _redis.SortedSetRemoveAsync($"bancho:leaderboard:{mode}:{country.ToLower()}", playerId);
 	}
 }

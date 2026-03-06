@@ -1,6 +1,7 @@
 ﻿using BanchoNET.Core.Models.Auth;
 using BanchoNET.Core.Models.Dtos;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Design;
 
 namespace BanchoNET.Core.Models;
 
@@ -18,4 +19,23 @@ public sealed class BanchoDbContext(DbContextOptions<BanchoDbContext> options) :
 
 	public DbSet<RefreshToken> RefreshTokens { get; init; } = null!;
 	public DbSet<SessionVerification> SessionVerifications { get; init; } = null!;
+}
+
+public class BanchoDbContextFactory : IDesignTimeDbContextFactory<BanchoDbContext>
+{
+	public BanchoDbContext CreateDbContext(
+		string[] args
+	) {
+		var optionsBuilder = new DbContextOptionsBuilder<BanchoDbContext>();
+		const string mySqlConnectionString =
+			$"server=127.0.0.1;" +
+			$"port=3306;" +
+			$"user=banchonet;" +
+			$"password=banchonet;" +
+			$"database=utopia;";
+		
+		optionsBuilder.UseMySQL(mySqlConnectionString);
+		
+		return new BanchoDbContext(optionsBuilder.Options);
+	}
 }

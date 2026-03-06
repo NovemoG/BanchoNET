@@ -1,5 +1,4 @@
 ﻿using BanchoNET.Core.Abstractions.Repositories;
-using BanchoNET.Core.Abstractions.Repositories.Histories;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Attributes;
 using Microsoft.AspNetCore.Authorization;
@@ -13,6 +12,9 @@ namespace BanchoNET.Infrastructure.Controllers.Api;
 [SubdomainAuthorize("osu")]
 public partial class ApiController(
     IAuthService auth,
-    IPlayersRepository players,
-    IHistoriesRepository histories
-) : ControllerBase;
+    IPlayersRepository players
+) : ControllerBase
+{
+    protected readonly IAuthService Auth = auth;
+    protected readonly IPlayersRepository Players = players;
+}

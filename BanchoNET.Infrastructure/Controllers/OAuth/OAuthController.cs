@@ -33,7 +33,7 @@ public class OAuthController(
                 expires_in = tokens.expires_in,
                 access_token = tokens.access_token,
                 refresh_token = tokens.refresh_token,
-                demo_session_code = session.Notes
+                demo_session_code = session.Notes //TODO
             });
         }
 

@@ -12,7 +12,7 @@ public abstract class BaseHub<T>(ILogger logger) : Hub<T> where T : class
 
     public override Task OnConnectedAsync() {
         if (Context.User.TryGetUserId(out var userId))
-            Logger.LogInfo($"[{typeof(T).Name}] connected for user: {userId}", GetType().Name);
+            Logger.LogInfo($"{typeof(T).Name} connected for user: {userId}", GetType().Name);
         
         return base.OnConnectedAsync();
     }
@@ -21,7 +21,7 @@ public abstract class BaseHub<T>(ILogger logger) : Hub<T> where T : class
         Exception exception
     ) {
         if (Context.User.TryGetUserId(out var userId))
-            Logger.LogInfo($"[{typeof(T).Name}] disconnected for user: {userId}", GetType().Name);
+            Logger.LogInfo($"{typeof(T).Name} disconnected for user: {userId}", GetType().Name);
         
         return base.OnDisconnectedAsync(exception);
     }

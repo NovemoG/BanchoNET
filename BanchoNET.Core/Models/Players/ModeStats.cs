@@ -16,12 +16,15 @@ public class ModeStats
 	public int ReplayViews { get; set; }
 	public Dictionary<Grade, int> Grades { get; set; } = [];
 	
-	public int TotalGekis { get; set; }
-	public int TotalKatus { get; set; }
-	public int Total300s { get; set; }
-	public int Total100s { get; set; }
-	public int Total50s { get; set; }
-	public int TotalStdHits => Total300s + Total100s + Total50s;
-	public int TotalTaikoHits => TotalStdHits + TotalGekis + TotalKatus;
-	public int TotalManiaHits => TotalTaikoHits;
+	public long TotalGekis { get; set; }
+	public long TotalKatus { get; set; }
+	public long Total300s { get; set; }
+	public long Total100s { get; set; }
+	public long Total50s { get; set; }
+	public long TotalMisses { get; set; }
+	
+	public long TotalStdHits => Total300s + Total100s + Total50s;
+	public long TotalTaikoHits => TotalStdHits + TotalGekis + TotalKatus;
+	public long TotalManiaHits => TotalTaikoHits;
+	public long TotalCatchHits => TotalStdHits;
 }

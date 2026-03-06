@@ -1,4 +1,5 @@
 using BanchoNET.Core.Models;
+using BanchoNET.Core.Models.Api.Player;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
@@ -23,10 +24,13 @@ public interface IPlayersRepository
     Task<PlayerDto?> GetPlayerInfoFromLogin(string username);
     Task<PlayerDto?> GetPlayerInfo(int playerId);
     Task<PlayerDto?> GetPlayerInfo(string username);
+    Task<MeResponse?> GetFullPlayerInfo(int playerId);
+    Task<T?> GetPlayerInfoForMode<T>(int playerId, GameMode mode = GameMode.RelaxStd) where T : ApiPlayer, new();
     
     Task UpdateLatestActivity(Player player);
     Task UpdateLatestActivity(int playerId);
     Task UpdatePlayerCountry(Player player, string country);
+    Task UpdatePlayerPmSetting(Player player, bool pmFriendsOnly);
 
     Task GetPlayerStats(Player player);
     Task<StatsDto?> GetPlayerModeStats(int playerId, byte mode);

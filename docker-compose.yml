@@ -24,7 +24,7 @@
         condition: service_started
 
   mariadb:
-    image: mariadb
+    image: mariadb:11.6
     hostname: banchonet-mysql
     container_name: banchonet-mysql
     environment:
