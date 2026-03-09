@@ -6,18 +6,18 @@ namespace BanchoNET.Services.LobbyScoresQueue;
 
 public class LobbyScoresQueue : ILobbyScoresQueue
 {
-    private readonly Channel<ScoreRequestDto> _channel = Channel.CreateUnbounded<ScoreRequestDto>(new UnboundedChannelOptions
+    private readonly Channel<MatchScoreRequestDto> _channel = Channel.CreateUnbounded<MatchScoreRequestDto>(new UnboundedChannelOptions
     {
         SingleReader = false,
         SingleWriter = false
     });
     
-    public async Task EnqueueJobAsync(ScoreRequestDto request)
+    public async Task EnqueueJobAsync(MatchScoreRequestDto request)
     {
         await _channel.Writer.WriteAsync(request);
     }
     
-    public async Task<ScoreRequestDto> ReadJobAsync(CancellationToken ct)
+    public async Task<MatchScoreRequestDto> ReadJobAsync(CancellationToken ct)
     {
         return await _channel.Reader.ReadAsync(ct);
     }

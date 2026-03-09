@@ -35,7 +35,7 @@ public partial class ClientPacketsHandler
 				notPlayingIds.Add(s.Player.Id);
 		}
 		
-		await scoresQueue.EnqueueJobAsync(new ScoreRequestDto
+		await scoresQueue.EnqueueJobAsync(new MatchScoreRequestDto
 		{
 			Slots = slots
 				.Where(s => s.Status == SlotStatus.Complete)

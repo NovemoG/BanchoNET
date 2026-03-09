@@ -4,6 +4,6 @@ namespace BanchoNET.Core.Abstractions.Services;
 
 public interface ILobbyScoresQueue
 {
-    Task EnqueueJobAsync(ScoreRequestDto request);
-    Task<ScoreRequestDto> ReadJobAsync(CancellationToken ct);
+    Task EnqueueJobAsync(MatchScoreRequestDto request);
+    Task<MatchScoreRequestDto> ReadJobAsync(CancellationToken ct);
 }

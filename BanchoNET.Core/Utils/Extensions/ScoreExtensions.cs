@@ -52,7 +52,7 @@ public static class ScoreExtensions
 
     public static float CalculateAccuracy(
         GameMode mode,
-        Mods mods,
+        StableMods mods,
         int count300,
         int count100,
         int count50,
@@ -91,7 +91,7 @@ public static class ScoreExtensions
 
                 if (objects == 0) return 0f;
 
-                if ((mods & Mods.ScoreV2) == Mods.ScoreV2)
+                if ((mods & StableMods.ScoreV2) == StableMods.ScoreV2)
                     return 100f
                            * (gekis * 305f + count300 * 300f + katus * 200f + count100 * 100f + count50 * 50f)
                            / (objects * 305f);
@@ -115,8 +115,8 @@ public static class ScoreExtensions
 
     public static void CalculatePerformance(this Score score, int beatmapId)
     {
-        if (score.Mods.HasMod(Mods.NightCore))
-            score.Mods |= Mods.DoubleTime;
+        if (score.Mods.HasMod(StableMods.NightCore))
+            score.Mods |= StableMods.DoubleTime;
 
         var pp = AkatsukiPpMethods.ComputeScorePp(beatmapId, score);
 

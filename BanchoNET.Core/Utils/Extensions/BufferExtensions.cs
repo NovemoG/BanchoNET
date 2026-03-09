@@ -62,7 +62,7 @@ public static class BufferExtensions
 				Id = br.ReadUInt16(),
 				InProgress = br.ReadBoolean(),
 				Powerplay = br.ReadByte(),
-				Mods = (Mods)br.ReadInt32(),
+				Mods = (StableMods)br.ReadInt32(),
 				Name = br.ReadOsuString(),
 				Password = br.ReadOsuString(),
 				BeatmapName = br.ReadOsuString(),
@@ -90,7 +90,7 @@ public static class BufferExtensions
 		
 			if (match.Freemods)
 				for (int i = 0; i < slots.Length; i++)
-					slots[i].Mods = (Mods)br.ReadInt32();
+					slots[i].Mods = (StableMods)br.ReadInt32();
 
 			match.Slots = slots;
 			match.Seed = br.ReadInt32();

@@ -28,20 +28,20 @@ public partial class ClientPacketsHandler
 				foreach (var slot in slots)
                 {
                 	if (slot.Player == null) continue;
-                	slot.Mods = match.Mods & ~Mods.SpeedChangingMods;
+                	slot.Mods = match.Mods & ~StableMods.SpeedChangingMods;
                 }
                 
-                match.Mods &= Mods.SpeedChangingMods;
+                match.Mods &= StableMods.SpeedChangingMods;
 			}
 			else
 			{
-				match.Mods &= Mods.SpeedChangingMods;
+				match.Mods &= StableMods.SpeedChangingMods;
 				match.Mods |= host.Mods;
 				
 				foreach (var slot in slots)
 				{
 					if (slot.Player == null) continue;
-					slot.Mods = Mods.None;
+					slot.Mods = StableMods.None;
 				}
 			}
 		}

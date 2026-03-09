@@ -8,16 +8,16 @@ public partial class ClientPacketsHandler
 {
 	private Task MatchChangeMods(Player player, BinaryReader br)
 	{
-		var mods = (Mods)br.ReadInt32();
+		var mods = (StableMods)br.ReadInt32();
 		var match = player.Match;
 
 		if (match == null) return Task.CompletedTask;
 		if (match.Freemods)
 		{
 			if (player.Id == match.HostId)
-				match.Mods = mods & Mods.SpeedChangingMods;
+				match.Mods = mods & StableMods.SpeedChangingMods;
 
-			match.GetPlayerSlot(player)!.Mods = mods & ~Mods.SpeedChangingMods;
+			match.GetPlayerSlot(player)!.Mods = mods & ~StableMods.SpeedChangingMods;
 		}
 		else
 		{

@@ -33,7 +33,7 @@ public sealed class MultiplayerMatch : IMultiplayerMatch, IDisposable,
 	public List<int> Refs { get; } = [];
 	public List<int> BannedPlayers { get; } = [];
 	public List<int> TourneyClients { get; } = [];
-	public Mods Mods { get; set; }
+	public StableMods Mods { get; set; }
 	public bool Freemods { get; set; }
 	public int BeatmapId { get; set; }
 	public int PreviousBeatmapId { get; set; }

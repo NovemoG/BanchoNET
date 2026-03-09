@@ -458,35 +458,35 @@ public partial class CommandProcessor
         if (!_match.Refs.Contains(_playerCtx.Id))
             return "";
         
-        var result = Mods.None;
+        var result = StableMods.None;
         var freeMods = false;
         
         foreach (var modName in args)
         {
             if (ModsMap.TryGetValue(modName.ToLower(), out var modMap))
             {
-                if (modMap == Mods.None)
+                if (modMap == StableMods.None)
                 {
-                    _match.Mods = Mods.None;
+                    _match.Mods = StableMods.None;
                     break;
                 }
                 
                 if (_match.Mode != GameMode.VanillaMania)
-                    if (modMap > Mods.Perfect)
+                    if (modMap > StableMods.Perfect)
                         continue;
 
                 result |= modMap;
             }
-            else if (Enum.TryParse(modName, true, out Mods modParse))
+            else if (Enum.TryParse(modName, true, out StableMods modParse))
             {
-                if (modParse == Mods.None)
+                if (modParse == StableMods.None)
                 {
-                    _match.Mods = Mods.None;
+                    _match.Mods = StableMods.None;
                     break;
                 }
 
                 if (_match.Mode != GameMode.VanillaMania)
-                    if (modParse > Mods.Perfect)
+                    if (modParse > StableMods.Perfect)
                         continue;
 
                 result |= modParse;
@@ -500,18 +500,18 @@ public partial class CommandProcessor
             }
         }
         
-        if ((result & Mods.InvalidMods) != 0)
-            result &= ~Mods.InvalidMods;
+        if ((result & StableMods.InvalidMods) != 0)
+            result &= ~StableMods.InvalidMods;
         
         _match.Mods = result;
         multiplayer.EnqueueStateTo(_match);
 
         switch (result)
         {
-            case Mods.None when freeMods:
+            case StableMods.None when freeMods:
                 _match.Freemods = true;
                 return "Removed all mods and enabled freemods.";
-            case Mods.None:
+            case StableMods.None:
                 return "Removed all mods.";
             default:
                 return $"Changed mods to: {result.ToString()}";

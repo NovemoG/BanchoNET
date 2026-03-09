@@ -105,7 +105,7 @@ public static class MultiplayerExtensions
 			slot.Player = null;
 			slot.Status = newStatus;
 			slot.Team = LobbyTeams.Neutral;
-			slot.Mods = Mods.None;
+			slot.Mods = StableMods.None;
 			slot.Loaded = false;
 			slot.Skipped = false;
 		}

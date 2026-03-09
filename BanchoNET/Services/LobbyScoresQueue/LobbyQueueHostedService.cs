@@ -52,7 +52,7 @@ public class LobbyQueueHostedService(
         }
     }
 
-    private async Task ExecuteScoresFetch(ScoreRequestDto request, CancellationToken stoppingToken)
+    private async Task ExecuteScoresFetch(MatchScoreRequestDto request, CancellationToken stoppingToken)
     {
         using var scope = scopeFactory.CreateScope();
         var scores = scope.ServiceProvider.GetRequiredService<IScoresRepository>();

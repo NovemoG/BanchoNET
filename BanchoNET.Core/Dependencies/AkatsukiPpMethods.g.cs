@@ -65,7 +65,7 @@ namespace AkatsukiPp
         {
             var acc = ScoreExtensions.CalculateAccuracy(
                 (GameMode)score.Mode,
-                (Mods)score.Mods,
+                (StableMods)score.Mods,
                 score.Count300 + score.Misses,
                 score.Count100,
                 score.Count50,

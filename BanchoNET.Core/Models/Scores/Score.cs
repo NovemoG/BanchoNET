@@ -28,7 +28,7 @@ public class Score
 	
 	public SubmissionStatus Status { get; set; }
 	public Grade Grade { get; set; }
-	public Mods Mods { get; set; }
+	public StableMods Mods { get; set; }
 	public GameMode Mode { get; set; }
 	public string ClientChecksum { get; set; } = null!;
 	public ClientFlags ClientFlags { get; set; }
@@ -45,7 +45,7 @@ public class Score
 		if (!Enum.TryParse(scoreData[10], out Grade grade))
 			return;
 		
-		var mods = (Mods)int.Parse(scoreData[11]);
+		var mods = (StableMods)int.Parse(scoreData[11]);
 		
 		Passed = scoreData[12] == "True";
 		Mode = ((GameMode)int.Parse(scoreData[13])).FromMods(mods);
@@ -90,7 +90,7 @@ public class Score
 		Status = (SubmissionStatus)scoreDto.Status;
 		Passed = Status != SubmissionStatus.Failed;
 		Grade = (Grade)scoreDto.Grade;
-		Mods = (Mods)scoreDto.Mods;
+		Mods = (StableMods)scoreDto.Mods;
 		Mode = (GameMode)scoreDto.Mode;
 		ClientChecksum = scoreDto.OnlineChecksum;
 		ClientFlags = (ClientFlags)scoreDto.ClientFlags;

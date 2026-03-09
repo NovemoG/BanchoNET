@@ -48,18 +48,18 @@ public partial class OsuController
 			return Ok("-1|false");
 		}
 		
-		var mods = (Mods)modsValue;
-		if (mods.HasMod(Mods.Relax))
+		var mods = (StableMods)modsValue;
+		if (mods.HasMod(StableMods.Relax))
 		{
 			if (modeValue == (int)GameMode.VanillaMania)
-				mods &= ~Mods.Relax;
+				mods &= ~StableMods.Relax;
 			else
 				modeValue += 4;
 		}
-		else if (mods.HasMod(Mods.Autopilot))
+		else if (mods.HasMod(StableMods.Autopilot))
 		{
 			if (modeValue is (int)GameMode.VanillaTaiko or (int)GameMode.VanillaCatch or (int)GameMode.VanillaMania)
-				mods &= ~Mods.Autopilot;
+				mods &= ~StableMods.Autopilot;
 			else
 				modeValue += 8;
 		}
@@ -115,7 +115,7 @@ public partial class OsuController
 		int leaderboardType,
 		Beatmap beatmap,
 		GameMode mode,
-		Mods mods,
+		StableMods mods,
 		Player player
 	) {
 		var type = (LeaderboardType)leaderboardType;

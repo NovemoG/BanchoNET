@@ -112,8 +112,8 @@ public class ScoresRepository(BanchoDbContext dbContext) : IScoresRepository
         int playerId,
         string beatmapMD5,
         GameMode mode,
-        Mods mods)
-    {
+        StableMods mods
+    ) {
         var score = await dbContext.Scores.FirstOrDefaultAsync(
             s => s.PlayerId == playerId
                  && s.BeatmapMD5 == beatmapMD5
@@ -141,8 +141,8 @@ public class ScoresRepository(BanchoDbContext dbContext) : IScoresRepository
         string beatmapMD5,
         Score score,
         bool withMods,
-        Mods mods = Mods.None)
-    {
+        StableMods mods = StableMods.None
+    ) {
         score.LeaderboardPosition = await dbContext.Scores
             .Include(s => s.Player)
             .Where(s => s.BeatmapMD5 == beatmapMD5 
@@ -163,7 +163,7 @@ public class ScoresRepository(BanchoDbContext dbContext) : IScoresRepository
         string beatmapMD5,
         GameMode mode,
         LeaderboardType type,
-        Mods mods,
+        StableMods mods,
         Player player
     ) {
         var isCountry = type == LeaderboardType.Country;

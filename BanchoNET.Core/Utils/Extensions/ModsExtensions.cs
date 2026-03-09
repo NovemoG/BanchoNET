@@ -5,43 +5,43 @@ namespace BanchoNET.Core.Utils.Extensions;
 
 public static class ModsExtensions
 {
-    public static readonly ImmutableDictionary<string, Mods> ModsMap = ImmutableDictionary.CreateRange(new Dictionary<string, Mods>{
-        {"nm", Mods.None}, {"nomod", Mods.None},
-        {"nf", Mods.NoFail},
-        {"ez", Mods.Easy},
-        {"hd", Mods.Hidden},
-        {"hr", Mods.HardRock},
-        {"sd", Mods.SuddenDeath},
-        {"dt", Mods.DoubleTime},
-        {"rx", Mods.Relax},
-        {"ht", Mods.HalfTime},
-        {"nc", Mods.NightCore},
-        {"fl", Mods.FlashLight},
-        {"so", Mods.SpunOut},
-        {"ap", Mods.Autopilot},
-        {"pf", Mods.Perfect},
-        {"k4", Mods.Key4},
-        {"k5", Mods.Key5},
-        {"k6", Mods.Key6},
-        {"k7", Mods.Key7},
-        {"k8", Mods.Key8},
-        {"fi", Mods.FadeIn},
-        {"rd", Mods.Random},
-        {"k9", Mods.Key9},
-        {"cp", Mods.Coop},
-        {"k1", Mods.Key1},
-        {"k3", Mods.Key3},
-        {"k2", Mods.Key2},
-        {"mr", Mods.Mirror},
+    public static readonly ImmutableDictionary<string, StableMods> ModsMap = ImmutableDictionary.CreateRange(new Dictionary<string, StableMods>{
+        {"nm", StableMods.None}, {"nomod", StableMods.None},
+        {"nf", StableMods.NoFail},
+        {"ez", StableMods.Easy},
+        {"hd", StableMods.Hidden},
+        {"hr", StableMods.HardRock},
+        {"sd", StableMods.SuddenDeath},
+        {"dt", StableMods.DoubleTime},
+        {"rx", StableMods.Relax},
+        {"ht", StableMods.HalfTime},
+        {"nc", StableMods.NightCore},
+        {"fl", StableMods.FlashLight},
+        {"so", StableMods.SpunOut},
+        {"ap", StableMods.Autopilot},
+        {"pf", StableMods.Perfect},
+        {"k4", StableMods.Key4},
+        {"k5", StableMods.Key5},
+        {"k6", StableMods.Key6},
+        {"k7", StableMods.Key7},
+        {"k8", StableMods.Key8},
+        {"fi", StableMods.FadeIn},
+        {"rd", StableMods.Random},
+        {"k9", StableMods.Key9},
+        {"cp", StableMods.Coop},
+        {"k1", StableMods.Key1},
+        {"k3", StableMods.Key3},
+        {"k2", StableMods.Key2},
+        {"mr", StableMods.Mirror},
     });
     
     /// <summary>
-    /// Parses a string of shortcut mods (i.e., ezdtnf) into a <see cref="Mods"/> enum
+    /// Parses a string of shortcut mods (i.e., ezdtnf) into a <see cref="StableMods"/> enum
     /// </summary>
     /// <param name="mods">A string value of shortcut mods</param>
     /// <param name="mode">Game mode to account for when parsing mods</param>
-    /// <returns>A <see cref="Mods"/> enum value</returns>
-    public static Mods ParseMods(this string mods, GameMode mode = GameMode.VanillaStd)
+    /// <returns>A <see cref="StableMods"/> enum value</returns>
+    public static StableMods ParseMods(this string mods, GameMode mode = GameMode.VanillaStd)
     {
         var splitMods = mods.SplitToParts(2).ToArray();
         
@@ -50,49 +50,49 @@ public static class ModsExtensions
 
     /// <summary>
     /// Parses an array of string mod values (i.e., ez dt nf, easy doubletime nofail, 64 2 1)
-    /// into a <see cref="Mods"/> enum
+    /// into a <see cref="StableMods"/> enum
     /// </summary>
     /// <param name="mods">An array of string mod values</param>
     /// <param name="mode">Game mode to account for when parsing mods</param>
-    /// <returns>A <see cref="Mods"/> enum value</returns>
-    public static Mods ParseMods(this string[] mods, GameMode mode = GameMode.VanillaStd)
+    /// <returns>A <see cref="StableMods"/> enum value</returns>
+    public static StableMods ParseMods(this string[] mods, GameMode mode = GameMode.VanillaStd)
     {
-        var result = Mods.None;
+        var result = StableMods.None;
         
         foreach (var modName in mods)
         {
             if (ModsMap.TryGetValue(modName.ToLower(), out var modMap))
             {
-                if (modMap == Mods.None)
+                if (modMap == StableMods.None)
                 {
-                    result = Mods.None;
+                    result = StableMods.None;
                     break;
                 }
                 
                 if (mode != GameMode.VanillaMania)
-                    if (modMap > Mods.Perfect)
+                    if (modMap > StableMods.Perfect)
                         continue;
 
                 result |= modMap;
             }
-            else if (Enum.TryParse(modName, true, out Mods modParse))
+            else if (Enum.TryParse(modName, true, out StableMods modParse))
             {
-                if (modParse == Mods.None)
+                if (modParse == StableMods.None)
                 {
-                    result = Mods.None;
+                    result = StableMods.None;
                     break;
                 }
 
                 if (mode != GameMode.VanillaMania)
-                    if (modParse > Mods.Perfect)
+                    if (modParse > StableMods.Perfect)
                         continue;
 
                 result |= modParse;
             }
         }
         
-        if ((result & Mods.InvalidMods) != 0)
-            result &= ~Mods.InvalidMods;
+        if ((result & StableMods.InvalidMods) != 0)
+            result &= ~StableMods.InvalidMods;
 
         return result;
     }

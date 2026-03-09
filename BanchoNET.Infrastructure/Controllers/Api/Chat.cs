@@ -8,10 +8,12 @@ namespace BanchoNET.Infrastructure.Controllers.Api;
 public partial class ApiController
 {
     [HttpPost("chat/ack")]
-    public ActionResult<ChatAckResponse> ChatAck() { //TODO what is the Form model? 
+    public ActionResult<ChatAckResponse> ChatAck(
+        [FromForm] ChatAckRequest request
+    ) {
         if (!User.TryGetUserId(out var uid)) return Unauthorized();
         
-        //TODO get silenced players?
+        //TODO get silenced players/messages?
         
         return new JsonResult(new ChatAckResponse(), SnakeCaseNamingPolicy.Options);
     }

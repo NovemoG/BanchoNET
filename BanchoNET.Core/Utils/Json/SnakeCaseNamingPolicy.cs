@@ -12,6 +12,8 @@ public class SnakeCaseNamingPolicy : JsonNamingPolicy
         PropertyNameCaseInsensitive = true,
     };
     
+    //TODO since ApiScore also has userScore and user_score make it an attribute
+    //     and this Policy a default one for every controller within ApiController
     public static readonly JsonSerializerOptions ApiPlayerOptions = new()
     {
         PropertyNamingPolicy = new SnakeCaseNamingPolicy(),

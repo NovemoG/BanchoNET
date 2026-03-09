@@ -2,7 +2,7 @@
 
 namespace BanchoNET.Core.Models.Dtos;
 
-public class ScoreRequestDto
+public class MatchScoreRequestDto
 {
     public required List<int> Slots { get; init; }
     public required DateTime MapFinishDate { get; init; }

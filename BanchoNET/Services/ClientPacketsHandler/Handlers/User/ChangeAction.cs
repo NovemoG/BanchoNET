@@ -15,19 +15,19 @@ public partial class ClientPacketsHandler
 		status.ActivityDescription = br.ReadOsuString();
 		status.BeatmapMD5 = br.ReadOsuString();
 		
-		var mods = (Mods)br.ReadInt32();
+		var mods = (StableMods)br.ReadInt32();
 		var mode = (GameMode)br.ReadByte();
 
-		if (mods.HasMod(Mods.Relax))
+		if (mods.HasMod(StableMods.Relax))
 		{
 			if (mode == GameMode.VanillaMania)
-				mods &= ~Mods.Relax;
+				mods &= ~StableMods.Relax;
 			else mode += 4;
 		}
-		else if (mods.HasMod(Mods.Autopilot))
+		else if (mods.HasMod(StableMods.Autopilot))
 		{
 			if (mode is GameMode.VanillaTaiko or GameMode.VanillaCatch or GameMode.VanillaMania)
-				mods &= ~Mods.Autopilot;
+				mods &= ~StableMods.Autopilot;
 			else mode += 8;
 		}
 

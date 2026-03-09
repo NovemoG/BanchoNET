@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BanchoNET.Infrastructure.Controllers.Api.Users;
 
+//TODO route can also look like this: api/v2/users/username/?key=username
 [Route("api/v2/users/{userId:int}")]
 public partial class UsersController(
     IAuthService auth,

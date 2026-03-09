@@ -1,20 +1,7 @@
 ﻿namespace BanchoNET.Core.Models.Api.Player;
 
-public class ApiPlayer
+public class ApiPlayer : BasicApiPlayer
 {
-    public string AvatarUrl => $"https://a.ppy.sh/{Id}.jpg";
-    public string CountryCode { get; set; } = "Unknown";
-    public string DefaultGroup { get; set; } = "default"; //TODO
-    public int Id { get; set; }
-    public bool IsActive { get; set; }
-    public bool IsBot { get; set; }
-    public bool IsDeleted { get; set; }
-    public bool IsOnline { get; set; }
-    public bool IsSupporter { get; set; }
-    public DateTimeOffset? LastVisit { get; set; }
-    public bool PmFriendsOnly { get; set; }
-    public string? ProfileColour { get; set; } //TODO
-    public string Username { get; set; } = null!;
     public string? CoverUrl { get; set; } //TODO this probably should have default value like AvatarUrl
     public string? Discord { get; set; }
     public bool HasSupported { get; set; }
@@ -41,8 +28,6 @@ public class ApiPlayer
     public string? TitleUrl { get; set; }
     public string? Twitter { get; set; }
     public string? Website { get; set; }
-    public Country Country { get; set; } = null!;
-    public Cover Cover { get; set; } = new(); //TODO
     public bool IsRestricted { get; set; }
     public Kudosu Kudosu { get; set; } = new();
     public object[] AccountHistory { get; set; } = []; //TODO
@@ -75,7 +60,6 @@ public class ApiPlayer
     public int ScoresRecentCount { get; set; }
     public Statistics Statistics { get; set; } = new(); //TODO statistics for mode set in playmode
     public int SupportLevel { get; set; }
-    public Team? Team { get; set; }
     public UserAchievements[] UserAchievements { get; set; } = [];
     public RankHistory RankHistory { get; set; } = new();
     public int RankedAndApprovedBeatmapsetCount { get; set; }
