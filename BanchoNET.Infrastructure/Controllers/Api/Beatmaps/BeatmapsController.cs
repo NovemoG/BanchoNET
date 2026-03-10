@@ -10,7 +10,8 @@ namespace BanchoNET.Infrastructure.Controllers.Api.Beatmaps;
 [Route("api/v2/beatmaps/{beatmapId:int?}")]
 public partial class BeatmapsController(
     IAuthService auth,
-    IPlayersRepository players
+    IPlayersRepository players,
+    IScoreSubmissionQueue scoresQueue
 ) : ApiController(auth, players)
 {
     [HttpGet]

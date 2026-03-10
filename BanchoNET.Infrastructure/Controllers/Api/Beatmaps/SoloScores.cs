@@ -9,15 +9,15 @@ namespace BanchoNET.Infrastructure.Controllers.Api.Beatmaps;
 public partial class BeatmapsController
 {
     [HttpPost("solo/scores")]
-    public async Task<ActionResult<ScoreResponseDto>> PostScore(
+    public async Task<ActionResult<ScoreResponseDto?>> PostScore(
         int beatmapId,
         [FromForm] ScoreRequestDto dto
     ) {
         if (!User.TryGetUserId(out var uid)) return Unauthorized();
+
+        var response = await scoresQueue.EnqueueScore(dto, uid, beatmapId);
         
-        //TODO
-        
-        return new JsonResult(new ScoreResponseDto(), SnakeCaseNamingPolicy.Options);
+        return new JsonResult(response, SnakeCaseNamingPolicy.Options);
     }
     
     [HttpPut("solo/scores/{scoreId:int}")]
@@ -27,8 +27,8 @@ public partial class BeatmapsController
         [FromBody] ScoreSubmitRequestDto dto
     ) {
         if (!User.TryGetUserId(out var uid)) return Unauthorized();
-        
-        //TODO
+
+        var response = await scoresQueue.SubmitScore(scoreId, dto);
 
         return new JsonResult(new ApiScore{ Rank = "F" }, SnakeCaseNamingPolicy.Options);
     }

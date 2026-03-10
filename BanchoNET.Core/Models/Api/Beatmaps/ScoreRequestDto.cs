@@ -6,5 +6,5 @@ public class ScoreRequestDto
     public required string beatmap_hash { get; set; }
     public int ruleset_id { get; set; }
     
-    public int? QueueId { get; set; }
+    public long? QueueId { get; set; }
 }
