@@ -24,4 +24,16 @@ public partial class BeatmapsController(
 
         return new JsonResult(Array.Empty<ApiBeatmap>(), SnakeCaseNamingPolicy.Options);
     }
+    
+    [HttpGet("lookup")]
+    public async Task<ActionResult<ApiBeatmap>> LookupBeatmap(
+        string checksum,
+        string filename
+    ) {
+        if (!User.TryGetUserId(out var uid)) return Unauthorized();
+        
+        //TODO
+
+        return new JsonResult(Array.Empty<ApiBeatmap>(), SnakeCaseNamingPolicy.Options);
+    }
 }

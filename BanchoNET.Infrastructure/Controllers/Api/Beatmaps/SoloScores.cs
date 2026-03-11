@@ -21,15 +21,15 @@ public partial class BeatmapsController
     }
     
     [HttpPut("solo/scores/{scoreId:int}")]
-    public async Task<ActionResult<ApiScore>> PutScore(
+    public async Task<ActionResult<ApiScore?>> PutScore(
         int beatmapId,
         long scoreId,
         [FromBody] ScoreSubmitRequestDto dto
     ) {
         if (!User.TryGetUserId(out var uid)) return Unauthorized();
 
-        var response = await scoresQueue.SubmitScore(scoreId, dto);
+        var response = await scoresQueue.SubmitScore(dto, scoreId, uid, beatmapId);
 
-        return new JsonResult(new ApiScore{ Rank = "F" }, SnakeCaseNamingPolicy.Options);
+        return new JsonResult(response, SnakeCaseNamingPolicy.Options);
     }
 }

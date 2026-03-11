@@ -84,9 +84,9 @@ public class Score
 		Gekis = scoreDto.Gekis;
 		Katus = scoreDto.Katus;
 		Misses = scoreDto.Misses;
-		TotalScore = scoreDto.Score;
+		TotalScore = scoreDto.LegacyTotalScore;
 		MaxCombo = scoreDto.MaxCombo;
-		Perfect = scoreDto.Perfect;
+		Perfect = scoreDto.LegacyPerfect;
 		Status = (SubmissionStatus)scoreDto.Status;
 		Passed = Status != SubmissionStatus.Failed;
 		Grade = (Grade)scoreDto.Grade;

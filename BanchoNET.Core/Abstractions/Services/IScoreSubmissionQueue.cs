@@ -11,8 +11,10 @@ public interface IScoreSubmissionQueue
         int beatmapId
     );
 
-    Task<ApiScore> SubmitScore(
+    Task<ApiScore?> SubmitScore(
+        ScoreSubmitRequestDto request,
         long queueId,
-        ScoreSubmitRequestDto request
+        int userId,
+        int beatmapId
     );
 }

@@ -85,7 +85,7 @@ public class LobbyQueueHostedService(
                 MaxCombo = score.MaxCombo,
                 Mods = score.Mods,
                 PlayerId = score.PlayerId,
-                TotalScore = score.Score,
+                TotalScore = score.LegacyTotalScore,
                 Failed = score.Status == 0,
                 Team = (byte)lobby.GetPlayerSlot(score.PlayerId)!.Team
             })

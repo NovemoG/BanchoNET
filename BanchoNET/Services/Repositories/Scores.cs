@@ -19,7 +19,7 @@ public class ScoresRepository(BanchoDbContext dbContext) : IScoresRepository
             BeatmapMD5 = beatmapMD5,
             PP = score.PP,
             Acc = score.Acc,
-            Score = score.TotalScore,
+            LegacyTotalScore = score.TotalScore,
             MaxCombo = score.MaxCombo,
             Mods = (int)score.Mods,
             Count300 = score.Count300,
@@ -35,7 +35,7 @@ public class ScoresRepository(BanchoDbContext dbContext) : IScoresRepository
             TimeElapsed = score.TimeElapsed,
             ClientFlags = (int)score.ClientFlags,
             PlayerId = score.PlayerId,
-            Perfect = score.Perfect,
+            LegacyPerfect = score.Perfect,
             OnlineChecksum = score.ClientChecksum,
             IsRestricted = isPlayerRestricted
         });
@@ -133,7 +133,7 @@ public class ScoresRepository(BanchoDbContext dbContext) : IScoresRepository
                         && s.Status == (int)SubmissionStatus.Best
                         && (s.Player.Privileges & 1) == 1
                         && !s.IsRestricted)
-            .OrderByDescending(s => OrderByPp(mode) ? s.PP : s.Score)
+            .OrderByDescending(s => OrderByPp(mode) ? s.PP : s.LegacyTotalScore)
             .FirstOrDefaultAsync();
     }
 	
@@ -155,7 +155,7 @@ public class ScoresRepository(BanchoDbContext dbContext) : IScoresRepository
                         && !s.IsRestricted
                         && (OrderByPp(score.Mode)
                             ? score.PP < s.PP
-                            : score.TotalScore < s.Score))
+                            : score.TotalScore < s.LegacyTotalScore))
             .CountAsync() + 1;
     }
 	
@@ -186,7 +186,7 @@ public class ScoresRepository(BanchoDbContext dbContext) : IScoresRepository
                          && (!withMods || s.Mods == (int)mods) 
                          && (!isCountry || s.Player.Country == countryCode) 
                          && (!withFriendsList || friendIds.Contains(s.PlayerId)))
-             .OrderByDescending(s => OrderByPp(mode) ? s.PP : s.Score)
+             .OrderByDescending(s => OrderByPp(mode) ? s.PP : s.LegacyTotalScore)
              .Take(AppSettings.ScoresOnLeaderboard)
              .ToListAsync();
         

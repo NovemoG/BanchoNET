@@ -16,6 +16,7 @@ using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
 using BanchoNET.Handlers.Lazer;
 using BanchoNET.Handlers.Lazer.Hubs;
+using BanchoNET.Handlers.Lazer.Services;
 using BanchoNET.Infrastructure.Bancho.Coordinators;
 using BanchoNET.Middlewares;
 using BanchoNET.Services;
@@ -32,7 +33,7 @@ using MySql.Data.MySqlClient;
 using Novelog.Config;
 using StackExchange.Redis;
 using BanchoNET.Infrastructure;
-using BanchoNET.Infrastructure.Services;
+using Microsoft.AspNetCore.SignalR;
 using static System.Data.IsolationLevel;
 using IsolationLevel = System.Transactions.IsolationLevel;
 using LogLevel = Novelog.Types.LogLevel;
@@ -216,7 +217,8 @@ public class Program
 		builder.Services.AddScoped<IScoresRepository, ScoresRepository>();
 		builder.Services.AddScoped<IBeatmapHandler, BeatmapHandler>();
 			
-		builder.Services.AddSingleton<ILobbyScoresQueue, LobbyScoresQueue>()
+		builder.Services.AddSingleton<IScoreSubmissionQueue, ScoreSubmissionQueue>()
+			.AddSingleton<ILobbyScoresQueue, LobbyScoresQueue>()
 			.AddHostedService<LobbyQueueHostedService>();
 
 		builder.Services.AddScoped<IGeolocService, GeolocService>()
@@ -234,7 +236,11 @@ public class Program
 		builder.Services.AddHttpClient()
 			.AddSessionServices(assemblies)
 			.AddMediatR(config => config.RegisterServicesFromAssemblies(assemblies))
-			.AddSignalR()
+			.AddSingleton<LoggingHubFilter>()
+			.AddSignalR(options =>
+			{
+				options.AddFilter<LoggingHubFilter>();
+			})
 			.AddMessagePackProtocol();
 		
 		var app = builder.Build();

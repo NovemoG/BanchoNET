@@ -10,7 +10,7 @@ public class ApiScore
     public bool Preserve { get; set; }
     public bool Processed { get; set; }
     public bool Ranked { get; set; }
-    public MaxStatistics MaximumStatistics { get; set; }
+    public MaxStatistics MaximumStatistics { get; set; } = new();
     public LazerMod[] Mods { get; set; } = [];
     public Statistics Statistics { get; set; } = new();
     public int TotalScoreWithoutMods { get; set; }
@@ -18,8 +18,10 @@ public class ApiScore
     public long? BestId { get; set; }
     public long Id { get; set; }
     public required string Rank { get; set; }
-    public string Type { get; set; }
+    public string Type { get; set; } = "solo_score"; //TODO
     public int UserId { get; set; }
+    public double Accuracy { get; set; }
+    public int BuildId { get; set; }
     public DateTimeOffset EndedAt { get; set; }
     public bool HasReplay { get; set; }
     public bool IsPerfectCombo { get; set; }
@@ -33,7 +35,7 @@ public class ApiScore
     public DateTimeOffset StartedAt { get; set; }
     public int TotalScore { get; set; }
     public bool Replay { get; set; }
-    public Attributes CurrentUserAttributes { get; set; }
+    public Attributes CurrentUserAttributes { get; set; } = new();
     
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public BasicApiPlayer? User { get; set; }

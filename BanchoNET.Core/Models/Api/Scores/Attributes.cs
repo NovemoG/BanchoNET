@@ -2,5 +2,5 @@
 
 public class Attributes
 {
-    public Pin? Pin { get; set; }
+    public Pin Pin { get; set; } = new();
 }

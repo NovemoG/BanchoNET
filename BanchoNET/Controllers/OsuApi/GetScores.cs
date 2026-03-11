@@ -139,7 +139,7 @@ public partial class OsuController
 	private static string FormatScore(ScoreDto dto, int position)
 	{
 		var scoreAsPp = dto.Mode >= (byte)GameMode.RelaxStd || AppSettings.SortLeaderboardByPP;
-		return $"{(int)dto.Id}|{dto.Player.Username}|{(int)(scoreAsPp ? MathF.Round(dto.PP) : dto.Score)}|{dto.MaxCombo}|{dto.Count50}|{dto.Count100}|{dto.Count300}|{dto.Misses}|{dto.Katus}|{dto.Gekis}|{dto.Perfect}|{dto.Mods}|{dto.PlayerId}|{position}|{DateTimeToUnix(dto.PlayTime)}|1";	//TODO this '1' tells client whether score has a saved replay
+		return $"{(int)dto.Id}|{dto.Player.Username}|{(int)(scoreAsPp ? MathF.Round(dto.PP) : dto.LegacyTotalScore)}|{dto.MaxCombo}|{dto.Count50}|{dto.Count100}|{dto.Count300}|{dto.Misses}|{dto.Katus}|{dto.Gekis}|{dto.LegacyPerfect}|{dto.Mods}|{dto.PlayerId}|{position}|{DateTimeToUnix(dto.PlayTime)}|1";	//TODO this '1' tells client whether score has a saved replay
 	}
 
 	private static string FormatBestScore(Score score, Player player)
