@@ -8,11 +8,12 @@ namespace BanchoNET.Infrastructure.Controllers.Api;
 public partial class ApiController
 {
     [HttpGet("friends")]
-    public ActionResult<Relationship[]> GetFriends() {
+    public async Task<ActionResult<Relationship[]>> GetFriends() {
         if (!User.TryGetUserId(out var uid)) return Unauthorized();
         
-        //TODO get friends
+        var friends = await Players.GetPlayerBlocks(uid);
+        var friendList = PopulateRelationships(friends, "friend");
         
-        return new JsonResult(Array.Empty<Relationship>(), SnakeCaseNamingPolicy.Options);
+        return new JsonResult(friendList, SnakeCaseNamingPolicy.Options);
     }
 }

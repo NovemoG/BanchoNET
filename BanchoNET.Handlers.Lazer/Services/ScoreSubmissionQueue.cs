@@ -4,7 +4,6 @@ using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Models.Api.Beatmaps;
 using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Models.Beatmaps;
-using BanchoNET.Core.Utils.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace BanchoNET.Handlers.Lazer.Services;
@@ -14,7 +13,7 @@ public class ScoreSubmissionQueue(
 ) : IScoreSubmissionQueue
 {
     private readonly ConcurrentDictionary<int, ScoreResponseDto> _scores = new();
-    private long GetNextScoreId => Interlocked.Increment(ref field); //TODO init with last score id
+    private long GetNextScoreId => Interlocked.Increment(ref field);
     
     public async Task<ScoreResponseDto?> EnqueueScore(
         ScoreRequestDto request,
@@ -22,6 +21,7 @@ public class ScoreSubmissionQueue(
         int beatmapId
     ) {
         var createdAt = DateTimeOffset.UtcNow;
+        //TODO there might be a case where player starts a map and then loses connection and never submits
         if (_scores.TryGetValue(userId, out var value))
         {
             return userId == value.UserId

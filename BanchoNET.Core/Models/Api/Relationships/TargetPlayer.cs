@@ -4,7 +4,7 @@ namespace BanchoNET.Core.Models.Api.Relationships;
 
 public class TargetPlayer
 {
-    public string AvatarUrl => $"https://a.ppy.sh/{Id}.jpg";
+    public string AvatarUrl => $"https://a.ppy.sh/{Id}";
     public string CountryCode { get; set; } = "Unknown";
     public string DefaultGroup { get; set; } = "default"; //TODO
     public int Id { get; set; }

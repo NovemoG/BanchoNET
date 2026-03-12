@@ -331,7 +331,7 @@ public class Program
 
 			var banchoBot = new Player(dbBanchoBot);
 
-			players.GetPlayerRelationships(banchoBot);
+			players.FetchPlayerRelationships(banchoBot);
 			playerService.InsertPlayer(banchoBot, true);
 			return;
 		}

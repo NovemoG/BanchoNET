@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BanchoNET.Core.Models.Dtos;
 
+[Index(nameof(PlayerId))]
 [Index(nameof(TargetId))]
 [Index(nameof(Relation))]
 [PrimaryKey(nameof(Id))]
@@ -15,7 +16,11 @@ public class RelationshipDto
 	public int TargetId { get; set; }
 	
 	public byte Relation { get; set; }
+	public bool IsMutual { get; set; } //TODO
 	
-	[ForeignKey("PlayerId")]
+	[ForeignKey(nameof(PlayerId))]
 	public PlayerDto Player { get; set; } = null!;
+	
+	[ForeignKey(nameof(TargetId))]
+	public PlayerDto Target { get; set; } = null!;
 }

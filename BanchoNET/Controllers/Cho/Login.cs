@@ -229,7 +229,7 @@ public partial class ChoController
 		loginPackets.MainMenuIcon(AppSettings.MenuIconUrl, AppSettings.MenuOnclickUrl);
 		
 		await players.GetPlayerStats(player);
-		await players.GetPlayerRelationships(player);
+		await players.FetchPlayerRelationships(player);
 
 		loginPackets.FriendsList(player.Friends)
 			.SilenceEnd(Math.Max(0, (int)(player.RemainingSilence - DateTime.UtcNow).TotalSeconds))

@@ -1,8 +1,10 @@
-﻿namespace BanchoNET.Core.Models.Api.Player;
+﻿using System.Text.Json.Serialization;
+
+namespace BanchoNET.Core.Models.Api.Player;
 
 public class BasicApiPlayer
 {
-    public string AvatarUrl => $"https://a.ppy.sh/{Id}.jpg";
+    public string AvatarUrl => $"https://a.ppy.sh/{Id}";
     public string CountryCode { get; set; } = "Unknown";
     public string DefaultGroup { get; set; } = "default"; //TODO
     public int Id { get; set; }
@@ -15,7 +17,11 @@ public class BasicApiPlayer
     public bool PmFriendsOnly { get; set; }
     public string? ProfileColour { get; set; } //TODO
     public string Username { get; set; } = null!;
-    public Country Country { get; set; } = null!;
-    public Cover Cover { get; set; } = new(); //TODO
+    
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Country? Country { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Cover? Cover { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Team? Team { get; set; }
 }

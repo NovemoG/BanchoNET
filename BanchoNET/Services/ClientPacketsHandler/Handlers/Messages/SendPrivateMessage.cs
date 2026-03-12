@@ -27,7 +27,7 @@ public partial class ClientPacketsHandler
 		}
 
 		if (!target.IsOnline)
-			await players.GetPlayerRelationships(target);
+			await players.FetchPlayerRelationships(target);
 		
 		if (target.PmFriendsOnly && !target.Friends.Contains(player.Id))
 		{

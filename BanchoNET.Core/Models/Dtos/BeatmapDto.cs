@@ -24,22 +24,36 @@ public class BeatmapDto
 	
 	[MaxLength(128), Unicode(false)]
 	public string Artist { get; set; }
+	[MaxLength(128)]
+	public string ArtistUnicode { get; set; }
+	
 	[MaxLength(128), Unicode(false)]
 	public string Title { get; set; }
+	[MaxLength(128)]
+	public string TitleUnicode { get; set; }
+	
 	[MaxLength(128), Unicode(false)]
 	public string Name { get; set; }
 	[MaxLength(16), Unicode(false)]
-	public string Creator { get; set; }
+	public string CreatorName { get; set; }
+	public int CreatorId { get; set; }
+	
+	[MaxLength(1024), Unicode(false)]
+	public string Tags { get; set; }
 	
 	[Column(TypeName = "DATETIME")]
 	public DateTime SubmitDate { get; set; }
 	[Column(TypeName = "DATETIME")]
 	public DateTime LastUpdate { get; set; }
+	[Column(TypeName = "DATETIME")]
+	public DateTime RankedDate { get; set; }
 	
 	public int TotalLength { get; set; }
+	public int HitLength { get; set; }
 	public int MaxCombo { get; set; }
 	public bool Frozen { get; set; }
 	public bool HasVideo { get; set; }
+	public bool HasStoryboard { get; set; }
 	public long Plays { get; set; }
 	public long Passes { get; set; }
 	
@@ -53,4 +67,12 @@ public class BeatmapDto
 	public int NotesCount { get; set; }
 	public int SlidersCount { get; set; }
 	public int SpinnersCount { get; set; }
+	
+	public long CoverId { get; set; } //TODO move common fields to a beatmapset dto
+	
+	[ForeignKey(nameof(CreatorId))]
+	public PlayerDto Creator { get; set; } = null!;
+	
+	[ForeignKey(nameof(SetId))]
+	public BeatmapsetDto Beatmapset { get; set; } = null!;
 }

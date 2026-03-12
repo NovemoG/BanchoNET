@@ -442,8 +442,28 @@ public class PlayersRepository : IPlayersRepository
 		_dbContext.Update(dbStats);
 		await _dbContext.SaveChangesAsync();
 	}
-	
-	public async Task GetPlayerRelationships(Player player)
+
+	public async Task<List<RelationshipDto>> GetPlayerBlocks(
+		int playerId
+	) {
+		return await _dbContext.Relationships
+			.AsNoTracking()
+			.Where(p => p.PlayerId == playerId && p.Relation == (byte)Relations.Block)
+			.Include(p => p.Target)
+			.ToListAsync();
+	}
+
+	public async Task<List<RelationshipDto>> GetPlayerFriends(
+		int playerId
+	) {
+		return await _dbContext.Relationships
+			.AsNoTracking()
+			.Where(p => p.PlayerId == playerId && p.Relation == (byte)Relations.Friend)
+			.Include(p => p.Target)
+			.ToListAsync();
+	}
+
+	public async Task FetchPlayerRelationships(Player player)
 	{
 		var relationships = await _dbContext.Relationships.Where(p => p.PlayerId == player.Id).ToListAsync();
 		

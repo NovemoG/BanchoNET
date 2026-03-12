@@ -11,8 +11,9 @@ namespace BanchoNET.Infrastructure.Controllers.Api.Beatmaps;
 public partial class BeatmapsController(
     IAuthService auth,
     IPlayersRepository players,
+    IBeatmapsRepository beatmaps,
     IScoreSubmissionQueue scoresQueue
-) : ApiController(auth, players)
+) : ApiController(auth, players, beatmaps)
 {
     [HttpGet]
     public async Task<ActionResult<ApiBeatmap[]>> GetBeatmaps(

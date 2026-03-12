@@ -25,16 +25,27 @@ public class Beatmap : IBeatmap,
 	public string MD5 { get; set; }
 	
 	public string Artist { get; set; }
+	public string ArtistUnicode { get; set; }
+	
 	public string Title { get; set; }
+	public string TitleUnicode { get; set; }
+	
 	public string Name { get; set; }
 	public string Creator { get; set; }
+	public int CreatorId { get; set; }
+	
+	public string Tags { get; set; }
 
 	public DateTime SubmitDate { get; set; }
 	public DateTime LastUpdate { get; set; }
+	public DateTime RankedDate { get; set; }
+	
 	public int TotalLength { get; set; }
+	public int HitLength { get; set; }
 	public int MaxCombo { get; set; }
 	public bool StatusFrozen { get; set; }
 	public bool HasVideo { get; set; }
+	public bool HasStoryboard { get; set; }
 	public long Plays { get; set; }
 	public long Passes { get; set; }
 	
@@ -49,6 +60,8 @@ public class Beatmap : IBeatmap,
 	public int SlidersCount { get; set; }
 	public int SpinnersCount { get; set; }
 	
+	public long CoverId { get; set; }
+	
 	//TODO ToString
 
 	#region Constructors
@@ -62,13 +75,19 @@ public class Beatmap : IBeatmap,
 		Status = apiBeatmap.Approved.StatusFromApi(StatusFrozen, Status);
 		MD5 = apiBeatmap.FileMd5;
 		Artist = apiBeatmap.Artist;
+		ArtistUnicode = apiBeatmap.ArtistUnicode;
 		Title = apiBeatmap.Title;
+		TitleUnicode = apiBeatmap.TitleUnicode;
 		Name = apiBeatmap.Version;
 		Creator = apiBeatmap.Creator;
+		CreatorId = apiBeatmap.CreatorId;
+		Tags = apiBeatmap.Tags;
 		LastUpdate = DateTime.Parse(apiBeatmap.LastUpdate);
 		TotalLength = apiBeatmap.TotalLength;
+		HitLength = apiBeatmap.HitLength;
 		MaxCombo = apiBeatmap.MaxCombo;
 		HasVideo = apiBeatmap.Video;
+		HasStoryboard = apiBeatmap.Storyboard;
 		Bpm = apiBeatmap.Bpm;
 		Cs = apiBeatmap.DiffSize;
 		Ar = apiBeatmap.DiffApproach;
@@ -88,14 +107,20 @@ public class Beatmap : IBeatmap,
 		Status = int.Parse(apiBeatmap.Approved).StatusFromApi(StatusFrozen, Status);
 		MD5 = apiBeatmap.FileMd5;
 		Artist = apiBeatmap.Artist;
+		ArtistUnicode = apiBeatmap.ArtistUnicode;
 		Title = apiBeatmap.Title;
+		TitleUnicode = apiBeatmap.TitleUnicode;
 		Name = apiBeatmap.Version;
 		Creator = apiBeatmap.Creator;
+		CreatorId = int.Parse(apiBeatmap.CreatorId);
+		Tags = apiBeatmap.Tags;
 		SubmitDate = DateTime.Parse(apiBeatmap.SubmitDate);
 		LastUpdate = DateTime.Parse(apiBeatmap.LastUpdate);
 		TotalLength = int.Parse(apiBeatmap.TotalLength);
+		HitLength = int.Parse(apiBeatmap.HitLength);
 		MaxCombo = int.Parse(apiBeatmap.MaxCombo);
 		HasVideo = apiBeatmap.Video == "1";
+		HasStoryboard = apiBeatmap.Storyboard == "1";
 		Bpm = float.Parse(apiBeatmap.Bpm);
 		Cs = float.Parse(apiBeatmap.DiffSize);
 		Ar = float.Parse(apiBeatmap.DiffApproach);
@@ -119,15 +144,22 @@ public class Beatmap : IBeatmap,
 		IsRankedOfficially = beatmapDto.IsRankedOfficially;
 		MD5 = beatmapDto.MD5;
 		Artist = beatmapDto.Artist;
+		ArtistUnicode = beatmapDto.ArtistUnicode;
 		Title = beatmapDto.Title;
+		TitleUnicode = beatmapDto.TitleUnicode;
 		Name = beatmapDto.Name;
-		Creator = beatmapDto.Creator;
+		Creator = beatmapDto.CreatorName;
+		CreatorId = beatmapDto.CreatorId;
+		Tags = beatmapDto.Tags;
 		SubmitDate = beatmapDto.SubmitDate;
 		LastUpdate = beatmapDto.LastUpdate;
+		RankedDate = beatmapDto.RankedDate;
 		TotalLength = beatmapDto.TotalLength;
+		HitLength = beatmapDto.HitLength;
 		MaxCombo = beatmapDto.MaxCombo;
 		StatusFrozen = beatmapDto.Frozen;
 		HasVideo = beatmapDto.HasVideo;
+		HasStoryboard = beatmapDto.HasStoryboard;
 		Plays = beatmapDto.Plays;
 		Passes = beatmapDto.Passes;
 		Bpm = beatmapDto.Bpm;
@@ -139,6 +171,7 @@ public class Beatmap : IBeatmap,
 		NotesCount = beatmapDto.NotesCount;
 		SlidersCount = beatmapDto.SlidersCount;
 		SpinnersCount = beatmapDto.SpinnersCount;
+		CoverId = beatmapDto.CoverId;
 	}
 
 	#endregion

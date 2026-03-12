@@ -67,4 +67,9 @@ public class PlayerDto
 	public ICollection<LoginDto> LoginsData { get; set; } = null!;
 	public ICollection<ClientHashesDto> ClientHashes { get; set; } = null!;
 	public ICollection<RelationshipDto> Relationships { get; set; } = null!;
+	public ICollection<BeatmapDto> Beatmaps { get; set; } = null!;
+	public ICollection<BeatmapsetDto> Beatmapsets { get; set; } = null!;
+	
+	[NotMapped]
+	public bool IsSupporter => RemainingSupporter > DateTime.UtcNow;
 }

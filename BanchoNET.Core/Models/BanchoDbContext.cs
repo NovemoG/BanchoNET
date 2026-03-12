@@ -10,6 +10,7 @@ public sealed class BanchoDbContext(DbContextOptions<BanchoDbContext> options) :
 	public DbSet<PlayerDto> Players { get; init; } = null!;
 	public DbSet<StatsDto> Stats { get; init; } = null!;
 	public DbSet<BeatmapDto> Beatmaps { get; init; } = null!;
+	public DbSet<BeatmapsetDto> Beatmapsets { get; init; } = null!;
 	public DbSet<RelationshipDto> Relationships { get; init; } = null!;
 	public DbSet<ScoreDto> Scores { get; init; } = null!;
 	public DbSet<LoginDto> PlayerLogins { get; init; } = null!;
@@ -19,6 +20,30 @@ public sealed class BanchoDbContext(DbContextOptions<BanchoDbContext> options) :
 
 	public DbSet<RefreshToken> RefreshTokens { get; init; } = null!;
 	public DbSet<SessionVerification> SessionVerifications { get; init; } = null!;
+
+	protected override void OnModelCreating(
+		ModelBuilder modelBuilder
+	) {
+		base.OnModelCreating(modelBuilder);
+		
+		modelBuilder.Entity<BeatmapDto>()
+			.HasOne(b => b.Creator)
+			.WithMany(p => p.Beatmaps)
+			.HasForeignKey(b => b.CreatorId)
+			.OnDelete(DeleteBehavior.Restrict);
+
+		modelBuilder.Entity<BeatmapsetDto>()
+			.HasOne(bs => bs.Owner)
+			.WithMany(p => p.Beatmapsets)
+			.HasForeignKey(bs => bs.OwnerId)
+			.OnDelete(DeleteBehavior.Restrict);
+
+		modelBuilder.Entity<BeatmapDto>()
+			.HasOne(b => b.Beatmapset)
+			.WithMany(bs => bs.Beatmaps)
+			.HasForeignKey(b => b.SetId)
+			.OnDelete(DeleteBehavior.Cascade);
+	}
 }
 
 public class BanchoDbContextFactory : IDesignTimeDbContextFactory<BanchoDbContext>

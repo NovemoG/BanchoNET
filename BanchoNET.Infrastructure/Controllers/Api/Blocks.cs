@@ -8,11 +8,12 @@ namespace BanchoNET.Infrastructure.Controllers.Api;
 public partial class ApiController
 {
     [HttpGet("blocks")]
-    public ActionResult<Relationship[]> GetBlocks() {
+    public async Task<ActionResult<Relationship[]>> GetBlocks() {
         if (!User.TryGetUserId(out var uid)) return Unauthorized();
+
+        var blocks = await Players.GetPlayerBlocks(uid);
+        var blockList = PopulateRelationships(blocks, "block"); //TODO type
         
-        //TODO get blocks
-        
-        return new JsonResult(Array.Empty<Relationship>(), SnakeCaseNamingPolicy.Options);
+        return new JsonResult(blockList, SnakeCaseNamingPolicy.Options);
     }
 }

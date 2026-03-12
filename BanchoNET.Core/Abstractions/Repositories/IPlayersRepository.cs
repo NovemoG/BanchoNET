@@ -38,7 +38,9 @@ public interface IPlayersRepository
     Task UpdatePlayerStats(Player player, GameMode mode);
     Task ResetPlayersStats(byte mode);
     
-    Task GetPlayerRelationships(Player player);
+    Task<List<RelationshipDto>> GetPlayerBlocks(int playerId);
+    Task<List<RelationshipDto>> GetPlayerFriends(int playerId);
+    Task FetchPlayerRelationships(Player player);
     Task UpdatePlayerPrivileges(Player player, PlayerPrivileges playerPrivileges, bool remove);
 
     Task RecalculatePlayerTopScores(Player player, GameMode mode);

@@ -12,8 +12,9 @@ namespace BanchoNET.Infrastructure.Controllers.Api.Users;
 [Route("api/v2/users/{userId:int}")]
 public partial class UsersController(
     IAuthService auth,
-    IPlayersRepository players
-) : ApiController(auth, players)
+    IPlayersRepository players,
+    IBeatmapsRepository beatmaps
+) : ApiController(auth, players, beatmaps)
 {
     [HttpGet("{forMode?}")]
     public async Task<ActionResult<ApiPlayer?>> GetUsers(

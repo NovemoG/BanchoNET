@@ -23,6 +23,20 @@ public static class BeatmapExtensions
 			_ => BeatmapStatus.LatestPending
 		};
 	}
+
+	public static string ToApiBeatmapStatus(
+		this BeatmapStatus status
+	) {
+		return status switch
+		{
+			BeatmapStatus.Unknown => "unknown",
+			BeatmapStatus.Approved => "approved",
+			BeatmapStatus.Loved => "loved",
+			BeatmapStatus.Qualified => "qualified",
+			BeatmapStatus.Ranked => "ranked",
+			_ => "pending"
+		};
+	}
 	
 	public static string Url(this BeatmapSet set)
 	{
