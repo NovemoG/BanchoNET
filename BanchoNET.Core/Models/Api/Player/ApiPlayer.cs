@@ -1,4 +1,6 @@
-﻿namespace BanchoNET.Core.Models.Api.Player;
+﻿using System.Text.Json.Serialization;
+
+namespace BanchoNET.Core.Models.Api.Player;
 
 public class ApiPlayer : BasicApiPlayer
 {
@@ -61,7 +63,11 @@ public class ApiPlayer : BasicApiPlayer
     public Statistics Statistics { get; set; } = new(); //TODO statistics for mode set in playmode
     public int SupportLevel { get; set; }
     public UserAchievements[] UserAchievements { get; set; } = [];
+    
     public RankHistory RankHistory { get; set; } = new();
+    [JsonPropertyName("rankHistory"), JsonInclude]
+    private RankHistory RankHistory2 => RankHistory;
+    
     public int RankedAndApprovedBeatmapsetCount { get; set; }
     public int UnrankedBeatmapsetCount { get; set; }
 }

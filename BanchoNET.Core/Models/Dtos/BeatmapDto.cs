@@ -64,9 +64,13 @@ public class BeatmapDto
 	[Column(TypeName = "FLOAT(4,2)")] public float Hp { get; set; }
 	[Column(TypeName = "FLOAT(9,3)")] public float StarRating { get; set; }
 	
-	public int NotesCount { get; set; }
+	public int CirclesCount { get; set; }
 	public int SlidersCount { get; set; }
 	public int SpinnersCount { get; set; }
+	public int IgnoreHit { get; set; }
+	public int LargeTickHit { get; set; }
+	[NotMapped] public int SliderTailHit => SlidersCount;
+	[NotMapped] public int NotesCount => CirclesCount + SlidersCount + SpinnersCount;
 	
 	public long CoverId { get; set; } //TODO move common fields to a beatmapset dto
 	

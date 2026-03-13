@@ -1,4 +1,4 @@
-﻿using BanchoNET.Core.Models;
+﻿using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Models.Multiplayer;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Utils.Extensions;
@@ -28,20 +28,20 @@ public partial class ClientPacketsHandler
 				foreach (var slot in slots)
                 {
                 	if (slot.Player == null) continue;
-                	slot.Mods = match.Mods & ~StableMods.SpeedChangingMods;
+                	slot.Mods = match.Mods & ~LegacyMods.SpeedChangingMods;
                 }
                 
-                match.Mods &= StableMods.SpeedChangingMods;
+                match.Mods &= LegacyMods.SpeedChangingMods;
 			}
 			else
 			{
-				match.Mods &= StableMods.SpeedChangingMods;
+				match.Mods &= LegacyMods.SpeedChangingMods;
 				match.Mods |= host.Mods;
 				
 				foreach (var slot in slots)
 				{
 					if (slot.Player == null) continue;
-					slot.Mods = StableMods.None;
+					slot.Mods = LegacyMods.None;
 				}
 			}
 		}

@@ -1,4 +1,6 @@
 ﻿using System.Text.Json.Serialization;
+using BanchoNET.Core.Models.Dtos;
+using BanchoNET.Core.Utils.Extensions;
 
 namespace BanchoNET.Core.Models.Api.Player;
 
@@ -24,4 +26,41 @@ public class BasicApiPlayer
     public Cover? Cover { get; set; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Team? Team { get; set; }
+    
+    [JsonConstructor]
+    public BasicApiPlayer() { }
+
+    public BasicApiPlayer(
+        Players.Player player
+    ) {
+        CountryCode = player.CountryCode.ToString();
+        Id = player.Id;
+        //TODO IsActive
+        IsBot = player.IsBot;
+        //TODO IsOnline
+        IsSupporter = player.IsSupporter;
+        LastVisit = player.LastActivityTime;
+        PmFriendsOnly = player.PmFriendsOnly;
+        Username = player.Username;
+        Country = CountryCode.ParseCountry();
+        //TODO Cover
+        //TODO Team
+    }
+
+    public BasicApiPlayer(
+        PlayerDto playerDto
+    ) {
+        CountryCode = playerDto.Country;
+        Id = playerDto.Id;
+        //TODO IsActive
+        //TODO IsBot
+        //TODO IsOnline
+        IsSupporter = playerDto.IsSupporter;
+        LastVisit = playerDto.LastActivityTime;
+        PmFriendsOnly = playerDto.PmFriendsOnly;
+        Username = playerDto.Username;
+        Country = CountryCode.ParseCountry();
+        //TODO Cover
+        //TODO Team
+    }
 }

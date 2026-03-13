@@ -14,7 +14,7 @@ public class MessagesRepository(BanchoDbContext dbContext) : IMessagesRepository
     
     public async Task AddMessage(string message, int senderId, int receiverId, bool read = false)
     {
-        await dbContext.Messages.AddAsync(new MessageDto
+        dbContext.Messages.Add(new MessageDto
         {
             SenderId = senderId,
             ReceiverId = receiverId,

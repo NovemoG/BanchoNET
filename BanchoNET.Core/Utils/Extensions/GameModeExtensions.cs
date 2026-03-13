@@ -1,4 +1,5 @@
 ﻿using BanchoNET.Core.Models;
+using BanchoNET.Core.Models.Mods;
 
 namespace BanchoNET.Core.Utils.Extensions;
 
@@ -6,11 +7,11 @@ public static class GameModeExtensions
 {
 	public static GameMode AsVanilla(this GameMode gameMode) => (GameMode)((int)gameMode % 4);
 
-	public static GameMode FromMods(this GameMode gameMode, StableMods mods)
+	public static GameMode FromMods(this GameMode gameMode, LegacyMods mods)
 	{
-		if ((mods & StableMods.Relax) == StableMods.Relax)
+		if ((mods & LegacyMods.Relax) == LegacyMods.Relax)
 			gameMode += 4;
-		else if ((mods & StableMods.Autopilot) == StableMods.Autopilot)
+		else if ((mods & LegacyMods.Autopilot) == LegacyMods.Autopilot)
 			gameMode += 8;
 
 		return gameMode;

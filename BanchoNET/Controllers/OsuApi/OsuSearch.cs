@@ -16,8 +16,8 @@ public partial class OsuController
         [FromQuery(Name = "r")] int rankedStatus,
         [FromQuery(Name = "q")] string query,
         [FromQuery(Name = "m")] int mode,
-        [FromQuery(Name = "p")] int pageNumber)
-    {
+        [FromQuery(Name = "p")] int pageNumber
+    ) {
         if (await players.GetPlayerFromLogin(username, passwordMD5) == null)
             return Unauthorized("auth fail");
         

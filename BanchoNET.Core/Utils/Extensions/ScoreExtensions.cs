@@ -1,6 +1,8 @@
 ﻿using AkatsukiPp;
 using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Beatmaps;
+using BanchoNET.Core.Models.Dtos;
+using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Models.Scores;
 using Novelog;
 
@@ -52,7 +54,7 @@ public static class ScoreExtensions
 
     public static float CalculateAccuracy(
         GameMode mode,
-        StableMods mods,
+        LegacyMods mods,
         int count300,
         int count100,
         int count50,
@@ -91,7 +93,7 @@ public static class ScoreExtensions
 
                 if (objects == 0) return 0f;
 
-                if ((mods & StableMods.ScoreV2) == StableMods.ScoreV2)
+                if ((mods & LegacyMods.ScoreV2) == LegacyMods.ScoreV2)
                     return 100f
                            * (gekis * 305f + count300 * 300f + katus * 200f + count100 * 100f + count50 * 50f)
                            / (objects * 305f);
@@ -110,13 +112,13 @@ public static class ScoreExtensions
     public static float CalculateCompletion(this Score score, Beatmap beatmap)
     {
         return (float)(score.Count300 + score.Count100 + score.Count50 + score.Misses)
-            / (beatmap.NotesCount + beatmap.SlidersCount + beatmap.SpinnersCount) * 100f;
+            / (beatmap.CirclesCount + beatmap.SlidersCount + beatmap.SpinnersCount) * 100f;
     }
 
     public static void CalculatePerformance(this Score score, int beatmapId)
     {
-        if (score.Mods.HasMod(StableMods.NightCore))
-            score.Mods |= StableMods.DoubleTime;
+        if (score.Mods.HasMod(LegacyMods.NightCore))
+            score.Mods |= LegacyMods.DoubleTime;
 
         var pp = AkatsukiPpMethods.ComputeScorePp(beatmapId, score);
 
@@ -130,8 +132,8 @@ public static class ScoreExtensions
         if (other == null) return true;
         
         return AppSettings.SubmitByPP
-            ? (score.PP > other.PP)
-            : (score.TotalScore > other.TotalScore);
+            ? score.PP > other.PP
+            : score.TotalScore > other.TotalScore;
     }
 
     public static string ModeToString(this Score score)

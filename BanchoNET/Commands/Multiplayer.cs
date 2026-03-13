@@ -1,5 +1,6 @@
 ﻿using BanchoNET.Core.Attributes;
 using BanchoNET.Core.Models;
+using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Models.Mongo;
 using BanchoNET.Core.Models.Multiplayer;
 using BanchoNET.Core.Models.Privileges;
@@ -458,35 +459,35 @@ public partial class CommandProcessor
         if (!_match.Refs.Contains(_playerCtx.Id))
             return "";
         
-        var result = StableMods.None;
+        var result = LegacyMods.None;
         var freeMods = false;
         
         foreach (var modName in args)
         {
             if (ModsMap.TryGetValue(modName.ToLower(), out var modMap))
             {
-                if (modMap == StableMods.None)
+                if (modMap == LegacyMods.None)
                 {
-                    _match.Mods = StableMods.None;
+                    _match.Mods = LegacyMods.None;
                     break;
                 }
                 
                 if (_match.Mode != GameMode.VanillaMania)
-                    if (modMap > StableMods.Perfect)
+                    if (modMap > LegacyMods.Perfect)
                         continue;
 
                 result |= modMap;
             }
-            else if (Enum.TryParse(modName, true, out StableMods modParse))
+            else if (Enum.TryParse(modName, true, out LegacyMods modParse))
             {
-                if (modParse == StableMods.None)
+                if (modParse == LegacyMods.None)
                 {
-                    _match.Mods = StableMods.None;
+                    _match.Mods = LegacyMods.None;
                     break;
                 }
 
                 if (_match.Mode != GameMode.VanillaMania)
-                    if (modParse > StableMods.Perfect)
+                    if (modParse > LegacyMods.Perfect)
                         continue;
 
                 result |= modParse;
@@ -500,18 +501,18 @@ public partial class CommandProcessor
             }
         }
         
-        if ((result & StableMods.InvalidMods) != 0)
-            result &= ~StableMods.InvalidMods;
+        if ((result & LegacyMods.InvalidMods) != 0)
+            result &= ~LegacyMods.InvalidMods;
         
         _match.Mods = result;
         multiplayer.EnqueueStateTo(_match);
 
         switch (result)
         {
-            case StableMods.None when freeMods:
+            case LegacyMods.None when freeMods:
                 _match.Freemods = true;
                 return "Removed all mods and enabled freemods.";
-            case StableMods.None:
+            case LegacyMods.None:
                 return "Removed all mods.";
             default:
                 return $"Changed mods to: {result.ToString()}";

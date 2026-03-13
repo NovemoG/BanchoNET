@@ -1,8 +1,6 @@
-﻿using BanchoNET.Core.Models;
+﻿using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Models.Multiplayer;
 using BanchoNET.Core.Models.Players;
-using BanchoNET.Core.Packets;
-using Novelog;
 
 namespace BanchoNET.Core.Utils.Extensions;
 
@@ -105,7 +103,7 @@ public static class MultiplayerExtensions
 			slot.Player = null;
 			slot.Status = newStatus;
 			slot.Team = LobbyTeams.Neutral;
-			slot.Mods = StableMods.None;
+			slot.Mods = LegacyMods.None;
 			slot.Loaded = false;
 			slot.Skipped = false;
 		}

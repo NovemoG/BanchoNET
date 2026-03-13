@@ -1,6 +1,5 @@
 using BanchoNET.Core.Models.Api.Notifications;
 using BanchoNET.Core.Utils.Extensions;
-using BanchoNET.Core.Utils.Json;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BanchoNET.Infrastructure.Controllers.Api;
@@ -13,6 +12,6 @@ public partial class ApiController
         
         //TODO get notifications
         
-        return new JsonResult(new NotificationsResponse(), SnakeCaseNamingPolicy.Options);
+        return JsonSnake(new NotificationsResponse());
     }
 }

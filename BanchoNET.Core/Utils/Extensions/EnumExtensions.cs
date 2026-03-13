@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using BanchoNET.Core.Models;
+using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
 using EnumsNET;
@@ -38,34 +39,34 @@ public static class EnumExtensions
 		{ GameMode.VanillaCatch, "fruits" }
 	};
 	
-	private static readonly (StableMods Mod, string ShortCode)[] ModMap =
+	private static readonly (LegacyMods Mod, string ShortCode)[] ModMap =
 	{
-		(StableMods.NoFail, "NF"),
-		(StableMods.Easy, "EZ"),
-		(StableMods.Hidden, "HD"),
-		(StableMods.HardRock, "HR"),
-		(StableMods.SuddenDeath, "SD"),
-		(StableMods.DoubleTime, "DT"),
-		(StableMods.Relax, "RX"),
-		(StableMods.HalfTime, "HT"),
-		(StableMods.NightCore, "NC"),
-		(StableMods.FlashLight, "FL"),
-		(StableMods.SpunOut, "SO"),
-		(StableMods.Autopilot, "AP"),
-		(StableMods.Perfect, "PF"),
-		(StableMods.Key4, "4K"),
-		(StableMods.Key5, "5K"),
-		(StableMods.Key6, "6K"),
-		(StableMods.Key7, "7K"),
-		(StableMods.Key8, "8K"),
-		(StableMods.FadeIn, "FI"),
-		(StableMods.Random, "RD"),
-		(StableMods.Key9, "9K"),
-		(StableMods.Coop, "CO"),
-		(StableMods.Key1, "1K"),
-		(StableMods.Key3, "3K"),
-		(StableMods.Key2, "2K"),
-		(StableMods.ScoreV2, "SV2")
+		(LegacyMods.NoFail, "NF"),
+		(LegacyMods.Easy, "EZ"),
+		(LegacyMods.Hidden, "HD"),
+		(LegacyMods.HardRock, "HR"),
+		(LegacyMods.SuddenDeath, "SD"),
+		(LegacyMods.DoubleTime, "DT"),
+		(LegacyMods.Relax, "RX"),
+		(LegacyMods.HalfTime, "HT"),
+		(LegacyMods.NightCore, "NC"),
+		(LegacyMods.FlashLight, "FL"),
+		(LegacyMods.SpunOut, "SO"),
+		(LegacyMods.Autopilot, "AP"),
+		(LegacyMods.Perfect, "PF"),
+		(LegacyMods.Key4, "4K"),
+		(LegacyMods.Key5, "5K"),
+		(LegacyMods.Key6, "6K"),
+		(LegacyMods.Key7, "7K"),
+		(LegacyMods.Key8, "8K"),
+		(LegacyMods.FadeIn, "FI"),
+		(LegacyMods.Random, "RD"),
+		(LegacyMods.Key9, "9K"),
+		(LegacyMods.Coop, "CO"),
+		(LegacyMods.Key1, "1K"),
+		(LegacyMods.Key3, "3K"),
+		(LegacyMods.Key2, "2K"),
+		(LegacyMods.ScoreV2, "SV2")
 	};
 	
 	public static bool HasAnyPrivilege(this PlayerPrivileges value, PlayerPrivileges checkFlags)
@@ -121,12 +122,12 @@ public static class EnumExtensions
 		return (value & privilege) == privilege;
 	}
 	
-	public static bool HasMod(this StableMods value, StableMods mod)
+	public static bool HasMod(this LegacyMods value, LegacyMods mod)
 	{
 		return (value & mod) == mod;
 	}
 	
-	public static string ToShortString(this StableMods mods)
+	public static string ToShortString(this LegacyMods mods)
 	{
 		var sb = new StringBuilder();
 		

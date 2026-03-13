@@ -1,4 +1,5 @@
 ﻿using BanchoNET.Core.Models.Channels;
+using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Utils.Extensions;
 
 namespace BanchoNET.Core.Models.Multiplayer;
@@ -33,7 +34,7 @@ public sealed class MultiplayerMatch : IMultiplayerMatch, IDisposable,
 	public List<int> Refs { get; } = [];
 	public List<int> BannedPlayers { get; } = [];
 	public List<int> TourneyClients { get; } = [];
-	public StableMods Mods { get; set; }
+	public LegacyMods Mods { get; set; }
 	public bool Freemods { get; set; }
 	public int BeatmapId { get; set; }
 	public int PreviousBeatmapId { get; set; }

@@ -1,7 +1,7 @@
 ﻿using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Dtos;
-using BanchoNET.Core.Models.Players;
+using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Models.Scores;
 using BanchoNET.Core.Utils;
 using Microsoft.EntityFrameworkCore;
@@ -10,35 +10,39 @@ namespace BanchoNET.Services.Repositories;
 
 public class ScoresRepository(BanchoDbContext dbContext) : IScoresRepository
 {
-    private static bool OrderByPp(GameMode mode) => mode >= GameMode.RelaxStd || AppSettings.SortLeaderboardByPP;
-	
-    public async Task<Score> InsertScore(Score score, string beatmapMD5, bool isPlayerRestricted)
-    {
-        var dbScore = await dbContext.Scores.AddAsync(new ScoreDto
-        {
-            BeatmapMD5 = beatmapMD5,
-            PP = score.PP,
-            Acc = score.Acc,
-            LegacyTotalScore = score.TotalScore,
-            MaxCombo = score.MaxCombo,
-            Mods = (int)score.Mods,
-            Count300 = score.Count300,
-            Count100 = score.Count100,
-            Count50 = score.Count50,
-            Misses = score.Misses,
-            Gekis = score.Gekis,
-            Katus = score.Katus,
-            Grade = (byte)score.Grade,
-            Status = (byte)score.Status,
-            Mode = (byte)score.Mode,
-            PlayTime = score.ClientTime,
-            TimeElapsed = score.TimeElapsed,
-            ClientFlags = (int)score.ClientFlags,
-            PlayerId = score.PlayerId,
-            LegacyPerfect = score.Perfect,
-            OnlineChecksum = score.ClientChecksum,
-            IsRestricted = isPlayerRestricted
-        });
+    public async Task<Score> InsertScore(
+        Score score,
+        bool isPlayerRestricted,
+        string md5,
+        int mapId
+    ) {
+        var dbScore = dbContext.Scores
+            .Add(new ScoreDto
+            {
+                BeatmapMD5 = md5,
+                MapId = mapId,
+                PP = score.PP,
+                Acc = score.Acc,
+                LegacyTotalScore = score.TotalScore,
+                MaxCombo = score.MaxCombo,
+                Mods = (int)score.Mods,
+                Count300 = score.Count300,
+                Count100 = score.Count100,
+                Count50 = score.Count50,
+                Misses = score.Misses,
+                Gekis = score.Gekis,
+                Katus = score.Katus,
+                Grade = (byte)score.Grade,
+                Status = (byte)score.Status,
+                Mode = (byte)score.Mode,
+                PlayTime = score.ClientTime,
+                TimeElapsed = score.TimeElapsed,
+                ClientFlags = (int)score.ClientFlags,
+                PlayerId = score.PlayerId,
+                LegacyPerfect = score.Perfect,
+                OnlineChecksum = score.ClientChecksum,
+                IsRestricted = isPlayerRestricted
+            });
         await dbContext.SaveChangesAsync();
 
         score.Id = dbScore.Entity.Id;
@@ -47,19 +51,25 @@ public class ScoresRepository(BanchoDbContext dbContext) : IScoresRepository
 
     public async Task<ScoreDto?> GetScore(long id)
     {
-        return await dbContext.Scores.FirstOrDefaultAsync(s => s.Id == id);
+        return await dbContext.Scores
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.Id == id);
     }
 
     public async Task<bool> ScoreExists(string checksum)
     {
         if (string.IsNullOrEmpty(checksum)) return false;
 
-        return await dbContext.Scores.AnyAsync(s => s.OnlineChecksum == checksum);
+        return await dbContext.Scores
+            .AsNoTracking()
+            .AnyAsync(s => s.OnlineChecksum == checksum);
     }
 
     public async Task<Score?> GetPlayerRecentScore(int playerId)
     {
-        var score = await dbContext.Scores.OrderByDescending(s => s.PlayTime)
+        var score = await dbContext.Scores
+            .AsNoTracking()
+            .OrderByDescending(s => s.PlayTime)
             .FirstOrDefaultAsync(s => s.PlayerId == playerId);
 
         return score == null ? null : new Score(score);
@@ -67,7 +77,9 @@ public class ScoresRepository(BanchoDbContext dbContext) : IScoresRepository
     
     public async Task<List<ScoreDto>> GetPlayerRecentScores(int playerId, int start, int count = 10)
     {
-        return await dbContext.Scores.Where(s => s.PlayerId == playerId)
+        return await dbContext.Scores
+            .AsNoTracking()
+            .Where(s => s.PlayerId == playerId)
             .OrderByDescending(s => s.PlayTime)
             .Skip(start)
             .Take(count)
@@ -77,6 +89,7 @@ public class ScoresRepository(BanchoDbContext dbContext) : IScoresRepository
     public async Task<List<ScoreDto>> GetMultiplayerScores(List<int> playerIds, DateTime finishDate)
     {
         return await dbContext.Scores
+            .AsNoTracking()
             .Where(s => playerIds.Contains(s.PlayerId) && s.PlayTime > finishDate)
             .ToListAsync();
     }
@@ -90,45 +103,84 @@ public class ScoresRepository(BanchoDbContext dbContext) : IScoresRepository
 
     public async Task UpdateScoreStatus(long id, SubmissionStatus newStatus)
     {
-        await dbContext.Scores.Where(s => s.Id == id)
+        await dbContext.Scores
+            .AsNoTracking()
+            .Where(s => s.Id == id)
             .ExecuteUpdateAsync(p => p.SetProperty(s => s.Status, (int)newStatus));
     }
     
-    public async Task<Score?> GetPlayerBestScoreOnMap(
+    public Task<Score?> GetPlayerBestScoreOnMap(
         int playerId,
-        string beatmapMD5,
-        GameMode mode)
-    {
-        var score = await dbContext.Scores.FirstOrDefaultAsync(
-            s => s.PlayerId == playerId
-                 && s.BeatmapMD5 == beatmapMD5
-                 && s.Mode == (int)mode
-                 && s.Status == (int)SubmissionStatus.Best);
+        GameMode mode,
+        int mapId
+    ) => GetPlayerBestScoreOnMapInternal(playerId, mode, mapId: mapId, md5: null);
 
+    public Task<Score?> GetPlayerBestScoreOnMap(
+        int playerId,
+        GameMode mode,
+        string md5
+    ) => GetPlayerBestScoreOnMapInternal(playerId, mode, md5: md5, mapId: null);
+    
+    private async Task<Score?> GetPlayerBestScoreOnMapInternal(
+        int playerId,
+        GameMode mode,
+        int? mapId,
+        string? md5
+    ) {
+        var score = await dbContext.Scores
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => mapId.HasValue
+                                    ? s.MapId == mapId
+                                    : s.BeatmapMD5 == md5
+                                  && s.PlayerId == playerId
+                                  && s.Mode == (int)mode
+                                  && s.Status == (int)SubmissionStatus.Best);
+        
         return score == null ? null : new Score(score);
     }
     
-    public async Task<Score?> GetPlayerBestScoreWithModsOnMap(
+    public Task<Score?> GetPlayerBestScoreWithModsOnMap(
         int playerId,
-        string beatmapMD5,
         GameMode mode,
-        StableMods mods
-    ) {
-        var score = await dbContext.Scores.FirstOrDefaultAsync(
-            s => s.PlayerId == playerId
-                 && s.BeatmapMD5 == beatmapMD5
-                 && s.Mode == (int)mode
-                 && s.Mods == (int)mods
-                 && s.Status >= (int)SubmissionStatus.BestWithMods);
+        LegacyMods mods,
+        int mapId
+    ) => GetPlayerBestScoreWithModsOnMapInternal(playerId, mode, mods, mapId: mapId, md5: null);
 
+    public Task<Score?> GetPlayerBestScoreWithModsOnMap(
+        int playerId,
+        GameMode mode,
+        LegacyMods mods,
+        string md5
+    ) => GetPlayerBestScoreWithModsOnMapInternal(playerId, mode, mods, md5: md5, mapId: null);
+    
+    private async Task<Score?> GetPlayerBestScoreWithModsOnMapInternal(
+        int playerId,
+        GameMode mode,
+        LegacyMods mods,
+        int? mapId,
+        string? md5
+    ) {
+        var score = await dbContext.Scores
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => mapId.HasValue
+                                        ? s.MapId == mapId
+                                        : s.BeatmapMD5 == md5
+                                      && s.PlayerId == playerId
+                                      && s.Mode == (int)mode
+                                      && s.Mods == (int)mods
+                                      && s.Status >= (int)SubmissionStatus.BestWithMods);
+        
         return score == null ? null : new Score(score);
     }
-	
-    public async Task<ScoreDto?> GetBestBeatmapScore(string beatmapMD5, GameMode mode)
-    {
+
+    public async Task<ScoreDto?> GetBestBeatmapScore(
+        int mapId,
+        GameMode mode
+    ) {
         return await dbContext.Scores
+            .AsNoTracking()
             .Include(s => s.Player)
-            .Where(s => s.BeatmapMD5 == beatmapMD5
+            .Where(s => s.MapId == mapId
                         && s.Mode == (int)mode
                         && s.Status == (int)SubmissionStatus.Best
                         && (s.Player.Privileges & 1) == 1
@@ -136,69 +188,190 @@ public class ScoresRepository(BanchoDbContext dbContext) : IScoresRepository
             .OrderByDescending(s => OrderByPp(mode) ? s.PP : s.LegacyTotalScore)
             .FirstOrDefaultAsync();
     }
-	
-    public async Task SetScoreLeaderboardPosition(
-        string beatmapMD5,
+    
+    public async Task<ScoreDto?> GetBestBeatmapScore(
+        string md5,
+        GameMode mode
+    ) {
+        return await dbContext.Scores
+            .Include(s => s.Player)
+            .Where(s => s.BeatmapMD5 == md5
+                        && s.Mode == (int)mode
+                        && s.Status == (int)SubmissionStatus.Best
+                        && (s.Player.Privileges & 1) == 1
+                        && !s.IsRestricted)
+            .OrderByDescending(s => OrderByPp(mode) ? s.PP : s.LegacyTotalScore)
+            .FirstOrDefaultAsync();
+    }
+
+    public Task SetScoreLeaderboardPosition(
         Score score,
         bool withMods,
-        StableMods mods = StableMods.None
+        string md5,
+        LegacyMods mods = LegacyMods.None
+    ) => SetScoreLeaderboardPositionInternal(score, withMods, md5: md5, mapId: null, mods: mods);
+
+    public Task SetScoreLeaderboardPosition(
+        Score score,
+        bool withMods,
+        int mapId,
+        LegacyMods mods = LegacyMods.None
+    ) => SetScoreLeaderboardPositionInternal(score, withMods, mapId: mapId, md5: null, mods: mods);
+	
+    private async Task SetScoreLeaderboardPositionInternal(
+        Score score,
+        bool withMods,
+        int? mapId,
+        string? md5,
+        LegacyMods mods = LegacyMods.None
     ) {
         score.LeaderboardPosition = await dbContext.Scores
             .Include(s => s.Player)
-            .Where(s => s.BeatmapMD5 == beatmapMD5 
-                        && s.Mode == (int)score.Mode
-                        && (withMods
-                            ? s.Status >= (int)SubmissionStatus.BestWithMods
-                            : s.Status == (int)SubmissionStatus.Best)
-                        && (!withMods || s.Mods == (int)mods) 
-                        && (s.Player.Privileges & 1) == 1 
-                        && !s.IsRestricted
-                        && (OrderByPp(score.Mode)
-                            ? score.PP < s.PP
-                            : score.TotalScore < s.LegacyTotalScore))
+            .Where(s => mapId.HasValue
+                            ? s.MapId == mapId
+                            : s.BeatmapMD5 == md5
+                          && s.Mode == (int)score.Mode
+                          && (withMods
+                              ? s.Status >= (int)SubmissionStatus.BestWithMods
+                              : s.Status == (int)SubmissionStatus.Best)
+                          && (!withMods || s.Mods == (int)mods) 
+                          && (s.Player.Privileges & 1) == 1 
+                          && !s.IsRestricted
+                          && (OrderByPp(score.Mode)
+                              ? score.PP < s.PP
+                              : score.TotalScore < s.LegacyTotalScore))
             .CountAsync() + 1;
     }
 	
-    public async Task<List<ScoreDto>> GetBeatmapLeaderboard(
-        string beatmapMD5,
+    public Task<List<ScoreDto>> GetBeatmapLeaderboard(
         GameMode mode,
         LeaderboardType type,
-        StableMods mods,
-        Player player
+        LegacyMods mods,
+        string country,
+        HashSet<int> playerIds,
+        string md5
+    ) => GetBeatmapLeaderboardInternal(mode, type, mods, country, playerIds, mapId: null, md5: md5);
+
+    public Task<List<ScoreDto>> GetBeatmapLeaderboard(
+        GameMode mode,
+        LeaderboardType type,
+        LegacyMods mods,
+        string country,
+        HashSet<int> playerIds,
+        int mapId
+    ) => GetBeatmapLeaderboardInternal(mode, type, mods, country, playerIds, mapId: mapId, md5: null);
+    
+    private async Task<List<ScoreDto>> GetBeatmapLeaderboardInternal(
+        GameMode mode,
+        LeaderboardType type,
+        LegacyMods mods,
+        string country,
+        HashSet<int> playerIds,
+        int? mapId,
+        string? md5
     ) {
         var isCountry = type == LeaderboardType.Country;
-        var countryCode = player.Geoloc.Country.Acronym;
-		
         var withMods = type is LeaderboardType.Mods or LeaderboardType.CountryMods or LeaderboardType.FriendsMods;
-		
         var withFriendsList = type == LeaderboardType.Friends;
-        var friendIds = withFriendsList ? player.Friends.ToHashSet() : [];
-		
-        var result = await dbContext.Scores.AsNoTracking()
-             .Include(s => s.Player)
-             .Where(s => s.BeatmapMD5 == beatmapMD5 
-                         && s.Mode == (int)mode 
-                         && (withMods
-                             ? s.Status >= (int)SubmissionStatus.BestWithMods
-                             : s.Status == (int)SubmissionStatus.Best) 
-                         && (s.Player.Privileges & 1) == 1 
-                         && !s.IsRestricted
-                         && (!withMods || s.Mods == (int)mods) 
-                         && (!isCountry || s.Player.Country == countryCode) 
-                         && (!withFriendsList || friendIds.Contains(s.PlayerId)))
-             .OrderByDescending(s => OrderByPp(mode) ? s.PP : s.LegacyTotalScore)
-             .Take(AppSettings.ScoresOnLeaderboard)
-             .ToListAsync();
+        var friendIds = withFriendsList ? playerIds : [];
+        
+        var q = dbContext.Scores
+            .AsNoTracking()
+            .Include(s => s.Player)
+            .AsQueryable();
+        
+        if (mapId.HasValue)
+            q = q.Where(s => s.MapId == mapId.Value);
+        else if (!string.IsNullOrEmpty(md5))
+            q = q.Where(s => s.BeatmapMD5 == md5);
+        else
+            throw new ArgumentException("Either mapId or md5 must be provided.");
+        
+        q = q.Where(s => s.Mode == (int)mode
+                         && (s.Player.Privileges & 1) == 1
+                         && !s.IsRestricted);
+
+        q = withMods
+            ? q.Where(s => s.Status >= (int)SubmissionStatus.BestWithMods
+                           && s.Mods == (int)mods)
+            : q.Where(s => s.Status == (int)SubmissionStatus.Best);
+
+        if (isCountry)
+            q = q.Where(s => s.Player.Country == country);
+        
+        if (withFriendsList && friendIds.Count > 0)
+            q = q.Where(s => friendIds.Contains(s.PlayerId));
+        
+        q = ApplyOrder(q, mode);
+
+        var result = await q
+            .Take(AppSettings.ScoresOnLeaderboard)
+            .ToListAsync();
         
         /*TODO best we've managed to squeeze out of our brains is <1s with 5mln scores
                we're not knowledgeable enough to make it faster ~Cossin & foksurek*/
-        
+
         return result;
     }
+    
+    public Task<(List<ScoreDto>, Score?)> GetLeaderboardScores(
+        LeaderboardType type,
+        GameMode mode,
+        LegacyMods mods,
+        int playerId,
+        string country,
+        HashSet<int> friendIds,
+        string md5
+    ) => GetLeaderboardScoresInternal(type, mode, mods, playerId, country, friendIds, md5: md5, mapId: null);
 
-    public async Task ToggleBeatmapScoresVisibility(string beatmapMD5, bool visible)
+    public Task<(List<ScoreDto>, Score?)> GetLeaderboardScores(
+        LeaderboardType type,
+        GameMode mode,
+        LegacyMods mods,
+        int playerId,
+        string country,
+        HashSet<int> friendIds,
+        int mapId
+    ) => GetLeaderboardScoresInternal(type, mode, mods, playerId, country, friendIds, mapId: mapId, md5: null);
+    
+    private async Task<(List<ScoreDto>, Score?)> GetLeaderboardScoresInternal(
+        LeaderboardType type,
+        GameMode mode,
+        LegacyMods mods,
+        int playerId,
+        string country,
+        HashSet<int> friendIds,
+        int? mapId,
+        string? md5
+    ) {
+        var leaderboard = await GetBeatmapLeaderboardInternal(mode, type, mods, country, friendIds, mapId, md5);
+		
+        Score? playerBest = null;
+        if (leaderboard.Count > 0)
+        {
+            var withMods = type is LeaderboardType.Mods or LeaderboardType.CountryMods or LeaderboardType.FriendsMods;
+            playerBest = withMods
+                ? await GetPlayerBestScoreWithModsOnMapInternal(playerId, mode, mods, mapId, md5)
+                : await GetPlayerBestScoreOnMapInternal(playerId, mode, mapId, md5);
+			
+            if (playerBest != null)
+                await SetScoreLeaderboardPositionInternal(playerBest, withMods, mapId, md5, mods);
+        }
+		
+        return (leaderboard, playerBest);
+    }
+    
+    public async Task ToggleBeatmapScoresVisibility(int mapId, bool visible)
     {
-        await dbContext.Scores.Where(s => s.BeatmapMD5 == beatmapMD5)
+        await dbContext.Scores
+            .Where(s => s.MapId == mapId)
+            .ExecuteUpdateAsync(p => p.SetProperty(s => s.IsRestricted, visible));
+    }
+
+    public async Task ToggleBeatmapScoresVisibility(string md5, bool visible)
+    {
+        await dbContext.Scores
+            .Where(s => s.BeatmapMD5 == md5)
             .ExecuteUpdateAsync(p => p.SetProperty(s => s.IsRestricted, visible));
     }
     
@@ -227,5 +400,12 @@ public class ScoresRepository(BanchoDbContext dbContext) : IScoresRepository
         Console.WriteLine($"[BackgroundTasks] Deleted {affected} scores.");
         
         return scoreIds;
+    }
+    
+    private static bool OrderByPp(GameMode mode) => mode >= GameMode.RelaxStd || AppSettings.SortLeaderboardByPP;
+    
+    private static IOrderedQueryable<ScoreDto> ApplyOrder(IQueryable<ScoreDto> q, GameMode mode)
+    {
+        return OrderByPp(mode) ? q.OrderByDescending(s => s.PP) : q.OrderByDescending(s => s.LegacyTotalScore);
     }
 }

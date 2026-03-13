@@ -1,4 +1,5 @@
-﻿using BanchoNET.Core.Models.Dtos;
+﻿using BanchoNET.Core.Models.Api.Scores;
+using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Utils.Extensions;
 
 namespace BanchoNET.Core.Models.Beatmaps;
@@ -56,9 +57,14 @@ public class Beatmap : IBeatmap,
 	public float Hp { get; set; }
 	public float StarRating { get; set; }
 	
-	public int NotesCount { get; set; }
+	public int CirclesCount { get; set; }
 	public int SlidersCount { get; set; }
 	public int SpinnersCount { get; set; }
+	public int IgnoreHit { get; set; }
+	public int LargeTickHit { get; set; }
+	public int SliderTailHit => SlidersCount;
+	public readonly int NotesCount;
+	public readonly MaxStatistics MaxStatistics;
 	
 	public long CoverId { get; set; }
 	
@@ -94,6 +100,14 @@ public class Beatmap : IBeatmap,
 		Od = apiBeatmap.DiffOverall;
 		Hp = apiBeatmap.DiffDrain;
 		StarRating = (float)apiBeatmap.DifficultyRating;
+		NotesCount = CirclesCount + SlidersCount + SpinnersCount;
+		MaxStatistics = new MaxStatistics
+		{
+			Great = NotesCount,
+			LargeTickHit = LargeTickHit,
+			IgnoreHit = IgnoreHit,
+			SliderTailHit = SliderTailHit
+		};
 		
 		IsRankedOfficially = Status is BeatmapStatus.Ranked or BeatmapStatus.Approved;
 	}
@@ -127,9 +141,17 @@ public class Beatmap : IBeatmap,
 		Od = float.Parse(apiBeatmap.DiffOverall);
 		Hp = float.Parse(apiBeatmap.DiffDrain);
 		StarRating = float.Parse(apiBeatmap.DifficultyRating);
-		NotesCount = int.Parse(apiBeatmap.CountNormal);
+		CirclesCount = int.Parse(apiBeatmap.CountNormal);
 		SlidersCount = int.Parse(apiBeatmap.CountSlider);
 		SpinnersCount = int.Parse(apiBeatmap.CountSpinner);
+		NotesCount = CirclesCount + SlidersCount + SpinnersCount;
+		MaxStatistics = new MaxStatistics
+		{
+			Great = NotesCount,
+			LargeTickHit = LargeTickHit,
+			IgnoreHit = IgnoreHit,
+			SliderTailHit = SliderTailHit
+		};
 		
 		IsRankedOfficially = Status is BeatmapStatus.Ranked or BeatmapStatus.Approved;
 	}
@@ -168,9 +190,20 @@ public class Beatmap : IBeatmap,
 		Od = beatmapDto.Od;
 		Hp = beatmapDto.Hp;
 		StarRating = beatmapDto.StarRating;
-		NotesCount = beatmapDto.NotesCount;
+		CirclesCount = beatmapDto.CirclesCount;
 		SlidersCount = beatmapDto.SlidersCount;
 		SpinnersCount = beatmapDto.SpinnersCount;
+		IgnoreHit = beatmapDto.IgnoreHit;
+		LargeTickHit = beatmapDto.LargeTickHit;
+		NotesCount = CirclesCount + SlidersCount + SpinnersCount;
+		MaxStatistics = new MaxStatistics
+		{
+			Great = NotesCount,
+			LargeTickHit = LargeTickHit,
+			IgnoreHit = IgnoreHit,
+			SliderTailHit = SliderTailHit
+		};
+		
 		CoverId = beatmapDto.CoverId;
 	}
 

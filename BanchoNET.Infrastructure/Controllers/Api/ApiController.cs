@@ -4,6 +4,7 @@ using BanchoNET.Core.Attributes;
 using BanchoNET.Core.Models.Api.Relationships;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Utils.Extensions;
+using BanchoNET.Core.Utils.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -21,6 +22,9 @@ public partial class ApiController(
 {
     protected readonly IAuthService Auth = auth;
     protected readonly IPlayersRepository Players = players;
+    protected readonly IBeatmapsRepository Beatmaps = beatmaps;
+    
+    protected static JsonResult JsonSnake(object? value) => new(value, SnakeCaseNamingPolicy.Options);
 
     private static List<Relationship> PopulateRelationships(
         List<RelationshipDto> relationships,

@@ -1,6 +1,5 @@
 ﻿using BanchoNET.Core.Models.Api.Player;
 using BanchoNET.Core.Utils.Extensions;
-using BanchoNET.Core.Utils.Json;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BanchoNET.Infrastructure.Controllers.Api;
@@ -17,6 +16,6 @@ public partial class ApiController
         apiPlayer.SessionVerified = true;
         apiPlayer.SessionVerificationMethod = null; //TODO
         
-        return new JsonResult(apiPlayer, SnakeCaseNamingPolicy.ApiPlayerOptions);
+        return JsonSnake(apiPlayer);
     }
 }

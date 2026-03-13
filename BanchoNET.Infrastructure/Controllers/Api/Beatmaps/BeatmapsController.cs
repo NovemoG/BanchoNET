@@ -2,7 +2,6 @@
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Models.Api.Beatmaps;
 using BanchoNET.Core.Utils.Extensions;
-using BanchoNET.Core.Utils.Json;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BanchoNET.Infrastructure.Controllers.Api.Beatmaps;
@@ -12,29 +11,22 @@ public partial class BeatmapsController(
     IAuthService auth,
     IPlayersRepository players,
     IBeatmapsRepository beatmaps,
-    IScoreSubmissionQueue scoresQueue
+    IScoreSubmissionQueue scoresQueue,
+    IScoresRepository scores
 ) : ApiController(auth, players, beatmaps)
 {
     [HttpGet]
-    public async Task<ActionResult<ApiBeatmap[]>> GetBeatmaps(
+    public async Task<ActionResult<List<ApiBeatmap>>> GetBeatmaps(
         [FromQuery(Name = "ids[]")] int[] beatmapIds
     ) {
-        if (!User.TryGetUserId(out var uid)) return Unauthorized();
-        
-        //TODO
+        if (!User.TryGetUserId(out _)) return Unauthorized();
 
-        return new JsonResult(Array.Empty<ApiBeatmap>(), SnakeCaseNamingPolicy.Options);
-    }
-    
-    [HttpGet("lookup")]
-    public async Task<ActionResult<ApiBeatmap>> LookupBeatmap(
-        string checksum,
-        string filename
-    ) {
-        if (!User.TryGetUserId(out var uid)) return Unauthorized();
-        
-        //TODO
+        var beatmaps = await Beatmaps.GetBeatmaps(beatmapIds);
 
-        return new JsonResult(Array.Empty<ApiBeatmap>(), SnakeCaseNamingPolicy.Options);
+        //TODO
+        return JsonSnake(new
+        {
+            beatmaps = beatmaps.Select(map => new ApiBeatmap(map, new ApiBeatmapset(map.Set!, map)))
+        });
     }
 }

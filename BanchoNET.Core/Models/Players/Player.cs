@@ -97,6 +97,7 @@ public sealed class Player : IPlayer, IDisposable,
         RemainingSupporter = userInfo.RemainingSupporter;
         AwayMessage = userInfo.AwayMessage;
         ApiKey = userInfo.ApiKey;
+        _countryCodeString = userInfo.Country;
     }
     
     public override string ToString() => Username;

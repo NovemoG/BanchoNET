@@ -81,6 +81,25 @@ public class PlayersRepository : IPlayersRepository
 			.ToListAsync();
 	}
 
+	public async Task<List<LookupApiPlayer>> GetPlayers(
+		int[] ids
+	) {
+		return await _dbContext.Players
+			.Where(p => ids.Contains(p.Id))
+			.Select(p => new LookupApiPlayer
+			{
+				CountryCode = p.Country,
+				Country = p.Country.ParseCountry(),
+				Id = p.Id,
+				IsActive = !p.Inactive,
+				IsDeleted = p.Deleted,
+				IsSupporter = p.IsSupporter,
+				LastVisit = p.LastActivityTime,
+				PmFriendsOnly = p.PmFriendsOnly,
+				Username = p.Username,
+			}).ToListAsync();
+	}
+
 	public async Task AddFriend(Player player, int targetId)
 	{
 		if (player.Friends.Contains(targetId))
@@ -88,7 +107,7 @@ public class PlayersRepository : IPlayersRepository
 		
 		player.Friends.Add(targetId);
 		
-		await _dbContext.Relationships.AddAsync(new RelationshipDto
+		_dbContext.Relationships.Add(new RelationshipDto
 		{
 			PlayerId = player.Id,
 			TargetId = targetId,
@@ -575,7 +594,7 @@ public class PlayersRepository : IPlayersRepository
 			LastActivityTime = DateTime.UtcNow
 		};
 		
-		var player = await _dbContext.Players.AddAsync(playerDto);
+		var player = _dbContext.Players.Add(playerDto);
 		await _dbContext.SaveChangesAsync();
 
 		var playerId = player.Entity.Id;

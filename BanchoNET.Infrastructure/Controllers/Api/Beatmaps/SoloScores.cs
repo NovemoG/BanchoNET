@@ -1,7 +1,6 @@
 ﻿using BanchoNET.Core.Models.Api.Beatmaps;
 using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Utils.Extensions;
-using BanchoNET.Core.Utils.Json;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BanchoNET.Infrastructure.Controllers.Api.Beatmaps;
@@ -16,8 +15,8 @@ public partial class BeatmapsController
         if (!User.TryGetUserId(out var uid)) return Unauthorized();
 
         var response = await scoresQueue.EnqueueScore(dto, uid, beatmapId);
-        
-        return new JsonResult(response, SnakeCaseNamingPolicy.Options);
+
+        return JsonSnake(response);
     }
     
     [HttpPut("solo/scores/{scoreId:int}")]
@@ -30,6 +29,6 @@ public partial class BeatmapsController
 
         var response = await scoresQueue.SubmitScore(dto, scoreId, uid, beatmapId);
 
-        return new JsonResult(response, SnakeCaseNamingPolicy.Options);
+        return JsonSnake(response);
     }
 }

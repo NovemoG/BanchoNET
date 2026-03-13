@@ -1,6 +1,5 @@
 ﻿using System.Text.Json.Serialization;
 using BanchoNET.Core.Models.Api.Scores;
-using BanchoNET.Core.Models.Mods;
 
 namespace BanchoNET.Core.Models.Api.Beatmaps;
 
@@ -15,7 +14,7 @@ public class ScoreSubmitRequestDto
     public required string Rank { get; set; }
     
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public LazerMod[]? Mods { get; set; }
+    public ApiMod[]? Mods { get; set; }
     
     public Statistics Statistics { get; set; } = new();
     public MaxStatistics MaximumStatistics { get; set; } = new();

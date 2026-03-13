@@ -53,7 +53,7 @@ public partial class CommandProcessor
         var completionString = $"{score.Grade}";
         if (score.Status == (byte)SubmissionStatus.Failed)
         {
-            completionString = beatmap.NotesCount > 0
+            completionString = beatmap.CirclesCount > 0
                 ? $"FAILED ({score.CalculateCompletion(beatmap):F2}%)"
                 : "FAILED";
         }

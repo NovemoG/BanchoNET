@@ -1,4 +1,5 @@
 ﻿using System.Security.Cryptography;
+using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Dtos;
 
@@ -145,7 +146,7 @@ public static class BeatmapExtensions
 			Artist = beatmap.Artist,
 			Title = beatmap.Title,
 			Name = beatmap.Name,
-			Creator = beatmap.Creator,
+			CreatorName = beatmap.Creator,
 			SubmitDate = beatmap.SubmitDate,
 			LastUpdate = beatmap.LastUpdate,
 			TotalLength = beatmap.TotalLength,
@@ -158,7 +159,7 @@ public static class BeatmapExtensions
 			Od = beatmap.Od,
 			Hp = beatmap.Hp,
 			StarRating = beatmap.StarRating,
-			NotesCount = beatmap.NotesCount,
+			CirclesCount = beatmap.CirclesCount,
 			SlidersCount = beatmap.SlidersCount,
 			SpinnersCount = beatmap.SpinnersCount
 		};
@@ -174,7 +175,7 @@ public static class BeatmapExtensions
 		currentBeatmap.Artist = newBeatmap.Artist;
 		currentBeatmap.Title = newBeatmap.Title;
 		currentBeatmap.Name = newBeatmap.Name;
-		currentBeatmap.Creator = newBeatmap.Creator;
+		currentBeatmap.CreatorName = newBeatmap.Creator;
 		currentBeatmap.SubmitDate = newBeatmap.SubmitDate;
 		currentBeatmap.LastUpdate = newBeatmap.LastUpdate;
 		currentBeatmap.TotalLength = newBeatmap.TotalLength;
@@ -185,7 +186,7 @@ public static class BeatmapExtensions
 		currentBeatmap.Od = newBeatmap.Od;
 		currentBeatmap.Hp = newBeatmap.Hp;
 		currentBeatmap.StarRating = newBeatmap.StarRating;
-		currentBeatmap.NotesCount = newBeatmap.NotesCount;
+		currentBeatmap.CirclesCount = newBeatmap.CirclesCount;
 		currentBeatmap.SlidersCount = newBeatmap.SlidersCount;
 		currentBeatmap.SpinnersCount = newBeatmap.SpinnersCount;
 		

@@ -1,5 +1,7 @@
 ﻿using System.Text.Json.Serialization;
-using BanchoNET.Core.Models.Api.Player;
+using BanchoNET.Core.Models.Beatmaps;
+using BanchoNET.Core.Models.Dtos;
+using BanchoNET.Core.Utils.Extensions;
 
 namespace BanchoNET.Core.Models.Api.Beatmaps;
 
@@ -32,165 +34,105 @@ public class ApiBeatmap
     public int Ranked { get; set; }
     public string Url { get; set; }
     public string Checksum { get; set; }
-    [JsonIgnore]
-    public ApiBeatmapset Beatmapset { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ApiBeatmapset? Beatmapset { get; set; }
     public int CurrentUserPlaycount { get; set; }
     public string[] CurrentUserTagIds { get; set; } = [];
     public Failtime Failtimes { get; set; }
     public int MaxCombo { get; set; }
     public List<Owner>? Owners { get; set; }
     public List<MapTag> TopTagIds { get; set; } = [];
-}
+    
+    [JsonConstructor]
+    public ApiBeatmap() { }
 
-public class ApiBeatmapset
-{
-    public bool AnimeCover { get; set; }
-    public string Artist { get; set; }
-    public string ArtistUnicode { get; set; }
-    public Covers Covers { get; set; }
-    public string Creator { get; set; }
-    public int FavouriteCount { get; set; }
-    public int GenreId { get; set; }
-    public int? Hype { get; set; }
-    public int Id { get; set; }
-    public int LanguageId { get; set; }
-    public bool Nsfw { get; set; }
-    public int Offset { get; set; }
-    public long PlayCount { get; set; }
-    public string PreviewUrl { get; set; }
-    public string Source { get; set; }
-    public bool Spotlight { get; set; }
-    public string Status { get; set; }
-    public string Title { get; set; }
-    public string TitleUnicode { get; set; }
-    public object? TrackId { get; set; } //TODO
-    public int UserId { get; set; }
-    public bool Video { get; set; }
-    public double Bpm { get; set; }
-    public bool CanBeHyped { get; set; }
-    public DateTimeOffset? DeletedAt { get; set; }
-    public bool DiscussionEnabled { get; set; }
-    public bool DiscussionLocked { get; set; }
-    public bool IsScoreable { get; set; }
-    public DateTimeOffset LastUpdated { get; set; }
-    public string LegacyThreadUrl { get; set; }
-    public NominationsSummary NominationsSummary { get; set; }
-    public int Ranked { get; set; }
-    public DateTimeOffset? RankedDate { get; set; }
-    public double Rating { get; set; }
-    public bool Storyboard { get; set; }
-    public DateTimeOffset SubmittedDate { get; set; }
-    public string Tags { get; set; }
-    public Availability Availability { get; set; }
-    public bool HasFavourited { get; set; }
-    public List<ApiBeatmap> Beatmaps { get; set; }
-    public Nomination[] CurrentNominations { get; set; }
-    public MapDescription Description { get; set; }
-    public Genre Genre { get; set; }
-    public Language Language { get; set; }
-    public List<string> PackTags { get; set; } = [];
-    public int[] Ratings { get; set; } = new int[10];
-    public List<BasicApiPlayer> RecentFavourites { get; set; } = [];
-    public List<BasicApiPlayer> RelatedUsers { get; set; } = [];
-    public List<SetTag> RelatedTags { get; set; } = [];
-    public BasicApiPlayer User { get; set; }
-    public int VersionCount { get; set; }
-}
-
-public class Covers
-{
-    public string Cover { get; set; }
-    public string Cover2X { get; set; }
-    public string Card { get; set; }
-    public string Card2X { get; set; }
-    public string List { get; set; }
-    public string List2X { get; set; }
-    public string Slimcover { get; set; }
-    public string Slimcover2X { get; set; }
-
-    public Covers(
-        int beatmapsetId,
-        long coverId
+    public ApiBeatmap(
+        BeatmapDto mapDto,
+        ApiBeatmapset? beatmapset = null
     ) {
-        Cover = $"https://assets.ppy.sh/beatmaps/{beatmapsetId}/covers/cover.jpg?{coverId}";
-        Cover2X = $"https://assets.ppy.sh/beatmaps/{beatmapsetId}/covers/cover@2x.jpg?{coverId}";
-        Card = $"https://assets.ppy.sh/beatmaps/{beatmapsetId}/covers/card.jpg?{coverId}";
-        Card2X = $"https://assets.ppy.sh/beatmaps/{beatmapsetId}/covers/card@2x.jpg?{coverId}";
-        List = $"https://assets.ppy.sh/beatmaps/{beatmapsetId}/covers/list.jpg?{coverId}";
-        List2X = $"https://assets.ppy.sh/beatmaps/{beatmapsetId}/covers/list@2x.jpg?{coverId}";
-        Slimcover = $"https://assets.ppy.sh/beatmaps/{beatmapsetId}/covers/slimcover.jpg?{coverId}";
-        Slimcover2X = $"https://assets.ppy.sh/beatmaps/{beatmapsetId}/covers/slimcover@2x.jpg?{coverId}";
+        BeatmapsetId = mapDto.SetId;
+        DifficultyRating = mapDto.StarRating;
+        Id = mapDto.MapId;
+        Mode = EnumExtensions.FromModeMap[(GameMode)mapDto.Mode];
+        Status = ((BeatmapStatus)mapDto.Status).ToApiBeatmapStatus();
+        TotalLength = mapDto.TotalLength;
+        UserId = mapDto.CreatorId;
+        Version = mapDto.Name;
+        Accuracy = mapDto.Od;
+        Ar = mapDto.Ar;
+        Bpm = mapDto.Bpm;
+        Convert = false; //TODO
+        CountCircles = mapDto.CirclesCount;
+        CountSliders = mapDto.SlidersCount;
+        CountSpinners = mapDto.SpinnersCount;
+        Cs = mapDto.Cs;
+        DeletedAt = null; //TODO
+        Drain = mapDto.Hp;
+        HitLength = mapDto.HitLength;
+        IsScoreable = true; //TODO
+        LastUpdated = mapDto.LastUpdate;
+        ModeInt = mapDto.Mode;
+        Passcount = mapDto.Passes;
+        Playcount = mapDto.Plays;
+        Ranked = mapDto.Status == (sbyte)BeatmapStatus.Ranked ? 1 : 0;
+        Url = $"https://osu.ppy.sh/beatmaps/{mapDto.MapId}";
+        Checksum = mapDto.MD5;
+        CurrentUserPlaycount = 0; //TODO fetch
+        CurrentUserTagIds = []; //TODO
+        Failtimes = new Failtime
+        {
+            Fail = [], //TODO
+            Exit = [] //TODO
+        };
+        MaxCombo = mapDto.MaxCombo;
+        Owners = []; //TODO
+        TopTagIds = []; //TODO
+
+        Beatmapset = beatmapset;
     }
-}
 
-public class NominationsSummary
-{
-    public int Current { get; set; }
-    public string[] EligibleMainRulesets { get; set; }
-    public RequiredMeta RequiredMeta { get; set; }
-}
-
-public class RequiredMeta
-{
-    public int MainRuleset { get; set; }
-    public int NonMainRuleset { get; set; }
-}
-
-public class Availability
-{
-    public bool DownloadDisabled { get; set; }
-    public string? MoreInformation { get; set; }
-}
-
-public class Failtime
-{
-    public int[] Fail { get; set; } = [];
-    public int[] Exit { get; set; } = [];
-}
-
-public class Owner
-{
-    public int Id { get; set; }
-    public string Username { get; set; }
-}
-
-public class Nomination
-{
-    public int BeatmapsetId { get; set; }
-    public List<string> Rulesets { get; set; } = [];
-    public bool Reset { get; set; }
-    public int UserId { get; set; }
-}
-
-public class MapDescription
-{
-    public string Description { get; set; }
-}
-
-public class Genre
-{
-    public int Id { get; set; }
-    public string Name { get; set; }
-}
-
-public class Language
-{
-    public int Id { get; set; }
-    public string Name { get; set; }
-}
-
-public class MapTag
-{
-    public int TagId { get; set; }
-    public int Count { get; set; }
-}
-
-public class SetTag
-{
-    public int Id { get; set; }
-    public string Name { get; set; }
-    public int RulesetId { get; set; }
-    public string Description { get; set; }
-    public DateTimeOffset? CreatedAt { get; set; }
-    public DateTimeOffset? UpdatedAt { get; set; }
+    public ApiBeatmap(
+        Beatmap beatmap,
+        ApiBeatmapset? beatmapset = null
+    ) {
+        BeatmapsetId = beatmap.SetId;
+        DifficultyRating = beatmap.StarRating;
+        Id = beatmap.Id;
+        Mode = EnumExtensions.FromModeMap[beatmap.Mode];
+        Status = beatmap.Status.ToApiBeatmapStatus();
+        TotalLength = beatmap.TotalLength;
+        UserId = beatmap.CreatorId;
+        Version = beatmap.Name;
+        Accuracy = beatmap.Od;
+        Ar = beatmap.Ar;
+        Bpm = beatmap.Bpm;
+        Convert = false; //TODO
+        CountCircles = beatmap.CirclesCount;
+        CountSliders = beatmap.SlidersCount;
+        CountSpinners = beatmap.SpinnersCount;
+        Cs = beatmap.Cs;
+        DeletedAt = null; //TODO
+        Drain = beatmap.Hp;
+        HitLength = beatmap.HitLength;
+        IsScoreable = true; //TODO
+        LastUpdated = beatmap.LastUpdate;
+        ModeInt = (int)beatmap.Mode;
+        Passcount = beatmap.Passes;
+        Playcount = beatmap.Plays;
+        Ranked = beatmap.Status == BeatmapStatus.Ranked ? 1 : 0;
+        Url = $"https://osu.ppy.sh/beatmaps/{beatmap.Id}";
+        Checksum = beatmap.MD5;
+        CurrentUserPlaycount = 0; //TODO fetch
+        CurrentUserTagIds = []; //TODO
+        Failtimes = new Failtime
+        {
+            Fail = [], //TODO
+            Exit = [] //TODO
+        };
+        MaxCombo = beatmap.MaxCombo;
+        Owners = []; //TODO
+        TopTagIds = []; //TODO
+        
+        Beatmapset = beatmapset;
+    }
 }

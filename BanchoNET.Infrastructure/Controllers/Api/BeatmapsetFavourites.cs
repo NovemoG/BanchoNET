@@ -12,6 +12,6 @@ public partial class ApiController
         
         //TODO get favorites
 
-        return Ok(new BeatmapsetFavorites());
+        return JsonSnake(new BeatmapsetFavorites());
     }
 }

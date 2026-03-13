@@ -1,7 +1,7 @@
 ﻿using System.Globalization;
-using AkatsukiPp;
 using BanchoNET.Core.Attributes;
 using BanchoNET.Core.Models;
+using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Models.Privileges;
 using BanchoNET.Core.Models.Scores;
 using BanchoNET.Core.Utils.Extensions;
@@ -45,7 +45,7 @@ public partial class CommandProcessor
             perfectFc = args[12] == "1";
         else perfectFc = false;
 
-        var mods = args.Length > 13 ? args[13].ParseMods((GameMode)parsedValues[1]) : StableMods.None;
+        var mods = args.Length > 13 ? args[13].ParseMods((GameMode)parsedValues[1]) : LegacyMods.None;
 
         var beatmap = await beatmaps.GetBeatmap(parsedValues[0]);
         if (beatmap == null) return BeatmapNotFound;

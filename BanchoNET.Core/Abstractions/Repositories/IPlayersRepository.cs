@@ -14,6 +14,7 @@ public interface IPlayersRepository
     Task<bool> PlayerExists(string username);
     Task<bool> ChangeUsername(string oldUsername, string newUsername);
     Task<List<string>> GetPlayerNames(List<int> ids);
+    Task<List<LookupApiPlayer>> GetPlayers(int[] ids);
     
     Task AddFriend(Player player, int targetId);
     Task RemoveFriend(Player player, int targetId);

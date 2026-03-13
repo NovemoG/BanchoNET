@@ -1,6 +1,8 @@
 ﻿using System.Text.Json.Serialization;
 using BanchoNET.Core.Models.Api.Player;
-using BanchoNET.Core.Models.Mods;
+using BanchoNET.Core.Models.Beatmaps;
+using BanchoNET.Core.Models.Dtos;
+using BanchoNET.Core.Models.Scores;
 
 namespace BanchoNET.Core.Models.Api.Scores;
 
@@ -11,13 +13,13 @@ public class ApiScore
     public bool Processed { get; set; }
     public bool Ranked { get; set; }
     public MaxStatistics MaximumStatistics { get; set; } = new();
-    public LazerMod[] Mods { get; set; } = [];
+    public ApiMod[] Mods { get; set; } = [];
     public Statistics Statistics { get; set; } = new();
     public int TotalScoreWithoutMods { get; set; }
     public int BeatmapId { get; set; }
     public long? BestId { get; set; }
     public long Id { get; set; }
-    public required string Rank { get; set; }
+    public string Rank { get; set; } = null!;
     public string Type { get; set; } = "solo_score"; //TODO
     public int UserId { get; set; }
     public double Accuracy { get; set; }
@@ -39,4 +41,99 @@ public class ApiScore
     
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public BasicApiPlayer? User { get; set; }
+    
+    [JsonConstructor]
+    public ApiScore() { }
+
+    public ApiScore(
+        Score score,
+        Players.Player player,
+        Beatmap beatmap
+    ) {
+        ClassicTotalScore = score.TotalScore; //TODO
+        Preserve = score.Preserve;
+        Processed = score.Processed;
+        Ranked = score.Ranked;
+        MaximumStatistics = beatmap.MaxStatistics;
+        //TODO mods
+        Statistics = new Statistics
+        {
+            Ok = score.Count100,
+            Meh = score.Count50,
+            Miss = score.Misses,
+            Great = score.Count300,
+            IgnoreHit = score.IgnoreHit,
+            IgnoreMiss = score.IgnoreMiss,
+            LargeTickHit = score.Gekis,
+            SliderTailHit = score.Katus
+        };
+        //TODO TotalScoreWithoutMods
+        BeatmapId = beatmap.Id;
+        Id = score.Id;
+        Rank = score.Grade.ToString();
+        UserId = score.PlayerId;
+        Accuracy = score.Acc / 100f;
+        EndedAt = score.ClientTime;
+        HasReplay = score.HasReplay;
+        IsPerfectCombo = score.Perfect;
+        LegacyPerfect = score.Perfect;
+        //TODO LegacyScoreId
+        //TODO LegacyTotalScore
+        MaxCombo = score.MaxCombo;
+        Passed = score.Passed;
+        Pp = score.PP;
+        RulesetId = (int)score.Mode;
+        StartedAt = score.StartTime;
+        TotalScore = score.TotalScore;
+        Replay = HasReplay;
+        //TODO CurrentUserAttributes
+        
+        User = new BasicApiPlayer(player);
+    }
+
+    public ApiScore(
+        ScoreDto scoreDto,
+        PlayerDto player,
+        Beatmap beatmap
+    ) {
+        ClassicTotalScore = scoreDto.TotalScore; //TODO
+        Preserve = scoreDto.Preserve;
+        Processed = scoreDto.Processed;
+        Ranked = scoreDto.Ranked;
+        MaximumStatistics = beatmap.MaxStatistics;
+        //TODO mods
+        Statistics = new Statistics
+        {
+            Ok = scoreDto.Count100,
+            Meh = scoreDto.Count50,
+            Miss = scoreDto.Misses,
+            Great = scoreDto.Count300,
+            IgnoreHit = scoreDto.IgnoreHit,
+            IgnoreMiss = scoreDto.IgnoreMiss,
+            LargeTickHit = scoreDto.Gekis,
+            SliderTailHit = scoreDto.Katus
+        };
+        //TODO TotalScoreWithoutMods
+        BeatmapId = beatmap.Id;
+        Id = scoreDto.Id;
+        Rank = scoreDto.Grade.ToString();
+        UserId = scoreDto.PlayerId;
+        Accuracy = scoreDto.Acc / 100f;
+        EndedAt = scoreDto.PlayTime;
+        HasReplay = scoreDto.HasReplay;
+        IsPerfectCombo = scoreDto.IsPerfectCombo;
+        LegacyPerfect = scoreDto.IsPerfectCombo;
+        //TODO LegacyScoreId
+        //TODO LegacyTotalScore
+        MaxCombo = scoreDto.MaxCombo;
+        Passed = scoreDto.Passed;
+        Pp = scoreDto.PP;
+        RulesetId = scoreDto.Mode;
+        StartedAt = scoreDto.StartTime;
+        TotalScore = scoreDto.TotalScore;
+        Replay = HasReplay;
+        //TODO CurrentUserAttributes
+        
+        User = new BasicApiPlayer(player);
+    }
 }

@@ -29,8 +29,8 @@ public partial class OsuController
         [FromForm(Name = "s")] byte[] clientHashB64,
         [FromForm(Name = "score")] string scoreDataB64,
         [FromForm(Name = "score")] IFormFile? replayFile = null,
-        [FromForm(Name = "sbk")] string? storyboardMD5 = null)
-    {
+        [FromForm(Name = "sbk")] string? storyboardMD5 = null
+    ) {
         if (string.IsNullOrEmpty(scoreDataB64) || replayFile == null)
             return Ok();
 		
@@ -46,6 +46,8 @@ public partial class OsuController
         if (beatmap == null)
             return Ok("error: beatmap");
 
+        var beatmapId = beatmap.Id;
+
         var username = scoreData[1];
         if (username[^1] == ' ')
             username = username[..^1];
@@ -57,24 +59,25 @@ public partial class OsuController
         var score = new Score(scoreData[2..], beatmap, player);
 		
         var uniqueIdMD5s = uniqueIds.Split('|', 2);
-        var uniqueId1 = uniqueIdMD5s[0].CreateMD5();
-        var uniqueId2 = uniqueIdMD5s[1].CreateMD5();
+        var uninstallMd5 = uniqueIdMD5s[0].CreateMD5();
+        var diskSignatureMd5 = uniqueIdMD5s[1].CreateMD5();
 
         try
         {
             var versionDate = DateTime.ParseExact(osuVersion[..8], "yyyyMMdd", null);
             
+            //TODO this is broken
             if (versionDate != player.ClientDetails?.OsuVersion.Date)
                 throw new Exception("osu! version mismatch");
 			
             if (clientHash != player.ClientDetails.ClientHash)
                 throw new Exception("Client hash mismatch");
 			
-            if (uniqueId1 != player.ClientDetails.UninstallMD5)
-                throw new Exception($"UniqueId1 mismatch ({uniqueId1} != {player.ClientDetails.UninstallMD5})");
+            if (uninstallMd5 != player.ClientDetails.UninstallMD5)
+                throw new Exception($"UniqueId1 mismatch ({uninstallMd5} != {player.ClientDetails.UninstallMD5})");
 
-            if (uniqueId2 != player.ClientDetails.DiskSignatureMD5)
-                throw new Exception($"UniqueId2 mismatch ({uniqueId2} != {player.ClientDetails.UninstallMD5})");
+            if (diskSignatureMd5 != player.ClientDetails.DiskSignatureMD5)
+                throw new Exception($"UniqueId2 mismatch ({diskSignatureMd5} != {player.ClientDetails.DiskSignatureMD5})");
 
             var serverScoreChecksum = score.ComputeOnlineChecksum(osuVersion, clientHash, storyboardMD5 ?? "");
             if (score.ClientChecksum != serverScoreChecksum)
@@ -85,7 +88,6 @@ public partial class OsuController
         }
         catch (Exception e)
         {
-            //TODO CHECK THIS
             logger.LogError("Mismatching hashes on score submission", e);
 
             //await players.RestrictPlayer(player, "Mismatching hashes on score submission");
@@ -114,9 +116,9 @@ public partial class OsuController
         }
         score.CalculateAccuracy();
         
-        var prevBest = await scores.GetPlayerBestScoreOnMap(player.Id, beatmapMD5, score.Mode);
+        var prevBest = await scores.GetPlayerBestScoreOnMap(player.Id, score.Mode, beatmapId);
         var bestWithMods = prevBest != null && score.Mods != prevBest.Mods
-            ? await scores.GetPlayerBestScoreWithModsOnMap(player.Id, beatmapMD5, score.Mode, score.Mods)
+            ? await scores.GetPlayerBestScoreWithModsOnMap(player.Id, score.Mode, score.Mods, beatmapId)
             : null;
         
         if (await beatmapHandler.EnsureLocalBeatmapFile(beatmap.Id, beatmapMD5))
@@ -128,7 +130,7 @@ public partial class OsuController
                 ComputeSubmissionStatus(score, prevBest, bestWithMods);
                 
                 if (beatmap.Status != BeatmapStatus.LatestPending)
-                    await scores.SetScoreLeaderboardPosition(beatmap.MD5, score, false);
+                    await scores.SetScoreLeaderboardPosition(score, false, beatmapId);
             }
             else score.Status = SubmissionStatus.Failed;
             
@@ -175,9 +177,6 @@ public partial class OsuController
             }
         }
         
-        score.Player = player;
-        player.RecentScore = await scores.InsertScore(score, beatmap.MD5, player.IsRestricted);
-
         if (score.Passed)
         {
             if (replayFile.Length >= 24)
@@ -185,6 +184,7 @@ public partial class OsuController
                 await using var fileStream = new FileStream(Storage.GetReplayPath(score.Id), FileMode.Create, FileAccess.ReadWrite);
                 //TODO unreadable replay
                 await replayFile.CopyToAsync(fileStream);
+                score.HasReplay = true;
             }
             else
             {
@@ -194,7 +194,9 @@ public partial class OsuController
                     await players.RestrictPlayer(player, "Submitted score with invalid replay length");
             }
         }
-
+        
+        score.Player = player;
+        player.RecentScore = await scores.InsertScore(score, player.IsRestricted, beatmap.MD5, beatmapId);
         
         var stats = player.Stats[score.Mode];
         var prevStats = stats.Copy();
@@ -205,7 +207,7 @@ public partial class OsuController
         stats.UpdateHits(score);
         
         var previousBest = score.PreviousBest;
-        if (previousBest != null) await scores.SetScoreLeaderboardPosition(beatmap.MD5, previousBest, false);
+        if (previousBest != null) await scores.SetScoreLeaderboardPosition(previousBest, false, beatmapId);
         
         await RecalculatePlayerStats(beatmap, stats, player, score, previousBest, bestWithMods);
         await players.UpdatePlayerStats(player, score.Mode);
@@ -281,8 +283,8 @@ public partial class OsuController
     private static void ComputeSubmissionStatus(
         Score newScore,
         Score? prevBest,
-        Score? bestWithMods)
-    {
+        Score? bestWithMods
+    ) {
         newScore.Status = SubmissionStatus.Submitted;
         
         if (newScore.IsBetterThan(prevBest))
@@ -327,8 +329,8 @@ public partial class OsuController
         Player player,
         Score score,
         Score? prevBest,
-        Score? bestWithMods)
-    {
+        Score? bestWithMods
+    ) {
         if (!score.Passed || !beatmap.AwardsPP())
             return;
         
@@ -373,8 +375,11 @@ public partial class OsuController
         }
     }
 
-    private async Task AnnounceNewFirstScore(Score score, Player player, Beatmap beatmap)
-    {
+    private async Task AnnounceNewFirstScore(
+        Score score,
+        Player player,
+        Beatmap beatmap
+    ) {
         if (score.LeaderboardPosition == 1 && !player.IsRestricted)
         {
             var announceChannel = channels.GetChannel("#announce");
@@ -404,8 +409,8 @@ public partial class OsuController
         string osuVersion,
         string ivB64,
         string scoreDataB64,
-        byte[] clientHashB64)
-    {
+        byte[] clientHashB64
+    ) {
         if (string.IsNullOrEmpty(osuVersion) || ivB64.Length == 0) return null;
 		
         var scoreB64 = Convert.FromBase64String(scoreDataB64);
@@ -426,8 +431,8 @@ public partial class OsuController
     private static string DecipherBytes(
         PaddedBufferedBlockCipher cipher,
         ParametersWithIV keyWithIv,
-        byte[] bytesToDecipher)
-    {
+        byte[] bytesToDecipher
+    ) {
         cipher.Init(false, keyWithIv);
         var comparisonBytes = new byte[cipher.GetOutputSize(bytesToDecipher.Length)];
         var length = cipher.ProcessBytes(bytesToDecipher, comparisonBytes, 0);

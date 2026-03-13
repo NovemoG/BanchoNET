@@ -112,6 +112,21 @@ public class BeatmapsRepository(
 		return beatmapSet;
 	}
 
+	public async Task<List<Beatmap>> GetBeatmaps(
+		int[] beatmapIds
+	) {
+		List<Beatmap> beatmapList = [];
+		foreach (var id in beatmapIds)
+		{
+			var beatmap = await GetBeatmap(id);
+			if (beatmap == null) continue;
+			
+			beatmapList.Add(beatmap);
+		}
+
+		return beatmapList;
+	}
+
 	public async Task UpdateBeatmapSet(
 		int setId
 	) {
@@ -192,7 +207,7 @@ public class BeatmapsRepository(
 			}
 			else
 			{
-				await dbContext.Beatmaps.AddAsync(beatmap.ToDto());
+				dbContext.Beatmaps.Add(beatmap.ToDto());
 			}
 		}
 		

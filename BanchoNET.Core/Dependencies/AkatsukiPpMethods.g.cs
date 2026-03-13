@@ -4,6 +4,7 @@ using System;
 using System.Runtime.InteropServices;
 using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Dtos;
+using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Models.Scores;
 using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
@@ -65,7 +66,7 @@ namespace AkatsukiPp
         {
             var acc = ScoreExtensions.CalculateAccuracy(
                 (GameMode)score.Mode,
-                (StableMods)score.Mods,
+                (LegacyMods)score.Mods,
                 score.Count300 + score.Misses,
                 score.Count100,
                 score.Count50,

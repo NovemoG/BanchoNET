@@ -19,11 +19,14 @@ public class ScoreDto
 	
 	[Column(TypeName = "CHAR(32)"), Unicode(false)]
 	public required string BeatmapMD5 { get; set; }
+	public int MapId { get; set; }
 	
 	public bool IsPinned { get; set; }
 	public bool Preserve { get; set; }
+	public bool Processed { get; set; }
+	public bool Ranked { get; set; }
 	public bool HasReplay { get; set; }
-	[NotMapped] public bool Passed => Grade == 1;
+	[NotMapped] public bool Passed => Status > 0;
 	
 	[Column(TypeName = "FLOAT(7,3)")]
 	public float PP { get; set; }
@@ -35,8 +38,16 @@ public class ScoreDto
 	public int Count100 { get; set; }
 	public int Count50 { get; set; }
 	public int Misses { get; set; }
+	/// <summary>
+	/// On lazer used as LargeTickHit
+	/// </summary>
 	public int Gekis { get; set; }
+	/// <summary>
+	/// On lazer used as SliderTailHit
+	/// </summary>
 	public int Katus { get; set; }
+	public int IgnoreHit { get; set; }
+	public int IgnoreMiss { get; set; }
 	
 	public int TotalScore { get; set; }
 	public int ClassicScore { get; set; }
@@ -50,8 +61,13 @@ public class ScoreDto
 	[Column(TypeName = "TINYINT(2)")]
 	public byte Mode { get; set; }
 	
+	/// <summary>
+	/// On lazer used as EndedAt
+	/// </summary>
 	[Column(TypeName = "DATETIME")]
 	public DateTime PlayTime { get; set; }
+	[Column(TypeName = "DATETIME")]
+	public DateTime StartTime { get; set; }
 	
 	public int TimeElapsed { get; set; }
 	public int ClientFlags { get; set; }

@@ -1,4 +1,5 @@
 ﻿using BanchoNET.Core.Models;
+using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils.Extensions;
@@ -15,19 +16,19 @@ public partial class ClientPacketsHandler
 		status.ActivityDescription = br.ReadOsuString();
 		status.BeatmapMD5 = br.ReadOsuString();
 		
-		var mods = (StableMods)br.ReadInt32();
+		var mods = (LegacyMods)br.ReadInt32();
 		var mode = (GameMode)br.ReadByte();
 
-		if (mods.HasMod(StableMods.Relax))
+		if (mods.HasMod(LegacyMods.Relax))
 		{
 			if (mode == GameMode.VanillaMania)
-				mods &= ~StableMods.Relax;
+				mods &= ~LegacyMods.Relax;
 			else mode += 4;
 		}
-		else if (mods.HasMod(StableMods.Autopilot))
+		else if (mods.HasMod(LegacyMods.Autopilot))
 		{
 			if (mode is GameMode.VanillaTaiko or GameMode.VanillaCatch or GameMode.VanillaMania)
-				mods &= ~StableMods.Autopilot;
+				mods &= ~LegacyMods.Autopilot;
 			else mode += 8;
 		}
 

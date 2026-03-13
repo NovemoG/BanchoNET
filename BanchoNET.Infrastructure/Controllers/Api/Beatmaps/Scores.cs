@@ -1,6 +1,8 @@
 ﻿using BanchoNET.Core.Models.Api.Beatmaps;
+using BanchoNET.Core.Models.Api.Scores;
+using BanchoNET.Core.Models.Mods;
+using BanchoNET.Core.Models.Scores;
 using BanchoNET.Core.Utils.Extensions;
-using BanchoNET.Core.Utils.Json;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BanchoNET.Infrastructure.Controllers.Api.Beatmaps;
@@ -16,8 +18,44 @@ public partial class BeatmapsController
     ) {
         if (!User.TryGetUserId(out var uid)) return Unauthorized();
         
-        //TODO
+        if (limit is < 0 or > 100) return BadRequest();
+        if (!EnumExtensions.ToModeMap.TryGetValue(mode, out var gameMode))
+            return BadRequest();
 
-        return new JsonResult(new BeatmapScoresResponseDto(), SnakeCaseNamingPolicy.Options);
+        var beatmap = await Beatmaps.GetBeatmap(beatmapId);
+        if (beatmap == null) return NotFound();
+
+        var leaderboardType = type switch
+        {
+            "global" => LeaderboardType.Top,
+            "country" => LeaderboardType.Country,
+            "friend" => LeaderboardType.Friends,
+            _ => LeaderboardType.Top
+        };
+        
+        var player = await Players.GetPlayerOrOffline(uid);
+        if (player == null) return NotFound();
+        
+        var (leaderboardScores, playerBest) = await scores.GetLeaderboardScores(
+            leaderboardType,
+            gameMode,
+            LegacyMods.None,
+            uid,
+            player.Geoloc.Country.Acronym,
+            player.Friends.ToHashSet(),
+            beatmapId
+        );
+
+        var response = new BeatmapScoresResponseDto
+        {
+            ScoreCount = leaderboardScores.Count,
+            UserScore = playerBest == null ? null : new ApiScore(playerBest, player, beatmap)
+        };
+
+        response.Scores.AddRange(
+            leaderboardScores.Select(score => new ApiScore(score, score.Player, beatmap))
+        );
+
+        return JsonSnake(response);
     }
 }

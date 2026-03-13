@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace BanchoNET.Core.Utils.Json;
 
@@ -10,21 +11,9 @@ public class SnakeCaseNamingPolicy : JsonNamingPolicy
         PropertyNamingPolicy = new SnakeCaseNamingPolicy(),
         DictionaryKeyPolicy = new SnakeCaseNamingPolicy(),
         PropertyNameCaseInsensitive = true,
+        ReferenceHandler = ReferenceHandler.Preserve
     };
     
-    //TODO since ApiScore also has userScore and user_score make it an attribute
-    //     and this Policy a default one for every controller within ApiController
-    public static readonly JsonSerializerOptions ApiPlayerOptions = new()
-    {
-        PropertyNamingPolicy = new SnakeCaseNamingPolicy(),
-        DictionaryKeyPolicy = new SnakeCaseNamingPolicy(),
-        PropertyNameCaseInsensitive = true,
-    };
-    
-    static SnakeCaseNamingPolicy() {
-        ApiPlayerOptions.Converters.Add(new ApiPlayerConverter());
-    }
-
     public override string ConvertName(
         string name
     ) {

@@ -4,7 +4,6 @@ using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Mongo;
 using BanchoNET.Core.Utils.Extensions;
-using BanchoNET.Services.Repositories;
 
 namespace BanchoNET.Services.LobbyScoresQueue;
 

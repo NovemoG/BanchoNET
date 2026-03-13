@@ -10,6 +10,6 @@ public partial class UsersController
         [FromQuery] int offset,
         [FromQuery] int limit
     ) {
-        return Ok(Array.Empty<int>());
+        return JsonSnake(Array.Empty<int>());
     }
 }

@@ -1,6 +1,7 @@
 ﻿using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Dtos;
+using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Scores;
 using BanchoNET.Core.Packets;
@@ -48,18 +49,18 @@ public partial class OsuController
 			return Ok("-1|false");
 		}
 		
-		var mods = (StableMods)modsValue;
-		if (mods.HasMod(StableMods.Relax))
+		var mods = (LegacyMods)modsValue;
+		if (mods.HasMod(LegacyMods.Relax))
 		{
 			if (modeValue == (int)GameMode.VanillaMania)
-				mods &= ~StableMods.Relax;
+				mods &= ~LegacyMods.Relax;
 			else
 				modeValue += 4;
 		}
-		else if (mods.HasMod(StableMods.Autopilot))
+		else if (mods.HasMod(LegacyMods.Autopilot))
 		{
 			if (modeValue is (int)GameMode.VanillaTaiko or (int)GameMode.VanillaCatch or (int)GameMode.VanillaMania)
-				mods &= ~StableMods.Autopilot;
+				mods &= ~LegacyMods.Autopilot;
 			else
 				modeValue += 8;
 		}
@@ -82,7 +83,14 @@ public partial class OsuController
 			return Responses.BytesContentResult($"{(int)beatmap.Status}|false");
 		
 		(List<ScoreDto> Scores, Score? PlayerBest) leaderboard = !fromEditor
-			? await GetLeaderboardScores(leaderboardType, beatmap, mode, mods, player)
+			? await scores.GetLeaderboardScores(
+				(LeaderboardType)leaderboardType,
+				mode,
+				mods,
+				player.Id,
+				player.Geoloc.Country.Acronym,
+				player.Friends.ToHashSet(),
+				beatmap.MD5)
 			: ([], null);
 		
 		//TODO fetch rating
@@ -109,31 +117,6 @@ public partial class OsuController
 		response = string.Join("\n", responseLines);
 		
 		return Responses.BytesContentResult(response);
-	}
-	
-	private async Task<(List<ScoreDto>, Score?)> GetLeaderboardScores(
-		int leaderboardType,
-		Beatmap beatmap,
-		GameMode mode,
-		StableMods mods,
-		Player player
-	) {
-		var type = (LeaderboardType)leaderboardType;
-		var leaderboard = await scores.GetBeatmapLeaderboard(beatmap.MD5, mode, type, mods, player);
-		
-		Score? playerBest = null;
-		if (leaderboard.Count > 0)
-		{
-			var withMods = type is LeaderboardType.Mods or LeaderboardType.CountryMods or LeaderboardType.FriendsMods;
-			playerBest = withMods
-				? await scores.GetPlayerBestScoreWithModsOnMap(player.Id, beatmap.MD5, mode, mods)
-				: await scores.GetPlayerBestScoreOnMap(player.Id, beatmap.MD5, mode);
-			
-			if (playerBest != null)
-				await scores.SetScoreLeaderboardPosition(beatmap.MD5, playerBest, withMods, mods);
-		}
-		
-		return (leaderboard, playerBest);
 	}
 
 	private static string FormatScore(ScoreDto dto, int position)

@@ -3,7 +3,6 @@ using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Api.Player;
 using BanchoNET.Core.Utils.Extensions;
-using BanchoNET.Core.Utils.Json;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BanchoNET.Infrastructure.Controllers.Api.Users;
@@ -31,7 +30,7 @@ public partial class UsersController(
 
         var apiPlayer = await Players.GetPlayerInfoForMode<ApiPlayer>(userId, mode);
         if (apiPlayer == null) return NotFound();
-        
-        return new JsonResult(apiPlayer, SnakeCaseNamingPolicy.ApiPlayerOptions);
+
+        return JsonSnake(apiPlayer);
     }
 }

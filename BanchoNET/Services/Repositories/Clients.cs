@@ -25,7 +25,7 @@ public class ClientsRepository(BanchoDbContext dbContext) : IClientsRepository
 
 		if (hasLoginData > 0) return;
 		
-		await dbContext.PlayerLogins.AddAsync(new LoginDto
+		dbContext.PlayerLogins.Add(new LoginDto
 		{
 			PlayerId = playerId,
 			Ip = ip.ToString(),
@@ -89,7 +89,7 @@ public class ClientsRepository(BanchoDbContext dbContext) : IClientsRepository
 		
 		if (hasClientHash > 0) return false;
 		
-		await dbContext.ClientHashes.AddAsync(new ClientHashesDto
+		dbContext.ClientHashes.Add(new ClientHashesDto
 		{
 			PlayerId = playerId,
 			OsuPath = osuPath,

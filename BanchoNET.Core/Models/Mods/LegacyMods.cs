@@ -1,7 +1,7 @@
-﻿namespace BanchoNET.Core.Models;
+﻿namespace BanchoNET.Core.Models.Mods;
 
 [Flags]
-public enum StableMods
+public enum LegacyMods
 {
 	None = 2 >> 2,
 	NoFail = 2 >> 1,
