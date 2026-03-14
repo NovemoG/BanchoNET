@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BanchoNET.Infrastructure.Controllers.Api;
 
+[Route("api")]
 public class LookupController(
     IAuthService auth,
     IPlayersRepository players,
@@ -16,7 +17,7 @@ public class LookupController(
     IBeatmapService beatmapService
 ) : ApiController(auth, players, beatmaps)
 {
-    [HttpGet("beatmaps/lookup")]
+    [HttpGet("v2/beatmaps/lookup")]
     public async Task<ActionResult<ApiBeatmap?>> LookupBeatmap(
         string checksum,
         string filename
@@ -29,9 +30,7 @@ public class LookupController(
         var beatmap = await Beatmaps.GetBeatmap(checksum);
         if (beatmap == null)
         {
-            if (await beatmapHandler.CheckIfMapExistsOnBanchoByFilename(filename))
-                beatmapService.InsertNeedsUpdateBeatmap(checksum);
-            
+            await beatmapHandler.CheckIfMapExistsOnBanchoByFilename(filename);
             return NotFound();
         }
         
@@ -39,7 +38,7 @@ public class LookupController(
         return JsonSnake(new ApiBeatmap(beatmap, new ApiBeatmapset(beatmap.Set!, beatmap)));
     }
     
-    [HttpGet("users/lookup")]
+    [HttpGet("v2/users/lookup")]
     public async Task<ActionResult<List<BasicApiPlayer>>> LookupUsers(
         [FromQuery(Name = "ids[]")] int[] playerIds
     ) {

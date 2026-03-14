@@ -48,8 +48,12 @@ public partial class BeatmapsController
 
         var response = new BeatmapScoresResponseDto
         {
-            ScoreCount = leaderboardScores.Count,
-            UserScore = playerBest == null ? null : new ApiScore(playerBest, player, beatmap)
+            ScoreCount = leaderboardScores.Count, //TODO all scores on the beatmap
+            UserScore = playerBest == null ? null : new UserScore
+            {
+                Position = playerBest.LeaderboardPosition,
+                Score = new ApiScore(playerBest, player, beatmap)
+            }
         };
 
         response.Scores.AddRange(

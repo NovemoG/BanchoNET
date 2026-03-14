@@ -1,9 +1,10 @@
 ﻿using BanchoNET.Core.Models.Auth;
+using BanchoNET.Core.Models.Db.Configurations;
 using BanchoNET.Core.Models.Dtos;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
-namespace BanchoNET.Core.Models;
+namespace BanchoNET.Core.Models.Db;
 
 public sealed class BanchoDbContext(DbContextOptions<BanchoDbContext> options) : DbContext(options)
 {
@@ -24,25 +25,13 @@ public sealed class BanchoDbContext(DbContextOptions<BanchoDbContext> options) :
 	protected override void OnModelCreating(
 		ModelBuilder modelBuilder
 	) {
-		base.OnModelCreating(modelBuilder);
+		modelBuilder
+			.ApplyConfiguration(new PlayerConfiguration())
+			.ApplyConfiguration(new RelationshipConfiguration())
+			.ApplyConfiguration(new BeatmapConfiguration())
+			.ApplyConfiguration(new BeatmapsetConfiguration());
 		
-		modelBuilder.Entity<BeatmapDto>()
-			.HasOne(b => b.Creator)
-			.WithMany(p => p.Beatmaps)
-			.HasForeignKey(b => b.CreatorId)
-			.OnDelete(DeleteBehavior.Restrict);
-
-		modelBuilder.Entity<BeatmapsetDto>()
-			.HasOne(bs => bs.Owner)
-			.WithMany(p => p.Beatmapsets)
-			.HasForeignKey(bs => bs.OwnerId)
-			.OnDelete(DeleteBehavior.Restrict);
-
-		modelBuilder.Entity<BeatmapDto>()
-			.HasOne(b => b.Beatmapset)
-			.WithMany(bs => bs.Beatmaps)
-			.HasForeignKey(b => b.SetId)
-			.OnDelete(DeleteBehavior.Cascade);
+		base.OnModelCreating(modelBuilder);
 	}
 }
 

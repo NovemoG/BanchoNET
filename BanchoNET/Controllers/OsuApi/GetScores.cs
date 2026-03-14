@@ -41,10 +41,8 @@ public partial class OsuController
 		if (beatmap == null)
 		{
 			if (await beatmapHandler.CheckIfMapExistsOnBanchoByFilename(mapFilename))
-			{
-				beatmapService.InsertNeedsUpdateBeatmap(mapMD5);
 				return Ok("1|false");
-			}
+			
 			//any string can be provided through this endpoint so we shouldn't cache any
 			return Ok("-1|false");
 		}

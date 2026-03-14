@@ -4,6 +4,7 @@ using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Repositories.Histories;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Models;
+using BanchoNET.Core.Models.Db;
 using BanchoNET.Core.Models.Privileges;
 using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils;

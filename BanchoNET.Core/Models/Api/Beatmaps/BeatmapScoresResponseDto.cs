@@ -8,7 +8,8 @@ public class BeatmapScoresResponseDto
     public int ScoreCount { get; set; }
     public List<ApiScore> Scores { get; set; } = [];
     
-    public ApiScore? UserScore { get; set; }
-    [JsonPropertyName("userScore"), JsonInclude]
-    private ApiScore? UserScore2 => UserScore;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public UserScore? UserScore { get; set; }
+    [JsonPropertyName("userScore"),JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    private UserScore? UserScore2 => UserScore;
 }

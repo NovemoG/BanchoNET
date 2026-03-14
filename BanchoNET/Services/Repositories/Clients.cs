@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Models;
+using BanchoNET.Core.Models.Db;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Privileges;
 using Microsoft.EntityFrameworkCore;

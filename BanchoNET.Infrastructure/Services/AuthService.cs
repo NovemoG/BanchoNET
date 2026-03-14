@@ -5,6 +5,7 @@ using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Auth;
+using BanchoNET.Core.Models.Db;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Utils.Extensions;
 using Microsoft.EntityFrameworkCore;

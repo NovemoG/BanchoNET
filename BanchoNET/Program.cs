@@ -9,6 +9,7 @@ using BanchoNET.Core.Abstractions.Repositories.Histories;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Channels;
+using BanchoNET.Core.Models.Db;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
@@ -236,11 +237,7 @@ public class Program
 		builder.Services.AddHttpClient()
 			.AddSessionServices(assemblies)
 			.AddMediatR(config => config.RegisterServicesFromAssemblies(assemblies))
-			.AddSingleton<LoggingHubFilter>()
-			.AddSignalR(options =>
-			{
-				options.AddFilter<LoggingHubFilter>();
-			})
+			.AddSignalR()
 			.AddMessagePackProtocol();
 		
 		var app = builder.Build();

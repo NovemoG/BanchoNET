@@ -7,7 +7,7 @@ namespace BanchoNET.Core.Models.Beatmaps;
 public class Beatmap : IBeatmap,
 	IEquatable<Beatmap>
 {
-	public BeatmapSet? Set { get; set; }
+	public BeatmapSet Set { get; set; } = null!;
 
 	public int OnlineId => Id;
 	public int Id { get; set; }
@@ -19,7 +19,7 @@ public class Beatmap : IBeatmap,
 	/// <summary>
 	/// Only if map is not ranked on official server
 	/// </summary>
-	public DateTime NextApiCheck { get; set; } = DateTime.MinValue;
+	public DateTime NextApiCheck { get; set; } = DateTime.UtcNow.AddDays(1);
 	public int ApiChecks { get; set; }
 	public bool IsRankedOfficially { get; set; }
 	
@@ -33,7 +33,7 @@ public class Beatmap : IBeatmap,
 	
 	public string Name { get; set; }
 	public string Creator { get; set; }
-	public int CreatorId { get; set; }
+	public int CreatorId { get; set; } //TODO
 	
 	public string Tags { get; set; }
 
@@ -86,7 +86,8 @@ public class Beatmap : IBeatmap,
 		TitleUnicode = apiBeatmap.TitleUnicode;
 		Name = apiBeatmap.Version;
 		Creator = apiBeatmap.Creator;
-		CreatorId = apiBeatmap.CreatorId;
+		//TODO CreatorId = apiBeatmap.CreatorId;
+		CreatorId = 1;
 		Tags = apiBeatmap.Tags;
 		LastUpdate = DateTime.Parse(apiBeatmap.LastUpdate);
 		TotalLength = apiBeatmap.TotalLength;
@@ -126,7 +127,8 @@ public class Beatmap : IBeatmap,
 		TitleUnicode = apiBeatmap.TitleUnicode;
 		Name = apiBeatmap.Version;
 		Creator = apiBeatmap.Creator;
-		CreatorId = int.Parse(apiBeatmap.CreatorId);
+		//TODO CreatorId = int.Parse(apiBeatmap.CreatorId);
+		CreatorId = 1;
 		Tags = apiBeatmap.Tags;
 		SubmitDate = DateTime.Parse(apiBeatmap.SubmitDate);
 		LastUpdate = DateTime.Parse(apiBeatmap.LastUpdate);
@@ -171,7 +173,8 @@ public class Beatmap : IBeatmap,
 		TitleUnicode = beatmapDto.TitleUnicode;
 		Name = beatmapDto.Name;
 		Creator = beatmapDto.CreatorName;
-		CreatorId = beatmapDto.CreatorId;
+		//TODO CreatorId = beatmapDto.CreatorId;
+		CreatorId = 1;
 		Tags = beatmapDto.Tags;
 		SubmitDate = beatmapDto.SubmitDate;
 		LastUpdate = beatmapDto.LastUpdate;
@@ -195,6 +198,8 @@ public class Beatmap : IBeatmap,
 		SpinnersCount = beatmapDto.SpinnersCount;
 		IgnoreHit = beatmapDto.IgnoreHit;
 		LargeTickHit = beatmapDto.LargeTickHit;
+		CoverId = beatmapDto.CoverId;
+		
 		NotesCount = CirclesCount + SlidersCount + SpinnersCount;
 		MaxStatistics = new MaxStatistics
 		{
@@ -203,8 +208,6 @@ public class Beatmap : IBeatmap,
 			IgnoreHit = IgnoreHit,
 			SliderTailHit = SliderTailHit
 		};
-		
-		CoverId = beatmapDto.CoverId;
 	}
 
 	#endregion

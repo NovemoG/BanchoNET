@@ -44,6 +44,11 @@ public class BasicApiPlayer
         Username = player.Username;
         Country = CountryCode.ParseCountry();
         //TODO Cover
+        Cover = new Cover
+        {
+            CustomUrl = $"https://assets.ppy.sh/user-profile-covers/{Id}",
+            Url = $"https://assets.ppy.sh/user-profile-covers/{Id}",
+        };
         //TODO Team
     }
 
@@ -61,6 +66,11 @@ public class BasicApiPlayer
         Username = playerDto.Username;
         Country = CountryCode.ParseCountry();
         //TODO Cover
+        Cover = new Cover
+        {
+            CustomUrl = $"https://assets.ppy.sh/user-profile-covers/{Id}",
+            Url = $"https://assets.ppy.sh/user-profile-covers/{Id}",
+        };
         //TODO Team
     }
 }

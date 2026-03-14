@@ -239,7 +239,7 @@ public partial class OsuController
                 $"approvedDate:{beatmap.LastUpdate:yyyy-MM-dd HH:mm:ss}",
                 "\n",
                 "chartId:beatmap",
-                $"chartUrl:{beatmap.Set?.Url()}",
+                $"chartUrl:{beatmap.Set.Url()}",
                 "chartName:Beatmap Ranking",
                 ChartEntry("rank", previousBest?.LeaderboardPosition, score.LeaderboardPosition),
                 ChartEntry("rankedScore", previousBest?.TotalScore, score.TotalScore),

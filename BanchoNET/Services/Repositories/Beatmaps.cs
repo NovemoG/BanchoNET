@@ -3,6 +3,8 @@ using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Beatmaps;
+using BanchoNET.Core.Models.Db;
+using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Utils.Extensions;
 using Microsoft.EntityFrameworkCore;
 
@@ -133,9 +135,6 @@ public class BeatmapsRepository(
 		var beatmapSet = await beatmapHandler.GetBeatmapSetFromApi(setId);
 		if (beatmapSet == null) return;
 		
-		foreach (var beatmap in beatmapSet.Beatmaps)
-			beatmap.UpdateApiChecks();
-		
 		beatmaps.InsertBeatmapSet(beatmapSet);
 		await InsertBeatmapSet(beatmapSet);
 	}
@@ -194,6 +193,16 @@ public class BeatmapsRepository(
 	public async Task InsertBeatmapSet(
 		BeatmapSet set
 	) {
+		var dbSet = await dbContext.Beatmapsets.FirstOrDefaultAsync(b => b.SetId == set.Id);
+		if (dbSet == null)
+		{
+			dbContext.Beatmapsets.Add(new BeatmapsetDto
+			{
+				SetId = set.Id,
+				OwnerId = 1 //TODO for now it's bancho bot
+			});
+		}
+		
 		foreach (var beatmap in set.Beatmaps)
 		{
 			//var dbBeatmap = await dbContext.Beatmaps.FirstOrDefaultAsync(b => b.MapId == beatmap.MapId);

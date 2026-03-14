@@ -10,8 +10,7 @@ public class SnakeCaseNamingPolicy : JsonNamingPolicy
     {
         PropertyNamingPolicy = new SnakeCaseNamingPolicy(),
         DictionaryKeyPolicy = new SnakeCaseNamingPolicy(),
-        PropertyNameCaseInsensitive = true,
-        ReferenceHandler = ReferenceHandler.Preserve
+        PropertyNameCaseInsensitive = true
     };
     
     public override string ConvertName(

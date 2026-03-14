@@ -18,9 +18,9 @@ public class PlayerDto
 	
 	[MaxLength(16), Unicode(false)]
 	public required string Username { get; set; }
-	[Key, MaxLength(16), Unicode(false)]
+	[MaxLength(16), Unicode(false)]
 	public required string SafeName { get; set; }
-	[Key, MaxLength(16), Unicode(false)]
+	[MaxLength(16), Unicode(false)]
 	public required string LoginName { get; set; }
 	[MaxLength(160), Unicode(false)]
 	public required string Email { get; set; }
@@ -67,6 +67,7 @@ public class PlayerDto
 	public ICollection<LoginDto> LoginsData { get; set; } = null!;
 	public ICollection<ClientHashesDto> ClientHashes { get; set; } = null!;
 	public ICollection<RelationshipDto> Relationships { get; set; } = null!;
+	public ICollection<RelationshipDto> IncomingRelationships { get; set; } = null!;
 	public ICollection<BeatmapDto> Beatmaps { get; set; } = null!;
 	public ICollection<BeatmapsetDto> Beatmapsets { get; set; } = null!;
 	

@@ -1,5 +1,4 @@
 ﻿using System.Security.Cryptography;
-using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Dtos;
 
@@ -85,8 +84,11 @@ public static class BeatmapExtensions
 		}
 
 		public void UpdateApiChecks() {
-			beatmap.NextApiCheck = DateTime.UtcNow.Add(ApiCheckIntervals[beatmap.ApiChecks]);
-			if (beatmap.ApiChecks < ApiCheckIntervals.Length - 1) beatmap.ApiChecks++;
+			foreach (var map in beatmap.Set.Beatmaps)
+			{
+				map.NextApiCheck = DateTime.UtcNow.Add(ApiCheckIntervals[map.ApiChecks]);
+				if (map.ApiChecks < ApiCheckIntervals.Length - 1) map.ApiChecks++;
+			}
 		}
 	}
 
@@ -144,13 +146,22 @@ public static class BeatmapExtensions
 			IsRankedOfficially = beatmap.IsRankedOfficially,
 			MD5 = beatmap.MD5,
 			Artist = beatmap.Artist,
+			ArtistUnicode = beatmap.ArtistUnicode,
 			Title = beatmap.Title,
+			TitleUnicode = beatmap.TitleUnicode,
 			Name = beatmap.Name,
 			CreatorName = beatmap.Creator,
+			CreatorId = beatmap.CreatorId,
+			Tags = beatmap.Tags,
 			SubmitDate = beatmap.SubmitDate,
 			LastUpdate = beatmap.LastUpdate,
+			RankedDate = beatmap.RankedDate,
 			TotalLength = beatmap.TotalLength,
+			HitLength = beatmap.HitLength,
 			MaxCombo = beatmap.MaxCombo,
+			Frozen = beatmap.StatusFrozen,
+			HasVideo = beatmap.HasVideo,
+			HasStoryboard = beatmap.HasStoryboard,
 			Plays = beatmap.Plays,
 			Passes = beatmap.Passes,
 			Bpm = beatmap.Bpm,
@@ -161,7 +172,10 @@ public static class BeatmapExtensions
 			StarRating = beatmap.StarRating,
 			CirclesCount = beatmap.CirclesCount,
 			SlidersCount = beatmap.SlidersCount,
-			SpinnersCount = beatmap.SpinnersCount
+			SpinnersCount = beatmap.SpinnersCount,
+			IgnoreHit = beatmap.IgnoreHit,
+			LargeTickHit = beatmap.LargeTickHit,
+			CoverId = beatmap.CoverId,
 		};
 	}
 
@@ -173,13 +187,20 @@ public static class BeatmapExtensions
 		currentBeatmap.IsRankedOfficially = newBeatmap.IsRankedOfficially;
 		currentBeatmap.MD5 = newBeatmap.MD5;
 		currentBeatmap.Artist = newBeatmap.Artist;
+		currentBeatmap.ArtistUnicode = newBeatmap.ArtistUnicode;
 		currentBeatmap.Title = newBeatmap.Title;
+		currentBeatmap.TitleUnicode = newBeatmap.TitleUnicode;
 		currentBeatmap.Name = newBeatmap.Name;
 		currentBeatmap.CreatorName = newBeatmap.Creator;
 		currentBeatmap.SubmitDate = newBeatmap.SubmitDate;
 		currentBeatmap.LastUpdate = newBeatmap.LastUpdate;
+		currentBeatmap.RankedDate = newBeatmap.RankedDate;
 		currentBeatmap.TotalLength = newBeatmap.TotalLength;
+		currentBeatmap.HitLength = newBeatmap.HitLength;
 		currentBeatmap.MaxCombo = newBeatmap.MaxCombo;
+		currentBeatmap.Frozen = newBeatmap.StatusFrozen;
+		currentBeatmap.HasVideo = newBeatmap.HasVideo;
+		currentBeatmap.HasStoryboard = newBeatmap.HasStoryboard;
 		currentBeatmap.Bpm = newBeatmap.Bpm;
 		currentBeatmap.Cs = newBeatmap.Cs;
 		currentBeatmap.Ar = newBeatmap.Ar;
@@ -189,6 +210,9 @@ public static class BeatmapExtensions
 		currentBeatmap.CirclesCount = newBeatmap.CirclesCount;
 		currentBeatmap.SlidersCount = newBeatmap.SlidersCount;
 		currentBeatmap.SpinnersCount = newBeatmap.SpinnersCount;
+		currentBeatmap.IgnoreHit = newBeatmap.IgnoreHit;
+		currentBeatmap.LargeTickHit = newBeatmap.LargeTickHit;
+		currentBeatmap.CoverId = newBeatmap.CoverId;
 		
 		return currentBeatmap;
 	}

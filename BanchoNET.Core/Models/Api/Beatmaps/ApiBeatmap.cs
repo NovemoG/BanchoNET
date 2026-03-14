@@ -34,14 +34,15 @@ public class ApiBeatmap
     public int Ranked { get; set; }
     public string Url { get; set; }
     public string Checksum { get; set; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public ApiBeatmapset? Beatmapset { get; set; }
     public int CurrentUserPlaycount { get; set; }
     public string[] CurrentUserTagIds { get; set; } = [];
     public Failtime Failtimes { get; set; }
     public int MaxCombo { get; set; }
     public List<Owner>? Owners { get; set; }
     public List<MapTag> TopTagIds { get; set; } = [];
+    
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ApiBeatmapset? Beatmapset { get; set; }
     
     [JsonConstructor]
     public ApiBeatmap() { }
