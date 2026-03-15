@@ -39,7 +39,7 @@ public class BasicApiPlayer
         IsBot = player.IsBot;
         //TODO IsOnline
         IsSupporter = player.IsSupporter;
-        LastVisit = player.LastActivityTime;
+        LastVisit = player.AppearOffline ? null : player.LoginTime;
         PmFriendsOnly = player.PmFriendsOnly;
         Username = player.Username;
         Country = CountryCode.ParseCountry();
@@ -61,7 +61,7 @@ public class BasicApiPlayer
         //TODO IsBot
         //TODO IsOnline
         IsSupporter = playerDto.IsSupporter;
-        LastVisit = playerDto.LastActivityTime;
+        LastVisit = playerDto.HideOnlineActivity ? null : playerDto.LastLoginTime;
         PmFriendsOnly = playerDto.PmFriendsOnly;
         Username = playerDto.Username;
         Country = CountryCode.ParseCountry();

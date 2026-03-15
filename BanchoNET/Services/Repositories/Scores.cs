@@ -1,10 +1,12 @@
 ﻿using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Models;
+using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Models.Db;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Models.Scores;
 using BanchoNET.Core.Utils;
+using BanchoNET.Core.Utils.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace BanchoNET.Services.Repositories;
@@ -42,6 +44,51 @@ public class ScoresRepository(BanchoDbContext dbContext) : IScoresRepository
                 PlayerId = score.PlayerId,
                 LegacyPerfect = score.Perfect,
                 OnlineChecksum = score.ClientChecksum,
+                IsRestricted = isPlayerRestricted
+            });
+        await dbContext.SaveChangesAsync();
+
+        score.Id = dbScore.Entity.Id;
+        return score;
+    }
+    
+    public async Task<ApiScore> InsertScore(
+        ApiScore score,
+        bool isPlayerRestricted,
+        string md5,
+        int mapId
+    ) {
+        var stats = score.Statistics;
+        
+        var dbScore = dbContext.Scores
+            .Add(new ScoreDto
+            {
+                BeatmapMD5 = md5,
+                MapId = mapId,
+                Preserve = score.Preserve,
+                Processed = score.Processed,
+                Ranked = score.Ranked,
+                HasReplay = score.HasReplay,
+                PP = (float)score.Pp,
+                Acc = (float)score.Accuracy,
+                LegacyTotalScore = score.TotalScore,
+                MaxCombo = score.MaxCombo,
+                LazerMods = score.ModsToString(),
+                Count300 = stats.Great ?? 0,
+                Count100 = stats.Ok ?? 0,
+                Count50 = stats.Meh ?? 0,
+                Misses = stats.Miss ?? 0,
+                Gekis = stats.LargeTickHit ?? 0,
+                Katus = stats.SliderTailHit ?? 0,
+                IgnoreHit = stats.IgnoreHit ?? 0,
+                IgnoreMiss = stats.IgnoreMiss ?? 0,
+                Grade = (byte)Enum.Parse<Grade>(score.Rank, true),
+                Status = (byte)score.Status,
+                Mode = (byte)score.RulesetId,
+                StartTime = score.StartedAt,
+                PlayTime = score.EndedAt,
+                PlayerId = score.UserId,
+                LegacyPerfect = score.LegacyPerfect,
                 IsRestricted = isPlayerRestricted
             });
         await dbContext.SaveChangesAsync();
@@ -391,13 +438,17 @@ public class ScoresRepository(BanchoDbContext dbContext) : IScoresRepository
                         && s.Status == (int)SubmissionStatus.Submitted)
             .Select(s => s.Id)
             .ToListAsync();
-        
+
+        var affected = await dbContext.Scores
+            .Where(s => s.Status <= (int)SubmissionStatus.Submitted
+                        && s.PlayTime < date)
+            .ExecuteDeleteAsync();
         // Deleting scores
-#pragma warning disable EF1002
+/*#pragma warning disable EF1002
         var affected = await dbContext.Database.ExecuteSqlRawAsync(
             $"DELETE FROM Scores WHERE PlayTime < TIMESTAMP(\"{date:yyyy-MM-dd}\", \"{date:HH:mm:ss}\") " +
             $"AND Status < {(int)SubmissionStatus.BestWithMods}");
-#pragma warning restore EF1002
+#pragma warning restore EF1002*/
         Console.WriteLine($"[BackgroundTasks] Deleted {affected} scores.");
         
         return scoreIds;

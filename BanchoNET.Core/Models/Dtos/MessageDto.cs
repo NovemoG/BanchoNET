@@ -18,7 +18,6 @@ public class MessageDto
     [MaxLength(2048)]
     public string Message { get; set; } = null!;
     
-    [Column(TypeName = "DATETIME")]
     public DateTime SentAt { get; set; }
 	
     [ForeignKey("SenderId")]

@@ -9,19 +9,18 @@ public class ClientHashesDto
 {
 	[Key] public int Id { get; set; }
 	
-	[Column(TypeName = "CHAR"), StringLength(32), Unicode(false)]
+	[Column(TypeName = "CHAR(32)"), Unicode(false)]
 	public required string OsuPath { get; set; }
 
-	[Column(TypeName = "CHAR"), StringLength(32), Unicode(false)]
+	[Column(TypeName = "CHAR(32)"),  Unicode(false)]
 	public required string Adapters { get; set; }
 
-	[Column(TypeName = "CHAR"), StringLength(32), Unicode(false)]
+	[Column(TypeName = "CHAR(32)"), Unicode(false)]
 	public required string Uninstall { get; set; }
 
-	[Column(TypeName = "CHAR"), StringLength(32), Unicode(false)]
+	[Column(TypeName = "CHAR(32)"), Unicode(false)]
 	public required string DiskSerial { get; set; }
 	
-	[Column(TypeName = "DATETIME")]
 	public DateTime LatestTime { get; set; }
 	
 	[ForeignKey("PlayerId")]

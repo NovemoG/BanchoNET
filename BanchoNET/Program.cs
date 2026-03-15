@@ -24,19 +24,12 @@ using BanchoNET.Services;
 using BanchoNET.Services.ClientPacketsHandler;
 using BanchoNET.Services.LobbyScoresQueue;
 using BanchoNET.Services.Repositories;
-using Hangfire;
-using Hangfire.AspNetCore;
-using Hangfire.MySql;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
-using MySql.Data.MySqlClient;
 using Novelog.Config;
 using StackExchange.Redis;
 using BanchoNET.Infrastructure;
-using Microsoft.AspNetCore.SignalR;
-using static System.Data.IsolationLevel;
-using IsolationLevel = System.Transactions.IsolationLevel;
 using LogLevel = Novelog.Types.LogLevel;
 // ReSharper disable ExplicitCallerInfoArgument
 
@@ -133,24 +126,15 @@ public class Program
 		};
 		
 		var mySqlConnectionString = 
-			$"server={dbConnections.MysqlHost};" +
-			$"port=3306;" +
-			$"user={dbConnections.MysqlUser};" +
-			$"password={dbConnections.MysqlPass};";
-		
-		EnsureHangfireDatabaseExists(mySqlConnectionString);
+			$"Host={dbConnections.MysqlHost};" +
+			$"Port=5432;" +
+			$"Username={dbConnections.MysqlUser};" +
+			$"Password={dbConnections.MysqlPass};" +
+			$"Database={dbConnections.MysqlDb};";
 
-		mySqlConnectionString += $"database={dbConnections.MysqlDb};";
+		if (AppSettings.Debug)
+			mySqlConnectionString += $"Include Error Detail=True;";
 
-		var hangfirePass = dbConnections.MysqlPass;
-		var hangfireConnectionString =
-			$"server={dbConnections.MysqlHost};" +
-			$"port=3306;" +
-			$"user={dbConnections.MysqlUser};" +
-			$"{(string.IsNullOrEmpty(hangfirePass) ? "" : $"password={hangfirePass};")}" +
-			$"database=hangfire;" +
-			$"Allow User Variables=True";
-		
 		var redisConnectionString = 
 			$"{dbConnections.RedisHost}:{dbConnections.RedisPort}," +
 			$"password={dbConnections.RedisPass}," +
@@ -185,16 +169,6 @@ public class Program
 			$"{dbConnections.MongoHost}:{dbConnections.MongoPort}";
 		
 		#endregion
-		
-		builder.Services.AddHangfire((sp, config) => {
-			config.UseStorage(new MySqlStorage(hangfireConnectionString, new MySqlStorageOptions {
-				TransactionIsolationLevel = (IsolationLevel?)ReadCommitted,
-				QueuePollInterval = TimeSpan.FromSeconds(15),
-				JobExpirationCheckInterval = TimeSpan.FromHours(1),
-				CountersAggregateInterval = TimeSpan.FromMinutes(5),
-				PrepareSchemaIfNecessary = true,
-			})).UseActivator(new AspNetCoreJobActivator(sp.GetRequiredService<IServiceScopeFactory>()));
-		}).AddHangfireServer();
 
 		builder.Services.AddEndpointsApiExplorer()
 			.AddAuthorization()
@@ -206,7 +180,7 @@ public class Program
 		builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConnectionString))
 			.AddSingleton(new MongoClient(mongoSettings))
 			.AddDbContext<BanchoDbContext>(options => {
-				options.UseMySQL(mySqlConnectionString);
+				options.UseNpgsql(mySqlConnectionString);
 			})
 			.AddSingleton<IHistoriesRepository, HistoriesRepository>();
 		
@@ -226,8 +200,10 @@ public class Program
 			.AddScoped<IClientPacketsHandler, ClientPacketsHandler>()
 			.AddScoped<ICommandProcessor, CommandProcessor>();
 		
-		builder.Services.AddTransient<IOsuVersionService, OsuVersionService>()
-			.AddTransient<IBackgroundTasks, BackgroundTasks>();
+		builder.Services.AddSingleton<OsuVersionService>()
+			.AddSingleton<IOsuVersionService>(sp => sp.GetRequiredService<OsuVersionService>())
+			.AddHostedService(sp => sp.GetRequiredService<OsuVersionService>())
+			.AddHostedService<BackgroundTasks>();
 		
 		Assembly[] assemblies = [
 			typeof(ICoordinator).Assembly,
@@ -236,13 +212,11 @@ public class Program
 
 		builder.Services.AddHttpClient()
 			.AddSessionServices(assemblies)
-			.AddMediatR(config => config.RegisterServicesFromAssemblies(assemblies))
 			.AddSignalR()
 			.AddMessagePackProtocol();
 		
 		var app = builder.Build();
-
-		app.UseHangfireDashboard();
+		
 		app.UseHttpsRedirection();
 		app.UseAuthentication();
 		app.UseAuthorization();
@@ -275,9 +249,6 @@ public class Program
 		// always 100% accurate with database so we need to update
 		// redis leaderboards on startup
 		InitRedis(app.Services.CreateScope(), dbConnections.RedisHost, dbConnections.RedisPort);
-		
-		//app.Services.GetRequiredService<IOsuVersionService>().Init().Wait();
-		app.Services.GetRequiredService<IBackgroundTasks>().Init().Wait();
 
 		#endregion
 		
@@ -285,18 +256,6 @@ public class Program
 		Logger.Shared.LogInfo($"Initialization took: {initStopwatch.Elapsed}", "Init");
 		
 		app.Run();
-	}
-
-	private static void EnsureHangfireDatabaseExists(string connectionString)
-	{
-		Logger.Shared.LogInfo("Checking if Hangfire database exists.", "Init");
-		
-		using var connection = new MySqlConnection(connectionString);
-		using var command = connection.CreateCommand();
-		
-		connection.Open();
-		command.CommandText = "CREATE DATABASE IF NOT EXISTS `hangfire`";
-		command.ExecuteNonQuery();
 	}
 	
 	private static void EnsureDatabaseExists(IServiceScope scope)
@@ -326,10 +285,10 @@ public class Program
 			dbBanchoBot.LastActivityTime = DateTime.UtcNow.AddYears(100);
 			db.SaveChanges();
 
-			var banchoBot = new Player(dbBanchoBot);
+			var banchoBot = new Player(dbBanchoBot, loginTime: DateTime.UtcNow);
 
 			players.FetchPlayerRelationships(banchoBot);
-			playerService.InsertPlayer(banchoBot, true);
+			playerService.InsertPlayer(banchoBot, isBot: true);
 			return;
 		}
 
@@ -343,7 +302,6 @@ public class Program
 		
 		var entry = db.Players.Add(new PlayerDto
 		{
-			Id = 1,
 			Username = banchoBotName,
 			SafeName = banchoBotName.MakeSafe(),
 			LoginName = banchoBotName.MakeSafe(),
@@ -357,7 +315,7 @@ public class Program
 		});
 		db.SaveChanges();
 		
-		playerService.InsertPlayer(new Player(entry.Entity), true);
+		playerService.InsertPlayer(new Player(entry.Entity, loginTime: DateTime.UtcNow), isBot: true);
 	}
 
 	private static void InitChannels(IServiceScope scope)

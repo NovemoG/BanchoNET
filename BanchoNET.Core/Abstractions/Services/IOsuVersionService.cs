@@ -2,8 +2,7 @@
 
 namespace BanchoNET.Core.Abstractions.Services;
 
-public interface IOsuVersionService : IInitiable
+public interface IOsuVersionService
 {
-    Task FetchOsuVersion();
     OsuVersion GetLatestVersion(string stream);
 }

@@ -53,7 +53,6 @@ public partial class ApiController(
                     ProfileColour = null, //TODO
                     Username = target.Username,
                     Country = target.Country.ParseCountry(),
-                    //Cover = new Cover(), TODO
                     //Groups = [], TODO
                     //Statistics = new Statistics(), TODO
                     SupportLevel = target.SupporterLevel,

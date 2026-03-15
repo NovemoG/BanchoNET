@@ -24,15 +24,16 @@ public class MultiplayerCoordinator(
         MultiplayerMatch matchData,
         Player player
     ) {
-        var matchChannel = new Channel($"multi_{matchData.Id}")
+        matchData.Id = matches.GetFreeMatchId;
+        matchData.LobbyId = await histories.GetMatchId();
+        
+        var matchChannel = new Channel($"#multi_{matchData.Id}")
         {
             Description = "This multiplayer's channel.",
             AutoJoin = false,
             Instance = true
         };
-
-        matchData.Id = matches.GetFreeMatchId;
-        matchData.LobbyId = await histories.GetMatchId();
+        
         matchData.Chat = matchChannel;
         matchData.Refs.Add(player.Id);
         
@@ -108,9 +109,7 @@ public class MultiplayerCoordinator(
             .FinalizeAndGetContent());
         EnqueueStateTo(match);
         
-        //TODO mediatr player joined match (then mediatr sends chat message)
-        
-        //player.SendBotMessage($"Match created by {player.Username} {match.MPLinkEmbed()}", "#multiplayer");
+        players.SendBotMessageTo(player, $"Here is the mp link for the match: {match.MPLinkEmbed()}", "#multiplayer");
         return true;
     }
 

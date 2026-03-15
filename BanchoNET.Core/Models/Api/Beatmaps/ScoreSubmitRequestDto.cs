@@ -14,7 +14,7 @@ public class ScoreSubmitRequestDto
     public required string Rank { get; set; }
     
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public ApiMod[]? Mods { get; set; }
+    public List<ApiMod>? Mods { get; set; }
     
     public Statistics Statistics { get; set; } = new();
     public MaxStatistics MaximumStatistics { get; set; } = new();

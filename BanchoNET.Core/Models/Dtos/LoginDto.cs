@@ -14,10 +14,8 @@ public class LoginDto
 	[MaxLength(11), Unicode(false)]
 	public required string ReleaseStream { get; set; }
 	
-	[Column(TypeName = "DATETIME")]
+	[Column(TypeName = "timestamp without time zone")]
 	public DateTime OsuVersion { get; set; }
-	
-	[Column(TypeName = "DATETIME")]
 	public DateTime LoginTime { get; set; }
 	
 	[ForeignKey("PlayerId")]

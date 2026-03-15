@@ -28,12 +28,14 @@ public class ScoreDto
 	public bool HasReplay { get; set; }
 	[NotMapped] public bool Passed => Status > 0;
 	
-	[Column(TypeName = "FLOAT(7,3)")]
+	[Column(TypeName = "numeric(7,3)")]
 	public float PP { get; set; }
-	[Column(TypeName = "FLOAT(6,3)")]
+	[Column(TypeName = "numeric(6,3)")]
 	public float Acc { get; set; }
 	public int MaxCombo { get; set; }
 	public int Mods { get; set; }
+	[MaxLength(512)]
+	public string? LazerMods { get; set; }
 	public int Count300 { get; set; }
 	public int Count100 { get; set; }
 	public int Count50 { get; set; }
@@ -54,20 +56,15 @@ public class ScoreDto
 	public int TotalScoreWithoutMods { get; set; }
 	public int LegacyTotalScore { get; set; }
 	
-	[Column(TypeName = "TINYINT(2)")]
 	public byte Grade { get; set; }
-	[Column(TypeName = "TINYINT(2)")]
 	public byte Status { get; set; }
-	[Column(TypeName = "TINYINT(2)")]
 	public byte Mode { get; set; }
 	
 	/// <summary>
 	/// On lazer used as EndedAt
 	/// </summary>
-	[Column(TypeName = "DATETIME")]
-	public DateTime PlayTime { get; set; }
-	[Column(TypeName = "DATETIME")]
-	public DateTime StartTime { get; set; }
+	public DateTimeOffset PlayTime { get; set; }
+	public DateTimeOffset? StartTime { get; set; }
 	
 	public int TimeElapsed { get; set; }
 	public int ClientFlags { get; set; }
@@ -75,7 +72,7 @@ public class ScoreDto
 	public bool IsPerfectCombo { get; set; }
 	
 	[Column(TypeName = "CHAR(32)"), Unicode(false)]
-	public required string OnlineChecksum { get; set; }
+	public string? OnlineChecksum { get; set; }
 
 	//TODO
 	public bool IsRestricted { get; set; }

@@ -135,18 +135,13 @@ public partial class ChoController
 				.FinalizeAndGetContentResult();
 		}
 
-		await clients.InsertLoginData(
-			userInfo.Id,
-			geoloc.GetIp(Request.Headers),
-			loginData.OsuVersion.Date,
-			loginData.OsuVersion.Stream);
-
 		var bannedUsersHashes = await clients.TryInsertClientHashes(userInfo.Id,
 			loginData.OsuPathMD5,
 			loginData.AdaptersMD5,
 			loginData.UninstallMD5,
 			loginData.DiskSignatureMD5,
-			runningUnderWine);
+			runningUnderWine
+		);
 
 		var sendHashWarning = false;
 		if (bannedUsersHashes)
@@ -175,8 +170,9 @@ public partial class ChoController
 				.PlayerId(-1)
 				.FinalizeAndGetContentResult();
 		}
-		
-		player = new Player(userInfo, timeZone: loginData.TimeZone)
+
+		var ip = geoloc.GetIp(Request.Headers);
+		player = new Player(userInfo, loginTime: DateTime.UtcNow, timeZone: loginData.TimeZone)
 		{
 			Geoloc = _geoloc.Value,
 			ClientDetails = new ClientDetails
@@ -187,9 +183,16 @@ public partial class ChoController
 				UninstallMD5 = loginData.UninstallMD5,
 				DiskSignatureMD5 = loginData.DiskSignatureMD5,
 				Adapters = loginData.AdaptersString.Split('.')[..^1].ToList(),
-				IpAddress = geoloc.GetIp(Request.Headers)
+				IpAddress = ip
 			}
 		};
+		
+		await clients.InsertLoginData(
+			userInfo.Id,
+			ip,
+			loginData.OsuVersion.Date,
+			loginData.OsuVersion.Stream
+		);
 
 		if (userInfo.Country == "xx")
 			await players.UpdatePlayerCountry(player, _geoloc.Value.Country.Acronym);

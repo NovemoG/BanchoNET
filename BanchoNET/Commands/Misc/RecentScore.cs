@@ -1,9 +1,9 @@
-﻿using AkatsukiPp;
-using BanchoNET.Core.Attributes;
+﻿using BanchoNET.Core.Attributes;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
 using BanchoNET.Core.Models.Scores;
 using BanchoNET.Core.Utils.Extensions;
+using Pp;
 using static BanchoNET.Commands.CommandHandlerMap;
 
 namespace BanchoNET.Commands;
@@ -48,7 +48,7 @@ public partial class CommandProcessor
         var fcPP = 0.0f;
         if (score.Misses > 0 || beatmap.MaxCombo - score.MaxCombo > 15)
             if (await beatmapHandler.EnsureLocalBeatmapFile(beatmap.Id, beatmap.MD5))
-                fcPP = AkatsukiPpMethods.ComputeNoMissesScorePp(beatmap.Id, score, beatmap.MaxCombo);
+                fcPP = PpMethods.ComputeNoMissesScorePp(beatmap, score, beatmap.MaxCombo);
         
         var completionString = $"{score.Grade}";
         if (score.Status == (byte)SubmissionStatus.Failed)

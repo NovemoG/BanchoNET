@@ -22,7 +22,7 @@ public partial class OsuController
 
 		var errors = new List<ErrorDetails>();
 
-		if (!Regexes.Username.Match(username).Success) errors.Add(new ErrorDetails
+		if (!Regexes.Username.IsMatch(username)) errors.Add(new ErrorDetails
 		{
 			Field = "username",
 			Messages = ["Must be 2-15 characters long."]
@@ -43,7 +43,7 @@ public partial class OsuController
 			Messages = ["Username is disallowed."]
 		});
 		
-		if (!Regexes.Email.Match(email).Success) errors.Add(new ErrorDetails
+		if (!Regexes.Email.IsMatch(email)) errors.Add(new ErrorDetails
 		{
 			Field = "user_email",
 			Messages = ["Invalid email syntax."]

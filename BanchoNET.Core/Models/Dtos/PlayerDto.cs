@@ -1,33 +1,17 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.EntityFrameworkCore;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 
 namespace BanchoNET.Core.Models.Dtos;
 
-[Index(nameof(Username), IsUnique = true)]
-[Index(nameof(SafeName), IsUnique = true)]
-[Index(nameof(LoginName), IsUnique = true)]
-[Index(nameof(Email), IsUnique = true)]
-[Index(nameof(ApiKey), IsUnique = true)]
-[Index(nameof(Country))]
-[Index(nameof(Privileges))]
-[PrimaryKey(nameof(Id))]
 public class PlayerDto
 {
-	[Key] public int Id { get; set; }
+	public int Id { get; set; }
 	
-	[MaxLength(16), Unicode(false)]
 	public required string Username { get; set; }
-	[MaxLength(16), Unicode(false)]
 	public required string SafeName { get; set; }
-	[MaxLength(16), Unicode(false)]
 	public required string LoginName { get; set; }
-	[MaxLength(160), Unicode(false)]
 	public required string Email { get; set; }
-	[Column(TypeName = "CHAR(60)"), Unicode(false)]
 	public required string PasswordHash { get; set; }
 	
-	[Column(TypeName = "CHAR(2)"), Unicode(false)]
 	public required string Country { get; set; }
 	public int Privileges { get; set; }
 	public bool PmFriendsOnly { get; set; }
@@ -36,30 +20,22 @@ public class PlayerDto
 	public bool Inactive { get; set; }
 	public bool Deleted { get; set; } //TODO
 	
-	[Column(TypeName = "DATETIME")]
 	public DateTime RemainingSilence { get; set; }
-	[Column(TypeName = "DATETIME")]
 	public DateTime RemainingSupporter { get; set; }
 	public bool HasSupported { get; set; } //TODO
-	[Column(TypeName = "TINYINT(2)")]
 	public byte SupporterLevel { get; set; } //TODO
 	
-	[Column(TypeName = "DATETIME")]
 	public DateTime CreationTime { get; set; }
-	[Column(TypeName = "DATETIME")]
+	public DateTime LastLoginTime { get; set; }
 	public DateTime LastActivityTime { get; set; }
 	
-	[Column(TypeName = "TINYINT(2)")]
 	public byte PreferredMode { get; set; }
 	public byte PlayStyle { get; set; }
 	
-	[MaxLength(128)]
 	public string? AwayMessage { get; set; }
-
-	[MaxLength(4096)] 
+	
 	public string? UserPageContent { get; set; }
-
-	[Column(TypeName = "CHAR"), StringLength(36), Unicode(false)]
+	
 	public string? ApiKey { get; set; }
 
 	public ICollection<StatsDto> Stats { get; set; } = null!;

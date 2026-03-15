@@ -52,18 +52,18 @@ public class BeatmapConfiguration : IEntityTypeConfiguration<BeatmapDto>
             .IsUnicode(false);
 
         builder.Property(b => b.SubmitDate)
-            .HasColumnType("DATETIME");
+            .HasColumnType("timestamp without time zone");
         builder.Property(b => b.LastUpdate)
-            .HasColumnType("DATETIME");
+            .HasColumnType("timestamp without time zone");
         builder.Property(b => b.RankedDate)
-            .HasColumnType("DATETIME");
+            .HasColumnType("timestamp without time zone");
 
-        builder.Property(b => b.Bpm).HasColumnType("FLOAT(15,3)");
-        builder.Property(b => b.Cs).HasColumnType("FLOAT(4,2)");
-        builder.Property(b => b.Ar).HasColumnType("FLOAT(4,2)");
-        builder.Property(b => b.Od).HasColumnType("FLOAT(4,2)");
-        builder.Property(b => b.Hp).HasColumnType("FLOAT(4,2)");
-        builder.Property(b => b.StarRating).HasColumnType("FLOAT(9,3)");
+        builder.Property(b => b.Bpm).HasColumnType("numeric(15,3)");
+        builder.Property(b => b.Cs).HasColumnType("numeric(4,2)");
+        builder.Property(b => b.Ar).HasColumnType("numeric(4,2)");
+        builder.Property(b => b.Od).HasColumnType("numeric(4,2)");
+        builder.Property(b => b.Hp).HasColumnType("numeric(4,2)");
+        builder.Property(b => b.StarRating).HasColumnType("numeric(9,3)");
 
         builder.Ignore(b => b.SliderTailHit);
         builder.Ignore(b => b.NotesCount);

@@ -1,4 +1,5 @@
 using BanchoNET.Core.Models;
+using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Mods;
@@ -20,6 +21,12 @@ public interface IScoresRepository
 
     Task<Score> InsertScore(
         Score score,
+        bool isPlayerRestricted,
+        string md5,
+        int mapId
+    );
+    Task<ApiScore> InsertScore(
+        ApiScore score,
         bool isPlayerRestricted,
         string md5,
         int mapId

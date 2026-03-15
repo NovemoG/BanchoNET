@@ -16,35 +16,34 @@
     networks:
       - banchonet
     depends_on:
-      mariadb:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_started
       MongoDB:
         condition: service_started
 
-  mariadb:
-    image: mariadb:11.6
-    hostname: banchonet-mysql
-    container_name: banchonet-mysql
+  postgres:
+    image: postgres:latest
+    hostname: banchonet-db
+    container_name: banchonet-db
     environment:
-      MARIADB_DATABASE: ${MYSQL_DB}
-      MARIADB_USER: ${MYSQL_USER}
-      MARIADB_PASSWORD: ${MYSQL_PASS}
-      MARIADB_RANDOM_ROOT_PASSWORD: 1
+      POSTGRES_DB: ${MYSQL_DB}
+      POSTGRES_USER: ${MYSQL_USER}
+      POSTGRES_PASSWORD: ${MYSQL_PASS}
     configs:
       - source: init_db
         target: /docker-entrypoint-initdb.d/second.sh
-        mode: 0644
+        mode: 0755
     volumes:
-      - banchonet-mysql-data:/var/lib/mysql
+      - banchonet-db-data:/var/lib/postgresql/data
     ports:
-      - ${MYSQL_PORT}:3306
+      - ${MYSQL_PORT}:5432
     restart: unless-stopped
     networks:
       - banchonet
     healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      test: ["CMD-SHELL", "pg_isready -U \"$MYSQL_USER\" -d \"$MYSQL_DB\" -h localhost || exit 1"]
       interval: 2s
       timeout: 20s
       retries: 10
@@ -82,15 +81,19 @@ networks:
     name: banchonet
 
 volumes:
-  banchonet-mysql-data:
+  banchonet-db-data:
+    driver: local
   banchonet-mongo-data:
+
 
 configs:
   init_db:
     content: |
-      mysql_note "Creating web database and user"
-      docker_process_sql <<'EOF'
-          CREATE DATABASE IF NOT EXISTS `hangfire`;
-          GRANT ALL PRIVILEGES ON `hangfire`.* TO '${MYSQL_USER}'@'%';
-          FLUSH PRIVILEGES;
-      EOF
+      #!/bin/bash
+      set -e
+      echo "Creating hangfire database and user (if not present)..."
+      psql -v ON_ERROR_STOP=1 --username "$MYSQL_USER" <<-EOSQL
+        CREATE DATABASE hangfire;
+        CREATE USER "${MYSQL_USER}" WITH PASSWORD '${MYSQL_PASS}';
+        GRANT ALL PRIVILEGES ON DATABASE hangfire TO "${MYSQL_USER}";
+      EOSQL

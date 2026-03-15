@@ -1,10 +1,11 @@
-﻿using AkatsukiPp;
-using BanchoNET.Core.Models;
+﻿using BanchoNET.Core.Models;
+using BanchoNET.Core.Models.Api;
+using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Models.Beatmaps;
-using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Models.Scores;
 using Novelog;
+using Pp;
 
 namespace BanchoNET.Core.Utils.Extensions;
 
@@ -115,16 +116,33 @@ public static class ScoreExtensions
             / (beatmap.CirclesCount + beatmap.SlidersCount + beatmap.SpinnersCount) * 100f;
     }
 
-    public static void CalculatePerformance(this Score score, int beatmapId)
-    {
+    public static void CalculatePerformance(
+        this Score score,
+        Beatmap beatmap
+    ) {
         if (score.Mods.HasMod(LegacyMods.NightCore))
             score.Mods |= LegacyMods.DoubleTime;
 
-        var pp = AkatsukiPpMethods.ComputeScorePp(beatmapId, score);
+        var pp = PpMethods.ComputeScorePp(beatmap, score);
 
         score.PP = double.IsInfinity(pp) || double.IsNaN(pp) ? 0.0f : MathF.Round(pp, 5);
 
         Logger.Shared.LogInfo($"Submitted score pp: {score.PP}", nameof(ScoreExtensions));
+    }
+
+    public static void CalculatePerformance(
+        this ApiScore score,
+        Beatmap beatmap
+    ) {
+        var mods = score.Mods;
+        
+        
+
+        var pp = PpMethods.ComputeScorePp(beatmap, score);
+
+        score.Pp = double.IsInfinity(pp) || double.IsNaN(pp) ? 0.0f : MathF.Round(pp, 5);
+
+        Logger.Shared.LogInfo($"Submitted score pp: {score.Pp}", nameof(ScoreExtensions));
     }
     
     public static bool IsBetterThan(this Score score, Score? other)

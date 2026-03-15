@@ -3,12 +3,11 @@ using BanchoNET.Core.Abstractions.Bancho.Services;
 using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Repositories.Histories;
 using BanchoNET.Core.Abstractions.Services;
-using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Db;
 using BanchoNET.Core.Models.Privileges;
 using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils;
-using Hangfire;
+using Cronos;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
 
@@ -18,66 +17,125 @@ public class BackgroundTasks(
     ILogger logger,
     IServiceScopeFactory scopeFactory,
     IPlayerService playerService
-) : IBackgroundTasks
+) : BackgroundService, IBackgroundTasks
 {
-    public async Task Init()
+    private readonly Dictionary<string, string> _cronMap = new()
     {
-        logger.LogInfo("Initiating background tasks...");
-        var stopwatch = new Stopwatch();
-        stopwatch.Start();
-         
-        UpdateBotStatus();
-        await CheckExpiringSupporters();
-        
-        RecurringJob.AddOrUpdate(
-            "updateBotStatus",
-            () => UpdateBotStatus(),
-            $"*/{AppSettings.BotStatusUpdateInterval} * * * *"); // every x minutes
-        
-        RecurringJob.AddOrUpdate(
-            "checkSupporters",
-            () => CheckExpiringSupporters(),
-            "*/30 * * * *"); // every 30 minutes
-        
-        RecurringJob.AddOrUpdate(
-            "appendRankHistory",
-            () => AppendPlayerRankHistory(),
-            "0 0 * * *"); // every day at midnight
-        
-        RecurringJob.AddOrUpdate(
-            "markInactivePlayers",
-            () => MarkInactivePlayers(),
-            "0 0 * * *"); // every day at midnight
-        
-        RecurringJob.AddOrUpdate(
-            "deleteScores",
-            () => DeleteUnnecessaryScores(),
-            "0 0 */2 * *"); // every 2 days at midnight
-        
-        RecurringJob.AddOrUpdate(
-            "appendMonthlyHistory",
-            () => AppendPlayerMonthlyHistory(),
-            "0 0 1 * *"); // every 1st day of the month at midnight
-        
-        stopwatch.Stop();
-        logger.LogInfo($"Initiated background tasks in {stopwatch.Elapsed}");
+        { "UpdateBotStatus", $"*/{AppSettings.BotStatusUpdateInterval} * * * *" },
+        { "CheckSupporters", "*/30 * * * *" },          // every 30 minutes
+        { "AppendRankHistory", "0 0 * * *" },           // every day at midnight
+        { "MarkInactivePlayers", "0 0 * * *" },         // every day at midnight
+        { "DeleteUnnecessaryScores", "0 0 */2 * *" },   // every 2 days at midnight
+        { "AppendMonthlyHistory", "0 0 1 * *" },        // every 1st day of the month at midnight
+    };
+
+    protected override async Task ExecuteAsync(
+        CancellationToken stoppingToken
+    ) {
+        logger.LogInfo("Starting background tasks...", caller: nameof(BackgroundTasks));
+
+        try
+        {
+            UpdateBotStatus();
+            await CheckExpiringSupporters(stoppingToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError("Error during initial background tasks run.", ex);
+        }
+
+        foreach (var (jobName, cronExpression) in _cronMap)
+            _ = Task.Run(() => JobLoopAsync(jobName, cronExpression, stoppingToken), stoppingToken);
     }
 
+    private async Task JobLoopAsync(
+        string jobName,
+        string cronExpression,
+        CancellationToken stoppingToken
+    ) {
+        logger.LogInfo($"Started cron job loop: {jobName} => {cronExpression}");
+        
+        var cron = CronExpression.Parse(cronExpression);
+
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            try
+            {
+                var now = DateTime.UtcNow;
+                var next = cron.GetNextOccurrence(now, TimeZoneInfo.Utc);
+
+                if (next == null)
+                {
+                    logger.LogWarning($"No next occurence for {jobName} (cron: {cronExpression})");
+                    return;
+                }
+
+                var delay = next.Value - now;
+                if (delay > TimeSpan.Zero)
+                    await Task.Delay(delay, stoppingToken);
+
+                await ExecuteNamedJob(jobName, stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                // shutdown
+                break;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError($"Error executing job {jobName}", ex);
+            }
+        }
+        
+        logger.LogInfo($"Stopping cron loop for job {jobName}");
+    }
+
+    private Task ExecuteNamedJob(
+        string jobName,
+        CancellationToken ct
+    ) {
+        switch (jobName)
+        {
+            case "UpdateBotStatus":
+                UpdateBotStatus();
+                return Task.CompletedTask;
+            
+            case "CheckSupporters":
+                return CheckExpiringSupporters(ct);
+
+            case "AppendRankHistory":
+                return AppendPlayerRankHistory(ct);
+
+            case "MarkInactivePlayers":
+                return MarkInactivePlayers(ct);
+
+            case "DeleteUnnecessaryScores":
+                return DeleteUnnecessaryScores(ct);
+
+            case "AppendMonthlyHistory":
+                return AppendPlayerMonthlyHistory(ct);
+
+            default:
+                logger.LogWarning($"Unknown cron job name: {jobName}");
+                return Task.CompletedTask;
+        }
+    }
+    
     #region Rank History
 
-    public async Task AppendPlayerRankHistory()
+    public async Task AppendPlayerRankHistory(CancellationToken ct)
     {
         logger.LogInfo($"Appending players' daily rank history ({DateTime.UtcNow})", caller: nameof(BackgroundTasks));
 
         for (var i = 0; i < 8; i++)
         {
-            await ProcessRankHistory((byte)i); //TODO fix with batch updates
+            await ProcessRankHistory((byte)i, ct); //TODO fix with batch updates
         }
 
         logger.LogInfo($"Finished updating players' rank history ({DateTime.UtcNow})", caller: nameof(BackgroundTasks));
     }
 
-    private async Task ProcessRankHistory(byte mode)
+    private async Task ProcessRankHistory(byte mode, CancellationToken ct)
     {
         await using var scope = scopeFactory.CreateAsyncScope();
         var players = scope.ServiceProvider.GetRequiredService<IPlayersRepository>();
@@ -125,19 +183,19 @@ public class BackgroundTasks(
 
     #region Monthly History
 
-    public async Task AppendPlayerMonthlyHistory()
+    public async Task AppendPlayerMonthlyHistory(CancellationToken ct)
     {
         logger.LogInfo($"Appending players' monthly history ({DateTime.UtcNow})", caller: nameof(BackgroundTasks));
 
         for (var i = 0; i < 8; i++)
         {
-            await ProcessMonthlyHistory((byte)i); //TODO fix with batch updates
+            await ProcessMonthlyHistory((byte)i, ct); //TODO fix with batch updates
         }
         
         logger.LogInfo($"Finished updating players' monthly history ({DateTime.UtcNow})", caller: nameof(BackgroundTasks));
     }
     
-    private async Task ProcessMonthlyHistory(byte mode)
+    private async Task ProcessMonthlyHistory(byte mode, CancellationToken ct)
     {
         await using var scope = scopeFactory.CreateAsyncScope();
         var players = scope.ServiceProvider.GetRequiredService<IPlayersRepository>();
@@ -182,7 +240,7 @@ public class BackgroundTasks(
 
     #endregion
     
-    public async Task MarkInactivePlayers()
+    public async Task MarkInactivePlayers(CancellationToken ct)
     {
         logger.LogInfo("Marking inactive players...", caller: nameof(BackgroundTasks));
         
@@ -195,8 +253,8 @@ public class BackgroundTasks(
         
         logger.LogInfo($"Marked {inactivePlayers} players as inactive.", caller: nameof(BackgroundTasks));
     }
-    
-    public async Task DeleteUnnecessaryScores()
+
+    public async Task DeleteUnnecessaryScores(CancellationToken ct)
     {
         logger.LogInfo("Deleting old scores...", caller: nameof(BackgroundTasks));
         
@@ -211,7 +269,7 @@ public class BackgroundTasks(
         logger.LogInfo($"Deleted {deletedScores.Count} replays.", caller: nameof(BackgroundTasks));
     }
 
-    public async Task CheckExpiringSupporters()
+    public async Task CheckExpiringSupporters(CancellationToken ct)
     {
         logger.LogInfo("Checking expiring supporter privileges...", caller: nameof(BackgroundTasks));
         

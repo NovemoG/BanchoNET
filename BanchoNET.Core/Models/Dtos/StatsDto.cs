@@ -18,7 +18,7 @@ public class StatsDto
 
 	public bool IsRanked { get; set; } = true; //TODO whether player is seen in global ranking
 	
-	[Column(TypeName = "FLOAT(6,3)")]
+	[Column(TypeName = "numeric(6,3)")]
 	public float Accuracy { get; set; }
 	
 	public int PeakRank { get; set; }

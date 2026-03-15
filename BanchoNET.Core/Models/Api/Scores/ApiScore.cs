@@ -2,7 +2,9 @@
 using BanchoNET.Core.Models.Api.Player;
 using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Dtos;
+using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Models.Scores;
+using BanchoNET.Core.Utils.Extensions;
 
 namespace BanchoNET.Core.Models.Api.Scores;
 
@@ -13,7 +15,11 @@ public class ApiScore
     public bool Processed { get; set; }
     public bool Ranked { get; set; }
     public MaxStatistics MaximumStatistics { get; set; } = new();
-    public ApiMod[] Mods { get; set; } = [];
+    
+    public List<ApiMod> Mods { get; set; } = [];
+    [JsonIgnore]
+    public LegacyMods LegacyMods { get; }
+    
     public Statistics Statistics { get; set; } = new();
     public int TotalScoreWithoutMods { get; set; }
     public int BeatmapId { get; set; }
@@ -32,12 +38,15 @@ public class ApiScore
     public int? LegacyTotalScore { get; set; }
     public int MaxCombo { get; set; }
     public bool Passed { get; set; }
-    public double? Pp { get; set; }
+    public double Pp { get; set; }
     public int RulesetId { get; set; }
-    public DateTimeOffset StartedAt { get; set; }
+    public DateTimeOffset? StartedAt { get; set; }
     public int TotalScore { get; set; }
     public bool Replay { get; set; }
     public Attributes CurrentUserAttributes { get; set; } = new();
+    
+    [JsonIgnore]
+    public SubmissionStatus Status { get; set; }
     
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public BasicApiPlayer? User { get; set; }
@@ -55,7 +64,8 @@ public class ApiScore
         Processed = score.Processed;
         Ranked = score.Ranked;
         MaximumStatistics = beatmap.MaxStatistics;
-        //TODO mods
+        Mods = score.Mods.ToLazerMods();
+        LegacyMods = Mods.ToLegacyMods();
         Statistics = new Statistics
         {
             Ok = score.Count100,
@@ -96,12 +106,13 @@ public class ApiScore
         PlayerDto player,
         Beatmap beatmap
     ) {
-        ClassicTotalScore = scoreDto.TotalScore; //TODO
+        ClassicTotalScore = scoreDto.LegacyTotalScore; //TODO
         Preserve = scoreDto.Preserve;
         Processed = scoreDto.Processed;
         Ranked = scoreDto.Ranked;
         MaximumStatistics = beatmap.MaxStatistics;
-        //TODO mods
+        LegacyMods = (LegacyMods)scoreDto.Mods;
+        Mods = scoreDto.LazerMods?.ToMods() ?? LegacyMods.ToLazerMods();
         Statistics = new Statistics
         {
             Ok = scoreDto.Count100,
@@ -116,7 +127,7 @@ public class ApiScore
         //TODO TotalScoreWithoutMods
         BeatmapId = beatmap.Id;
         Id = scoreDto.Id;
-        Rank = scoreDto.Grade.ToString();
+        Rank = ((Grade)scoreDto.Grade).ToString();
         UserId = scoreDto.PlayerId;
         Accuracy = scoreDto.Acc / 100f;
         EndedAt = scoreDto.PlayTime;

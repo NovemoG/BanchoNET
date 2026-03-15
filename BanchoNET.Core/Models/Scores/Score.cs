@@ -48,8 +48,8 @@ public class Score
 	/// <summary>
 	/// On lazer used as EndedAt
 	/// </summary>
-	public DateTime ClientTime { get; set; }
-	public DateTime StartTime { get; set; }
+	public DateTimeOffset ClientTime { get; set; }
+	public DateTimeOffset? StartTime { get; set; }
 	public int TimeElapsed { get; set; }
 	
 	public int LeaderboardPosition { get; set; }
@@ -84,7 +84,12 @@ public class Score
 		Perfect = scoreData[9] == "True";
 		Grade = grade;
 		Mods = mods;
-		ClientTime = DateTime.ParseExact(scoreData[14], "yyMMddHHmmss", null);
+		
+		ClientTime = DateTime.SpecifyKind(
+			DateTime.ParseExact(scoreData[14], "yyMMddHHmmss", null),
+			DateTimeKind.Utc
+		);
+		
 		ClientFlags = (ClientFlags)int.Parse(scoreData[15]);
 		Ranked = beatmap.Status is BeatmapStatus.Ranked or BeatmapStatus.Approved;
 		Preserve = Passed; //TODO

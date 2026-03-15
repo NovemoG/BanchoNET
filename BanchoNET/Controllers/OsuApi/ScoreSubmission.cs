@@ -3,7 +3,7 @@ using Org.BouncyCastle.Crypto.Modes;
 using Org.BouncyCastle.Crypto.Paddings;
 using Org.BouncyCastle.Crypto.Parameters;
 using System.Text;
-using AkatsukiPp;
+using Pp;
 using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Channels;
 using BanchoNET.Core.Models.Players;
@@ -123,7 +123,7 @@ public partial class OsuController
         
         if (await beatmapHandler.EnsureLocalBeatmapFile(beatmap.Id, beatmapMD5))
         {
-            score.CalculatePerformance(beatmap.Id);
+            score.CalculatePerformance(beatmap);
 
             if (score.Passed)
             {
@@ -161,10 +161,11 @@ public partial class OsuController
                 if (AppSettings.DisplayPPInNotification
                     && (score.Misses > 0 || beatmap.MaxCombo - score.MaxCombo > 15))
                 {
-                    var fcPP = AkatsukiPpMethods.ComputeNoMissesScorePp(
-                        beatmap.Id,
+                    var fcPP = PpMethods.ComputeNoMissesScorePp(
+                        beatmap,
                         score,
-                        beatmap.MaxCombo);
+                        beatmap.MaxCombo
+                    );
 					
                     scoreNotification += $"[{fcPP:F2}pp if FC]";
                 }

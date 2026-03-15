@@ -73,7 +73,7 @@ public sealed class Player : IPlayer, IDisposable,
     public bool AddSpectator(Player player) => _spectators.TryAdd(player, true);
     public bool RemoveSpectator(Player player) => _spectators.TryAdd(player, true);
     
-    public DateTime LoginTime { get; }
+    public DateTime? LoginTime { get; }
     public DateTime LastActivityTime { get; set; }
 
     public bool IsOnline => IsOnlineOnStable || IsOnlineOnLazer;
@@ -81,7 +81,7 @@ public sealed class Player : IPlayer, IDisposable,
     public bool IsOnlineOnLazer { get; set; } //TODO
 
     public Player(
-        PlayerDto userInfo, 
+        PlayerDto userInfo,
         Guid? id = null,
         DateTime? loginTime = null,
         sbyte timeZone = 0
@@ -90,14 +90,15 @@ public sealed class Player : IPlayer, IDisposable,
         Username = userInfo.Username;
         SessionId = id ?? Guid.Empty;
         PasswordHash = userInfo.PasswordHash;
-        LoginTime = loginTime ?? DateTime.UtcNow;
+        LoginTime = loginTime;
         TimeZone = timeZone;
         Privileges = (PlayerPrivileges)userInfo.Privileges;
         RemainingSilence = userInfo.RemainingSilence;
         RemainingSupporter = userInfo.RemainingSupporter;
+        AppearOffline = userInfo.HideOnlineActivity;
         AwayMessage = userInfo.AwayMessage;
         ApiKey = userInfo.ApiKey;
-        _countryCodeString = userInfo.Country;
+        _countryCodeString = userInfo.Country.ToUpper();
     }
     
     public override string ToString() => Username;

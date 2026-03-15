@@ -1,10 +1,14 @@
 using System.Collections.Concurrent;
 using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Services;
+using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Api.Beatmaps;
 using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Models.Beatmaps;
+using BanchoNET.Core.Models.Scores;
+using BanchoNET.Core.Utils.Extensions;
 using Microsoft.Extensions.DependencyInjection;
+using Pp;
 
 namespace BanchoNET.Handlers.Lazer.Services;
 
@@ -64,12 +68,11 @@ public class ScoreSubmissionQueue(
         
         using var scope = scopeFactory.CreateScope();
         var beatmaps = scope.ServiceProvider.GetRequiredService<IBeatmapsRepository>();
+        var beatmapHandler = scope.ServiceProvider.GetRequiredService<IBeatmapHandler>();
         var scores = scope.ServiceProvider.GetRequiredService<IScoresRepository>();
         
         var beatmap = await beatmaps.GetBeatmap(beatmapId);
         if (beatmap == null) return null;
-        
-        //TODO reserve score id
 
         var apiScore = new ApiScore
         {
@@ -89,8 +92,7 @@ public class ScoreSubmissionQueue(
             Processed = false,
             Ranked = beatmap.Status is BeatmapStatus.Ranked or BeatmapStatus.Approved,
             BeatmapId = beatmapId,
-            BestId = null, //TODO fetch previous best
-            Id = 0, //TODO put reserved score id here
+            BestId = null, //TODO
             UserId = userId,
             BuildId = 0, //TODO
             EndedAt = DateTimeOffset.UtcNow,
@@ -99,13 +101,41 @@ public class ScoreSubmissionQueue(
             LegacyPerfect = beatmap.MaxCombo == request.MaxCombo, //TODO these can differ?
             LegacyScoreId = null, //TODO
             LegacyTotalScore = null, //TODO calculate
-            Pp = null, //TODO
             StartedAt = value.CreatedAt,
             Replay = false,
         };
         
-        //TODO put in db
+        //TODO lazer alternatives
+        var prevBest = await scores.GetPlayerBestScoreOnMap(userId, (GameMode)apiScore.RulesetId, beatmapId);
+        var bestWithMods = prevBest != null && apiScore.LegacyMods != prevBest.Mods
+            ? await scores.GetPlayerBestScoreWithModsOnMap(userId, (GameMode)apiScore.RulesetId, apiScore.LegacyMods, beatmapId)
+            : null;
         
-        return apiScore;
+        if (await beatmapHandler.EnsureLocalBeatmapFile(beatmap.Id, beatmap.MD5))
+        {
+            apiScore.CalculatePerformance(beatmap);
+
+            if (apiScore.Passed)
+            {
+                ComputeSubmissionStatus(apiScore, prevBest, bestWithMods);
+                
+                if (beatmap.Status != BeatmapStatus.LatestPending)
+                    await scores.SetScoreLeaderboardPosition(apiScore, false, beatmapId);
+                //TODO
+            }
+            else apiScore.Status = SubmissionStatus.Failed;
+            
+            await scores.UpdateScoreStatus(prevBest);
+            await scores.UpdateScoreStatus(bestWithMods);
+        }
+        else
+        {
+            apiScore.Pp = 0;
+            apiScore.Status = apiScore.Passed ? SubmissionStatus.Submitted : SubmissionStatus.Failed;
+        }
+        
+        apiScore.Pp = PpMethods.ComputeScorePp(beatmap, apiScore);
+        
+        return await scores.InsertScore(apiScore, false, beatmap.MD5, beatmapId);
     }
 }

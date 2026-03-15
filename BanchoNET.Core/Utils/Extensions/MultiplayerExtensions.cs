@@ -11,7 +11,7 @@ public static class MultiplayerExtensions
 	) {
 		public string MPLinkEmbed()
 		{
-			return $"[https://osu.{AppSettings.Domain}/matches/{match.LobbyId} Multiplayer Link]";
+			return $"[https://osu.{AppSettings.Domain}/matches/{match.LobbyId} {match.Name}]";
 		}
 
 		public string Url()

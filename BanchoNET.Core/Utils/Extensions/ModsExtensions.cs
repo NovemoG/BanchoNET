@@ -1,5 +1,7 @@
 ﻿using System.Collections.Immutable;
 using BanchoNET.Core.Models;
+using BanchoNET.Core.Models.Api;
+using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Models.Mods;
 
 namespace BanchoNET.Core.Utils.Extensions;
@@ -96,5 +98,29 @@ public static class ModsExtensions
             result &= ~LegacyMods.InvalidMods;
 
         return result;
+    }
+    
+    public static string ModsToString(
+        this ApiScore score
+    ) {
+        return score.Mods.Aggregate(string.Empty, (current, mod) => current + mod);
+    }
+
+    public static List<ApiMod> ToMods(
+        this string mods
+    ) {
+        return mods.Split(';').Select(mod => new ApiMod(mod)).ToList();
+    }
+
+    public static LegacyMods ToLegacyMods(
+        this List<ApiMod> mods
+    ) {
+        var legacyMods = LegacyMods.None;
+        
+        foreach (var mod in mods)
+            if (Enum.TryParse<LegacyMods>(mod.Acronym, out var legacyMod))
+                legacyMods |= legacyMod;
+        
+        return legacyMods;
     }
 }

@@ -46,7 +46,7 @@ public class PlayerCoordinator(
         Player host,
         Player target
     ) {
-        var channelName = $"s_{host.Id}";
+        var channelName = $"#s_{host.Id}";
         var spectatorChannel = channels.GetChannel(channelName);
 
         if (spectatorChannel == null)

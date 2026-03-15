@@ -1,6 +1,5 @@
 ﻿using System.Net;
 using BanchoNET.Core.Abstractions.Repositories;
-using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Db;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Privileges;
@@ -14,8 +13,10 @@ public class ClientsRepository(BanchoDbContext dbContext) : IClientsRepository
 		int playerId,
 		IPAddress ip,
 		DateTime osuVersion,
-		string stream)
-	{
+		string stream
+	) {
+		Console.WriteLine(osuVersion);
+		
 		var hasLoginData = await dbContext.PlayerLogins.Where(pl =>
 				pl.PlayerId == playerId
 				&& pl.Ip == ip.ToString())
@@ -25,6 +26,9 @@ public class ClientsRepository(BanchoDbContext dbContext) : IClientsRepository
 					.SetProperty(x => x.LoginTime, DateTime.UtcNow));
 
 		if (hasLoginData > 0) return;
+
+		await dbContext.Players.Where(p => p.Id == playerId)
+			.ExecuteUpdateAsync(s => s.SetProperty(p => p.LastLoginTime, DateTime.UtcNow));
 		
 		dbContext.PlayerLogins.Add(new LoginDto
 		{
@@ -43,8 +47,8 @@ public class ClientsRepository(BanchoDbContext dbContext) : IClientsRepository
 		string adapters,
 		string uninstall,
 		string diskSerial,
-		bool runningUnderWine = false)
-	{
+		bool runningUnderWine = false
+	) {
 		int bannedHashes;
 		if (runningUnderWine)
 		{

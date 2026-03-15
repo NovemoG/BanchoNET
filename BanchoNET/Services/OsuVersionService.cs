@@ -1,34 +1,69 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Text.Json;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Models;
 using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
-using Hangfire;
 
 namespace BanchoNET.Services;
 
-public class OsuVersionService(ILogger logger) : IOsuVersionService
+public class OsuVersionService(
+    ILogger logger,
+    IHttpClientFactory httpClientFactory
+) : BackgroundService, IOsuVersionService
 {
-    private readonly HttpClient _client = new();
+    private readonly HttpClient _client = httpClientFactory.CreateClient(nameof(OsuVersionService));
+    private readonly TimeSpan _interval = TimeSpan.FromHours(AppSettings.VersionFetchHoursInterval);
     private const string OsuApiV2ChangelogUrl = "https://osu.ppy.sh/api/v2/changelog";
-    private readonly Dictionary<string, OsuVersion> _streams = new()
+    private readonly ConcurrentDictionary<string, OsuVersion> _streams = new(new Dictionary<string, OsuVersion>
     {
         { "stable40", new OsuVersion() },
         { "cuttingedge", new OsuVersion() },
-    };
+    });
 
-    public async Task Init()
-    {
-        await FetchOsuVersion();
+    protected override async Task ExecuteAsync(
+        CancellationToken stoppingToken
+    ) {
+        try
+        {
+            await FetchOsuVersion(stoppingToken);
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
+            // ignore during startup
+        }
+        catch (Exception ex)
+        {
+            logger.LogError("Error while fetching osu versions.", ex);
+        }
         
-        RecurringJob.AddOrUpdate(
-            "fetchOsuVersion",
-            () => FetchOsuVersion(),
-            $"0 */{AppSettings.VersionFetchHoursInterval} * * *"); // every x hours
+        using var timer = new PeriodicTimer(_interval);
+        try
+        {
+            while (await timer.WaitForNextTickAsync(stoppingToken))
+            {
+                try
+                {
+                    await FetchOsuVersion(stoppingToken);
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError("Error while fetching osu versions.", ex);
+                }
+            }
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
+            // shutdown
+        }
     }
     
-    public async Task FetchOsuVersion()
+    public async Task FetchOsuVersion(CancellationToken ct)
     {
         logger.LogInfo("Fetching osu versions...", caller: nameof(OsuVersionService));
         var stopwatch = new Stopwatch();
@@ -36,19 +71,24 @@ public class OsuVersionService(ILogger logger) : IOsuVersionService
         
         foreach (var clientStream in _streams)
         {
-            var response = await _client.GetAsync($"{OsuApiV2ChangelogUrl}?stream={clientStream.Key}");
+            var response = await _client.GetAsync($"{OsuApiV2ChangelogUrl}?stream={clientStream.Key}", ct);
             response.EnsureSuccessStatusCode();
             
-            var content = await response.Content.ReadAsStringAsync();
+            var content = await response.Content.ReadAsStringAsync(ct);
             
             if (!content.IsValidResponse()) continue;
             
             var changelog = JsonSerializer.Deserialize<ClientBuildVersions>(content);
             foreach (var build in changelog!.Builds) //Can't be null because we check for valid content length
             {
-                _streams[clientStream.Key] = OsuVersion.Parse(clientStream.Key, build.Version);
+                var version = OsuVersion.Parse(clientStream.Key, build.Version);
+                _streams.AddOrUpdate(clientStream.Key, version, (_, _) => version);
                 
-                if (build.ChangelogEntries.Any(entry => entry.Major)) break;
+                if (build.ChangelogEntries.Any(entry => entry.Major))
+                {
+                    logger.LogInfo($"[{clientStream.Key}] Current newest major version {version}");
+                    break;
+                }
             }
         }
 
@@ -56,14 +96,14 @@ public class OsuVersionService(ILogger logger) : IOsuVersionService
         var filePath = Storage.GetMajorOsuVersionFilePath();
         if (!File.Exists(filePath))
         {
-            await WriteToFile();
+            await WriteToFile(ct);
             
             stopwatch.Stop();
             logger.LogInfo($"Fetched osu versions in {stopwatch.Elapsed}", caller: nameof(OsuVersionService));
             return;
         }
         
-        var versionsText = (await File.ReadAllTextAsync(filePath)).Trim().Split("\n");
+        var versionsText = (await File.ReadAllTextAsync(filePath, ct)).Trim().Split("\n");
         for (int i = 0; i < _streams.Count; i++)
         {
             var stream = versionsText[i].Split("=");
@@ -74,7 +114,7 @@ public class OsuVersionService(ILogger logger) : IOsuVersionService
                 
                 if (version < cachedVersion)
                 {
-                    _streams[stream[0]] = cachedVersion;
+                    _streams.AddOrUpdate(stream[0], cachedVersion, (_, _) => cachedVersion);
                     continue;
                 }
                 newerDates = true;
@@ -85,7 +125,7 @@ public class OsuVersionService(ILogger logger) : IOsuVersionService
         if (newerDates)
         {
             logger.LogInfo("Caching updated versions", caller: nameof(OsuVersionService));
-            await WriteToFile();
+            await WriteToFile(ct);
         }
         
         stopwatch.Stop();
@@ -97,8 +137,8 @@ public class OsuVersionService(ILogger logger) : IOsuVersionService
         return _streams[stream];
     }
 
-    private async Task WriteToFile()
+    private async Task WriteToFile(CancellationToken ct)
     {
-        await File.WriteAllLinesAsync(Storage.GetMajorOsuVersionFilePath(), _streams.Select(s => $"{s.Key}={s.Value}"));
+        await File.WriteAllLinesAsync(Storage.GetMajorOsuVersionFilePath(), _streams.Select(s => $"{s.Key}={s.Value}"), ct);
     }
 }

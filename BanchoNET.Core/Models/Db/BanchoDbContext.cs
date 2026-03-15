@@ -42,13 +42,13 @@ public class BanchoDbContextFactory : IDesignTimeDbContextFactory<BanchoDbContex
 	) {
 		var optionsBuilder = new DbContextOptionsBuilder<BanchoDbContext>();
 		const string mySqlConnectionString =
-			$"server=127.0.0.1;" +
-			$"port=3306;" +
-			$"user=banchonet;" +
-			$"password=banchonet;" +
-			$"database=utopia;";
+			$"Host=127.0.0.1;" +
+			$"Port=5432;" +
+			$"Username=banchonet;" +
+			$"Password=banchonet;" +
+			$"Database=utopia;";
 		
-		optionsBuilder.UseMySQL(mySqlConnectionString);
+		optionsBuilder.UseNpgsql(mySqlConnectionString);
 		
 		return new BanchoDbContext(optionsBuilder.Options);
 	}

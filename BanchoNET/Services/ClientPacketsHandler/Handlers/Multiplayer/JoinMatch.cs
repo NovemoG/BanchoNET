@@ -68,7 +68,7 @@ public partial class ClientPacketsHandler
 		}
 
 		playerService.SendBotMessageTo(player,
-			$"Match created by {player.Username} {match.MPLinkEmbed()}", "#multiplayer"
+			$"Here is the mp link for the match: {match.MPLinkEmbed()}", "#multiplayer"
 		);
 	}
 }

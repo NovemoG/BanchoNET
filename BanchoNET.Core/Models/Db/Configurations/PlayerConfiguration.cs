@@ -56,19 +56,13 @@ public class PlayerConfiguration : IEntityTypeConfiguration<PlayerDto>
             .HasMaxLength(36)
             .IsUnicode(false);
 
-        builder.Property(p => p.RemainingSilence)
-            .HasColumnType("DATETIME");
-        builder.Property(p => p.RemainingSupporter)
-            .HasColumnType("DATETIME");
-        builder.Property(p => p.CreationTime)
-            .HasColumnType("DATETIME");
-        builder.Property(p => p.LastActivityTime)
-            .HasColumnType("DATETIME");
+        builder.Property(p => p.RemainingSilence);
+        builder.Property(p => p.RemainingSupporter);
+        builder.Property(p => p.CreationTime);
+        builder.Property(p => p.LastActivityTime);
 
-        builder.Property(p => p.SupporterLevel)
-            .HasColumnType("TINYINT(2)");
-        builder.Property(p => p.PreferredMode)
-            .HasColumnType("TINYINT(2)");
+        builder.Property(p => p.SupporterLevel);
+        builder.Property(p => p.PreferredMode);
 
         builder.Property(p => p.AwayMessage)
             .HasMaxLength(128);
