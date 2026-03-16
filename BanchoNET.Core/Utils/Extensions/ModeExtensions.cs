@@ -1,4 +1,5 @@
 ﻿using BanchoNET.Core.Models;
+using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Scores;
 
@@ -43,6 +44,22 @@ public static class ModeExtensions
 		
 			stats.TotalGekis += score.Gekis;
 			stats.TotalKatus += score.Katus;
+		}
+		
+		public void UpdateHits(
+			ApiScore score
+		) {
+			var statistics = score.Statistics;
+			
+			stats.Total300s += statistics.Great ?? 0;
+			stats.Total100s += statistics.Ok ?? 0;
+			stats.Total50s += statistics.Meh ?? 0;
+			stats.TotalMisses += statistics.Miss ?? 0;
+		
+			if (((GameMode)score.RulesetId).AsVanilla() is not (GameMode.VanillaMania or GameMode.VanillaTaiko)) return;
+		
+			stats.TotalGekis += statistics.LargeTickHit ?? 0;
+			stats.TotalKatus += statistics.SliderTailHit ?? 0;
 		}
 	}
 }

@@ -189,7 +189,8 @@ public class Program
 		builder.Services.AddScoped<IClientsRepository, ClientsRepository>();
 		builder.Services.AddScoped<IMessagesRepository, MessagesRepository>();
 		builder.Services.AddScoped<IPlayersRepository, PlayersRepository>();
-		builder.Services.AddScoped<IScoresRepository, ScoresRepository>();
+		builder.Services.AddScoped<ILegacyScoresRepository, LegacyScoresRepository>();
+		builder.Services.AddScoped<ILazerScoresRepository, LazerScoresRepository>();
 		builder.Services.AddScoped<IBeatmapHandler, BeatmapHandler>();
 			
 		builder.Services.AddSingleton<IScoreSubmissionQueue, ScoreSubmissionQueue>()

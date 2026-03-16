@@ -56,9 +56,12 @@ public class Score
 	public Score? PreviousBest { get; set; }
 	
 	public Score() { }
-	
-	public Score(IReadOnlyList<string> scoreData, Beatmap beatmap, Player player)
-	{
+
+	public Score(
+		IReadOnlyList<string> scoreData,
+		Beatmap beatmap,
+		Player player
+	) {
 		if (!Enum.TryParse(scoreData[10], out Grade grade))
 			return;
 		
@@ -121,7 +124,7 @@ public class Score
 		Grade = (Grade)scoreDto.Grade;
 		Mods = (LegacyMods)scoreDto.Mods;
 		Mode = (GameMode)scoreDto.Mode;
-		ClientChecksum = scoreDto.OnlineChecksum;
+		ClientChecksum = scoreDto.OnlineChecksum ?? string.Empty;
 		ClientFlags = (ClientFlags)scoreDto.ClientFlags;
 		TimeElapsed = scoreDto.TimeElapsed;
 		ClientTime = scoreDto.PlayTime;

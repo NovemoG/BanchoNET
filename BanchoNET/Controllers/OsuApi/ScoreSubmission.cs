@@ -6,6 +6,7 @@ using System.Text;
 using Pp;
 using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Channels;
+using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Scores;
 using BanchoNET.Core.Packets;
@@ -130,7 +131,7 @@ public partial class OsuController
                 ComputeSubmissionStatus(score, prevBest, bestWithMods);
                 
                 if (beatmap.Status != BeatmapStatus.LatestPending)
-                    await scores.SetScoreLeaderboardPosition(score, false, beatmapId);
+                    await scores.SetScoreLeaderboardPosition(score, withMods: false, beatmapId);
             }
             else score.Status = SubmissionStatus.Failed;
             
@@ -202,7 +203,7 @@ public partial class OsuController
         var stats = player.Stats[score.Mode];
         var prevStats = stats.Copy();
 
-        stats.PlayTime += (int)MathF.Floor(score.TimeElapsed / 1000f);
+        stats.IncreasePlaytime(score.Mods, score.TimeElapsed);
         stats.PlayCount += 1; 
         stats.TotalScore += score.TotalScore;
         stats.UpdateHits(score);

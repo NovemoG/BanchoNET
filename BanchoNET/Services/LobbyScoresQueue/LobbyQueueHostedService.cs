@@ -54,7 +54,7 @@ public class LobbyQueueHostedService(
     private async Task ExecuteScoresFetch(MatchScoreRequestDto request, CancellationToken stoppingToken)
     {
         using var scope = scopeFactory.CreateScope();
-        var scores = scope.ServiceProvider.GetRequiredService<IScoresRepository>();
+        var scores = scope.ServiceProvider.GetRequiredService<ILegacyScoresRepository>();
         var histories = scope.ServiceProvider.GetRequiredService<IHistoriesRepository>();
         
         var lobby = request.Match;
@@ -66,7 +66,8 @@ public class LobbyQueueHostedService(
         {
             submittedScores = await scores.GetMultiplayerScores(
                 slots,
-                request.MapFinishDate);
+                request.MapFinishDate
+            );
             
             await Task.Delay(TimeSpan.FromSeconds(3), stoppingToken);
         } while (submittedScores.Count != slots.Count && i++ < MAX_RETRIES);

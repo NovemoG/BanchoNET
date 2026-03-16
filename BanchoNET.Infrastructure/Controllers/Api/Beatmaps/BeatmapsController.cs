@@ -12,7 +12,7 @@ public partial class BeatmapsController(
     IPlayersRepository players,
     IBeatmapsRepository beatmaps,
     IScoreSubmissionQueue scoresQueue,
-    IScoresRepository scores
+    ILegacyScoresRepository scores //TODO
 ) : ApiController(auth, players, beatmaps)
 {
     [HttpGet]

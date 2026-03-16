@@ -51,11 +51,11 @@
     </ItemGroup>
 
 	<Target Name="CopyPpDll" AfterTargets="AfterBuild">
-		<Copy SourceFiles="..\BanchoNET.Core\Dependencies\libakatsuki_pp_cs.so" DestinationFolder="$(OutDir)" />
+		<Copy SourceFiles="..\BanchoNET.Core\Dependencies\libpp_cs.so" DestinationFolder="$(OutDir)" />
 	</Target>
 	
 	<Target Name="CopyPpDllPublish" AfterTargets="Publish">
-		<Copy SourceFiles="..\BanchoNET.Core\Dependencies\libakatsuki_pp_cs.so" DestinationFolder="$(PublishDir)" />
+		<Copy SourceFiles="..\BanchoNET.Core\Dependencies\libpp_cs.so" DestinationFolder="$(PublishDir)" />
 	</Target>
 
 </Project>

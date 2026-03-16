@@ -249,7 +249,7 @@ public class BackgroundTasks(
         
         var inactivePlayers = await db.Players
             .Where(p => !p.Inactive && p.LastActivityTime < DateTime.UtcNow.AddDays(-AppSettings.DaysUntilPlayerIsMarkedInactive))
-            .ExecuteUpdateAsync(p => p.SetProperty(u => u.Inactive, true));
+            .ExecuteUpdateAsync(p => p.SetProperty(u => u.Inactive, true), cancellationToken: ct);
         
         logger.LogInfo($"Marked {inactivePlayers} players as inactive.", caller: nameof(BackgroundTasks));
     }
@@ -259,7 +259,7 @@ public class BackgroundTasks(
         logger.LogInfo("Deleting old scores...", caller: nameof(BackgroundTasks));
         
         await using var scope = scopeFactory.CreateAsyncScope();
-        var scores = scope.ServiceProvider.GetRequiredService<IScoresRepository>();
+        var scores = scope.ServiceProvider.GetRequiredService<ILegacyScoresRepository>();
 
         var deletedScores = await scores.DeleteOldScores();
 

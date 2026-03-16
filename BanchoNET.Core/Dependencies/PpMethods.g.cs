@@ -3,6 +3,7 @@
 using System;
 using System.Runtime.InteropServices;
 using BanchoNET.Core.Models;
+using BanchoNET.Core.Models.Api;
 using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Dtos;
@@ -13,11 +14,13 @@ using BanchoNET.Core.Utils.Extensions;
 
 namespace Pp;
 
+#nullable enable
+
 public static partial class PpMethods
 {
-    const string __DllName = "pp_cs";
+    const string __DllName = "libpp_cs";
 
-    [DllImport(__DllName, EntryPoint = "ComputePp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [DllImport(__DllName, EntryPoint = "compute_pp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     private static extern double ComputePp(
         string path,
         byte mode,
@@ -64,13 +67,19 @@ public static partial class PpMethods
     }
     
     public static float ComputeScorePp(
-        Beatmap beatmap,
-        ApiScore score
+        int beatmapId,
+        ApiScore score,
+        float clockRate,
+        bool lazer,
+        bool isDa,
+        float cs,
+        float ar,
+        float od
     ) {
         var stats = score.Statistics;
         
         return (float)ComputePp(
-            Storage.GetBeatmapPath(beatmap.Id),
+            Storage.GetBeatmapPath(beatmapId),
             (byte)score.RulesetId,
             (uint)score.LegacyMods,
             (uint)score.MaxCombo,
@@ -81,12 +90,12 @@ public static partial class PpMethods
             (uint)(stats.SliderTailHit ?? 0),
             (uint)(stats.Meh ?? 0),
             (uint)(stats.Miss ?? 0),
-            clock_rate: 1f,
-            is_da: false,
-            beatmap.Cs,
-            beatmap.Ar,
-            beatmap.Od,
-            lazer: false
+            clock_rate: clockRate,
+            is_da: isDa,
+            cs,
+            ar,
+            od,
+            lazer: lazer
         );
     }
 

@@ -1,11 +1,10 @@
 using System.Text.Json.Serialization;
-using BanchoNET.Core.Models.Mods.Lazer;
 
 namespace BanchoNET.Core.Models.Api;
 
-public class ApiMod
+public class ApiMod : IEquatable<ApiMod>
 {
-    public string Acronym { get; set; } = "Unknown";
+    public string Acronym { get; init; } = "Unknown";
     
     [JsonIgnore]
     public Dictionary<string, object> Settings { get; set; } = new();
@@ -21,12 +20,6 @@ public class ApiMod
     public ApiMod() { }
 
     public ApiMod(
-        Mod mod
-    ) {
-        
-    }
-
-    public ApiMod(
         string modString
     ) {
         var modValues = modString.Split(',');
@@ -40,6 +33,42 @@ public class ApiMod
     }
 
     public override string ToString() {
-        
+        var modString = $"{Acronym}";
+
+        modString = Settings.Aggregate(modString,
+            (current, setting) => current + $",{setting.Key}={setting.Value}"
+        );
+
+        return $"{modString};";
+    }
+    
+    public static bool operator ==(ApiMod? left, ApiMod? right) {
+        if (left is null) return right is null;
+        return left.Equals(right);
+    }
+    
+    public static bool operator !=(ApiMod? left, ApiMod? right) {
+        return !(left == right);
+    }
+    
+    public bool Equals(
+        ApiMod? other
+    ) {
+        if (other is null) return false;
+        if (ReferenceEquals(this, other)) return true;
+        return Acronym == other.Acronym;
+    }
+
+    public override bool Equals(
+        object? obj
+    ) {
+        if (obj is null) return false;
+        if (ReferenceEquals(this, obj)) return true;
+        if (obj.GetType() != GetType()) return false;
+        return Equals((ApiMod)obj);
+    }
+
+    public override int GetHashCode() {
+        return Acronym.GetHashCode();
     }
 }

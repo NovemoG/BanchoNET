@@ -15,7 +15,7 @@ public partial class OsuController(
     IPlayersRepository players,
     IChannelService channels,
     IBeatmapsRepository beatmaps,
-    IScoresRepository scores,
+    ILegacyScoresRepository scores,
     IBeatmapHandler beatmapHandler,
     IGeolocService geoloc,
     ILogger logger,

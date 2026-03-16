@@ -1,7 +1,6 @@
 ﻿using BanchoNET.Core.Abstractions.Bancho.Services;
 using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Services;
-using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Db;
 using BanchoNET.Core.Models.Dtos;
@@ -14,7 +13,7 @@ public class BeatmapsRepository(
 	BanchoDbContext dbContext,
 	IBeatmapService beatmaps,
 	IBeatmapHandler beatmapHandler,
-	IScoresRepository scores
+	ILegacyScoresRepository scores
 ) : IBeatmapsRepository
 {
 	public async Task<Beatmap?> GetBeatmap(

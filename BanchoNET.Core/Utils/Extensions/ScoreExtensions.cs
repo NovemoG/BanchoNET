@@ -1,8 +1,9 @@
-﻿using BanchoNET.Core.Models;
-using BanchoNET.Core.Models.Api;
+﻿using System.Text.Json;
+using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Mods;
+using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Scores;
 using Novelog;
 using Pp;
@@ -110,6 +111,25 @@ public static class ScoreExtensions
         return acc;
     }
 
+    public static void IncreasePlaytime(
+        this ModeStats stats,
+        LegacyMods mods,
+        int timeElapsed
+    ) {
+        if (mods.HasMod(LegacyMods.DoubleTime))
+        {
+            stats.PlayTime += (int)MathF.Floor(timeElapsed / 1500f);
+        }
+        else if (mods.HasMod(LegacyMods.HalfTime))
+        {
+            stats.PlayTime += (int)MathF.Floor(timeElapsed / 750f);
+        }
+        else
+        {
+            stats.PlayTime += (int)MathF.Floor(timeElapsed / 1000f);
+        }
+    }
+
     public static float CalculateCompletion(this Score score, Beatmap beatmap)
     {
         return (float)(score.Count300 + score.Count100 + score.Count50 + score.Misses)
@@ -127,7 +147,7 @@ public static class ScoreExtensions
 
         score.PP = double.IsInfinity(pp) || double.IsNaN(pp) ? 0.0f : MathF.Round(pp, 5);
 
-        Logger.Shared.LogInfo($"Submitted score pp: {score.PP}", nameof(ScoreExtensions));
+        Logger.Shared.LogInfo($"Submitted legacy score pp: {score.PP}", nameof(ScoreExtensions));
     }
 
     public static void CalculatePerformance(
@@ -135,14 +155,35 @@ public static class ScoreExtensions
         Beatmap beatmap
     ) {
         var mods = score.Mods;
-        
-        
 
-        var pp = PpMethods.ComputeScorePp(beatmap, score);
+        var lazer = mods.FirstOrDefault(m => m.Acronym == "CL") == null;
+        var da = mods.FirstOrDefault(m => m.Acronym == "DA"); // Difficulty Adjust
+        var dt = mods.FirstOrDefault(m => m.Acronym is "DT" or "NC" or "HT" or "DC");
+
+        var cs = beatmap.Cs;
+        var ar = beatmap.Ar;
+        var od = beatmap.Od;
+        if (da != null)
+        {
+            if (da.Settings.TryGetValue("circle_size", out var circleSize))
+                cs = circleSize.GetFloat();
+            
+            if (da.Settings.TryGetValue("approach_rate", out var approachRate))
+                ar = approachRate.GetFloat();
+            
+            if (da.Settings.TryGetValue("overall_difficulty", out var overallDifficulty))
+                od = overallDifficulty.GetFloat();
+        }
+
+        var clockRate = 1f;
+        if (dt != null && dt.Settings.TryGetValue("speed_change", out var rateChange))
+            clockRate = rateChange.GetFloat();
+
+        var pp = PpMethods.ComputeScorePp(beatmap.Id, score, clockRate, lazer, da != null, cs, ar, od);
 
         score.Pp = double.IsInfinity(pp) || double.IsNaN(pp) ? 0.0f : MathF.Round(pp, 5);
 
-        Logger.Shared.LogInfo($"Submitted score pp: {score.Pp}", nameof(ScoreExtensions));
+        Logger.Shared.LogInfo($"Submitted lazer score pp: {score.Pp}", nameof(ScoreExtensions));
     }
     
     public static bool IsBetterThan(this Score score, Score? other)
@@ -151,6 +192,15 @@ public static class ScoreExtensions
         
         return AppSettings.SubmitByPP
             ? score.PP > other.PP
+            : score.TotalScore > other.TotalScore;
+    }
+    
+    public static bool IsBetterThan(this ApiScore score, ApiScore? other)
+    {
+        if (other == null) return true;
+        
+        return AppSettings.SubmitByPP
+            ? score.Pp > other.Pp
             : score.TotalScore > other.TotalScore;
     }
 

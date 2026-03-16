@@ -14,7 +14,7 @@ public class ApiScore
     public bool Preserve { get; set; }
     public bool Processed { get; set; }
     public bool Ranked { get; set; }
-    public MaxStatistics MaximumStatistics { get; set; } = new();
+    public MaxStatistics MaximumStatistics { get; set; } = null!;
     
     public List<ApiMod> Mods { get; set; } = [];
     [JsonIgnore]
@@ -26,6 +26,7 @@ public class ApiScore
     public long? BestId { get; set; }
     public long Id { get; set; }
     public string Rank { get; set; } = null!;
+    [JsonIgnore] public Grade Grade { get; set; }
     public string Type { get; set; } = "solo_score"; //TODO
     public int UserId { get; set; }
     public double Accuracy { get; set; }
@@ -44,6 +45,9 @@ public class ApiScore
     public int TotalScore { get; set; }
     public bool Replay { get; set; }
     public Attributes CurrentUserAttributes { get; set; } = new();
+    
+    [JsonIgnore]
+    public int LeaderboardPosition { get; set; }
     
     [JsonIgnore]
     public SubmissionStatus Status { get; set; }
@@ -81,6 +85,7 @@ public class ApiScore
         BeatmapId = beatmap.Id;
         Id = score.Id;
         Rank = score.Grade.ToString();
+        Grade = Enum.Parse<Grade>(Rank, true);
         UserId = score.PlayerId;
         Accuracy = score.Acc / 100f;
         EndedAt = score.ClientTime;
@@ -127,7 +132,8 @@ public class ApiScore
         //TODO TotalScoreWithoutMods
         BeatmapId = beatmap.Id;
         Id = scoreDto.Id;
-        Rank = ((Grade)scoreDto.Grade).ToString();
+        Grade = (Grade)scoreDto.Grade;
+        Rank = Grade.ToString();
         UserId = scoreDto.PlayerId;
         Accuracy = scoreDto.Acc / 100f;
         EndedAt = scoreDto.PlayTime;
@@ -141,7 +147,8 @@ public class ApiScore
         Pp = scoreDto.PP;
         RulesetId = scoreDto.Mode;
         StartedAt = scoreDto.StartTime;
-        TotalScore = scoreDto.TotalScore;
+        //TotalScore = scoreDto.TotalScore;
+        TotalScore = scoreDto.LegacyTotalScore;
         Replay = HasReplay;
         //TODO CurrentUserAttributes
         

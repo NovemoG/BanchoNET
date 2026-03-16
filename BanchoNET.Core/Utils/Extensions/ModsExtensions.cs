@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.Text.Json;
 using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Api;
 using BanchoNET.Core.Models.Api.Scores;
@@ -118,9 +119,18 @@ public static class ModsExtensions
         var legacyMods = LegacyMods.None;
         
         foreach (var mod in mods)
-            if (Enum.TryParse<LegacyMods>(mod.Acronym, out var legacyMod))
+            if (Enum.TryParse<LegacyMods>(mod.Acronym, true, out var legacyMod))
                 legacyMods |= legacyMod;
         
         return legacyMods;
+    }
+
+    public static float GetFloat(
+        this object rawValue
+    ) {
+        if (rawValue is JsonElement { ValueKind: JsonValueKind.Number } element)
+            return element.GetSingle();
+
+        throw new ArgumentException("Value must be a number", nameof(rawValue));
     }
 }
