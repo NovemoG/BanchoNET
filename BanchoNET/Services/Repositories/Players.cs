@@ -593,7 +593,7 @@ public class PlayersRepository : IPlayersRepository
 		}
 
 		stats.Rank = await GetPlayerGlobalRank(mode, player.Id);
-		if (stats.Rank > stats.PeakRank)
+		if (stats.Rank < stats.PeakRank)
 		{
 			stats.PeakRank = stats.Rank;
 			await _histories.UpdatePeakRank(

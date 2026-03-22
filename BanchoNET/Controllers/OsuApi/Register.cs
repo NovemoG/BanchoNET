@@ -19,7 +19,7 @@ public partial class OsuController
 		{
 			return BadRequest("Missing required params");
 		}
-
+		
 		var errors = new List<ErrorDetails>();
 
 		if (!Regexes.Username.IsMatch(username)) errors.Add(new ErrorDetails
@@ -48,6 +48,7 @@ public partial class OsuController
 			Field = "user_email",
 			Messages = ["Invalid email syntax."]
 		});
+		email = email.ToLower();
 		if (await players.EmailTaken(email)) errors.Add(new ErrorDetails
 		{
 			Field = "user_email",
