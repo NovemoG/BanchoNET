@@ -4,6 +4,7 @@ using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Repositories.Histories;
 using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Api.Player;
+using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Models.Db;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Mongo;
@@ -14,6 +15,7 @@ using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils.Extensions;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
+using Statistics = BanchoNET.Core.Models.Api.Player.Statistics;
 
 namespace BanchoNET.Services.Repositories;
 
@@ -460,6 +462,31 @@ public class PlayersRepository : IPlayersRepository
 			TotalMisses = stats.TotalMisses
 		};
 		_dbContext.Update(dbStats);
+		await _dbContext.SaveChangesAsync();
+	}
+
+	public async Task UpdatePlayerStats(
+		Player player,
+		ApiScore score
+	) {
+		var stats = await _dbContext.Stats.FirstAsync(s => s.PlayerId == player.Id && s.Mode == score.RulesetId);
+
+		stats.PlayCount += 1;
+		stats.TotalScore += score.TotalScore;
+		stats.IncreasePlaytime(score.LegacyMods, (int)(score.EndedAt - score.StartedAt!).Value.TotalSeconds);
+
+		var statistics = score.Statistics;
+		
+		stats.Total300s += statistics.Great ?? 0;
+		stats.Total100s += statistics.Ok ?? 0;
+		stats.Total50s += statistics.Meh ?? 0;
+		stats.TotalMisses += statistics.Miss ?? 0;
+		
+		if (((GameMode)score.RulesetId).AsVanilla() is not (GameMode.VanillaMania or GameMode.VanillaTaiko)) return;
+		
+		stats.TotalGekis += statistics.LargeTickHit ?? 0;
+		stats.TotalKatus += statistics.SliderTailHit ?? 0;
+		
 		await _dbContext.SaveChangesAsync();
 	}
 

@@ -170,7 +170,7 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
             .CountAsync() + 1;
     }
     
-        public Task<List<ScoreDto>> GetBeatmapLeaderboard(
+    public Task<List<ScoreDto>> GetBeatmapLeaderboard(
         GameMode mode,
         LeaderboardType type,
         LegacyMods mods,
@@ -198,7 +198,7 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
         string? md5
     ) {
         var isCountry = type == LeaderboardType.Country;
-        var withMods = type is LeaderboardType.Mods or LeaderboardType.CountryMods or LeaderboardType.FriendsMods;
+        var withMods = type is LeaderboardType.Mods or LeaderboardType.CountryMods or LeaderboardType.FriendsMods or LeaderboardType.TeamMods;
         var withFriendsList = type == LeaderboardType.Friends;
         var friendIds = withFriendsList ? playerIds : [];
         
@@ -217,7 +217,7 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
         q = q.Where(s => s.Mode == (int)mode
                          && (s.Player.Privileges & 1) == 1
                          && !s.IsRestricted);
-
+        
         q = withMods
             ? q.Where(s => s.Status >= (int)SubmissionStatus.BestWithMods
                            && s.Mods == (int)mods)

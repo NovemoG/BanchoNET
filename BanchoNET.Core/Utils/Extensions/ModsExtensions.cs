@@ -110,7 +110,9 @@ public static class ModsExtensions
     public static List<ApiMod> ToMods(
         this string mods
     ) {
-        return mods.Split(';').Select(mod => new ApiMod(mod)).ToList();
+        return string.IsNullOrWhiteSpace(mods)
+            ? []
+            : mods.Split(';').Select(mod => new ApiMod(mod)).ToList();
     }
 
     public static LegacyMods ToLegacyMods(

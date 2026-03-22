@@ -2,6 +2,7 @@
 using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Models.Beatmaps;
+using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Scores;
@@ -130,6 +131,25 @@ public static class ScoreExtensions
         }
     }
 
+    public static void IncreasePlaytime(
+        this StatsDto stats,
+        LegacyMods mods,
+        int timeElapsed
+    ) {
+        if (mods.HasMod(LegacyMods.DoubleTime))
+        {
+            stats.PlayTime += (int)MathF.Floor(timeElapsed / 1500f);
+        }
+        else if (mods.HasMod(LegacyMods.HalfTime))
+        {
+            stats.PlayTime += (int)MathF.Floor(timeElapsed / 750f);
+        }
+        else
+        {
+            stats.PlayTime += (int)MathF.Floor(timeElapsed / 1000f);
+        }
+    }
+
     public static float CalculateCompletion(this Score score, Beatmap beatmap)
     {
         return (float)(score.Count300 + score.Count100 + score.Count50 + score.Misses)
@@ -179,7 +199,7 @@ public static class ScoreExtensions
         if (dt != null && dt.Settings.TryGetValue("speed_change", out var rateChange))
             clockRate = rateChange.GetFloat();
 
-        var pp = PpMethods.ComputeScorePp(beatmap.Id, score, clockRate, lazer, da != null, cs, ar, od);
+        var pp = PpMethods.ComputeScorePp(beatmap.Id, score, clockRate, lazer, cs, ar, od);
 
         score.Pp = double.IsInfinity(pp) || double.IsNaN(pp) ? 0.0f : MathF.Round(pp, 5);
 

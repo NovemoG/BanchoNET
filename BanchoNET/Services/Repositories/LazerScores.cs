@@ -3,6 +3,7 @@ using BanchoNET.Core.Abstractions.Repositories.Histories;
 using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Api;
 using BanchoNET.Core.Models.Api.Scores;
+using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Db;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Scores;
@@ -31,9 +32,10 @@ public class LazerScoresRepository(BanchoDbContext dbContext) : ScoresRepository
                 Ranked = score.Ranked,
                 HasReplay = score.HasReplay,
                 PP = (float)score.Pp,
-                Acc = (float)score.Accuracy,
+                Acc = (float)score.Accuracy * 100,
                 LegacyTotalScore = score.TotalScore,
                 MaxCombo = score.MaxCombo,
+                Mods = (int)score.LegacyMods, //TODO temporary
                 LazerMods = score.ModsToString(),
                 Count300 = stats.Great ?? 0,
                 Count100 = stats.Ok ?? 0,
@@ -58,36 +60,71 @@ public class LazerScoresRepository(BanchoDbContext dbContext) : ScoresRepository
         return score;
     }
 
-    public Task UpdateScoreStatus(
+    public async Task UpdateScoreStatus(
         ApiScore? score
     ) {
-        throw new NotImplementedException();
+        if (score == null) return;
+
+        await UpdateScoreStatus(score.Id, score.Status);
     }
 
-    public Task<ApiScore?> GetPlayerBestScoreOnMap(
+    public async Task<ApiScore?> GetPlayerBestScoreOnMap(
         int playerId,
         GameMode mode,
-        int mapId
+        Beatmap beatmap
     ) {
-        throw new NotImplementedException();
+        var score = await DbContext.Scores
+            .AsNoTracking()
+            .Include(s => s.Player)
+            .FirstOrDefaultAsync(s =>
+                s.MapId == beatmap.Id
+                && s.PlayerId == playerId
+                && s.Mode == (int)mode
+                && s.Status == (int)SubmissionStatus.Best);
+
+        return score == null ? null : new ApiScore(score, score.Player, beatmap);
     }
 
-    public Task<ApiScore?> GetPlayerBestScoreWithModsOnMap(
+    public async Task<ApiScore?> GetPlayerBestScoreWithModsOnMap(
         int playerId,
         GameMode mode,
         List<ApiMod> mods,
-        int mapId
+        Beatmap beatmap
     ) {
-        throw new NotImplementedException();
+        var score = await DbContext.Scores
+            .AsNoTracking()
+            .Include(scoreDto => scoreDto.Player)
+            .FirstOrDefaultAsync(s =>
+                s.MapId == beatmap.Id
+                && s.PlayerId == playerId
+                && s.Mode == (int)mode
+                && s.Mods == (int)mods.ToLegacyMods()
+                && s.Status >= (int)SubmissionStatus.BestWithMods);
+        
+        return score == null ? null : new ApiScore(score, score.Player, beatmap);
     }
 
-    public Task SetScoreLeaderboardPosition(
+    public async Task SetScoreLeaderboardPosition(
         ApiScore score,
         bool withMods,
-        int mapId,
+        Beatmap beatmap,
         List<ApiMod>? mods = null
     ) {
-        throw new NotImplementedException();
+        score.LeaderboardPosition = await DbContext.Scores
+            .Include(s => s.Player)
+            .Where(s =>
+                s.MapId == beatmap.Id
+                && s.Mode == score.RulesetId
+                && (withMods
+                    ? s.Status >= (int)SubmissionStatus.BestWithMods
+                    : s.Status == (int)SubmissionStatus.Best)
+                && (!withMods || s.Mods == (int)score.LegacyMods)
+                && (s.Player.Privileges & 1) == 1
+                && !s.IsRestricted
+                && (OrderByPp((GameMode)score.RulesetId)
+                    ? score.Pp < s.PP
+                    : score.TotalScore < s.LegacyTotalScore))
+            .CountAsync() + 1;
     }
 
     public async Task<(List<ApiScore>, int, ApiScore?)> GetLeaderboardScores(
@@ -97,8 +134,33 @@ public class LazerScoresRepository(BanchoDbContext dbContext) : ScoresRepository
         int playerId,
         string country,
         HashSet<int> friendIds,
-        int mapId
+        Beatmap beatmap
     ) {
-        throw new NotImplementedException();
+        var mapId = beatmap.Id;
+        
+        var leaderboard = (await GetBeatmapLeaderboardInternal(
+                mode,
+                type,
+                mods.ToLegacyMods(), //TODO
+                country,
+                friendIds,
+                mapId,
+                null
+            )).Select(s => new ApiScore(s, s.Player, beatmap))
+            .ToList();
+
+        ApiScore? playerBest = null;
+         if (leaderboard.Count > 0)
+        {
+            var withMods = type is LeaderboardType.Mods or LeaderboardType.CountryMods or LeaderboardType.FriendsMods or LeaderboardType.TeamMods;
+            playerBest = withMods
+                ? await GetPlayerBestScoreWithModsOnMap(playerId, mode, mods, beatmap)
+                : await GetPlayerBestScoreOnMap(playerId, mode, beatmap);
+
+            if (playerBest != null)
+                await SetScoreLeaderboardPosition(playerBest, withMods, beatmap, mods);
+        }
+
+        return (leaderboard, leaderboard.Count, playerBest);
     }
 }

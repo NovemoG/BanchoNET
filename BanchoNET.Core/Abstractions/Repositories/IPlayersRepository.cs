@@ -1,5 +1,6 @@
 using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Api.Player;
+using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
@@ -37,6 +38,7 @@ public interface IPlayersRepository
     Task<StatsDto?> GetPlayerModeStats(int playerId, byte mode);
     Task<List<PlayerHistoryStats>> GetPlayersModeStatsRange(byte mode, int count, int skip = 0, bool reset = false);
     Task UpdatePlayerStats(Player player, GameMode mode);
+    Task UpdatePlayerStats(Player player, ApiScore score);
     Task ResetPlayersStats(byte mode);
     
     Task<List<RelationshipDto>> GetPlayerBlocks(int playerId);

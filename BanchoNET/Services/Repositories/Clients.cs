@@ -15,8 +15,6 @@ public class ClientsRepository(BanchoDbContext dbContext) : IClientsRepository
 		DateTime osuVersion,
 		string stream
 	) {
-		Console.WriteLine(osuVersion);
-		
 		var hasLoginData = await dbContext.PlayerLogins.Where(pl =>
 				pl.PlayerId == playerId
 				&& pl.Ip == ip.ToString())

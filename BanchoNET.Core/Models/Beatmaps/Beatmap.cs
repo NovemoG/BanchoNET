@@ -108,6 +108,8 @@ public class Beatmap : IBeatmap,
 			LargeTickHit = LargeTickHit,
 			IgnoreHit = IgnoreHit,
 			SliderTailHit = SliderTailHit
+			//TODO LegacyComboIncrease
+			//	   also there are different maximum statistics depending on client
 		};
 		
 		IsRankedOfficially = Status is BeatmapStatus.Ranked or BeatmapStatus.Approved;

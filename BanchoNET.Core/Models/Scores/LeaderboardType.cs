@@ -5,8 +5,10 @@ public enum LeaderboardType : byte
 	Local,
 	Top,
 	Mods,
-	Friends,
 	Country,
+	CountryMods,
+	Friends,
 	FriendsMods,
-	CountryMods
+	Team,
+	TeamMods,
 }
