@@ -21,7 +21,6 @@ public class ModeStats
 	public long Total300s { get; set; }
 	public long Total100s { get; set; }
 	public long Total50s { get; set; }
-	public long TotalMisses { get; set; }
 	
 	public long TotalStdHits => Total300s + Total100s + Total50s;
 	public long TotalTaikoHits => TotalStdHits + TotalGekis + TotalKatus;

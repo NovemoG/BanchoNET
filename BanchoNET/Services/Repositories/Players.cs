@@ -300,7 +300,6 @@ public class PlayersRepository : IPlayersRepository
 			Count100 = dbStats.Total100s,
 			Count300 = dbStats.Total300s,
 			Count50 = dbStats.Total50s,
-			CountMiss = dbStats.TotalMisses,
 			TotalHits = mode switch
 			{
 				GameMode.VanillaStd => dbStats.TotalStdHits,
@@ -422,7 +421,6 @@ public class PlayersRepository : IPlayersRepository
 				Total300s = stat.Total300s,
 				Total100s = stat.Total100s,
 				Total50s = stat.Total50s,
-				TotalMisses = stat.TotalMisses,
 			};
 		}
 	}
@@ -459,7 +457,6 @@ public class PlayersRepository : IPlayersRepository
 			Total300s = stats.Total300s,
 			Total100s = stats.Total100s,
 			Total50s = stats.Total50s,
-			TotalMisses = stats.TotalMisses
 		};
 		_dbContext.Update(dbStats);
 		await _dbContext.SaveChangesAsync();
@@ -480,7 +477,6 @@ public class PlayersRepository : IPlayersRepository
 		stats.Total300s += statistics.Great ?? 0;
 		stats.Total100s += statistics.Ok ?? 0;
 		stats.Total50s += statistics.Meh ?? 0;
-		stats.TotalMisses += statistics.Miss ?? 0;
 		
 		if (((GameMode)score.RulesetId).AsVanilla() is not (GameMode.VanillaMania or GameMode.VanillaTaiko)) return;
 		

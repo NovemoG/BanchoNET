@@ -28,7 +28,6 @@ public static class ModeExtensions
 				Total300s = stats.Total300s,
 				Total100s = stats.Total100s,
 				Total50s = stats.Total50s,
-				TotalMisses = stats.TotalMisses
 			};
 		}
 
@@ -38,7 +37,6 @@ public static class ModeExtensions
 			stats.Total300s += score.Count300;
 			stats.Total100s += score.Count100;
 			stats.Total50s += score.Count50;
-			stats.TotalMisses += score.Misses;
 		
 			if (score.Mode.AsVanilla() is not (GameMode.VanillaMania or GameMode.VanillaTaiko)) return;
 		
@@ -54,7 +52,6 @@ public static class ModeExtensions
 			stats.Total300s += statistics.Great ?? 0;
 			stats.Total100s += statistics.Ok ?? 0;
 			stats.Total50s += statistics.Meh ?? 0;
-			stats.TotalMisses += statistics.Miss ?? 0;
 		
 			if (((GameMode)score.RulesetId).AsVanilla() is not (GameMode.VanillaMania or GameMode.VanillaTaiko)) return;
 		
