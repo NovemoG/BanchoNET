@@ -17,7 +17,6 @@ public partial class OsuController
 	public async Task<IActionResult> GetScores(
 		[FromQuery(Name = "us")] string username,
 		[FromQuery(Name = "ha")] string passwordMD5,
-		[FromQuery(Name = "s")] string? fromEditorValue,
 		[FromQuery(Name = "v")] int leaderboardType,
 		[FromQuery(Name = "c")] string mapMD5,
 		[FromQuery(Name = "f")] string mapFilename,
@@ -25,7 +24,8 @@ public partial class OsuController
 		[FromQuery(Name = "i")] int setId,
 		[FromQuery(Name = "mods")] int modsValue,
 		[FromQuery(Name = "h")] string? mapPackageHash,
-		[FromQuery(Name = "a")] string? aqnFilesFoundValue
+		[FromQuery(Name = "a")] string? aqnFilesFoundValue,
+		[FromQuery(Name = "s")] string? fromEditorValue = null
 	) {
 		var fromEditor = fromEditorValue == "1";
 		var aqnFilesFound = aqnFilesFoundValue == "1";
