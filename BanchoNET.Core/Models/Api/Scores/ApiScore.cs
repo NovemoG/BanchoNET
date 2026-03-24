@@ -56,6 +56,9 @@ public class ApiScore
     public SubmissionStatus Status { get; set; }
     
     [JsonIgnore]
+    public int TimeElapsed { get; set; }
+    
+    [JsonIgnore]
     public ApiScore? PreviousBest { get; set; }
     
     [JsonConstructor]

@@ -39,7 +39,7 @@ public class ScoreSubmissionQueue(
         using var scope = scopeFactory.CreateScope();
         var beatmaps = scope.ServiceProvider.GetRequiredService<IBeatmapsRepository>();
 
-        var beatmap = await beatmaps.GetBeatmap(request.BeatmapHash);
+        var beatmap = await beatmaps.GetBeatmap(request.beatmap_hash);
         if (beatmap == null || beatmap.Id != beatmapId) return null;
         
         var response = new ScoreResponseDto
@@ -99,7 +99,7 @@ public class ScoreSubmissionQueue(
             MaximumStatistics = request.MaximumStatistics,
             
             ClassicTotalScore = 0, //TODO calculate
-            Preserve = false, //TODO will handle later
+            Preserve = true, //TODO will handle later
             Processed = true,
             Ranked = beatmap.Status is BeatmapStatus.Ranked or BeatmapStatus.Approved,
             BeatmapId = beatmapId,
@@ -115,6 +115,7 @@ public class ScoreSubmissionQueue(
             StartedAt = value.CreatedAt,
             Replay = false,
         };
+        apiScore.TimeElapsed = (int)(apiScore.EndedAt - apiScore.StartedAt!).Value.TotalSeconds;
 
         //TODO lazer score submission
         var mode = (GameMode)apiScore.RulesetId;

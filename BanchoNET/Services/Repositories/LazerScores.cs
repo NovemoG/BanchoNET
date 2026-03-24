@@ -48,6 +48,7 @@ public class LazerScoresRepository(BanchoDbContext dbContext) : ScoresRepository
                 Grade = (byte)score.Grade,
                 Status = (byte)score.Status,
                 Mode = (byte)score.RulesetId,
+                TimeElapsed = score.TimeElapsed,
                 StartTime = score.StartedAt,
                 PlayTime = score.EndedAt,
                 PlayerId = score.UserId,

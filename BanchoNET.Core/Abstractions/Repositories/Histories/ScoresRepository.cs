@@ -212,6 +212,7 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
         return await DbContext.Scores
             .Where(s => s.PlayerId == playerId
                         && !s.IsRestricted
+                        && s.Ranked
                         && s.Status == (int)SubmissionStatus.Best
                         && s.Mode == (int)mode)
             .OrderByDescending(s => s.PP)

@@ -468,7 +468,7 @@ public class PlayersRepository : IPlayersRepository
 	) {
 		stats.PlayCount += 1;
 		stats.TotalScore += score.TotalScore;
-		stats.IncreasePlaytime(score.LegacyMods, (int)(score.EndedAt - score.StartedAt!).Value.TotalSeconds);
+		stats.IncreasePlaytime(score.LegacyMods, score.TimeElapsed);
 
 		var statistics = score.Statistics;
 		
@@ -541,12 +541,15 @@ public class PlayersRepository : IPlayersRepository
 		}
 	}
 	
+	//TODO
 	public async Task RecalculatePlayerTopScores(
 		Player player,
 		GameMode mode
 	) {
 		var bestScores = await _dbContext.Scores
 			.Where(s => s.PlayerId == player.Id
+			            && !s.IsRestricted
+			            && s.Ranked
 			            && s.Status == (int)SubmissionStatus.Best
 			            && s.Mode == (int)mode)
 			.OrderByDescending(s => s.PP)
@@ -580,6 +583,8 @@ public class PlayersRepository : IPlayersRepository
 	) {
 		var bestScores = await _dbContext.Scores
 			.Where(s => s.PlayerId == playerId
+			            && !s.IsRestricted
+			            && s.Ranked
 			            && s.Status == (int)SubmissionStatus.Best
 			            && s.Mode == (int)mode)
 			.OrderByDescending(s => s.PP)
