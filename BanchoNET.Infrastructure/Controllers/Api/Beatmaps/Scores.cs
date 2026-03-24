@@ -1,4 +1,5 @@
-﻿using BanchoNET.Core.Models.Api.Beatmaps;
+﻿using BanchoNET.Core.Models.Api;
+using BanchoNET.Core.Models.Api.Beatmaps;
 using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Models.Scores;
@@ -26,7 +27,7 @@ public partial class BeatmapsController
         var beatmap = await Beatmaps.GetBeatmap(beatmapId);
         if (beatmap == null) return NotFound();
 
-        var withMods = false; //TODO
+        var withMods = mods.Length > 0; //TODO
         var leaderboardType = type switch
         {
             "global" when !withMods => LeaderboardType.Top,
@@ -49,7 +50,7 @@ public partial class BeatmapsController
         var (leaderboardScores, scoreCount, playerBest) = await scores.GetLeaderboardScores(
             leaderboardType,
             gameMode,
-            [], //TODO
+            mods.Select(m => new ApiMod(m, acronymOnly: true)).ToList(),
             uid,
             player.Geoloc.Country.Acronym,
             player.Friends.ToHashSet(),

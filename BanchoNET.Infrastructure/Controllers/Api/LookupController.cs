@@ -35,7 +35,7 @@ public class LookupController(
         }
         
         //TODO
-        return JsonSnake(new ApiBeatmap(beatmap, new ApiBeatmapset(beatmap.Set!, beatmap)));
+        return JsonSnake(new ApiBeatmap(beatmap, new ApiBeatmapset(beatmap.Set, assignBeatmapsList: false)));
     }
     
     [HttpGet("v2/users/lookup")]

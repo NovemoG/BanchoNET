@@ -57,4 +57,11 @@ public interface IScoresRepository
         HashSet<int> playerIds,
         int mapId
     );
+    
+    Task<List<ScoreDto>> GetPlayerBestScores(
+        int playerId,
+        GameMode mode,
+        int offset,
+        int limit
+    );
 }

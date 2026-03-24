@@ -112,7 +112,9 @@ public static class ModsExtensions
     ) {
         return string.IsNullOrWhiteSpace(mods)
             ? []
-            : mods.Split(';').Select(mod => new ApiMod(mod)).ToList();
+            : mods.Split(';', StringSplitOptions.RemoveEmptyEntries)
+                .Select(mod => new ApiMod(mod))
+                .ToList();
     }
 
     public static LegacyMods ToLegacyMods(
@@ -121,7 +123,7 @@ public static class ModsExtensions
         var legacyMods = LegacyMods.None;
         
         foreach (var mod in mods)
-            if (Enum.TryParse<LegacyMods>(mod.Acronym, true, out var legacyMod))
+            if (ModsMap.TryGetValue(mod.Acronym.ToLower(), out var legacyMod))
                 legacyMods |= legacyMod;
         
         return legacyMods;
@@ -132,6 +134,15 @@ public static class ModsExtensions
     ) {
         if (rawValue is JsonElement { ValueKind: JsonValueKind.Number } element)
             return element.GetSingle();
+
+        throw new ArgumentException("Value must be a number", nameof(rawValue));
+    }
+
+    public static double GetDouble(
+        this object rawValue
+    ) {
+        if (rawValue is JsonElement { ValueKind: JsonValueKind.Number } element)
+            return element.GetDouble();
 
         throw new ArgumentException("Value must be a number", nameof(rawValue));
     }

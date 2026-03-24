@@ -371,7 +371,7 @@ public class PlayersRepository : IPlayersRepository
 
 	public async Task<PlayerDto?> GetPlayerInfo(int playerId)
 	{
-		if (playerId <= 1) return null;
+		if (playerId < 1) return null;
 		
 		return await _dbContext.Players.FindAsync(playerId);
 	}
@@ -463,25 +463,23 @@ public class PlayersRepository : IPlayersRepository
 	}
 
 	public async Task UpdatePlayerStats(
-		Player player,
+		StatsDto stats,
 		ApiScore score
 	) {
-		var stats = await _dbContext.Stats.FirstAsync(s => s.PlayerId == player.Id && s.Mode == score.RulesetId);
-
 		stats.PlayCount += 1;
 		stats.TotalScore += score.TotalScore;
 		stats.IncreasePlaytime(score.LegacyMods, (int)(score.EndedAt - score.StartedAt!).Value.TotalSeconds);
 
 		var statistics = score.Statistics;
 		
-		stats.Total300s += statistics.Great ?? 0;
-		stats.Total100s += statistics.Ok ?? 0;
-		stats.Total50s += statistics.Meh ?? 0;
+		stats.Total300s += statistics.Great;
+		stats.Total100s += statistics.Ok;
+		stats.Total50s += statistics.Meh;
 		
 		if (((GameMode)score.RulesetId).AsVanilla() is not (GameMode.VanillaMania or GameMode.VanillaTaiko)) return;
 		
-		stats.TotalGekis += statistics.LargeTickHit ?? 0;
-		stats.TotalKatus += statistics.SliderTailHit ?? 0;
+		stats.TotalGekis += statistics.LargeTickHit;
+		stats.TotalKatus += statistics.SliderTailHit;
 		
 		await _dbContext.SaveChangesAsync();
 	}
@@ -542,9 +540,11 @@ public class PlayersRepository : IPlayersRepository
 				.FinalizeAndGetContent());
 		}
 	}
-
-	public async Task RecalculatePlayerTopScores(Player player, GameMode mode)
-	{
+	
+	public async Task RecalculatePlayerTopScores(
+		Player player,
+		GameMode mode
+	) {
 		var bestScores = await _dbContext.Scores
 			.Where(s => s.PlayerId == player.Id
 			            && s.Status == (int)SubmissionStatus.Best
@@ -567,24 +567,58 @@ public class PlayersRepository : IPlayersRepository
 
 		var accWeight = 100f / (20 * (1 - MathF.Pow(0.95f, bestScores.Count)));
 		var bonusPp = (417 - (float)1/3) * (1 - MathF.Pow(0.995f, MathF.Min(1000, bestScores.Count)));
-		
+
 		var stats = player.Stats[mode];
 		stats.Accuracy = weightedAcc * accWeight / 100;
 		stats.PP = (ushort)MathF.Round(weightedPp + bonusPp);
 	}
 
-	public async Task UpdatePlayerRank(Player player, GameMode mode)
-	{
+	public async Task RecalculatePlayerTopScores(
+		int playerId,
+		StatsDto stats,
+		GameMode mode
+	) {
+		var bestScores = await _dbContext.Scores
+			.Where(s => s.PlayerId == playerId
+			            && s.Status == (int)SubmissionStatus.Best
+			            && s.Mode == (int)mode)
+			.OrderByDescending(s => s.PP)
+			.Take(100)
+			.ToListAsync();
+
+		var weightedAcc = 0.0f;
+		var weightedPp = 0.0f;
+
+		for (var i = 0; i < bestScores.Count; i++)
+		{
+			var score = bestScores[i];
+			var weight = MathF.Pow(0.95f, i);
+
+			weightedAcc += score.Acc * weight;
+			weightedPp += score.PP * weight;
+		}
+
+		var accWeight = 100f / (20 * (1 - MathF.Pow(0.95f, bestScores.Count)));
+		var bonusPp = (417 - (float)1/3) * (1 - MathF.Pow(0.995f, MathF.Min(1000, bestScores.Count)));
+		
+		stats.Accuracy = weightedAcc * accWeight / 100;
+		stats.PP = (ushort)MathF.Round(weightedPp + bonusPp);
+	}
+
+	public async Task UpdatePlayerRank(
+		Player player,
+		GameMode mode
+	) {
 		var country = player.Geoloc.Country.Acronym;
 		var stats = player.Stats[mode];
-
+		
 		switch (player.IsRestricted)
 		{
 			case false:
 				await InsertPlayerGlobalRank((byte)mode, country, player.Id, stats.PP);
 				break;
 			case true:
-				stats.Rank = 0;
+				//TODO stats.Rank = 0;
 				return;
 		}
 
@@ -594,6 +628,38 @@ public class PlayersRepository : IPlayersRepository
 			stats.PeakRank = stats.Rank;
 			await _histories.UpdatePeakRank(
 				player.Id,
+				(byte)mode,
+				new PeakRank
+				{
+					Value = stats.PeakRank,
+					Date = DateTime.UtcNow
+				});
+		}
+	}
+
+	public async Task UpdatePlayerRank(
+		int playerId,
+		bool isRestricted,
+		string country,
+		StatsDto stats,
+		GameMode mode
+	) {
+		switch (isRestricted)
+		{
+			case false:
+				await InsertPlayerGlobalRank((byte)mode, country, playerId, stats.PP);
+				break;
+			case true:
+				//TODO stats.Rank = 0;
+				return;
+		}
+
+		var rank = await GetPlayerGlobalRank(mode, playerId);
+		if (rank < stats.PeakRank)
+		{
+			stats.PeakRank = rank;
+			await _histories.UpdatePeakRank(
+				playerId,
 				(byte)mode,
 				new PeakRank
 				{

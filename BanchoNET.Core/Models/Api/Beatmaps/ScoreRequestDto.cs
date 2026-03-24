@@ -1,8 +1,15 @@
-﻿namespace BanchoNET.Core.Models.Api.Beatmaps;
+﻿using System.Text.Json.Serialization;
+
+namespace BanchoNET.Core.Models.Api.Beatmaps;
 
 public class ScoreRequestDto
 {
-    public required string version_hash { get; set; }
-    public required string beatmap_hash { get; set; }
-    public int ruleset_id { get; set; }
+    [JsonPropertyName("version_hash")]
+    public required string VersionHash { get; set; }
+    
+    [JsonPropertyName("beatmap_hash")]
+    public required string BeatmapHash { get; set; }
+    
+    [JsonPropertyName("ruleset_id")]
+    public int RulesetID { get; set; }
 }

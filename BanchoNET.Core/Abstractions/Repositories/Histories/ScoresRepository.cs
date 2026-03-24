@@ -121,6 +121,7 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
         GameMode mode
     ) {
         return await DbContext.Scores
+            .AsNoTracking()
             .Include(s => s.Player)
             .Where(s => s.BeatmapMD5 == md5
                         && s.Mode == (int)mode
@@ -129,45 +130,6 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
                         && !s.IsRestricted)
             .OrderByDescending(s => OrderByPp(mode) ? s.PP : s.LegacyTotalScore)
             .FirstOrDefaultAsync();
-    }
-    
-    public Task SetScoreLeaderboardPosition(
-        Score score,
-        bool withMods,
-        string md5,
-        LegacyMods mods = LegacyMods.None
-    ) => SetScoreLeaderboardPositionInternal(score, withMods, md5: md5, mapId: null, mods: mods);
-
-    public Task SetScoreLeaderboardPosition(
-        Score score,
-        bool withMods,
-        int mapId,
-        LegacyMods mods = LegacyMods.None
-    ) => SetScoreLeaderboardPositionInternal(score, withMods, mapId: mapId, md5: null, mods: mods);
-	
-    protected async Task SetScoreLeaderboardPositionInternal(
-        Score score,
-        bool withMods,
-        int? mapId,
-        string? md5,
-        LegacyMods mods = LegacyMods.None
-    ) {
-        score.LeaderboardPosition = await DbContext.Scores
-            .Include(s => s.Player)
-            .Where(s => mapId.HasValue
-                ? s.MapId == mapId
-                : s.BeatmapMD5 == md5
-                  && s.Mode == (int)score.Mode
-                  && (withMods
-                      ? s.Status >= (int)SubmissionStatus.BestWithMods
-                      : s.Status == (int)SubmissionStatus.Best)
-                  && (!withMods || s.Mods == (int)mods) 
-                  && (s.Player.Privileges & 1) == 1 
-                  && !s.IsRestricted
-                  && (OrderByPp(score.Mode)
-                      ? score.PP < s.PP
-                      : score.TotalScore < s.LegacyTotalScore))
-            .CountAsync() + 1;
     }
     
     public Task<List<ScoreDto>> GetBeatmapLeaderboard(
@@ -239,6 +201,24 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
                we're not knowledgeable enough to make it faster ~Cossin & foksurek*/
 
         return result;
+    }
+    
+    public async Task<List<ScoreDto>> GetPlayerBestScores(
+        int playerId,
+        GameMode mode,
+        int offset,
+        int limit
+    ) {
+        return await DbContext.Scores
+            .Where(s => s.PlayerId == playerId
+                        && !s.IsRestricted
+                        && s.Status == (int)SubmissionStatus.Best
+                        && s.Mode == (int)mode)
+            .OrderByDescending(s => s.PP)
+            .Skip(offset)
+            .Take(limit - offset)
+            .OrderByDescending(s => s.PP)
+            .ToListAsync();
     }
     
     protected static bool OrderByPp(GameMode mode) => mode >= GameMode.RelaxStd || AppSettings.SortLeaderboardByPP;

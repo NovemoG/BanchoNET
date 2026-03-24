@@ -6,7 +6,6 @@ using System.Text;
 using Pp;
 using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Channels;
-using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Scores;
 using BanchoNET.Core.Packets;
@@ -130,13 +129,13 @@ public partial class OsuController
             {
                 ComputeSubmissionStatus(score, prevBest, bestWithMods);
                 
+                await scores.UpdateScoreStatus(prevBest);
+                await scores.UpdateScoreStatus(bestWithMods);
+                
                 if (beatmap.Status != BeatmapStatus.LatestPending)
                     await scores.SetScoreLeaderboardPosition(score, withMods: false, beatmapId);
             }
             else score.Status = SubmissionStatus.Failed;
-            
-            await scores.UpdateScoreStatus(prevBest);
-            await scores.UpdateScoreStatus(bestWithMods);
         }
         else
         {
@@ -209,7 +208,7 @@ public partial class OsuController
         stats.UpdateHits(score);
         
         var previousBest = score.PreviousBest;
-        if (previousBest != null) await scores.SetScoreLeaderboardPosition(previousBest, false, beatmapId);
+        if (previousBest != null) await scores.SetScoreLeaderboardPosition(previousBest, withMods: false, beatmapId);
         
         await RecalculatePlayerStats(beatmap, stats, player, score, previousBest, bestWithMods);
         await players.UpdatePlayerStats(player, score.Mode);
@@ -287,42 +286,56 @@ public partial class OsuController
         Score? prevBest,
         Score? bestWithMods
     ) {
-        newScore.Status = SubmissionStatus.Submitted;
-        
+        // if we beat prevBest
         if (newScore.IsBetterThan(prevBest))
         {
+            newScore.Status = SubmissionStatus.Best;
+            
+            // if prevBest exists, we update its status depending on if mods are equal
             if (prevBest != null)
             {
-                // if new score beats prevBest and has different mods,
-                // prevBest becomes bestWithMods
                 prevBest.Status = newScore.Mods != prevBest.Mods
                     ? SubmissionStatus.BestWithMods
                     : SubmissionStatus.Submitted;
-                
+
                 newScore.PreviousBest = prevBest;
             }
-            
-            newScore.Status = SubmissionStatus.Best;
         }
         else
         {
-            // if it didn't beat prevBest, check if it bestWithMods exists and set
-            // status accordingly (it is going to be properly checked later)
-            if (bestWithMods == null)
-                newScore.Status = SubmissionStatus.BestWithMods;
-            
+            // prevBest must exist because the current score is worse
+            newScore.Status = newScore.Mods != prevBest!.Mods
+                ? SubmissionStatus.BestWithMods
+                : SubmissionStatus.Submitted;
+
             newScore.PreviousBest = prevBest;
         }
 
-        if (bestWithMods == null || !newScore.IsBetterThan(bestWithMods)) return;
+        // the new score is not the best, but the bestWithMods does not exist, so we return early
+        // we also compare if prevBest is the same as bestWithMods and return if yes (no need to compare)
+        if (bestWithMods == null || prevBest?.Id == bestWithMods.Id)
+            return;
         
-        // if it exists and new score is better set bestWithMods to Submitted
-        bestWithMods.Status = SubmissionStatus.Submitted;
-        
-        // this check is for if new score is not better than prevBest but is
-        // better than bestWithMods
+        // the new score is not the best
         if (newScore.Status != SubmissionStatus.Best)
-            newScore.Status = SubmissionStatus.BestWithMods;
+        {
+            // but is better than bestWithMods
+            if (newScore.IsBetterThan(bestWithMods))
+            {
+                newScore.Status = SubmissionStatus.BestWithMods;
+                bestWithMods.Status = SubmissionStatus.Submitted;
+            }
+            // but is not better than bestWithMods, it is not any leaderboard worthy score
+            else
+            {
+                newScore.Status = SubmissionStatus.Submitted;
+            }
+        }
+        else
+        {
+            // the new score is better than bestWithMods
+            bestWithMods.Status = SubmissionStatus.Submitted;
+        }
     }
 
     private async Task RecalculatePlayerStats(
@@ -387,7 +400,7 @@ public partial class OsuController
             var announceChannel = channels.GetChannel("#announce");
             var announcement = $@"\x01ACTION achieved #1 on {beatmap.Embed()} with {score.Acc:F2}% and {score.PP}pp.";
 			
-            var currentBest = await scores.GetBestBeatmapScore(beatmap.MD5, score.Mode);
+            var currentBest = await scores.GetBestBeatmapScore(beatmap.Id, score.Mode);
 					
             if (score.Mods > 0)
                 announcement = announcement.Insert(0, $"+{score.Mods}");

@@ -22,6 +22,10 @@ public class LegacyScoresRepository(BanchoDbContext dbContext) : ScoresRepositor
             {
                 BeatmapMD5 = md5,
                 MapId = mapId,
+                Preserve = score.Preserve,
+                Processed = score.Processed,
+                Ranked = score.Ranked,
+                HasReplay = score.HasReplay,
                 PP = score.PP,
                 Acc = score.Acc,
                 LegacyTotalScore = score.TotalScore,
@@ -41,6 +45,7 @@ public class LegacyScoresRepository(BanchoDbContext dbContext) : ScoresRepositor
                 ClientFlags = (int)score.ClientFlags,
                 PlayerId = score.PlayerId,
                 LegacyPerfect = score.Perfect,
+                IsPerfectCombo = score.Perfect,
                 OnlineChecksum = score.ClientChecksum,
                 IsRestricted = isPlayerRestricted
             });
@@ -90,6 +95,7 @@ public class LegacyScoresRepository(BanchoDbContext dbContext) : ScoresRepositor
             .FirstOrDefaultAsync(s => mapId.HasValue
                                     ? s.MapId == mapId
                                     : s.BeatmapMD5 == md5
+                                  && !s.IsRestricted
                                   && s.PlayerId == playerId
                                   && s.Mode == (int)mode
                                   && s.Status == (int)SubmissionStatus.Best);
@@ -123,12 +129,52 @@ public class LegacyScoresRepository(BanchoDbContext dbContext) : ScoresRepositor
             .FirstOrDefaultAsync(s => mapId.HasValue
                                         ? s.MapId == mapId
                                         : s.BeatmapMD5 == md5
+                                      && !s.IsRestricted
                                       && s.PlayerId == playerId
                                       && s.Mode == (int)mode
                                       && s.Mods == (int)mods
                                       && s.Status >= (int)SubmissionStatus.BestWithMods);
         
         return score == null ? null : new Score(score);
+    }
+    
+    public Task SetScoreLeaderboardPosition(
+        Score score,
+        bool withMods,
+        string md5,
+        LegacyMods mods = LegacyMods.None
+    ) => SetScoreLeaderboardPositionInternal(score, withMods, md5: md5, mapId: null, mods: mods);
+
+    public Task SetScoreLeaderboardPosition(
+        Score score,
+        bool withMods,
+        int mapId,
+        LegacyMods mods = LegacyMods.None
+    ) => SetScoreLeaderboardPositionInternal(score, withMods, mapId: mapId, md5: null, mods: mods);
+
+    private async Task SetScoreLeaderboardPositionInternal(
+        Score score,
+        bool withMods,
+        int? mapId,
+        string? md5,
+        LegacyMods mods = LegacyMods.None
+    ) {
+        score.LeaderboardPosition = await DbContext.Scores
+            .Include(s => s.Player)
+            .Where(s => mapId.HasValue
+                ? s.MapId == mapId
+                : s.BeatmapMD5 == md5
+                  && s.Mode == (int)score.Mode
+                  && (withMods
+                      ? s.Status >= (int)SubmissionStatus.BestWithMods
+                      : s.Status == (int)SubmissionStatus.Best)
+                  && (!withMods || s.Mods == (int)mods) 
+                  && (s.Player.Privileges & 1) == 1 
+                  && !s.IsRestricted
+                  && (OrderByPp(score.Mode)
+                      ? score.PP < s.PP
+                      : score.TotalScore < s.LegacyTotalScore))
+            .CountAsync() + 1;
     }
     
     public Task<(List<ScoreDto>, Score?)> GetLeaderboardScores(

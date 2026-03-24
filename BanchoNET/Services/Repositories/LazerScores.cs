@@ -32,19 +32,19 @@ public class LazerScoresRepository(BanchoDbContext dbContext) : ScoresRepository
                 Ranked = score.Ranked,
                 HasReplay = score.HasReplay,
                 PP = (float)score.Pp,
-                Acc = (float)score.Accuracy * 100,
+                Acc = (float)score.Accuracy,
                 LegacyTotalScore = score.TotalScore,
                 MaxCombo = score.MaxCombo,
                 Mods = (int)score.LegacyMods, //TODO temporary
                 LazerMods = score.ModsToString(),
-                Count300 = stats.Great ?? 0,
-                Count100 = stats.Ok ?? 0,
-                Count50 = stats.Meh ?? 0,
-                Misses = stats.Miss ?? 0,
-                Gekis = stats.LargeTickHit ?? 0,
-                Katus = stats.SliderTailHit ?? 0,
-                IgnoreHit = stats.IgnoreHit ?? 0,
-                IgnoreMiss = stats.IgnoreMiss ?? 0,
+                Count300 = stats.Great,
+                Count100 = stats.Ok,
+                Count50 = stats.Meh,
+                Misses = stats.Miss,
+                Gekis = stats.LargeTickHit,
+                Katus = stats.SliderTailHit,
+                IgnoreHit = stats.IgnoreHit,
+                IgnoreMiss = stats.IgnoreMiss,
                 Grade = (byte)score.Grade,
                 Status = (byte)score.Status,
                 Mode = (byte)score.RulesetId,
@@ -78,6 +78,7 @@ public class LazerScoresRepository(BanchoDbContext dbContext) : ScoresRepository
             .Include(s => s.Player)
             .FirstOrDefaultAsync(s =>
                 s.MapId == beatmap.Id
+                && !s.IsRestricted
                 && s.PlayerId == playerId
                 && s.Mode == (int)mode
                 && s.Status == (int)SubmissionStatus.Best);
@@ -96,6 +97,7 @@ public class LazerScoresRepository(BanchoDbContext dbContext) : ScoresRepository
             .Include(scoreDto => scoreDto.Player)
             .FirstOrDefaultAsync(s =>
                 s.MapId == beatmap.Id
+                && !s.IsRestricted
                 && s.PlayerId == playerId
                 && s.Mode == (int)mode
                 && s.Mods == (int)mods.ToLegacyMods()

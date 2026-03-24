@@ -5,6 +5,8 @@ using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Api.Beatmaps;
 using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Models.Beatmaps;
+using BanchoNET.Core.Models.Dtos;
+using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Scores;
 using BanchoNET.Core.Utils.Extensions;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,7 +18,9 @@ public class ScoreSubmissionQueue(
 ) : IScoreSubmissionQueue
 {
     private static readonly ConcurrentDictionary<int, ScoreResponseDto> Scores = new();
-    private static long GetNextScoreId => Interlocked.Increment(ref field);
+    
+    private static long _nextScoreId;
+    private static long GetNextScoreId => Interlocked.Increment(ref _nextScoreId);
     
     public async Task<ScoreResponseDto?> EnqueueScore(
         ScoreRequestDto request,
@@ -35,7 +39,7 @@ public class ScoreSubmissionQueue(
         using var scope = scopeFactory.CreateScope();
         var beatmaps = scope.ServiceProvider.GetRequiredService<IBeatmapsRepository>();
 
-        var beatmap = await beatmaps.GetBeatmap(request.beatmap_hash);
+        var beatmap = await beatmaps.GetBeatmap(request.BeatmapHash);
         if (beatmap == null || beatmap.Id != beatmapId) return null;
         
         var response = new ScoreResponseDto
@@ -85,17 +89,18 @@ public class ScoreSubmissionQueue(
             Passed = request.Passed,
             TotalScore = request.TotalScore,
             TotalScoreWithoutMods = request.TotalScoreWithoutMods,
-            Accuracy = request.Accuracy,
+            Accuracy = request.Accuracy * 100,
             MaxCombo = request.MaxCombo,
             Rank = request.Rank,
             Grade = Enum.Parse<Grade>(request.Rank, true),
             Mods = request.Mods ?? [],
+            LegacyMods = request.Mods?.ToLegacyMods() ?? 0,
             Statistics = request.Statistics,
             MaximumStatistics = request.MaximumStatistics,
             
             ClassicTotalScore = 0, //TODO calculate
             Preserve = false, //TODO will handle later
-            Processed = false,
+            Processed = true,
             Ranked = beatmap.Status is BeatmapStatus.Ranked or BeatmapStatus.Approved,
             BeatmapId = beatmapId,
             BestId = null, //TODO
@@ -127,21 +132,24 @@ public class ScoreSubmissionQueue(
             {
                 ComputeSubmissionStatus(apiScore, prevBest, bestWithMods);
                 
+                await scores.UpdateScoreStatus(prevBest);
+                await scores.UpdateScoreStatus(bestWithMods);
+                
                 if (beatmap.Status != BeatmapStatus.LatestPending)
                     await scores.SetScoreLeaderboardPosition(apiScore, withMods: false, beatmap);
             }
             else apiScore.Status = SubmissionStatus.Failed;
-            
-            await scores.UpdateScoreStatus(prevBest);
-            await scores.UpdateScoreStatus(bestWithMods);
         }
         else
         {
             apiScore.Pp = 0;
             apiScore.Status = apiScore.Passed ? SubmissionStatus.Submitted : SubmissionStatus.Failed;
         }
-        
-        await players.UpdatePlayerStats(player, apiScore);
+
+        var stats = (await players.GetPlayerModeStats(userId, (byte)mode))!;
+
+        await RecalculatePlayerStats(players, beatmap, player, stats, mode, apiScore, prevBest, bestWithMods);
+        await players.UpdatePlayerStats(stats, apiScore);
         
         if (!player.IsRestricted)
         {
@@ -151,6 +159,8 @@ public class ScoreSubmissionQueue(
 			
             await beatmaps.UpdateBeatmapPlayCount(beatmap);
         }
+
+        Scores.TryRemove(userId, out _);
         
         return await scores.InsertScore(apiScore, false, beatmap.MD5, beatmapId);
     }
@@ -160,34 +170,108 @@ public class ScoreSubmissionQueue(
         ApiScore? prevBest,
         ApiScore? bestWithMods
     ) {
-        newScore.Status = SubmissionStatus.Submitted;
-        
+        // if we beat prevBest
         if (newScore.IsBetterThan(prevBest))
         {
-            // if new score beats prevBest and has different mods,
-            // prevBest becomes bestWithMods
-            prevBest?.Status = newScore.Mods != prevBest.Mods
-                ? SubmissionStatus.BestWithMods
-                : SubmissionStatus.Submitted;
-
             newScore.Status = SubmissionStatus.Best;
+            
+            // if prevBest exists, we update its status depending on if mods are equal
+            if (prevBest != null)
+            {
+                prevBest.Status = newScore.Mods != prevBest.Mods
+                    ? SubmissionStatus.BestWithMods
+                    : SubmissionStatus.Submitted;
+
+                newScore.PreviousBest = prevBest;
+            }
         }
         else
         {
-            // if it didn't beat prevBest, check if it bestWithMods exists and set
-            // status accordingly (it is going to be properly checked later)
-            if (bestWithMods == null)
-                newScore.Status = SubmissionStatus.BestWithMods;
+            // prevBest must exist because the current score is worse
+            newScore.Status = newScore.Mods != prevBest!.Mods
+                ? SubmissionStatus.BestWithMods
+                : SubmissionStatus.Submitted;
+
+            newScore.PreviousBest = prevBest;
         }
 
-        if (bestWithMods == null || !newScore.IsBetterThan(bestWithMods)) return;
+        // the new score is not the best, but the bestWithMods does not exist, so we return early
+        // we also compare if prevBest is the same as bestWithMods and return if yes (no need to compare)
+        if (bestWithMods == null || prevBest?.Id == bestWithMods.Id)
+            return;
         
-        // if it exists and new score is better set bestWithMods to Submitted
-        bestWithMods.Status = SubmissionStatus.Submitted;
-        
-        // this check is for if new score is not better than prevBest but is
-        // better than bestWithMods
+        // the new score is not the best
         if (newScore.Status != SubmissionStatus.Best)
-            newScore.Status = SubmissionStatus.BestWithMods;
+        {
+            // but is better than bestWithMods
+            if (newScore.IsBetterThan(bestWithMods))
+            {
+                newScore.Status = SubmissionStatus.BestWithMods;
+                bestWithMods.Status = SubmissionStatus.Submitted;
+            }
+            // but is not better than bestWithMods, it is not any leaderboard worthy score
+            else
+            {
+                newScore.Status = SubmissionStatus.Submitted;
+            }
+        }
+        else
+        {
+            // the new score is better than bestWithMods
+            bestWithMods.Status = SubmissionStatus.Submitted;
+        }
+    }
+    
+    private static async Task RecalculatePlayerStats(
+        IPlayersRepository players,
+        Beatmap beatmap,
+        Player player,
+        StatsDto stats,
+        GameMode mode,
+        ApiScore score,
+        ApiScore? prevBest,
+        ApiScore? bestWithMods
+    ) {
+        if (!score.Passed || !beatmap.AwardsPP())
+            return;
+        
+        if (score.MaxCombo > stats.MaxCombo)
+            stats.MaxCombo = score.MaxCombo;
+        
+        if (score.Status == SubmissionStatus.Best)
+        {
+            /*var oldBestScore = 0;
+            
+            if (prevBest != null)
+            {
+                // our current score is best, so if prevbest is submitted subtract,
+                // otherwise our score should still count because it is in the modded
+                // leaderboard; then if current score beat both prevBest and bestWithMods
+                // but prevBest is BestWithMods we subtract bestWithMods
+                if (prevBest is { Status: SubmissionStatus.Submitted, Grade: >= Grade.A })
+                    stats.Grades[prevBest.Grade] -= 1;
+                else if (bestWithMods != null)
+                    stats.Grades[bestWithMods.Grade] -= 1;
+                
+                oldBestScore = prevBest.TotalScore;
+            }
+            
+            stats.RankedScore += score.TotalScore - oldBestScore;
+            
+            if (score.Grade >= Grade.A)
+                stats.Grades[score.Grade] += 1;*/
+            
+            await players.RecalculatePlayerTopScores(player.Id, stats, mode);
+            await players.UpdatePlayerRank(player.Id, player.IsRestricted, player.CountryCode.ToString(), stats, mode);
+        }
+        /*else if (score.Status == SubmissionStatus.BestWithMods)
+        {
+            // if our score didnt beat prevBest but beat bestWithMods subtract
+            if (bestWithMods is { Grade: >= Grade.A })
+                stats.Grades[bestWithMods.Grade] -= 1;
+            
+            if (score.Grade >= Grade.A)
+                stats.Grades[score.Grade] += 1;
+        }*/
     }
 }

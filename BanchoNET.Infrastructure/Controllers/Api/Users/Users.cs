@@ -12,7 +12,8 @@ namespace BanchoNET.Infrastructure.Controllers.Api.Users;
 public partial class UsersController(
     IAuthService auth,
     IPlayersRepository players,
-    IBeatmapsRepository beatmaps
+    IBeatmapsRepository beatmaps,
+    ILazerScoresRepository scores
 ) : ApiController(auth, players, beatmaps)
 {
     [HttpGet("{forMode?}")]

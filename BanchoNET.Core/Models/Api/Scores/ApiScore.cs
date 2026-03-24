@@ -18,7 +18,7 @@ public class ApiScore
     
     public List<ApiMod> Mods { get; set; } = [];
     [JsonIgnore]
-    public LegacyMods LegacyMods { get; }
+    public LegacyMods LegacyMods { get; set; }
     
     public Statistics Statistics { get; set; } = new();
     public int TotalScoreWithoutMods { get; set; }
@@ -46,14 +46,17 @@ public class ApiScore
     public bool Replay { get; set; }
     public Attributes CurrentUserAttributes { get; set; } = new();
     
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public BasicApiPlayer? User { get; set; }
+    
     [JsonIgnore]
     public int LeaderboardPosition { get; set; }
     
     [JsonIgnore]
     public SubmissionStatus Status { get; set; }
     
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public BasicApiPlayer? User { get; set; }
+    [JsonIgnore]
+    public ApiScore? PreviousBest { get; set; }
     
     [JsonConstructor]
     public ApiScore() { }

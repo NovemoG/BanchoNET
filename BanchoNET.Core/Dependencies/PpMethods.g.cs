@@ -33,7 +33,7 @@ public static partial class PpMethods
         uint n_katu,
         uint n50,
         uint n_misses,
-        double clock_rate,
+        nint clock_rate,
         float cs,
         float ar,
         float od,
@@ -56,7 +56,7 @@ public static partial class PpMethods
             (uint)score.Katus,
             (uint)score.Count50,
             (uint)score.Misses,
-            clock_rate: 1f,
+            nint.Zero,
             beatmap.Cs,
             beatmap.Ar,
             beatmap.Od,
@@ -64,11 +64,11 @@ public static partial class PpMethods
         );
     }
     
-    public static float ComputeScorePp(
+    public static unsafe float ComputeScorePp(
         int beatmapId,
         ApiScore score,
-        float clockRate,
-        bool lazer,
+        double clockRate,
+        bool isLazer,
         float cs,
         float ar,
         float od
@@ -81,17 +81,17 @@ public static partial class PpMethods
             (uint)score.LegacyMods,
             (uint)score.MaxCombo,
             score.Accuracy,
-            (uint)(stats.Great ?? 0),
-            (uint)(stats.LargeTickHit ?? 0),
-            (uint)(stats.Ok ?? 0),
-            (uint)(stats.SliderTailHit ?? 0),
-            (uint)(stats.Meh ?? 0),
-            (uint)(stats.Miss ?? 0),
-            clock_rate: clockRate,
+            (uint)(stats.Great),
+            (uint)(stats.LargeTickHit),
+            (uint)(stats.Ok),
+            (uint)(stats.SliderTailHit),
+            (uint)(stats.Meh),
+            (uint)(stats.Miss),
+            (nint)(&clockRate),
             cs,
             ar,
             od,
-            lazer: lazer
+            isLazer
         );
     }
 
@@ -123,7 +123,7 @@ public static partial class PpMethods
             (uint)score.Katus,
             (uint)score.Count50,
             (uint)0,
-            clock_rate: 1f,
+            nint.Zero,
             beatmap.Cs,
             beatmap.Ar,
             beatmap.Od,
@@ -144,7 +144,8 @@ public static partial class PpMethods
             score.Count50,
             0,
             score.Gekis,
-            score.Katus);
+            score.Katus
+        );
             
         return (float)ComputePp(
             Storage.GetBeatmapPath(beatmap.Id),
@@ -158,7 +159,7 @@ public static partial class PpMethods
             (uint)score.Katus,
             (uint)score.Count50,
             (uint)0,
-            clock_rate: 1f,
+            nint.Zero,
             beatmap.Cs,
             beatmap.Ar,
             beatmap.Od,

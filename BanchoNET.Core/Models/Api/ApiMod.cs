@@ -4,12 +4,14 @@ namespace BanchoNET.Core.Models.Api;
 
 public class ApiMod : IEquatable<ApiMod>
 {
+    [JsonPropertyName("acronym")]
     public string Acronym { get; init; } = "Unknown";
     
     [JsonIgnore]
     public Dictionary<string, object> Settings { get; set; } = new();
     
-    [JsonPropertyName("settings"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), JsonInclude]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), JsonInclude]
+    [JsonPropertyName("settings")]
     private Dictionary<string, object>? SettingsForSerialization
     {
         get => Settings.Count > 0 ? Settings : null;
@@ -20,8 +22,15 @@ public class ApiMod : IEquatable<ApiMod>
     public ApiMod() { }
 
     public ApiMod(
-        string modString
+        string modString,
+        bool acronymOnly = false
     ) {
+        if (acronymOnly)
+        {
+            Acronym = modString;
+            return;
+        }
+        
         var modValues = modString.Split(',');
         Acronym = modValues[0];
 

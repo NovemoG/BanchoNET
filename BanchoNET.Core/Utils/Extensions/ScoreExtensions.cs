@@ -63,8 +63,8 @@ public static class ScoreExtensions
         int count50,
         int misses,
         int gekis,
-        int katus)
-    {
+        int katus
+    ) {
         int objects;
         float acc;
 
@@ -195,9 +195,9 @@ public static class ScoreExtensions
                 od = overallDifficulty.GetFloat();
         }
 
-        var clockRate = 1f;
+        var clockRate = 1d;
         if (dt != null && dt.Settings.TryGetValue("speed_change", out var rateChange))
-            clockRate = rateChange.GetFloat();
+            clockRate = rateChange.GetDouble();
 
         var pp = PpMethods.ComputeScorePp(beatmap.Id, score, clockRate, lazer, cs, ar, od);
 

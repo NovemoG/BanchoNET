@@ -26,7 +26,7 @@ public partial class BeatmapsController(
         //TODO
         return JsonSnake(new
         {
-            beatmaps = beatmaps.Select(map => new ApiBeatmap(map, new ApiBeatmapset(map.Set!, map)))
+            beatmaps = beatmaps.Select(map => new ApiBeatmap(map, new ApiBeatmapset(map.Set, map)))
         });
     }
 }
