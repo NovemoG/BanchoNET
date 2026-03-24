@@ -108,6 +108,8 @@ public class ApiScore
         TotalScore = score.TotalScore;
         Replay = HasReplay;
         //TODO CurrentUserAttributes
+        Status = score.Status;
+        LeaderboardPosition = score.LeaderboardPosition;
         
         User = new BasicApiPlayer(player);
     }
@@ -157,6 +159,7 @@ public class ApiScore
         TotalScore = scoreDto.LegacyTotalScore;
         Replay = HasReplay;
         //TODO CurrentUserAttributes
+        Status = (SubmissionStatus)scoreDto.Status;
         
         User = new BasicApiPlayer(player);
     }

@@ -34,7 +34,10 @@ public static class BeatmapExtensions
 			BeatmapStatus.Loved => "loved",
 			BeatmapStatus.Qualified => "qualified",
 			BeatmapStatus.Ranked => "ranked",
-			_ => "pending"
+			BeatmapStatus.LatestPending => "pending",
+			BeatmapStatus.NotSubmitted => "unknown",
+			BeatmapStatus.NeedsUpdate => "unknown",
+			_ => "graveyard"
 		};
 	}
 	
@@ -52,6 +55,11 @@ public static class BeatmapExtensions
 
 		public string FullName() {
 			return $"{beatmap.Artist} - {beatmap.Title} [{beatmap.Name}]";
+		}
+
+		//TODO why trim
+		public string DisplayTitle() {
+			return $"{beatmap.ArtistUnicode} - {beatmap.TitleUnicode} {beatmap.Creator} {beatmap.Name}".Trim();
 		}
 
 		public string Embed() {

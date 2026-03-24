@@ -59,4 +59,17 @@ public static class ModeExtensions
 			stats.TotalKatus += statistics.SliderTailHit;
 		}
 	}
+
+	public static string PlayingVerb(
+		this int rulesetId
+	) {
+		return rulesetId switch
+		{
+			0 => "Clicking circles",
+			1 => "Bashing drums",
+			2 => "Catching fruits",
+			3 => "Smashing keys",
+			_ => "Playing"
+		};
+	}
 }

@@ -156,6 +156,19 @@ public static class ScoreExtensions
             / (beatmap.CirclesCount + beatmap.SlidersCount + beatmap.SpinnersCount) * 100f;
     }
 
+    public static bool EqualModsWith(
+        this ApiScore? score,
+        ApiScore? other
+    ) {
+        if (ReferenceEquals(score, other))
+            return true;
+
+        if (score is null || other is null)
+            return false;
+
+        return score.Mods.SequenceEqual(other.Mods);
+    }
+
     public static void CalculatePerformance(
         this Score score,
         Beatmap beatmap

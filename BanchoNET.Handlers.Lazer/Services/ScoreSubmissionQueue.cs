@@ -121,7 +121,9 @@ public class ScoreSubmissionQueue(
         var mode = (GameMode)apiScore.RulesetId;
         
         var prevBest = await scores.GetPlayerBestScoreOnMap(player.Id, mode, beatmap);
-        var bestWithMods = prevBest != null && apiScore.Mods != prevBest.Mods
+        var sameMods = apiScore.EqualModsWith(prevBest);
+        
+        var bestWithMods = prevBest != null && !sameMods
             ? await scores.GetPlayerBestScoreWithModsOnMap(player.Id, mode, apiScore.Mods, beatmap)
             : null;
         
@@ -131,7 +133,7 @@ public class ScoreSubmissionQueue(
             
             if (apiScore.Passed)
             {
-                ComputeSubmissionStatus(apiScore, prevBest, bestWithMods);
+                ComputeSubmissionStatus(apiScore, prevBest, bestWithMods, sameMods);
                 
                 await scores.UpdateScoreStatus(prevBest);
                 await scores.UpdateScoreStatus(bestWithMods);
@@ -146,7 +148,9 @@ public class ScoreSubmissionQueue(
             apiScore.Pp = 0;
             apiScore.Status = apiScore.Passed ? SubmissionStatus.Submitted : SubmissionStatus.Failed;
         }
-
+        
+        await scores.InsertScore(apiScore, false, beatmap.MD5, beatmapId);
+        
         var stats = (await players.GetPlayerModeStats(userId, (byte)mode))!;
 
         await RecalculatePlayerStats(players, beatmap, player, stats, mode, apiScore, prevBest, bestWithMods);
@@ -162,14 +166,15 @@ public class ScoreSubmissionQueue(
         }
 
         Scores.TryRemove(userId, out _);
-        
-        return await scores.InsertScore(apiScore, false, beatmap.MD5, beatmapId);
+
+        return apiScore;
     }
     
     private static void ComputeSubmissionStatus(
         ApiScore newScore,
         ApiScore? prevBest,
-        ApiScore? bestWithMods
+        ApiScore? bestWithMods,
+        bool sameMods
     ) {
         // if we beat prevBest
         if (newScore.IsBetterThan(prevBest))
@@ -179,7 +184,7 @@ public class ScoreSubmissionQueue(
             // if prevBest exists, we update its status depending on if mods are equal
             if (prevBest != null)
             {
-                prevBest.Status = newScore.Mods != prevBest.Mods
+                prevBest.Status = !sameMods
                     ? SubmissionStatus.BestWithMods
                     : SubmissionStatus.Submitted;
 
@@ -189,7 +194,7 @@ public class ScoreSubmissionQueue(
         else
         {
             // prevBest must exist because the current score is worse
-            newScore.Status = newScore.Mods != prevBest!.Mods
+            newScore.Status = !sameMods
                 ? SubmissionStatus.BestWithMods
                 : SubmissionStatus.Submitted;
 

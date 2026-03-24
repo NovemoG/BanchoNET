@@ -608,6 +608,7 @@ public class PlayersRepository : IPlayersRepository
 		
 		stats.Accuracy = weightedAcc * accWeight / 100;
 		stats.PP = (ushort)MathF.Round(weightedPp + bonusPp);
+		await _dbContext.SaveChangesAsync();
 	}
 
 	public async Task UpdatePlayerRank(

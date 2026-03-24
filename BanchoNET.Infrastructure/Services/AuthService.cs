@@ -39,7 +39,7 @@ public class AuthService(
         var creds = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256);
         var jti = Guid.NewGuid().ToString();
         var now = DateTime.UtcNow;
-        var expires = now.AddMinutes(15);
+        var expires = now.AddDays(1);
         
         var claims = new[] {
             new Claim(JwtRegisteredClaimNames.Sub, player.Id.ToString()),
@@ -109,7 +109,7 @@ public class AuthService(
         var creds = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256);
         var jti = Guid.NewGuid().ToString();
         var now = DateTime.UtcNow;
-        var expires = now.AddMinutes(15);
+        var expires = now.AddDays(1);
         
         var claims = new[] {
             new Claim(JwtRegisteredClaimNames.Sub, dbToken.UserId.ToString()),
