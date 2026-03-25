@@ -1,13 +1,19 @@
 using System.Text.Json.Serialization;
+using BanchoNET.Core.Utils;
+using MessagePack;
 
 namespace BanchoNET.Core.Models.Api;
 
+[MessagePackObject]
 public class ApiMod : IEquatable<ApiMod>
 {
     [JsonPropertyName("acronym")]
+    [Key(0)]
     public string Acronym { get; init; } = "Unknown";
     
     [JsonIgnore]
+    [Key(1)]
+    [MessagePackFormatter(typeof(ModSettingsDictionaryFormatter))]
     public Dictionary<string, object> Settings { get; set; } = new();
     
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), JsonInclude]
@@ -19,6 +25,7 @@ public class ApiMod : IEquatable<ApiMod>
     }
     
     [JsonConstructor]
+    [SerializationConstructor]
     public ApiMod() { }
 
     public ApiMod(

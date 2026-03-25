@@ -128,6 +128,8 @@ public partial class OsuController
             if (score.Passed)
             {
                 ComputeSubmissionStatus(score, prevBest, bestWithMods);
+
+                score.Preserve = score.Status > SubmissionStatus.Submitted;
                 
                 await scores.UpdateScoreStatus(prevBest);
                 await scores.UpdateScoreStatus(bestWithMods);

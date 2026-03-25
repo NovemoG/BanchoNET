@@ -96,7 +96,6 @@ public class Score
 		
 		ClientFlags = (ClientFlags)int.Parse(scoreData[15]);
 		Ranked = beatmap.Status is BeatmapStatus.Ranked or BeatmapStatus.Approved;
-		Preserve = Passed; //TODO
 		Processed = true; //always processed instantly on score submission
 	}
 	

@@ -29,15 +29,14 @@ public static class BeatmapExtensions
 	) {
 		return status switch
 		{
-			BeatmapStatus.Unknown => "unknown",
-			BeatmapStatus.Approved => "approved",
-			BeatmapStatus.Loved => "loved",
-			BeatmapStatus.Qualified => "qualified",
-			BeatmapStatus.Ranked => "ranked",
+			BeatmapStatus.Graveyard => "graveyard",
+			BeatmapStatus.WIP => "wip",
 			BeatmapStatus.LatestPending => "pending",
-			BeatmapStatus.NotSubmitted => "unknown",
-			BeatmapStatus.NeedsUpdate => "unknown",
-			_ => "graveyard"
+			BeatmapStatus.Ranked => "ranked",
+			BeatmapStatus.Approved => "approved",
+			BeatmapStatus.Qualified => "qualified",
+			BeatmapStatus.Loved => "loved",
+			_ => "unknown"
 		};
 	}
 	
@@ -120,11 +119,14 @@ public static class BeatmapExtensions
 		
 		return status switch
 		{
+			-2 => BeatmapStatus.Graveyard,
+			-1 => BeatmapStatus.WIP,
+			0 => BeatmapStatus.LatestPending,
 			1 => BeatmapStatus.Ranked,
 			2 => BeatmapStatus.Approved,
 			3 => BeatmapStatus.Qualified,
 			4 => BeatmapStatus.Loved,
-			_ => BeatmapStatus.LatestPending
+			_ => BeatmapStatus.Unknown
 		};
 	}
 

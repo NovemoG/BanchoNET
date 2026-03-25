@@ -145,9 +145,9 @@ public class Beatmap : IBeatmap,
 		Od = float.Parse(apiBeatmap.DiffOverall);
 		Hp = float.Parse(apiBeatmap.DiffDrain);
 		StarRating = float.Parse(apiBeatmap.DifficultyRating);
-		CirclesCount = int.Parse(apiBeatmap.CountNormal);
-		SlidersCount = int.Parse(apiBeatmap.CountSlider);
-		SpinnersCount = int.Parse(apiBeatmap.CountSpinner);
+		CirclesCount = int.TryParse(apiBeatmap.CountNormal, out var circles) ? circles : 0;
+		SlidersCount = int.TryParse(apiBeatmap.CountSlider, out var sliders) ? sliders : 0;
+		SpinnersCount = int.TryParse(apiBeatmap.CountSpinner, out var spinners) ? spinners : 0;
 		NotesCount = CirclesCount + SlidersCount + SpinnersCount;
 		MaxStatistics = new MaxStatistics
 		{
