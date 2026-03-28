@@ -180,6 +180,9 @@ public partial class OsuController
             }
         }
         
+        score.Player = player;
+        player.RecentScore = await scores.InsertScore(score, player.IsRestricted, beatmap.MD5, beatmapId);
+        
         if (score.Passed)
         {
             if (replayFile.Length >= 24)
@@ -197,9 +200,6 @@ public partial class OsuController
                     await players.RestrictPlayer(player, "Submitted score with invalid replay length");
             }
         }
-        
-        score.Player = player;
-        player.RecentScore = await scores.InsertScore(score, player.IsRestricted, beatmap.MD5, beatmapId);
         
         var stats = player.Stats[score.Mode];
         var prevStats = stats.Copy();
@@ -314,7 +314,7 @@ public partial class OsuController
         }
 
         // the new score is not the best, but the bestWithMods does not exist, so we return early
-        // we also compare if prevBest is the same as bestWithMods and return if yes (no need to compare)
+        // we also compare if prevBest is the same as bestWithMods and return if yes (no need to compare further)
         if (bestWithMods == null || prevBest?.Id == bestWithMods.Id)
             return;
         

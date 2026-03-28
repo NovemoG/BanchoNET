@@ -203,7 +203,7 @@ public class ScoreSubmissionQueue(
         }
 
         // the new score is not the best, but the bestWithMods does not exist, so we return early
-        // we also compare if prevBest is the same as bestWithMods and return if yes (no need to compare)
+        // we also compare if prevBest is the same as bestWithMods and return if yes (no need to compare further)
         if (bestWithMods == null || prevBest?.Id == bestWithMods.Id)
             return;
         

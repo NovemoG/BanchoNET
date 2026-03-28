@@ -92,13 +92,13 @@ public class LegacyScoresRepository(BanchoDbContext dbContext) : ScoresRepositor
     ) {
         var score = await DbContext.Scores
             .AsNoTracking()
-            .FirstOrDefaultAsync(s => mapId.HasValue
-                                    ? s.MapId == mapId
-                                    : s.BeatmapMD5 == md5
-                                  && !s.IsRestricted
-                                  && s.PlayerId == playerId
-                                  && s.Mode == (int)mode
-                                  && s.Status == (int)SubmissionStatus.Best);
+            .FirstOrDefaultAsync(s => (mapId.HasValue
+                                          ? s.MapId == mapId
+                                          : s.BeatmapMD5 == md5)
+                                      && !s.IsRestricted
+                                      && s.PlayerId == playerId
+                                      && s.Mode == (int)mode
+                                      && s.Status == (int)SubmissionStatus.Best);
         
         return score == null ? null : new Score(score);
     }
@@ -126,9 +126,9 @@ public class LegacyScoresRepository(BanchoDbContext dbContext) : ScoresRepositor
     ) {
         var score = await DbContext.Scores
             .AsNoTracking()
-            .FirstOrDefaultAsync(s => mapId.HasValue
-                                        ? s.MapId == mapId
-                                        : s.BeatmapMD5 == md5
+            .FirstOrDefaultAsync(s => (mapId.HasValue
+                                          ? s.MapId == mapId
+                                          : s.BeatmapMD5 == md5)
                                       && !s.IsRestricted
                                       && s.PlayerId == playerId
                                       && s.Mode == (int)mode
@@ -161,19 +161,19 @@ public class LegacyScoresRepository(BanchoDbContext dbContext) : ScoresRepositor
     ) {
         score.LeaderboardPosition = await DbContext.Scores
             .Include(s => s.Player)
-            .Where(s => mapId.HasValue
-                ? s.MapId == mapId
-                : s.BeatmapMD5 == md5
-                  && s.Mode == (int)score.Mode
-                  && (withMods
-                      ? s.Status >= (int)SubmissionStatus.BestWithMods
-                      : s.Status == (int)SubmissionStatus.Best)
-                  && (!withMods || s.Mods == (int)mods) 
-                  && (s.Player.Privileges & 1) == 1 
-                  && !s.IsRestricted
-                  && (OrderByPp(score.Mode)
-                      ? score.PP < s.PP
-                      : score.TotalScore < s.LegacyTotalScore))
+            .Where(s => (mapId.HasValue
+                            ? s.MapId == mapId
+                            : s.BeatmapMD5 == md5)
+                        && s.Mode == (int)score.Mode
+                        && (withMods
+                            ? s.Status >= (int)SubmissionStatus.BestWithMods
+                            : s.Status == (int)SubmissionStatus.Best)
+                        && (!withMods || s.Mods == (int)mods) 
+                        && (s.Player.Privileges & 1) == 1 
+                        && !s.IsRestricted
+                        && (OrderByPp(score.Mode)
+                            ? score.PP < s.PP
+                            : score.TotalScore < s.LegacyTotalScore))
             .CountAsync() + 1;
     }
     

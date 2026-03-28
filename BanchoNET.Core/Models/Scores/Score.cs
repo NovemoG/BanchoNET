@@ -85,7 +85,6 @@ public class Score
 		TotalScore = int.Parse(scoreData[7]);
 		MaxCombo = int.Parse(scoreData[8]);
 		Perfect = scoreData[9] == "True";
-		Ranked = beatmap.Status is BeatmapStatus.Ranked or BeatmapStatus.Approved;
 		Grade = grade;
 		Mods = mods;
 		
