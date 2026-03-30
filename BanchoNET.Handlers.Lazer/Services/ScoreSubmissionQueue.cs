@@ -29,18 +29,14 @@ public class ScoreSubmissionQueue(
     ) {
         var createdAt = DateTimeOffset.UtcNow;
         //TODO there might be a case where player starts a map and then loses connection and never submits
-        if (Scores.TryGetValue(userId, out var value))
-        {
-            return userId == value.UserId
-                ? value
-                : null;
-        }
+        if (Scores.TryGetValue(userId, out var value) && userId != value.UserId)
+            return null;
 
         using var scope = scopeFactory.CreateScope();
         var beatmaps = scope.ServiceProvider.GetRequiredService<IBeatmapsRepository>();
 
         var beatmap = await beatmaps.GetBeatmap(request.beatmap_hash);
-        if (beatmap == null || beatmap.Id != beatmapId) return null;
+        if (beatmap == null) return null;
         
         var response = new ScoreResponseDto
         {

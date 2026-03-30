@@ -1,6 +1,7 @@
 ﻿using System.Text.Json.Serialization;
 using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Dtos;
+using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
 
 namespace BanchoNET.Core.Models.Api.Beatmaps;
@@ -66,7 +67,7 @@ public class BasicApiBeatmap
         Passcount = mapDto.Passes;
         Playcount = mapDto.Plays;
         Ranked = mapDto.Status == (sbyte)BeatmapStatus.Ranked ? 1 : 0;
-        Url = $"https://osu.ppy.sh/beatmaps/{mapDto.MapId}";
+        Url = $"https://osu.{AppSettings.Domain}/beatmaps/{mapDto.MapId}";
         Checksum = mapDto.MD5;
     }
 
@@ -98,7 +99,7 @@ public class BasicApiBeatmap
         Passcount = beatmap.Passes;
         Playcount = beatmap.Plays;
         Ranked = beatmap.Status == BeatmapStatus.Ranked ? 1 : 0;
-        Url = $"https://osu.ppy.sh/beatmaps/{beatmap.Id}";
+        Url = $"https://osu.{AppSettings.Domain}/beatmaps/{beatmap.Id}";
         Checksum = beatmap.MD5;
     }
 }

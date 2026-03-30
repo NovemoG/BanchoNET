@@ -132,22 +132,28 @@ public class Beatmap : IBeatmap,
 		//TODO CreatorId = int.Parse(apiBeatmap.CreatorId);
 		CreatorId = 1;
 		Tags = apiBeatmap.Tags;
-		SubmitDate = DateTime.Parse(apiBeatmap.SubmitDate);
-		LastUpdate = DateTime.Parse(apiBeatmap.LastUpdate);
-		TotalLength = int.Parse(apiBeatmap.TotalLength);
-		HitLength = int.Parse(apiBeatmap.HitLength);
-		MaxCombo = int.Parse(apiBeatmap.MaxCombo);
-		HasVideo = apiBeatmap.Video == "1";
-		HasStoryboard = apiBeatmap.Storyboard == "1";
-		Bpm = float.Parse(apiBeatmap.Bpm);
-		Cs = float.Parse(apiBeatmap.DiffSize);
-		Ar = float.Parse(apiBeatmap.DiffApproach);
-		Od = float.Parse(apiBeatmap.DiffOverall);
-		Hp = float.Parse(apiBeatmap.DiffDrain);
-		StarRating = float.Parse(apiBeatmap.DifficultyRating);
-		CirclesCount = int.TryParse(apiBeatmap.CountNormal, out var circles) ? circles : 0;
-		SlidersCount = int.TryParse(apiBeatmap.CountSlider, out var sliders) ? sliders : 0;
-		SpinnersCount = int.TryParse(apiBeatmap.CountSpinner, out var spinners) ? spinners : 0;
+
+		try
+		{
+			SubmitDate = DateTime.Parse(apiBeatmap.SubmitDate);
+			LastUpdate = DateTime.Parse(apiBeatmap.LastUpdate);
+			TotalLength = int.Parse(apiBeatmap.TotalLength);
+			HitLength = int.Parse(apiBeatmap.HitLength);
+			MaxCombo = int.Parse(apiBeatmap.MaxCombo);
+			HasVideo = apiBeatmap.Video == "1";
+			HasStoryboard = apiBeatmap.Storyboard == "1";
+			Bpm = float.Parse(apiBeatmap.Bpm);
+			Cs = float.Parse(apiBeatmap.DiffSize);
+			Ar = float.Parse(apiBeatmap.DiffApproach);
+			Od = float.Parse(apiBeatmap.DiffOverall);
+			Hp = float.Parse(apiBeatmap.DiffDrain);
+			StarRating = float.Parse(apiBeatmap.DifficultyRating);
+			CirclesCount = int.Parse(apiBeatmap.CountNormal);
+			SlidersCount = int.Parse(apiBeatmap.CountSlider);
+			SpinnersCount = int.Parse(apiBeatmap.CountSpinner);
+		}
+		catch { /* ignore */ }
+		
 		NotesCount = CirclesCount + SlidersCount + SpinnersCount;
 		MaxStatistics = new MaxStatistics
 		{

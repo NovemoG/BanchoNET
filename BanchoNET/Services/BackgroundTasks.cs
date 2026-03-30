@@ -27,6 +27,7 @@ public class BackgroundTasks(
         { "MarkInactivePlayers", "0 0 * * *" },         // every day at midnight
         { "DeleteUnnecessaryScores", "0 0 */2 * *" },   // every 2 days at midnight
         { "AppendMonthlyHistory", "0 0 1 * *" },        // every 1st day of the month at midnight
+        { "UpdateLazerProject", "0 0 * * *" },          // every day at midnight TODO
     };
 
     protected override async Task ExecuteAsync(

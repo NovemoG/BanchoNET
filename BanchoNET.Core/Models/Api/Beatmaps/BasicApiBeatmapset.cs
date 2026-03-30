@@ -1,6 +1,7 @@
 ﻿using System.Text.Json.Serialization;
 using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Dtos;
+using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
 
 namespace BanchoNET.Core.Models.Api.Beatmaps;
@@ -53,7 +54,7 @@ public class BasicApiBeatmapset
         Nsfw = false; //TODO
         Offset = 0; //TODO
         PlayCount = beatmaps.Sum(b => b.Plays);
-        PreviewUrl = $"//b.ppy.sh/preview/{beatmapset.SetId}.mp3";
+        PreviewUrl = $"//b.{AppSettings.Domain}/preview/{beatmapset.SetId}.mp3";
         Source = ""; //TODO
         Spotlight = false; //TODO
         Status = ((BeatmapStatus)firstMap.Status).ToApiBeatmapStatus();
@@ -83,7 +84,7 @@ public class BasicApiBeatmapset
         Nsfw = false; //TODO
         Offset = 0; //TODO
         PlayCount = beatmapset.Beatmaps.Sum(b => b.Plays);
-        PreviewUrl = $"//b.ppy.sh/preview/{firstMap.SetId}.mp3";
+        PreviewUrl = $"//b.{AppSettings.Domain}/preview/{firstMap.SetId}.mp3";
         Source = ""; //TODO
         Spotlight = false; //TODO
         Status = firstMap.Status.ToApiBeatmapStatus();

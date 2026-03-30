@@ -1,12 +1,13 @@
 ﻿using System.Text.Json.Serialization;
 using BanchoNET.Core.Models.Dtos;
+using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
 
 namespace BanchoNET.Core.Models.Api.Player;
 
 public class BasicApiPlayer
 {
-    public string AvatarUrl => $"https://a.ppy.sh/{Id}";
+    public string AvatarUrl => $"https://a.{AppSettings.Domain}/{Id}";
     public string CountryCode { get; set; } = "Unknown";
     public string DefaultGroup { get; set; } = "default"; //TODO
     public int Id { get; set; }
@@ -46,8 +47,8 @@ public class BasicApiPlayer
         //TODO Cover
         Cover = new Cover
         {
-            CustomUrl = $"https://assets.ppy.sh/user-profile-covers/{Id}",
-            Url = $"https://assets.ppy.sh/user-profile-covers/{Id}",
+            CustomUrl = $"https://assets.{AppSettings.Domain}/user-profile-covers/{Id}",
+            Url = $"https://assets.{AppSettings.Domain}/user-profile-covers/{Id}",
         };
         //TODO Team
     }
@@ -68,8 +69,8 @@ public class BasicApiPlayer
         //TODO Cover
         Cover = new Cover
         {
-            CustomUrl = $"https://assets.ppy.sh/user-profile-covers/{Id}",
-            Url = $"https://assets.ppy.sh/user-profile-covers/{Id}",
+            CustomUrl = $"https://assets.{AppSettings.Domain}/user-profile-covers/{Id}",
+            Url = $"https://assets.{AppSettings.Domain}/user-profile-covers/{Id}",
         };
         //TODO Team
     }

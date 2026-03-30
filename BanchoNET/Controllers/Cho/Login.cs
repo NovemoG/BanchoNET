@@ -172,7 +172,7 @@ public partial class ChoController
 		}
 
 		var ip = geoloc.GetIp(Request.Headers);
-		player = new Player(userInfo, loginTime: DateTime.UtcNow, timeZone: loginData.TimeZone)
+		player = new Player(userInfo, id: Guid.NewGuid(), loginTime: DateTime.UtcNow, timeZone: loginData.TimeZone)
 		{
 			Geoloc = _geoloc.Value,
 			ClientDetails = new ClientDetails
@@ -313,7 +313,7 @@ public partial class ChoController
 		
 		var versionMatch = Regexes.OsuVersion.Match(remainder[0]);
 		if (!versionMatch.Success) return null;
-			
+		
 		var osuVersion = new OsuVersion
 		{
 			Date = DateTime.ParseExact(versionMatch.Groups["date"].Value, "yyyyMMdd", null),

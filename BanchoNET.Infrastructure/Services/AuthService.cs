@@ -35,7 +35,7 @@ public class AuthService(
         Player player,
         string scope = "*"
     ) {
-        var key = Encoding.UTF8.GetBytes("FGc9GAtyHzeQDshWP5Ah7dega8hJACAJpQtw6OXk");
+        var key = "FGc9GAtyHzeQDshWP5Ah7dega8hJACAJpQtw6OXk"u8.ToArray();
         var creds = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256);
         var jti = Guid.NewGuid().ToString();
         var now = DateTime.UtcNow;
@@ -105,7 +105,7 @@ public class AuthService(
         db.RefreshTokens.Add(newDb);
         await db.SaveChangesAsync();
         
-        var key = Encoding.UTF8.GetBytes("FGc9GAtyHzeQDshWP5Ah7dega8hJACAJpQtw6OXk");
+        var key = "FGc9GAtyHzeQDshWP5Ah7dega8hJACAJpQtw6OXk"u8.ToArray();
         var creds = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256);
         var jti = Guid.NewGuid().ToString();
         var now = DateTime.UtcNow;

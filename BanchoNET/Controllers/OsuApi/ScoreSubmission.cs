@@ -51,7 +51,7 @@ public partial class OsuController
         var username = scoreData[1];
         if (username[^1] == ' ')
             username = username[..^1];
-
+        
         var player = await players.GetPlayerFromLogin(username, passwordMD5);
         if (player == null)
             return Ok();

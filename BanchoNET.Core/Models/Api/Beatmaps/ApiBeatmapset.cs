@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using BanchoNET.Core.Models.Api.Player;
 using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Dtos;
+using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
 
 namespace BanchoNET.Core.Models.Api.Beatmaps;
@@ -78,7 +79,7 @@ public class ApiBeatmapset : BasicApiBeatmapset
         DiscussionLocked = false; //TODO
         IsScoreable = true; //TODO
         LastUpdated = firstMap.LastUpdate;
-        LegacyThreadUrl = "https://osu.ppy.sh/community/forums/topics/0"; //TODO
+        LegacyThreadUrl = $"https://osu.{AppSettings.Domain}/community/forums/topics/0"; //TODO
         NominationsSummary = new NominationsSummary
         {
             Current = 2, //TODO
@@ -193,7 +194,7 @@ public class ApiBeatmapset : BasicApiBeatmapset
         DiscussionLocked = false; //TODO
         IsScoreable = true; //TODO
         LastUpdated = firstMap.LastUpdate;
-        LegacyThreadUrl = "https://osu.ppy.sh/community/forums/topics/0"; //TODO
+        LegacyThreadUrl = $"https://osu.{AppSettings.Domain}/community/forums/topics/0"; //TODO
         NominationsSummary = new NominationsSummary
         {
             Current = 2, //TODO

@@ -19,8 +19,8 @@ public partial class OsuController(
     IBeatmapHandler beatmapHandler,
     IGeolocService geoloc,
     ILogger logger,
-    HttpClient httpClient)
-    : ControllerBase
+    HttpClient httpClient
+) : ControllerBase
 {
     [HttpGet("bancho_connect.php")]
     public async Task<IActionResult> BanchoConnect()

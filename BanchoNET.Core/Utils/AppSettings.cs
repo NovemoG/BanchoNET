@@ -175,5 +175,6 @@ public static class AppSettings
     public static readonly int VersionFetchHoursInterval;
     public static readonly int DaysUntilPlayerIsMarkedInactive;
     public static readonly string CommandPrefix;
+    public static readonly string LazerHostname;
     public static readonly string OsuApiKey;
 }
