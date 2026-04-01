@@ -133,7 +133,7 @@ public class Program
 			$"Database={dbConnections.MysqlDb};";
 
 		if (AppSettings.Debug)
-			mySqlConnectionString += $"Include Error Detail=True;";
+			mySqlConnectionString += "Include Error Detail=True;";
 
 		var redisConnectionString = 
 			$"{dbConnections.RedisHost}:{dbConnections.RedisPort}," +

@@ -2,6 +2,7 @@
 
 public interface IBackgroundTasks
 {
+    Task UpdateLazer(CancellationToken ct);
     Task AppendPlayerRankHistory(CancellationToken ct);
     Task AppendPlayerMonthlyHistory(CancellationToken ct);
     Task DeleteUnnecessaryScores(CancellationToken ct);

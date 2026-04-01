@@ -12,6 +12,7 @@ public static class Storage
 		CreateDirectoryIfNotExists(ScreenshotsPath);
 		CreateDirectoryIfNotExists(MedalIconsPath);
 		CreateDirectoryIfNotExists(LogsPath);
+		CreateDirectoryIfNotExists(LazerPath);
 	}
 
 	private const string BasePath = "/app/files";
@@ -21,6 +22,21 @@ public static class Storage
 	private static readonly string ScreenshotsPath = Path.Combine(BasePath, "Screenshots");
 	private static readonly string MedalIconsPath = Path.Combine(BasePath, "MedalIcons");
 	private static readonly string LogsPath = Path.Combine(BasePath, "Logs");
+	
+	public static readonly string LazerPath = Path.Combine(BasePath, "Lazer");
+	public static readonly string CurrentLazerVersionFile = Path.Combine(LazerPath, "LazerVersion.txt");
+
+	public static string ProductionEndpointPath(
+		bool tachyon = false
+	) => Path.Combine(
+		LazerPath, tachyon ? "Tachyon" : "Lazer", "osu.Game", "Online", "ProductionEndpointConfiguration.cs"
+	);
+
+	public static string TrustedDomainStorePath(
+		bool tachyon = false
+	) => Path.Combine(
+		LazerPath, tachyon ? "Tachyon" : "Lazer", "osu.Game", "Online", "TrustedDomainOnlineStore.cs"
+	);
 	
 	public static string GetBeatmapPath(int beatmapId) => Path.Combine(BeatmapsPath, $"{beatmapId}.osu");
 	public static string GetReplayPath(long scoreId) => Path.Combine(ReplaysPath, $"{scoreId}.osr");

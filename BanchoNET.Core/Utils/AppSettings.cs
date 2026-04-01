@@ -146,6 +146,8 @@ public static class AppSettings
             ? 1
             : int.Parse(daysUntilInactive);
 
+        GithubToken = Environment.GetEnvironmentVariable("GITHUB_TOKEN");
+
         var osuApiKey = Environment.GetEnvironmentVariable("OSU_API_KEY");
         OsuApiKey = string.IsNullOrEmpty(osuApiKey)
             ? ""
@@ -175,6 +177,6 @@ public static class AppSettings
     public static readonly int VersionFetchHoursInterval;
     public static readonly int DaysUntilPlayerIsMarkedInactive;
     public static readonly string CommandPrefix;
-    public static readonly string LazerHostname;
+    public static readonly string? GithubToken;
     public static readonly string OsuApiKey;
 }
