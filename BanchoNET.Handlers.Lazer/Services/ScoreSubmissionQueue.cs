@@ -27,8 +27,6 @@ public class ScoreSubmissionQueue(
         int userId,
         int beatmapId
     ) {
-        var createdAt = DateTimeOffset.UtcNow;
-        //TODO there might be a case where player starts a map and then loses connection and never submits
         if (Scores.TryGetValue(userId, out var value) && userId != value.UserId)
             return null;
 
@@ -36,19 +34,18 @@ public class ScoreSubmissionQueue(
         var beatmaps = scope.ServiceProvider.GetRequiredService<IBeatmapsRepository>();
 
         var beatmap = await beatmaps.GetBeatmap(request.beatmap_hash);
-        if (beatmap == null) return null;
+        if (beatmap == null)
+            return null;
         
         var response = new ScoreResponseDto
         {
             BeatmapId = beatmapId,
-            CreatedAt = createdAt,
+            CreatedAt = DateTimeOffset.UtcNow,
             Id = GetNextScoreId,
             UserId = userId
         };
 
-        return Scores.TryAdd(userId, response)
-            ? response
-            : null;
+        return Scores.AddOrUpdate(userId, response, (_, _) => response);
     }
 
     public async Task<ApiScore?> SubmitScore(
@@ -57,10 +54,10 @@ public class ScoreSubmissionQueue(
         int userId,
         int beatmapId
     ) {
-        if (!Scores.TryGetValue(userId, out var value)
-            || value.UserId != userId
-            || value.Id != queueId
-            || value.BeatmapId != beatmapId)
+        if (!Scores.TryGetValue(userId, out var soloRequest)
+            || soloRequest.UserId != userId
+            || soloRequest.Id != queueId
+            || soloRequest.BeatmapId != beatmapId)
         {
             return null;
         }
@@ -108,7 +105,7 @@ public class ScoreSubmissionQueue(
             LegacyPerfect = beatmap.MaxCombo == request.MaxCombo, //TODO these can differ?
             LegacyScoreId = null, //TODO
             LegacyTotalScore = null, //TODO calculate
-            StartedAt = value.CreatedAt,
+            StartedAt = soloRequest.CreatedAt,
             Replay = false,
         };
         apiScore.TimeElapsed = (int)(apiScore.EndedAt - apiScore.StartedAt!).Value.TotalSeconds;
@@ -124,10 +121,10 @@ public class ScoreSubmissionQueue(
         
         if (await beatmapHandler.EnsureLocalBeatmapFile(beatmap.Id, beatmap.MD5))
         {
-            apiScore.CalculatePerformance(beatmap);
-            
             if (apiScore.Passed)
             {
+                apiScore.CalculatePerformance(beatmap);
+                
                 ComputeSubmissionStatus(apiScore, prevBest, bestWithMods, sameMods);
 
                 apiScore.Preserve = apiScore.Status > SubmissionStatus.Submitted;

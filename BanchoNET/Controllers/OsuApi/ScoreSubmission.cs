@@ -123,10 +123,10 @@ public partial class OsuController
         
         if (await beatmapHandler.EnsureLocalBeatmapFile(beatmap.Id, beatmapMD5))
         {
-            score.CalculatePerformance(beatmap);
-
             if (score.Passed)
             {
+                score.CalculatePerformance(beatmap);
+                
                 ComputeSubmissionStatus(score, prevBest, bestWithMods);
 
                 score.Preserve = score.Status > SubmissionStatus.Submitted;
