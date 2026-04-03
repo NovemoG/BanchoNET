@@ -172,7 +172,7 @@ public partial class ChoController
 		}
 
 		var ip = geoloc.GetIp(Request.Headers);
-		player = new Player(userInfo, id: Guid.NewGuid(), loginTime: DateTime.UtcNow, timeZone: loginData.TimeZone)
+		player = new Player(userInfo, token: Guid.NewGuid(), loginTime: DateTime.UtcNow, timeZone: loginData.TimeZone)
 		{
 			Geoloc = _geoloc.Value,
 			ClientDetails = new ClientDetails

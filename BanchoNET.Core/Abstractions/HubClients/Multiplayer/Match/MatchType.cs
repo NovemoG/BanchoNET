@@ -1,4 +1,4 @@
-﻿namespace BanchoNET.Core.Abstractions.HubClients.Multiplayer;
+﻿namespace BanchoNET.Core.Abstractions.HubClients.Multiplayer.Match;
 
 public enum MatchType
 {

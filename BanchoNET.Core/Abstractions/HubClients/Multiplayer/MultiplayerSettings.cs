@@ -1,4 +1,6 @@
-﻿namespace BanchoNET.Core.Abstractions.HubClients.Multiplayer;
+﻿using MatchType = BanchoNET.Core.Abstractions.HubClients.Multiplayer.Match.MatchType;
+
+namespace BanchoNET.Core.Abstractions.HubClients.Multiplayer;
 
 public class MultiplayerSettings
 {

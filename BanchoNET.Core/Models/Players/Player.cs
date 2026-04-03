@@ -82,13 +82,13 @@ public sealed class Player : IPlayer, IDisposable,
 
     public Player(
         PlayerDto userInfo,
-        Guid? id = null,
+        Guid? token = null,
         DateTime? loginTime = null,
         sbyte timeZone = 0
     ) {
         Id = userInfo.Id;
         Username = userInfo.Username;
-        SessionId = id ?? Guid.Empty;
+        SessionId = token ?? Guid.Empty;
         PasswordHash = userInfo.PasswordHash;
         LoginTime = loginTime;
         TimeZone = timeZone;
