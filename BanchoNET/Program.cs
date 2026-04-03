@@ -224,10 +224,8 @@ public class Program
 		app.UseWebSockets();
 		
 		app.UseMiddleware<SubdomainMiddleware>();
-		app.UseMiddleware<NotifyMiddleware>();
 		app.UseMiddleware<RequestTimingMiddleware>();
-
-		//TODO wss://notify.ppy.sh
+		
 		app.MapHub<MetadataHub>("/metadata");
 		app.MapHub<SpectatorHub>("/spectator");
 		app.MapHub<MultiplayerHub>("/multiplayer");

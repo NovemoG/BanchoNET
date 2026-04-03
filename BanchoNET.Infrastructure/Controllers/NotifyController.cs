@@ -1,38 +1,38 @@
 ﻿using System.Net.WebSockets;
 using System.Text;
+using BanchoNET.Core.Attributes;
 using BanchoNET.Core.Utils.Extensions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 
-namespace BanchoNET.Handlers.Lazer;
+namespace BanchoNET.Infrastructure.Controllers;
 
-public class NotifyMiddleware(RequestDelegate next)
+[ApiController]
+[Route("notify")]
+[Authorize]
+[SubdomainAuthorize("notify")]
+public class NotifyController : ControllerBase
 {
-    public async Task InvokeAsync(HttpContext context)
-    {
-        if (!context.Request.Path.StartsWithSegments("/notify"))
+    [HttpGet]
+    public async Task Get() {
+        if (!HttpContext.WebSockets.IsWebSocketRequest)
         {
-            await next(context);
-            return;
-        }
-
-        if (!context.WebSockets.IsWebSocketRequest)
-        {
-            context.Response.StatusCode = StatusCodes.Status400BadRequest;
-            await context.Response.WriteAsync("WebSocket requests only");
-            return;
-        }
-
-        if (!context.User.TryGetUserId(out var userId))
-        {
-            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-            await context.Response.WriteAsync("Unauthorized");
+            Response.StatusCode = StatusCodes.Status400BadRequest;
+            await Response.WriteAsync("WebSocket requests only");
             return;
         }
         
-        var ct = context.RequestAborted;
+        if (!HttpContext.User.TryGetUserId(out var uid))
+        {
+            Response.StatusCode = StatusCodes.Status401Unauthorized;
+            await Response.WriteAsync("Unauthorized");
+            return;
+        }
         
-        using var socket = await context.WebSockets.AcceptWebSocketAsync();
-        var buffer = new byte[8192];
+        using var socket = await HttpContext.WebSockets.AcceptWebSocketAsync();
+        var ct = HttpContext.RequestAborted;
+        var buffer = new byte[1024];
         
         try
         {
@@ -48,10 +48,9 @@ public class NotifyMiddleware(RequestDelegate next)
                     {
                         if (socket.State is WebSocketState.Open or WebSocketState.CloseReceived)
                         {
-                            await socket.CloseAsync(
+                            await CloseSocketAsync(socket,
                                 WebSocketCloseStatus.NormalClosure,
-                                "Closing",
-                                CancellationToken.None
+                                "Closing"
                             );
                         }
                         return;
@@ -76,16 +75,23 @@ public class NotifyMiddleware(RequestDelegate next)
         {
             if (socket.State == WebSocketState.Open)
             {
-                try
-                {
-                    await socket.CloseAsync(
-                        WebSocketCloseStatus.NormalClosure,
-                        "Server shutting down",
-                        CancellationToken.None
-                    );
-                }
-                catch { /* ignore shutdown errors */ }
+                await CloseSocketAsync(socket,
+                    WebSocketCloseStatus.NormalClosure,
+                    "Server shutting down"
+                );
             }
         }
+    }
+    
+    private static async Task CloseSocketAsync(
+        WebSocket socket,
+        WebSocketCloseStatus status,
+        string description
+    ) {
+        try
+        {
+            await socket.CloseAsync(status, description, CancellationToken.None);
+        }
+        catch { /* ignore shutdown errors */ }
     }
 }

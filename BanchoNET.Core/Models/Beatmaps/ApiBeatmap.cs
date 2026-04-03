@@ -34,11 +34,11 @@ public class ApiBeatmap
 
 	[JsonPropertyName("artist")] public string Artist { get; set; }
 
-	[JsonPropertyName("artist_unicode")] public string ArtistUnicode { get; set; }
+	[JsonPropertyName("artist_unicode")] public string? ArtistUnicode { get; set; }
 
 	[JsonPropertyName("title")] public string Title { get; set; }
 
-	[JsonPropertyName("title_unicode")] public string TitleUnicode { get; set; }
+	[JsonPropertyName("title_unicode")] public string? TitleUnicode { get; set; }
 
 	[JsonPropertyName("creator")] public string Creator { get; set; }
 

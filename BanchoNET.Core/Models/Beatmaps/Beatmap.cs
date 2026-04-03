@@ -81,9 +81,9 @@ public class Beatmap : IBeatmap,
 		Status = apiBeatmap.Approved.StatusFromApi(StatusFrozen, Status);
 		MD5 = apiBeatmap.FileMd5;
 		Artist = apiBeatmap.Artist;
-		ArtistUnicode = apiBeatmap.ArtistUnicode;
+		ArtistUnicode = apiBeatmap.ArtistUnicode ?? string.Empty;
 		Title = apiBeatmap.Title;
-		TitleUnicode = apiBeatmap.TitleUnicode;
+		TitleUnicode = apiBeatmap.TitleUnicode ?? string.Empty;
 		Name = apiBeatmap.Version;
 		Creator = apiBeatmap.Creator;
 		//TODO CreatorId = apiBeatmap.CreatorId;
@@ -124,9 +124,9 @@ public class Beatmap : IBeatmap,
 		Status = int.Parse(apiBeatmap.Approved).StatusFromApi(StatusFrozen, Status);
 		MD5 = apiBeatmap.FileMd5;
 		Artist = apiBeatmap.Artist;
-		ArtistUnicode = apiBeatmap.ArtistUnicode;
+		ArtistUnicode = apiBeatmap.ArtistUnicode ?? string.Empty;
 		Title = apiBeatmap.Title;
-		TitleUnicode = apiBeatmap.TitleUnicode;
+		TitleUnicode = apiBeatmap.TitleUnicode ?? string.Empty;
 		Name = apiBeatmap.Version;
 		Creator = apiBeatmap.Creator;
 		//TODO CreatorId = int.Parse(apiBeatmap.CreatorId);

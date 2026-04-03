@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using BanchoNET.Core.Abstractions.Services;
+using BanchoNET.Core.Utils;
 using BanchoNET.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,7 +15,7 @@ public static class ServiceCollectionExtensions
     ) {
         services.AddScoped<IAuthService, AuthService>();
 
-        var key = Encoding.UTF8.GetBytes("FGc9GAtyHzeQDshWP5Ah7dega8hJACAJpQtw6OXk");
+        var key = "FGc9GAtyHzeQDshWP5Ah7dega8hJACAJpQtw6OXk"u8.ToArray();
         services.AddAuthentication(options =>
         {
             options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -31,7 +32,7 @@ public static class ServiceCollectionExtensions
                 ValidateAudience = true,
                 ValidateLifetime = true,
                 ValidateIssuerSigningKey = true,
-                ValidIssuer = "https://osu.ppy.sh",
+                ValidIssuer = $"https://osu.{AppSettings.Domain}",
                 ValidAudience = "5",
                 IssuerSigningKey = new SymmetricSecurityKey(key)
             };

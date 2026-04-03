@@ -10,7 +10,7 @@ public partial class ApiController
     public async Task<ActionResult<Relationship[]>> GetFriends() {
         if (!User.TryGetUserId(out var uid)) return Unauthorized();
         
-        var friends = await Players.GetPlayerBlocks(uid);
+        var friends = await Players.GetPlayerFriends(uid);
         var friendList = PopulateRelationships(friends, "friend");
 
         return JsonSnake(friendList);

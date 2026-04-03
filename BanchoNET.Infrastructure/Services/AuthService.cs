@@ -7,6 +7,7 @@ using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Auth;
 using BanchoNET.Core.Models.Db;
 using BanchoNET.Core.Models.Players;
+using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -18,6 +19,8 @@ public class AuthService(
     IPlayersRepository players
 ) : IAuthService
 {
+    private static readonly string Issuer = $"https://osu.{AppSettings.Domain}";
+    
     public async Task<Player?> ValidateUserCredentials(
         string username,
         string password
@@ -49,7 +52,7 @@ public class AuthService(
         };
 
         var token = new JwtSecurityToken(
-            issuer: "https://osu.ppy.sh",
+            issuer: Issuer,
             audience: "5",
             claims: claims,
             notBefore: now,
@@ -119,7 +122,7 @@ public class AuthService(
         };
 
         var token = new JwtSecurityToken(
-            issuer: "https://osu.ppy.sh",
+            issuer: Issuer,
             audience: "5",
             claims: claims,
             notBefore: now,

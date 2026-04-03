@@ -1,3 +1,5 @@
+using BanchoNET.Core.Utils;
+
 namespace BanchoNET.Core.Models.Api.Notifications;
 
 public class NotificationsResponse
@@ -6,5 +8,7 @@ public class NotificationsResponse
     public Stack[] Stacks { get; set; } = [];
     public DateTimeOffset Timestamp { get; set; }
     public Type[] Types { get; set; } = [];
-    public string NotificationEndpoint => "wss://notify.ppy.sh"; //TODO
+    
+    private static readonly string _notificationEndpoint = $"wss://notify.{AppSettings.Domain}/notify";
+    public string NotificationEndpoint => _notificationEndpoint;
 }
