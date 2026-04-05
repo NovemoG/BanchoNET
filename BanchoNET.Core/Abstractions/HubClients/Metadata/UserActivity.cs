@@ -1,5 +1,4 @@
-﻿using BanchoNET.Core.Abstractions.HubClients.Multiplayer;
-using BanchoNET.Core.Abstractions.HubClients.Multiplayer.MultiplayerRooms;
+﻿using BanchoNET.Core.Abstractions.HubClients.Multiplayer.MultiplayerRooms;
 using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Utils.Extensions;

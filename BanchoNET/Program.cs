@@ -15,6 +15,7 @@ using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
 using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
+using BanchoNET.Core.Utils.SignalR;
 using BanchoNET.Handlers.Lazer;
 using BanchoNET.Handlers.Lazer.Hubs;
 using BanchoNET.Handlers.Lazer.Services;
@@ -213,8 +214,14 @@ public class Program
 
 		builder.Services.AddHttpClient()
 			.AddSessionServices(assemblies)
-			.AddSignalR()
-			.AddMessagePackProtocol();
+			.AddSignalR(options =>
+			{
+				if (AppSettings.Debug)
+					options.EnableDetailedErrors = true;
+			})
+			.AddMessagePackProtocol(options => 
+				options.SerializerOptions = SignalRUnionWorkaroundResolver.Options
+			);
 		
 		var app = builder.Build();
 		

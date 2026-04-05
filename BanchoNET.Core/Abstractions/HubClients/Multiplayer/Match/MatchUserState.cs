@@ -5,7 +5,7 @@ namespace BanchoNET.Core.Abstractions.HubClients.Multiplayer.Match;
 [Serializable]
 [MessagePackObject]
 [Union(0, typeof(TeamVersusUserState))]
-public class MatchUserState
+public abstract class MatchUserState
 {
     [MessagePackObject]
     public class TeamVersusUserState : MatchUserState

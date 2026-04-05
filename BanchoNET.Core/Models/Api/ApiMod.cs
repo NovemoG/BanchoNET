@@ -12,12 +12,12 @@ public class ApiMod : IEquatable<ApiMod>
     public string Acronym { get; init; } = "Unknown";
     
     [JsonIgnore]
+    [Key(1)]
+    [MessagePackFormatter(typeof(ModSettingsDictionaryFormatter))]
     public Dictionary<string, object> Settings { get; set; } = new();
     
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), JsonInclude]
     [JsonPropertyName("settings")]
-    [Key(1)]
-    [MessagePackFormatter(typeof(ModSettingsDictionaryFormatter))]
     private Dictionary<string, object>? SettingsForSerialization
     {
         get => Settings.Count > 0 ? Settings : null;

@@ -194,6 +194,7 @@ public class BackgroundTasks : BackgroundService, IBackgroundTasks
     ) {
         await ReplaceRepo(tachyon, tagName, ct);
         await ReplaceDomains(tachyon, ct);
+        await UpdateCsproj(tachyon, ct);
         // create an update file
     }
 
@@ -232,6 +233,15 @@ public class BackgroundTasks : BackgroundService, IBackgroundTasks
         }
 
         return releases;
+    }
+
+    private static async Task UpdateCsproj(
+        bool tachyon,
+        CancellationToken ct
+    ) {
+        var text = await File.ReadAllTextAsync(Storage.OsuDesktopCsproj(tachyon), ct);
+        text = text.Replace("</Project>", "\t<ItemGroup>\n\t<AssemblyAttribute Include=\"osu.Game.Utils.OfficialBuildAttribute\" />\n\t</ItemGroup>\n</Project>");
+        await File.WriteAllTextAsync(Storage.OsuDesktopCsproj(tachyon), text, ct);
     }
 
     private async Task ReplaceRepo(

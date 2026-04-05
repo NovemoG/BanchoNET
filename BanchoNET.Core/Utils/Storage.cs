@@ -37,6 +37,12 @@ public static class Storage
 	) => Path.Combine(
 		LazerPath, tachyon ? "Tachyon" : "Lazer", "osu.Game", "Online", "TrustedDomainOnlineStore.cs"
 	);
+
+	public static string OsuDesktopCsproj(
+		bool tachyon = false
+	) => Path.Combine(
+		LazerPath, tachyon ? "Tachyon" : "Lazer", "osu.Desktop", "osu.Desktop.csproj"
+	);
 	
 	public static string GetBeatmapPath(int beatmapId) => Path.Combine(BeatmapsPath, $"{beatmapId}.osu");
 	public static string GetReplayPath(long scoreId) => Path.Combine(ReplaysPath, $"{scoreId}.osr");
