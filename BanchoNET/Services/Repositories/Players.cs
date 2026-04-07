@@ -468,7 +468,7 @@ public class PlayersRepository : IPlayersRepository
 	) {
 		stats.PlayCount += 1;
 		stats.TotalScore += score.TotalScore;
-		stats.IncreasePlaytime(score.LegacyMods, score.TimeElapsed);
+		stats.IncreasePlaytime(score.ClockRate, score.TimeElapsed);
 
 		var statistics = score.Statistics;
 		

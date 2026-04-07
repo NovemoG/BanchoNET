@@ -59,6 +59,9 @@ public class ApiScore
     public int TimeElapsed { get; set; }
     
     [JsonIgnore]
+    public double ClockRate { get; set; }
+    
+    [JsonIgnore]
     public ApiScore? PreviousBest { get; set; }
     
     [JsonConstructor]

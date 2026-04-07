@@ -117,7 +117,7 @@ public static class ScoreExtensions
         LegacyMods mods,
         int timeElapsed
     ) {
-        if (mods.HasMod(LegacyMods.DoubleTime))
+        if (mods.HasMod(LegacyMods.DoubleTime) || mods.HasMod(LegacyMods.NightCore))
         {
             stats.PlayTime += (int)MathF.Floor(timeElapsed / 1500f);
         }
@@ -133,21 +133,10 @@ public static class ScoreExtensions
 
     public static void IncreasePlaytime(
         this StatsDto stats,
-        LegacyMods mods,
+        double clockRate,
         int timeElapsed
     ) {
-        if (mods.HasMod(LegacyMods.DoubleTime))
-        {
-            stats.PlayTime += (int)MathF.Floor(timeElapsed / 1500f);
-        }
-        else if (mods.HasMod(LegacyMods.HalfTime))
-        {
-            stats.PlayTime += (int)MathF.Floor(timeElapsed / 750f);
-        }
-        else
-        {
-            stats.PlayTime += (int)MathF.Floor(timeElapsed / 1000f);
-        }
+        stats.PlayTime += (int)Math.Floor(timeElapsed / (clockRate * 1000d));
     }
 
     public static float CalculateCompletion(this Score score, Beatmap beatmap)
@@ -208,11 +197,11 @@ public static class ScoreExtensions
                 od = overallDifficulty.GetFloat();
         }
 
-        var clockRate = 1d;
+        score.ClockRate = dt != null ? 1.5d : 1d;
         if (dt != null && dt.Settings.TryGetValue("speed_change", out var rateChange))
-            clockRate = rateChange.GetDouble();
+            score.ClockRate = rateChange.GetDouble();
 
-        var pp = PpMethods.ComputeScorePp(beatmap.Id, score, clockRate, lazer, cs, ar, od);
+        var pp = PpMethods.ComputeScorePp(beatmap.Id, score, score.ClockRate, lazer, cs, ar, od);
 
         score.Pp = double.IsInfinity(pp) || double.IsNaN(pp) ? 0.0f : MathF.Round(pp, 5);
 

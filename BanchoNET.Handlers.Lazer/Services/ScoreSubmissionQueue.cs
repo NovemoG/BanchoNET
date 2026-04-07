@@ -108,7 +108,7 @@ public class ScoreSubmissionQueue(
             StartedAt = soloRequest.CreatedAt,
             Replay = false,
         };
-        apiScore.TimeElapsed = (int)(apiScore.EndedAt - apiScore.StartedAt!).Value.TotalSeconds;
+        apiScore.TimeElapsed = (int)(apiScore.EndedAt - apiScore.StartedAt!).Value.TotalSeconds - request.Pauses.Sum();
         
         var mode = (GameMode)apiScore.RulesetId;
         
