@@ -9,6 +9,10 @@ public static class LazerStorage
         Storage.LazerPath, "Releases", "releases.win.json"
     );
     
+    public static string GetReleasesPath(string tagName) => Path.Combine(
+        Storage.LazerPath, "Releases", $"releases.{tagName}.json"
+    );
+    
     public static string GetReleaseFilePath(string fileName) => Path.Combine(
         Storage.LazerPath, "Releases", fileName
     );

@@ -8,7 +8,7 @@ namespace BanchoNET.Infrastructure.Controllers.Api;
 
 [ApiController]
 [Route("api/v3/repos")]
-[SubdomainAuthorize("osu")]
+[SubdomainAuthorize("api")]
 public class UpdaterController(IReleasesRepository releases) : ControllerBase
 {
     [HttpGet("ppy/osu/releases")]
@@ -25,38 +25,39 @@ public class UpdaterController(IReleasesRepository releases) : ControllerBase
             var full = dbReleases[i];
             var feed = new GithubFeed
             {
-                TagName = full.Version,
-                Name = full.Version,
-                Prerelease = full.Prerelease,
+                TagName = full.Version, Name = full.Version, Prerelease = full.Prerelease,
                 PublishedAt = full.PublishedAt,
                 Assets = [
                     new GithubRelease
                     {
-                        Url = $"https://osu.{AppSettings.Domain}/api/v3/repos",
+                        Url = $"https://api.{AppSettings.Domain}/api/v3/repos",
                         Name = "releases.win.json",
                         ContentType = "application/json",
-                        BrowserDownloadUrl = $"https://osu.{AppSettings.Domain}/api/v3/repos/{full.Version}/releases/releases.win.json"
-                    },
-                    new GithubRelease
-                    {
-                        Url = $"https://osu.{AppSettings.Domain}/api/v3/repos",
-                        Name = $"{full.Version}-full.nupkg",
-                        ContentType = "application/octet-stream",
-                        BrowserDownloadUrl = $"https://osu.{AppSettings.Domain}/api/v3/repos/{full.Version}/file/{full.Version}-full.nupkg",
+                        BrowserDownloadUrl = $"https://api.{AppSettings.Domain}/api/v3/repos/{full.Version}/releases/releases.{full.Version}.json"
                     }
                 ]
             };
+            
             githubFeed.Add(feed);
             
-            if (dbReleases.Count == i) break;
-
-            var delta = dbReleases[++i];
+            if (dbReleases.Count - 1 != i)
+            {
+                var delta = dbReleases[++i];
+                feed.Assets.Add(new GithubRelease
+                {
+                    Url = $"https://api.{AppSettings.Domain}/api/v3/repos",
+                    Name = $"{AppSettings.LazerName}-{delta.Version}-delta.nupkg",
+                    ContentType = "application/octet-stream",
+                    BrowserDownloadUrl = $"https://api.{AppSettings.Domain}/api/v3/repos/{delta.Version}/file/{AppSettings.LazerName}-{delta.Version}-delta.nupkg",
+                });
+            }
+            
             feed.Assets.Add(new GithubRelease
             {
-                Url = $"https://osu.{AppSettings.Domain}/api/v3/repos",
-                Name = $"{delta.Version}-delta.nupkg",
+                Url = $"https://api.{AppSettings.Domain}/api/v3/repos",
+                Name = $"{AppSettings.LazerName}-{full.Version}-full.nupkg",
                 ContentType = "application/octet-stream",
-                BrowserDownloadUrl = $"https://osu.{AppSettings.Domain}/api/v3/repos/{delta.Version}/file/{delta.Version}-delta.nupkg",
+                BrowserDownloadUrl = $"https://api.{AppSettings.Domain}/api/v3/repos/{full.Version}/file/{AppSettings.LazerName}-{full.Version}-full.nupkg",
             });
         }
         
@@ -69,13 +70,13 @@ public class UpdaterController(IReleasesRepository releases) : ControllerBase
         string type,
         string fileName
     ) {
-        if (!System.IO.File.Exists(LazerStorage.ReleasesPath))
+        if (!System.IO.File.Exists(LazerStorage.GetReleasesPath(tagName)))
             return NotFound();
 
         if (type.Equals("releases", StringComparison.OrdinalIgnoreCase))
         {
-            var text = await System.IO.File.ReadAllTextAsync(LazerStorage.ReleasesPath);
-            return new JsonResult(text);
+            var text = await System.IO.File.ReadAllTextAsync(LazerStorage.GetReleaseFilePath(fileName));
+            return Content(text, "application/json");
         }
         
         if (type.Equals("file", StringComparison.OrdinalIgnoreCase))

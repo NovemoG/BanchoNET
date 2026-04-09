@@ -134,9 +134,11 @@ public class LazerUpdaterService(
         string tagName,
         CancellationToken ct
     ) {
-        await using var fs = File.OpenRead(LazerStorage.ReleasesPath);
+        File.Move(LazerStorage.ReleasesPath, LazerStorage.GetReleasesPath(tagName));
+        
+        await using var fs = File.OpenRead(LazerStorage.GetReleasesPath(tagName));
         var feed = await JsonSerializer.DeserializeAsync<VelopackReleaseFeed>(fs, cancellationToken: ct)
-                   ?? throw new InvalidOperationException($"Unable to deserialize {LazerStorage.ReleasesPath}");
+                   ?? throw new InvalidOperationException($"Unable to deserialize {LazerStorage.GetReleasesPath(tagName)}");
 
         var latestFull = feed.Assets.First(a => a.Type.Equals("Full", StringComparison.OrdinalIgnoreCase));
         var latestDelta = feed.Assets.FirstOrDefault(a => a.Type.Equals("Delta", StringComparison.OrdinalIgnoreCase));
