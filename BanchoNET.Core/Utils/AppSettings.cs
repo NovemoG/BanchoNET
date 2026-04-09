@@ -18,6 +18,11 @@ public static class AppSettings
         Debug = string.IsNullOrEmpty(debug)
                              || bool.Parse(debug);
         
+        var lazerName = Environment.GetEnvironmentVariable("LAZER_NAME");
+        LazerName = string.IsNullOrEmpty(lazerName)
+            ? "osu!banchonet"
+            : lazerName;
+        
         var disallowOldClients = Environment.GetEnvironmentVariable("DISALLOW_OLD_CLIENTS");
         DisallowOldClients = string.IsNullOrEmpty(disallowOldClients)
                              || bool.Parse(disallowOldClients);
@@ -156,6 +161,7 @@ public static class AppSettings
 
     public static readonly string Domain;
     public static readonly bool Debug;
+    public static readonly string LazerName;
     public static readonly string BanchoNETVersion;
     public static readonly bool DisallowOldClients;
     public static readonly bool SortLeaderboardByPP;

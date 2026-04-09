@@ -4,6 +4,7 @@ using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Models.Scores;
+using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
 
 namespace BanchoNET.Core.Models.Api.Scores;
@@ -108,7 +109,7 @@ public class ApiScore
         Pp = score.PP;
         RulesetId = (int)score.Mode;
         StartedAt = score.StartTime;
-        TotalScore = score.TotalScore;
+        TotalScore = AppSettings.SortLeaderboardByPP ? (int)score.PP : score.TotalScore;
         Replay = HasReplay;
         //TODO CurrentUserAttributes
         Status = score.Status;
@@ -159,7 +160,7 @@ public class ApiScore
         RulesetId = scoreDto.Mode;
         StartedAt = scoreDto.StartTime;
         //TotalScore = scoreDto.TotalScore;
-        TotalScore = scoreDto.LegacyTotalScore;
+        TotalScore = AppSettings.SortLeaderboardByPP ? (int)scoreDto.PP : scoreDto.LegacyTotalScore;
         Replay = HasReplay;
         //TODO CurrentUserAttributes
         Status = (SubmissionStatus)scoreDto.Status;

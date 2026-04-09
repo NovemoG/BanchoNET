@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using BanchoNET.Commands;
@@ -192,6 +193,7 @@ public class Program
 		builder.Services.AddScoped<IPlayersRepository, PlayersRepository>();
 		builder.Services.AddScoped<ILegacyScoresRepository, LegacyScoresRepository>();
 		builder.Services.AddScoped<ILazerScoresRepository, LazerScoresRepository>();
+		builder.Services.AddScoped<IReleasesRepository, ReleasesRepository>();
 		builder.Services.AddScoped<IBeatmapHandler, BeatmapHandler>();
 			
 		builder.Services.AddSingleton<IScoreSubmissionQueue, ScoreSubmissionQueue>()
@@ -206,6 +208,18 @@ public class Program
 			.AddSingleton<IOsuVersionService>(sp => sp.GetRequiredService<OsuVersionService>())
 			.AddHostedService(sp => sp.GetRequiredService<OsuVersionService>())
 			.AddHostedService<BackgroundTasks>();
+
+		builder.Services.AddHostedService<LazerUpdaterService>()
+			.AddHttpClient(nameof(LazerUpdaterService), client =>
+			{
+				client.DefaultRequestHeaders.Accept.Add(
+					new MediaTypeWithQualityHeaderValue("application/vnd.github+json")
+				);
+				client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue(new ProductHeaderValue("request")));
+        
+				if (!string.IsNullOrWhiteSpace(AppSettings.GithubToken))
+					client.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", "token " + AppSettings.GithubToken);
+			});
 		
 		Assembly[] assemblies = [
 			typeof(ICoordinator).Assembly,

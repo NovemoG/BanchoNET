@@ -13,7 +13,6 @@ public class OsuVersionService(
     IHttpClientFactory httpClientFactory
 ) : BackgroundService, IOsuVersionService
 {
-    private readonly HttpClient _client = httpClientFactory.CreateClient(nameof(OsuVersionService));
     private readonly TimeSpan _interval = TimeSpan.FromHours(AppSettings.VersionFetchHoursInterval);
     private const string OsuApiV2ChangelogUrl = "https://osu.ppy.sh/api/v2/changelog";
     private readonly ConcurrentDictionary<string, OsuVersion> _streams = new(new Dictionary<string, OsuVersion>
@@ -35,7 +34,7 @@ public class OsuVersionService(
         }
         catch (Exception ex)
         {
-            logger.LogError("Error while fetching osu versions.", ex);
+            logger.LogError("Error while fetching osu versions.", ex, caller: nameof(OsuVersionService));
         }
         
         using var timer = new PeriodicTimer(_interval);
@@ -53,7 +52,7 @@ public class OsuVersionService(
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError("Error while fetching osu versions.", ex);
+                    logger.LogError("Error while fetching osu versions.", ex, caller: nameof(OsuVersionService));
                 }
             }
         }
@@ -69,9 +68,11 @@ public class OsuVersionService(
         var stopwatch = new Stopwatch();
         stopwatch.Start();
         
+        var client = httpClientFactory.CreateClient(nameof(OsuVersionService));
+        
         foreach (var clientStream in _streams)
         {
-            var response = await _client.GetAsync($"{OsuApiV2ChangelogUrl}?stream={clientStream.Key}", ct);
+            var response = await client.GetAsync($"{OsuApiV2ChangelogUrl}?stream={clientStream.Key}", ct);
             response.EnsureSuccessStatusCode();
             
             var content = await response.Content.ReadAsStringAsync(ct);

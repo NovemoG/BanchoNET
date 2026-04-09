@@ -56,7 +56,7 @@ public class BasicApiPlayer
     public BasicApiPlayer(
         PlayerDto playerDto
     ) {
-        CountryCode = playerDto.Country;
+        CountryCode = playerDto.Country.ToUpper();
         Id = playerDto.Id;
         //TODO IsActive
         //TODO IsBot
