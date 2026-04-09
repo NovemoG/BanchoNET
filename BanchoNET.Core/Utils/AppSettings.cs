@@ -20,7 +20,7 @@ public static class AppSettings
         
         var lazerName = Environment.GetEnvironmentVariable("LAZER_NAME");
         LazerName = string.IsNullOrEmpty(lazerName)
-            ? "osu!banchonet"
+            ? "osubanchonet"
             : lazerName;
         
         var disallowOldClients = Environment.GetEnvironmentVariable("DISALLOW_OLD_CLIENTS");

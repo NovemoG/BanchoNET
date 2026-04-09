@@ -69,18 +69,18 @@ public class UpdaterController(IReleasesRepository releases) : ControllerBase
         string type,
         string fileName
     ) {
-        if (!System.IO.File.Exists(LazerStorage.GetReleasesPath(tagName)))
+        if (!System.IO.File.Exists(LazerStorage.ReleasesPath))
             return NotFound();
 
         if (type.Equals("releases", StringComparison.OrdinalIgnoreCase))
         {
-            var text = await System.IO.File.ReadAllTextAsync(LazerStorage.GetReleasesPath(tagName));
+            var text = await System.IO.File.ReadAllTextAsync(LazerStorage.ReleasesPath);
             return new JsonResult(text);
         }
         
         if (type.Equals("file", StringComparison.OrdinalIgnoreCase))
         {
-            var filePath = LazerStorage.GetReleaseFilePath(tagName, fileName);
+            var filePath = LazerStorage.GetReleaseFilePath(fileName);
             if (!System.IO.File.Exists(filePath))
                 return NotFound();
             

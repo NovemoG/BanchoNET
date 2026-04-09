@@ -103,7 +103,7 @@ public class LazerUpdaterService(
             
             var latestLazerReleaseIndex = latestReleases.IndexOf(latestLazerRelease);
             
-            for (var i = latestLazerReleaseIndex; i < latestReleases.Count; i++)
+            for (var i = latestLazerReleaseIndex - 1; i >= 0; i--)
             {
                 tagName = latestReleases[i].TagName;
                 var isTachyon = tagName.Contains("-tachyon");
@@ -134,9 +134,9 @@ public class LazerUpdaterService(
         string tagName,
         CancellationToken ct
     ) {
-        await using var fs = File.OpenRead(LazerStorage.GetReleasesPath(tagName));
+        await using var fs = File.OpenRead(LazerStorage.ReleasesPath);
         var feed = await JsonSerializer.DeserializeAsync<VelopackReleaseFeed>(fs, cancellationToken: ct)
-                   ?? throw new InvalidOperationException($"Unable to deserialize {LazerStorage.GetReleasesPath(tagName)}");
+                   ?? throw new InvalidOperationException($"Unable to deserialize {LazerStorage.ReleasesPath}");
 
         var latestFull = feed.Assets.First(a => a.Type.Equals("Full", StringComparison.OrdinalIgnoreCase));
         var latestDelta = feed.Assets.FirstOrDefault(a => a.Type.Equals("Delta", StringComparison.OrdinalIgnoreCase));
@@ -168,8 +168,8 @@ public class LazerUpdaterService(
 
         result = await RunCommand(
             "/opt/tools/vpk",
-            $"pack --packTitle {AppSettings.LazerName} -u {AppSettings.LazerName} -i \"{LazerStorage.IconPath}\" -v {tagName} -p \"{LazerStorage.LazerPublishPath}\" -e \"osu!.exe\"",
-            LazerStorage.GetReleasePath(tagName),
+            $"[win] pack --runtime win-x64 --packTitle {AppSettings.LazerName} -u {AppSettings.LazerName} -i \"{LazerStorage.IconPath}\" -v {tagName} -p \"{LazerStorage.LazerPublishPath}\" -e \"osu!.exe\"",
+            Storage.LazerPath,
             ct
         );
         if (result.ExitCode != 0)
@@ -289,7 +289,7 @@ public class LazerUpdaterService(
 
             var root = Directory.GetDirectories(extractDir).Single();
 
-            var targetDirectory = Path.Combine(Storage.LazerPath, tachyon ? "Tachyon" : "Lazer");
+            var targetDirectory = LazerStorage.LazerPath;
             if (Directory.Exists(targetDirectory))
                 Directory.Delete(targetDirectory, recursive: true);
 

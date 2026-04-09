@@ -2,21 +2,15 @@
 
 public static class LazerStorage
 {
-    private static readonly string LazerPath = Path.Combine(Storage.LazerPath, "Lazer");
+    public static readonly string LazerPath = Path.Combine(Storage.LazerPath, "Lazer");
     public static readonly string CurrentLazerVersionFile = Path.Combine(Storage.LazerPath, "LazerVersion.txt");
-
-    public static string GetReleasePath(string tagName) {
-        var path = Path.Combine(Storage.LazerPath, tagName);
-        Directory.CreateDirectory(path);
-        return path;
-    }
     
-    public static string GetReleasesPath(string tagName) => Path.Combine(
-        LazerPath, tagName, "Releases", "releases.win.json"
+    public static readonly string ReleasesPath = Path.Combine(
+        Storage.LazerPath, "Releases", "releases.win.json"
     );
     
-    public static string GetReleaseFilePath(string tagName, string fileName) => Path.Combine(
-        LazerPath, tagName, "Releases", fileName
+    public static string GetReleaseFilePath(string fileName) => Path.Combine(
+        Storage.LazerPath, "Releases", fileName
     );
     
     public static readonly string ProductionEndpointPath = Path.Combine(
