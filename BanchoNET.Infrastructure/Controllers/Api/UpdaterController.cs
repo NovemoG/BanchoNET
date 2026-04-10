@@ -95,4 +95,20 @@ public class UpdaterController(IReleasesRepository releases) : ControllerBase
 
         return BadRequest();
     }
+
+    [HttpGet("download")]
+    public IActionResult Download(
+        bool tachyon = false
+    ) {
+        var filePath = LazerStorage.GetLazerPortablePath(tachyon);
+        if (!System.IO.File.Exists(filePath))
+            return NotFound();
+        
+        return PhysicalFile(
+            filePath,
+            "application/octet-stream",
+            fileDownloadName: Path.GetFileName(filePath),
+            enableRangeProcessing: true
+        );
+    }
 }

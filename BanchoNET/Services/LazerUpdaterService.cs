@@ -97,7 +97,7 @@ public class LazerUpdaterService(
             var success = await TryReplaceRepo(tachyon: false, tagName, ct);
             if (success)
             {
-                var latest = await LatestRelease(tagName, ct);
+                var latest = await LatestRelease(tachyon: false, tagName, ct);
                 await releases.InsertRelease(prerelease: false, latest.Full, latest.Delta);
             }
             
@@ -110,7 +110,7 @@ public class LazerUpdaterService(
                 success = await TryReplaceRepo(tachyon: isTachyon, tagName, ct);
                 if (success)
                 {
-                    var latest = await LatestRelease(tagName, ct);
+                    var latest = await LatestRelease(isTachyon, tagName, ct);
                     await releases.InsertRelease(prerelease: isTachyon, latest.Full, latest.Delta);
                 }
             }
@@ -123,6 +123,9 @@ public class LazerUpdaterService(
             return;
         }
         
+        // delete installer (portable version is more than enough)
+        File.Delete($"{AppSettings.LazerName}-win-Setup.exe");
+        
         var latestTachyonVersion = latestReleases.FirstOrDefault(r => r.TagName.EndsWith("-tachyon"))?.TagName;
 
         await File.WriteAllTextAsync(
@@ -131,15 +134,23 @@ public class LazerUpdaterService(
     }
 
     private static async Task<(VelopackAsset Full, VelopackAsset? Delta)> LatestRelease(
+        bool tachyon,
         string tagName,
         CancellationToken ct
     ) {
-        File.Move(LazerStorage.ReleasesPath, LazerStorage.GetReleasesPath(tagName));
+        File.Move(LazerStorage.ReleasesFilePath, LazerStorage.GetReleasesPath(tagName));
         
         await using var fs = File.OpenRead(LazerStorage.GetReleasesPath(tagName));
         var feed = await JsonSerializer.DeserializeAsync<VelopackReleaseFeed>(fs, cancellationToken: ct)
                    ?? throw new InvalidOperationException($"Unable to deserialize {LazerStorage.GetReleasesPath(tagName)}");
 
+        // also store portable version of both releases
+        File.Copy(
+            Path.Combine(LazerStorage.ReleasesPath, $"{AppSettings.LazerName}-win-Portable.zip"),
+            LazerStorage.GetLazerPortablePath(tachyon),
+            overwrite: true
+        );
+        
         var latestFull = feed.Assets.First(a => a.Type.Equals("Full", StringComparison.OrdinalIgnoreCase));
         var latestDelta = feed.Assets.FirstOrDefault(a => a.Type.Equals("Delta", StringComparison.OrdinalIgnoreCase));
 
