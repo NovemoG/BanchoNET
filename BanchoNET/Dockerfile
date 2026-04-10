@@ -28,13 +28,14 @@ WORKDIR /app
 USER root
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl ca-certificates \
-    && apt-get install -y --no-install-recommends zstd \
+    && apt-get install -y --no-install-recommends curl ca-certificates zstd \
     && rm -rf /var/lib/apt/lists/*
 RUN curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh \
     && chmod +x /tmp/dotnet-install.sh \
     && /tmp/dotnet-install.sh --version 8.0.100 --install-dir /opt/dotnet8 --no-path \
     && rm /tmp/dotnet-install.sh
+RUN mkdir -p /data/lazer \
+    && chown -R "$APP_UID:$APP_UID" /data/lazer
 
 ENV DOTNET_ROLL_FORWARD=Major
 

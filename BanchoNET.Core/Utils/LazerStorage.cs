@@ -20,8 +20,8 @@ public static class LazerStorage
         ReleasesPath, $"{AppSettings.LazerName}-{(tachyon ? "tachyon" : "lazer")}-Portable.zip"
     );
     
-    public static string GetReleaseFilePath(string fileName) => Path.Combine(
-        ReleasesPath, fileName
+    public static string GetReleaseFilePath(string tagName, string type) => Path.Combine(
+        ReleasesPath, $"{AppSettings.LazerName}-{tagName}-{type}.nupkg"
     );
     
     public static readonly string ProductionEndpointPath = Path.Combine(

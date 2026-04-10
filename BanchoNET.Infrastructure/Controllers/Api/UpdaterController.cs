@@ -33,7 +33,7 @@ public class UpdaterController(IReleasesRepository releases) : ControllerBase
                         Url = $"https://api.{AppSettings.Domain}/api/v3/repos",
                         Name = "releases.win.json",
                         ContentType = "application/json",
-                        BrowserDownloadUrl = $"https://api.{AppSettings.Domain}/api/v3/repos/{full.Version}/releases/releases.{full.Version}.json"
+                        BrowserDownloadUrl = $"https://api.{AppSettings.Domain}/api/v3/repos/{full.Version}/releases"
                     }
                 ]
             };
@@ -48,7 +48,7 @@ public class UpdaterController(IReleasesRepository releases) : ControllerBase
                     Url = $"https://api.{AppSettings.Domain}/api/v3/repos",
                     Name = $"{AppSettings.LazerName}-{delta.Version}-delta.nupkg",
                     ContentType = "application/octet-stream",
-                    BrowserDownloadUrl = $"https://api.{AppSettings.Domain}/api/v3/repos/{delta.Version}/file/{AppSettings.LazerName}-{delta.Version}-delta.nupkg",
+                    BrowserDownloadUrl = $"https://api.{AppSettings.Domain}/api/v3/repos/{delta.Version}/file/delta",
                 });
             }
             
@@ -57,38 +57,42 @@ public class UpdaterController(IReleasesRepository releases) : ControllerBase
                 Url = $"https://api.{AppSettings.Domain}/api/v3/repos",
                 Name = $"{AppSettings.LazerName}-{full.Version}-full.nupkg",
                 ContentType = "application/octet-stream",
-                BrowserDownloadUrl = $"https://api.{AppSettings.Domain}/api/v3/repos/{full.Version}/file/{AppSettings.LazerName}-{full.Version}-full.nupkg",
+                BrowserDownloadUrl = $"https://api.{AppSettings.Domain}/api/v3/repos/{full.Version}/file/full",
             });
         }
         
         return new JsonResult(githubFeed);
     }
 
-    [HttpGet("{tagName}/{type}/{fileName}")]
+    [HttpGet("{tagName}/{type}/{package?}")]
     public async Task<IActionResult> GetReleaseFile(
         string tagName,
         string type,
-        string fileName
+        string? package = null
     ) {
-        if (!System.IO.File.Exists(LazerStorage.GetReleasesPath(tagName)))
-            return NotFound();
-
         if (type.Equals("releases", StringComparison.OrdinalIgnoreCase))
         {
-            var text = await System.IO.File.ReadAllTextAsync(LazerStorage.GetReleaseFilePath(fileName));
+            var filePath = LazerStorage.GetReleasesPath(tagName);
+            if (!System.IO.File.Exists(filePath))
+                return NotFound();
+            
+            var text = await System.IO.File.ReadAllTextAsync(filePath);
             return Content(text, "application/json");
         }
         
         if (type.Equals("file", StringComparison.OrdinalIgnoreCase))
         {
-            var filePath = LazerStorage.GetReleaseFilePath(fileName);
+            if (string.IsNullOrWhiteSpace(package))
+                return BadRequest();
+
+            var filePath = LazerStorage.GetReleaseFilePath(tagName, package);
             if (!System.IO.File.Exists(filePath))
                 return NotFound();
             
             return PhysicalFile(
                 filePath,
                 "application/octet-stream",
-                fileDownloadName: fileName,
+                fileDownloadName: Path.GetFileName(filePath),
                 enableRangeProcessing: true
             );
         }

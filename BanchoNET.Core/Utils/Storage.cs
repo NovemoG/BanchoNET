@@ -22,7 +22,10 @@ public static class Storage
 	private static readonly string ScreenshotsPath = Path.Combine(BasePath, "Screenshots");
 	private static readonly string MedalIconsPath = Path.Combine(BasePath, "MedalIcons");
 	private static readonly string LogsPath = Path.Combine(BasePath, "Logs");
-	public static readonly string LazerPath = Path.Combine(BasePath, "Lazer");
+
+	private const string BaseLazerPath = "/data/lazer";
+	public static readonly string LazerPath = Path.Combine(BaseLazerPath, "Lazer");
+	public static readonly string TempPath = Path.Combine(BaseLazerPath, "Temp");
 	
 	public static string GetBeatmapPath(int beatmapId) => Path.Combine(BeatmapsPath, $"{beatmapId}.osu");
 	public static string GetReplayPath(long scoreId) => Path.Combine(ReplaysPath, $"{scoreId}.osr");

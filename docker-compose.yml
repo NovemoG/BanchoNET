@@ -11,6 +11,7 @@
     env_file:
       - .env
     volumes:
+      - banchonet-lazer-data:/data/lazer
       - ${DATA_PATH:-./data}:/app/files
     restart: unless-stopped
     networks:
@@ -81,10 +82,12 @@ networks:
     name: banchonet
 
 volumes:
+  banchonet-lazer-data:
+    driver: local
   banchonet-db-data:
     driver: local
   banchonet-mongo-data:
-
+    driver: local
 
 configs:
   init_db:

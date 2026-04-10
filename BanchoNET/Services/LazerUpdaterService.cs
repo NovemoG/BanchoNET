@@ -74,64 +74,83 @@ public class LazerUpdaterService(
         if (string.IsNullOrEmpty(AppSettings.GithubToken))
             return;
         
-        var lazerVersion = string.Empty;
-        
+        string? lastLazerTag = null;
+        string? lastTachyonTag = null;
+
         if (File.Exists(LazerStorage.CurrentLazerVersionFile))
         {
-            var lazerVersions = (await File.ReadAllTextAsync(LazerStorage.CurrentLazerVersionFile, ct)).Split('\n');
-
-            lazerVersion = lazerVersions.Length > 0 ? lazerVersions[0] : string.Empty;
+            var lines = await File.ReadAllLinesAsync(LazerStorage.CurrentLazerVersionFile, ct);
+            lastLazerTag = lines.ElementAtOrDefault(0);
+            lastTachyonTag = lines.ElementAtOrDefault(1);
         }
         
-        var latestReleases = await GetLatestMatchingReleases(ct);
-        
-        var latestLazerRelease = latestReleases.FirstOrDefault(r => r.TagName.EndsWith("-lazer"));
-        var shouldUpdate = latestLazerRelease != null && !latestLazerRelease.TagName.Equals(lazerVersion);
-        
-        if (shouldUpdate)
+        var latestReleases = await GetLatestMatchingReleases(lastLazerTag, lastTachyonTag, ct);
+        if (latestReleases.Count == 0)
         {
-            await using var scope = scopeFactory.CreateAsyncScope();
-            var releases = scope.ServiceProvider.GetRequiredService<IReleasesRepository>();
-
-            var tagName = latestLazerRelease!.TagName;
-            var success = await TryReplaceRepo(tagName, ct);
-            if (success)
-            {
-                var latest = await LatestRelease(tachyon: false, tagName, ct);
-                await releases.InsertRelease(prerelease: false, latest.Full, latest.Delta);
-            }
-            
-            var latestLazerReleaseIndex = latestReleases.IndexOf(latestLazerRelease);
-            
-            for (var i = latestLazerReleaseIndex - 1; i >= 0; i--)
-            {
-                tagName = latestReleases[i].TagName;
-                success = await TryReplaceRepo(tagName, ct);
-                if (success)
-                {
-                    var isTachyon = tagName.Contains("-tachyon");
-                    var latest = await LatestRelease(isTachyon, tagName, ct);
-                    await releases.InsertRelease(prerelease: isTachyon, latest.Full, latest.Delta);
-                }
-            }
-        }
-        else
-        {
-            if (shouldUpdate) logger.LogWarning("Failed to fetch lazer releases");
-            else logger.LogInfo("Lazer files are up to date");
-
+            logger.LogInfo("Lazer files are up to date");
             return;
         }
         
-        // delete installer (portable version is more than enough)
-        File.Delete($"{AppSettings.LazerName}-win-Setup.exe");
-        
-        var latestTachyonVersion = latestReleases.FirstOrDefault(r => r.TagName.EndsWith("-tachyon"))?.TagName;
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var releasesRepo = scope.ServiceProvider.GetRequiredService<IReleasesRepository>();
 
-        await File.WriteAllTextAsync(
-            LazerStorage.CurrentLazerVersionFile, $"{latestLazerRelease.TagName}\n{latestTachyonVersion}", ct
+        var currentLazerTag = lastLazerTag;
+        var currentTachyonTag = lastTachyonTag;
+
+        var sawTachyon = false;
+
+        for (var i = latestReleases.Count - 1; i >= 0; i--)
+        {
+            var rel = latestReleases[i];
+            var isTachyon = IsTachyonRelease(rel);
+            var tagName = rel.TagName;
+
+            var success = await TryReplaceRepo(tagName, ct);
+            if (!success)
+            {
+                logger.LogWarning($"Failed to replace repo for {tagName}");
+                continue;
+            }
+            
+            var latest = await LatestRelease(isTachyon, tagName, ct);
+            await releasesRepo.InsertRelease(prerelease: isTachyon, latest.Full, latest.Delta);
+
+            if (isTachyon)
+            {
+                currentTachyonTag = tagName;
+                sawTachyon = true;
+            }
+            else
+            {
+                currentLazerTag = tagName;
+                if (!sawTachyon)
+                    currentTachyonTag = tagName;
+            }
+        }
+        
+        // clean up useless files (or consider leaving setup.exe)
+        File.Delete(Path.Combine(LazerStorage.ReleasesPath, $"{AppSettings.LazerName}-win-Setup.exe"));
+        File.Delete(Path.Combine(LazerStorage.ReleasesPath, $"{AppSettings.LazerName}-win-Portable.zip"));
+        if (Directory.Exists(LazerStorage.LazerPath))
+            Directory.Delete(LazerStorage.LazerPath, recursive: true);
+        
+        await File.WriteAllLinesAsync(
+            LazerStorage.CurrentLazerVersionFile,
+            [
+                currentLazerTag ?? string.Empty,
+                currentTachyonTag ?? string.Empty
+            ],
+            ct
         );
+        
+        logger.LogInfo("Finished updating lazer to the newest version");
     }
+    
+    private static bool IsLazerRelease(GitHubRelease rel) =>
+        rel is { Draft: false, Prerelease: false };
+
+    private static bool IsTachyonRelease(GitHubRelease rel) =>
+        rel is { Draft: false, Prerelease: true };
 
     private static async Task<(VelopackAsset Full, VelopackAsset? Delta)> LatestRelease(
         bool tachyon,
@@ -244,13 +263,17 @@ public class LazerUpdaterService(
     }
 
     private async Task<List<GitHubRelease>> GetLatestMatchingReleases(
+        string? lastLazerTag,
+        string? lastTachyonTag,
         CancellationToken ct
     ) {
         var releases = new List<GitHubRelease>();
-
-        var lazerFound = false;
-        var tachyonFound = false;
-        for (var page = 1; page <= 10; page++)
+        
+        // tachyon might be the same as lazer if lazer is newest
+        var firstRun = string.IsNullOrWhiteSpace(lastLazerTag);
+        var cutoffReached = false;
+        
+        for (var page = 1; page <= 10 && !cutoffReached; page++)
         {
             var url = $"https://api.github.com/repos/ppy/osu/releases?per_page=10&page={page}";
             using var doc = await GetJson(url, ct);
@@ -261,20 +284,35 @@ public class LazerUpdaterService(
             foreach (var item in doc.RootElement.EnumerateArray())
             {
                 var rel = GitHubRelease.FromJson(item);
-                if (!lazerFound && rel is { Prerelease: false, Draft: false })
+
+                var isLazer = IsLazerRelease(rel);
+                var isTachyon = IsTachyonRelease(rel);
+
+                if (firstRun)
                 {
-                    lazerFound = true;
-                    releases.Add(rel);
+                    if (isTachyon)
+                    {
+                        releases.Add(rel);
+                        continue;
+                    }
+
+                    if (isLazer)
+                    {
+                        releases.Add(rel);
+                        cutoffReached = true;
+                        break;
+                    }
                 }
-                if (!tachyonFound && rel is { Prerelease: true, Draft: false })
+
+                if (rel.TagName == lastLazerTag || rel.TagName == lastTachyonTag)
                 {
-                    tachyonFound = true;
-                    releases.Add(rel);
+                    cutoffReached = true;
+                    break;
                 }
+                
+                if (isLazer || isTachyon)
+                    releases.Add(rel);
             }
-            
-            if (lazerFound && tachyonFound)
-                break;
         }
 
         return releases;
@@ -295,7 +333,7 @@ public class LazerUpdaterService(
         string tagName,
         CancellationToken ct
     ) {
-        var tempRoot = Path.Combine(Path.GetTempPath(), "ghrel-" + Guid.NewGuid().ToString("N"));
+        var tempRoot = Path.Combine(Storage.TempPath, "ghrel-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempRoot);
 
         try
@@ -308,45 +346,19 @@ public class LazerUpdaterService(
             Directory.CreateDirectory(extractDir);
             await ZipFile.ExtractToDirectoryAsync(zipPath, extractDir, ct);
 
-            var root = Directory.GetDirectories(extractDir).Single();
+            var root = Directory.EnumerateDirectories(extractDir).Single();
 
             var targetDirectory = LazerStorage.LazerPath;
             if (Directory.Exists(targetDirectory))
                 Directory.Delete(targetDirectory, recursive: true);
 
-            Directory.CreateDirectory(targetDirectory);
-            CopyDirectoryContents(root, targetDirectory);
+            Directory.Move(root, targetDirectory);
         }
         finally
         {
             if (Directory.Exists(tempRoot))
                 Directory.Delete(tempRoot, recursive: true);
         }
-    }
-
-    private void CopyDirectoryContents(
-        string sourceDir,
-        string targetDir
-    ) {
-        logger.LogInfo("Replacing lazer repo contents...");
-        var stopwatch = Stopwatch.StartNew();
-        
-        foreach (var dir in Directory.GetDirectories(sourceDir, "*", SearchOption.AllDirectories))
-        {
-            var rel = Path.GetRelativePath(sourceDir, dir);
-            Directory.CreateDirectory(Path.Combine(targetDir, rel));
-        }
-
-        foreach (var file in Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories))
-        {
-            var rel = Path.GetRelativePath(sourceDir, file);
-            var dest = Path.Combine(targetDir, rel);
-            Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
-            File.Copy(file, dest, overwrite: true);
-        }
-        
-        stopwatch.Stop();
-        logger.LogInfo($"Finished replacing repo files in {stopwatch.Elapsed}");
     }
 
     private async Task<JsonDocument> GetJson(
