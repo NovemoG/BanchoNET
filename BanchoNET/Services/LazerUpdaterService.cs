@@ -94,7 +94,7 @@ public class LazerUpdaterService(
             var releases = scope.ServiceProvider.GetRequiredService<IReleasesRepository>();
 
             var tagName = latestLazerRelease!.TagName;
-            var success = await TryReplaceRepo(tachyon: false, tagName, ct);
+            var success = await TryReplaceRepo(tagName, ct);
             if (success)
             {
                 var latest = await LatestRelease(tachyon: false, tagName, ct);
@@ -106,10 +106,10 @@ public class LazerUpdaterService(
             for (var i = latestLazerReleaseIndex - 1; i >= 0; i--)
             {
                 tagName = latestReleases[i].TagName;
-                var isTachyon = tagName.Contains("-tachyon");
-                success = await TryReplaceRepo(tachyon: isTachyon, tagName, ct);
+                success = await TryReplaceRepo(tagName, ct);
                 if (success)
                 {
+                    var isTachyon = tagName.Contains("-tachyon");
                     var latest = await LatestRelease(isTachyon, tagName, ct);
                     await releases.InsertRelease(prerelease: isTachyon, latest.Full, latest.Delta);
                 }
@@ -158,14 +158,16 @@ public class LazerUpdaterService(
     }
 
     private async Task<bool> TryReplaceRepo(
-        bool tachyon,
         string tagName,
         CancellationToken ct
     ) {
-        await ReplaceRepo(tachyon, tagName, ct);
+        await ReplaceRepo(tagName, ct);
         await ReplaceDomains(ct);
         await UpdateCsproj(ct);
 
+        logger.LogInfo("Building lazer project...");
+        var stopwatch = Stopwatch.StartNew();
+        
         var result = await RunCommand(
             "/opt/dotnet8/dotnet",
             $"publish --self-contained -r win-x64 -p:Version={tagName} -o publish",
@@ -178,7 +180,13 @@ public class LazerUpdaterService(
             logger.LogWarning(result.StdErr);
             return false;
         }
+        
+        stopwatch.Stop();
+        logger.LogInfo($"Finished building lazer in {stopwatch.Elapsed}");
 
+        logger.LogInfo("Packing a new version of lazer...");
+        stopwatch.Restart();
+        
         result = await RunCommand(
             "/opt/tools/vpk",
             $"[win] pack --runtime win-x64 --packTitle {AppSettings.LazerName} -u {AppSettings.LazerName} -i \"{LazerStorage.IconPath}\" -v {tagName} -p \"{LazerStorage.LazerPublishPath}\" -e \"osu!.exe\"",
@@ -192,6 +200,7 @@ public class LazerUpdaterService(
             return false;
         }
         
+        logger.LogInfo($"Finished packing lazer in {stopwatch.Elapsed}");
         logger.LogInfo($"Updated lazer files to latest version: {tagName}");
         return true;
     }
@@ -283,7 +292,6 @@ public class LazerUpdaterService(
     }
 
     private async Task ReplaceRepo(
-        bool tachyon,
         string tagName,
         CancellationToken ct
     ) {
@@ -316,10 +324,13 @@ public class LazerUpdaterService(
         }
     }
 
-    private static void CopyDirectoryContents(
+    private void CopyDirectoryContents(
         string sourceDir,
         string targetDir
     ) {
+        logger.LogInfo("Replacing lazer repo contents...");
+        var stopwatch = Stopwatch.StartNew();
+        
         foreach (var dir in Directory.GetDirectories(sourceDir, "*", SearchOption.AllDirectories))
         {
             var rel = Path.GetRelativePath(sourceDir, dir);
@@ -333,6 +344,9 @@ public class LazerUpdaterService(
             Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
             File.Copy(file, dest, overwrite: true);
         }
+        
+        stopwatch.Stop();
+        logger.LogInfo($"Finished replacing repo files in {stopwatch.Elapsed}");
     }
 
     private async Task<JsonDocument> GetJson(
@@ -351,6 +365,8 @@ public class LazerUpdaterService(
         string path,
         CancellationToken ct
     ) {
+        logger.LogInfo("Downloading lazer repo...");
+        
         using var response = await _client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
         response.EnsureSuccessStatusCode();
 

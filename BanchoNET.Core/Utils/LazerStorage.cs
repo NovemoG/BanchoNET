@@ -3,7 +3,7 @@
 public static class LazerStorage
 {
     public static readonly string LazerPath = Path.Combine(Storage.LazerPath, "Lazer");
-    public static readonly string ReleasesPath = Path.Combine(LazerPath, "Releases");
+    public static readonly string ReleasesPath = Path.Combine(Storage.LazerPath, "Releases");
     private static readonly string OsuGamePath = Path.Combine(LazerPath, "osu.Game");
     
     public static readonly string CurrentLazerVersionFile = Path.Combine(Storage.LazerPath, "LazerVersion.txt");
