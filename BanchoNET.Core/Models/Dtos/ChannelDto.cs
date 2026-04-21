@@ -22,8 +22,9 @@ public class ChannelDto
 	public int WritePrivileges { get; set; }
 	
 	public long? LastMessageId { get; set; }
-
-	// will be empty if it is not a PM type channel
-	public ICollection<PlayerDto> Players { get; set; } = new List<PlayerDto>();
+	
 	public ICollection<MessageDto> Messages { get; set; } = new List<MessageDto>();
+	
+	public ICollection<PlayerDto> Players { get; set; } = new List<PlayerDto>();
+	public ICollection<ChannelPlayer> ChannelPlayers { get; } = [];
 }

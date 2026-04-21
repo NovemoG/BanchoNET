@@ -34,4 +34,10 @@ public interface INotifySocketManager
         ChannelMessage message,
         CancellationToken ct = default
     );
+
+    Task BroadcastPmMessage(
+        ChannelMessage message,
+        int senderId,
+        int receiverId
+    );
 }

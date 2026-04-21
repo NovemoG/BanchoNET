@@ -84,4 +84,22 @@ public sealed class NotifySocketManager : INotifySocketManager
             }, CancellationToken.None);
         }
     }
+
+    public async Task BroadcastPmMessage(
+        ChannelMessage message,
+        int senderId,
+        int receiverId
+    ) {
+        await SendAsync(senderId, "chat.message.new", new NewChatMessageData
+        {
+            Messages = [message],
+            Users = [message.Sender]
+        }, CancellationToken.None);
+        
+        await SendAsync(receiverId, "chat.message.new", new NewChatMessageData
+        {
+            Messages = [message],
+            Users = [message.Sender]
+        }, CancellationToken.None);
+    }
 }

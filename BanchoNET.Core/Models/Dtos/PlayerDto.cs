@@ -42,13 +42,15 @@ public class PlayerDto
 	public ICollection<ScoreDto> Scores { get; set; } = null!;
 	public ICollection<LoginDto> LoginsData { get; set; } = null!;
 	public ICollection<ClientHashesDto> ClientHashes { get; set; } = null!;
-	public ICollection<ChannelDto> PmChannels { get; set; } = null!;
 	public ICollection<MessageDto> SentMessages { get; set; } = null!;
 	public ICollection<MessageDto> ReceivedMessages { get; set; } = null!;
 	public ICollection<RelationshipDto> Relationships { get; set; } = null!;
 	public ICollection<RelationshipDto> IncomingRelationships { get; set; } = null!;
 	public ICollection<BeatmapDto> Beatmaps { get; set; } = null!;
 	public ICollection<BeatmapsetDto> Beatmapsets { get; set; } = null!;
+	
+	public ICollection<ChannelDto> Channels { get; set; } = null!;
+	public ICollection<ChannelPlayer> PlayerChannels { get; } = [];
 	
 	[NotMapped]
 	public bool IsSupporter => RemainingSupporter > DateTime.UtcNow;

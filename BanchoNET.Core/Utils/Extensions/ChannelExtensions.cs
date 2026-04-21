@@ -35,7 +35,7 @@ public static class ChannelExtensions
 			Description = "Chatroom for announcements about scores and maps",
 			AutoJoin = false,
 			Hidden = false,
-			ReadOnly = false,
+			ReadOnly = true,
 			Instance = false,
 			Type = ChannelType.Announce,
 			ReadPrivileges = ClientPrivileges.Player,

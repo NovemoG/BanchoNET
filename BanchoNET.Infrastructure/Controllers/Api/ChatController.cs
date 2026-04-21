@@ -42,7 +42,7 @@ public class ChatController(
         var exists = await Players.PlayerExists(targetId);
         if (!exists) return NotFound();
 
-        var channel = await messages.GetOrAddPmChannel(uid, request.target_id);
+        var channel = await messages.GetOrAddPmChannel(uid, targetId);
         var message = await messages.AddMessage(
             request.message,
             uid,
@@ -121,7 +121,7 @@ public class ChatController(
             });
         }
 
-        var pmChannel = await messages.GetPmChannel(uid);
+        var pmChannel = await messages.GetPmChannel(channelId);
         if (pmChannel != null)
         {
             return JsonSnake(new ChannelDetailsResponse
@@ -186,11 +186,7 @@ public class ChatController(
             );
         
             var channelMessage = new ChannelMessage(message, request.uuid);
-            await notify.SendAsync(targetId.Value, "chat.message.new", new NewChatMessageData
-            {
-                Messages = [channelMessage],
-                Users = [channelMessage.Sender]
-            }, CancellationToken.None);
+            await notify.BroadcastPmMessage(channelMessage, uid, targetId.Value);
         
             return JsonSnake(channelMessage);
         }

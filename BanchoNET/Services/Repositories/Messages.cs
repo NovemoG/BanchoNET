@@ -41,7 +41,7 @@ public class MessagesRepository(BanchoDbContext dbContext) : IMessagesRepository
             Type = ChannelType.PM,
             Players = new List<PlayerDto> { p1, p2 }
         };
-            
+        
         dbContext.Channels.Add(channel);
         await dbContext.SaveChangesAsync();
 
@@ -126,9 +126,10 @@ public class MessagesRepository(BanchoDbContext dbContext) : IMessagesRepository
                 .SetProperty(c => c.LastMessageId, newMessage.Id));
 
         if (loadNav)
-            await dbContext.Entry(newMessage)
+            newMessage.Sender = await dbContext.Players.FirstAsync(p => p.Id == senderId);
+            /*await dbContext.Messages.Entry(newMessage)
                 .Reference(m => m.Sender)
-                .LoadAsync();
+                .LoadAsync();*/
 
         return newMessage;
     }

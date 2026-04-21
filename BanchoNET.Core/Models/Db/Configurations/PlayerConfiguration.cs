@@ -69,6 +69,10 @@ public class PlayerConfiguration : IEntityTypeConfiguration<PlayerDto>
         builder.Property(p => p.UserPageContent)
             .HasMaxLength(4096);
 
+        builder.HasMany(p => p.Channels)
+            .WithMany(c => c.Players)
+            .UsingEntity<ChannelPlayer>();
+
         builder.Ignore(p => p.IsSupporter);
     }
 }
