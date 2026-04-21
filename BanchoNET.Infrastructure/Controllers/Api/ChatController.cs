@@ -52,11 +52,14 @@ public class ChatController(
             request.is_action,
             loadNav: true
         );
+
+        var channelMessage = new ChannelMessage(message, request.uuid);
+        await notify.BroadcastPmMessage(channelMessage, uid, targetId);
         
         return JsonSnake(new ChatNewResponse
         {
             Channel = new ChatChannelExtended(channel, uid),
-            Message = new ChannelMessage(message, request.uuid),
+            Message = channelMessage,
             NewChannelId = channel.Id
         });
     }
