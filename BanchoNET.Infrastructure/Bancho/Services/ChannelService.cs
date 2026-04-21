@@ -1,4 +1,5 @@
-﻿using BanchoNET.Core.Abstractions.Bancho.Services;
+﻿using System.Collections.Concurrent;
+using BanchoNET.Core.Abstractions.Bancho.Services;
 using BanchoNET.Core.Models.Channels;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Packets;
@@ -12,6 +13,8 @@ public class ChannelService(
     IPlayerService players
 ) : StatefulService<string, Channel>(logger), IChannelService
 {
+    private readonly ConcurrentDictionary<long, Channel> _channelsById = new();
+    
     public IEnumerable<Channel> Channels => Items.Values;
     
     public Channel LobbyChannel
@@ -24,7 +27,7 @@ public class ChannelService(
             Logger.LogWarning("Couldn't find '#lobby' channel, creating a default one.");
 
             lobby = ChannelExtensions.DefaultChannels.First(c => c.IdName == "#lobby");
-            TryAdd("#lobby", lobby);
+            InsertChannel(lobby);
             return lobby;
         }
     }
@@ -33,6 +36,9 @@ public class ChannelService(
         Channel channel
     ) {
         var added = base.TryAdd(channel);
+        
+        if (channel.Type is ChannelType.Public or ChannelType.Announce)
+            _channelsById.TryAdd(channel.Id, channel);
         
         if (!added)
             Logger.LogWarning($"Failed to add channel {channel.IdName}");
@@ -56,6 +62,12 @@ public class ChannelService(
         string name
     ) {
         return TryGet(name, out var channel) ? channel : null;
+    }
+
+    public Channel? GetChannel(
+        long id
+    ) {
+        return _channelsById.TryGetValue(id, out var channel) ? channel : null;
     }
 
     public bool JoinPlayer(
@@ -181,19 +193,7 @@ public class ChannelService(
             .FinalizeAndGetContent());
     }
     
-    protected bool TryAdd(
-        string key,
-        Channel channel
-    ) {
-        var added = base.TryAdd(channel);
-        
-        if (!added)
-            Logger.LogWarning($"Failed to add channel {key}");
-        
-        return added;
-    }
-
-    protected bool TryRemove(
+    private bool TryRemove(
         string key
     ) {
         var removed = base.TryRemove(key, out _);

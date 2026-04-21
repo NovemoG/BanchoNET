@@ -73,7 +73,8 @@ public class ApiScore
         Players.Player player,
         Beatmap beatmap
     ) {
-        ClassicTotalScore = score.TotalScore; //TODO
+        //TODO (for players that have Classic score enabled)
+        TotalScore = AppSettings.SortLeaderboardByPP ? (int)MathF.Round(score.PP) : score.TotalScore;
         Preserve = score.Preserve;
         Processed = score.Processed;
         Ranked = score.Ranked;
@@ -109,7 +110,7 @@ public class ApiScore
         Pp = score.PP;
         RulesetId = (int)score.Mode;
         StartedAt = score.StartTime;
-        TotalScore = AppSettings.SortLeaderboardByPP ? (int)score.PP : score.TotalScore;
+        TotalScore = AppSettings.SortLeaderboardByPP ? (int)MathF.Round(score.PP) : score.TotalScore;
         Replay = HasReplay;
         //TODO CurrentUserAttributes
         Status = score.Status;
@@ -123,7 +124,8 @@ public class ApiScore
         PlayerDto player,
         Beatmap beatmap
     ) {
-        ClassicTotalScore = scoreDto.LegacyTotalScore; //TODO
+        //TODO (for players that have Classic score enabled)
+        ClassicTotalScore = AppSettings.SortLeaderboardByPP ? (int)MathF.Round(scoreDto.PP) : scoreDto.LegacyTotalScore;
         Preserve = scoreDto.Preserve;
         Processed = scoreDto.Processed;
         Ranked = scoreDto.Ranked;
@@ -160,7 +162,7 @@ public class ApiScore
         RulesetId = scoreDto.Mode;
         StartedAt = scoreDto.StartTime;
         //TotalScore = scoreDto.TotalScore;
-        TotalScore = AppSettings.SortLeaderboardByPP ? (int)scoreDto.PP : scoreDto.LegacyTotalScore;
+        TotalScore = AppSettings.SortLeaderboardByPP ? (int)MathF.Round(scoreDto.PP) : scoreDto.LegacyTotalScore;
         Replay = HasReplay;
         //TODO CurrentUserAttributes
         Status = (SubmissionStatus)scoreDto.Status;

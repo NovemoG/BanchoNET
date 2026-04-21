@@ -155,7 +155,7 @@ public static class ScoreExtensions
         if (score is null || other is null)
             return false;
 
-        return score.Mods.SequenceEqual(other.Mods);
+        return score.Mods.SequenceEqual(other.Mods) || score.LegacyMods == other.LegacyMods;
     }
 
     public static void CalculatePerformance(

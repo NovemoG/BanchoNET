@@ -51,7 +51,7 @@ public class PlayerCoordinator(
 
         if (spectatorChannel == null)
         {
-            spectatorChannel = new Channel(channelName)
+            spectatorChannel = new Channel(channelName, id: 0, ChannelType.Spectator) //TODO
             {
                 Description = $"{host.Username}'s spectator channel",
                 AutoJoin = false,

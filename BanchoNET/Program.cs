@@ -32,6 +32,7 @@ using MongoDB.Driver;
 using Novelog.Config;
 using StackExchange.Redis;
 using BanchoNET.Infrastructure;
+using BanchoNET.Infrastructure.Bancho.Services;
 using LogLevel = Novelog.Types.LogLevel;
 // ReSharper disable ExplicitCallerInfoArgument
 
@@ -204,7 +205,8 @@ public class Program
 			.AddScoped<IClientPacketsHandler, ClientPacketsHandler>()
 			.AddScoped<ICommandProcessor, CommandProcessor>();
 		
-		builder.Services.AddSingleton<OsuVersionService>()
+		builder.Services.AddSingleton<INotifySocketManager, NotifySocketManager>()
+			.AddSingleton<OsuVersionService>()
 			.AddSingleton<IOsuVersionService>(sp => sp.GetRequiredService<OsuVersionService>())
 			.AddHostedService(sp => sp.GetRequiredService<OsuVersionService>())
 			.AddHostedService<BackgroundTasks>();
@@ -282,14 +284,11 @@ public class Program
 	{
 		var db = scope.ServiceProvider.GetRequiredService<BanchoDbContext>();
 
-		Logger.Shared.LogInfo("Checking if database exists.", "Init");
+		Logger.Shared.LogInfo("Applying database migrations.", "Init");
 		
-		var created = db.Database.EnsureCreated();
+		db.Database.Migrate();
 		
-		Logger.Shared.LogInfo(created
-			? "Database couldn't be found and was created."
-			: "Database already exists, skipping creation.",
-			"Init");
+		Logger.Shared.LogInfo("Database is ready.", "Init");
 	}
 	
 	private static void InitBanchoBot(IServiceScope scope)

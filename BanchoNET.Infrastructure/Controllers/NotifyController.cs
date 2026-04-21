@@ -1,10 +1,14 @@
 ﻿using System.Net.WebSockets;
-using System.Text;
+using System.Text.Json;
+using BanchoNET.Core.Abstractions.Bancho.Services;
 using BanchoNET.Core.Attributes;
+using BanchoNET.Core.Models.Notify;
 using BanchoNET.Core.Utils.Extensions;
+using BanchoNET.Core.Utils.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Novelog.Abstractions;
 
 namespace BanchoNET.Infrastructure.Controllers;
 
@@ -12,7 +16,7 @@ namespace BanchoNET.Infrastructure.Controllers;
 [Route("notify")]
 [Authorize]
 [SubdomainAuthorize("notify")]
-public class NotifyController : ControllerBase
+public class NotifyController(ILogger logger, INotifySocketManager sockets) : ControllerBase
 {
     [HttpGet]
     public async Task Get() {
@@ -38,60 +42,53 @@ public class NotifyController : ControllerBase
         {
             while (socket.State == WebSocketState.Open && !ct.IsCancellationRequested)
             {
-                using var ms = new MemoryStream();
-                WebSocketReceiveResult? result;
-                
-                do
-                {
-                    result = await socket.ReceiveAsync(buffer, ct);
-                    if (result.MessageType == WebSocketMessageType.Close)
-                    {
-                        if (socket.State is WebSocketState.Open or WebSocketState.CloseReceived)
-                        {
-                            await CloseSocketAsync(socket,
-                                WebSocketCloseStatus.NormalClosure,
-                                "Closing"
-                            );
-                        }
-                        return;
-                    }
-                    
-                    ms.Write(buffer, 0, result.Count);
-                } while (!result.EndOfMessage);
-                
-                ms.Position = 0;
-                using var reader = new StreamReader(ms, Encoding.UTF8);
-                var json = await reader.ReadToEndAsync(ct);
+                var json = await socket.ReceiveTextAsync(buffer, ct);
+                if (json is null)
+                    break;
                 
                 if (string.IsNullOrWhiteSpace(json))
                     continue;
-                
-                //TODO handle notify
+
+                var message = JsonSerializer.Deserialize<SocketMessage>(json, SnakeCaseNamingPolicy.Options);
+                if (message is null)
+                    continue;
+
+                switch (message.Event)
+                {
+                    case "chat.start":
+                        // the client wants to receive chat messages
+                        sockets.Add(uid, socket);
+                        break;
+                    
+                    case "chat.end":
+                        // the client no longer wants to receive chat messages
+                        sockets.Remove(uid);
+                        break;
+                    
+                    default:
+                        logger.LogDebug($"Unknown event ({message.Event}) received in a notification websocket for player: {uid}", caller: nameof(NotifyController));
+                        break;
+                }
             }
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { /* graceful */ }
         catch (WebSocketException) { /* connection aborted */ }
         finally
         {
-            if (socket.State == WebSocketState.Open)
+            sockets.Remove(uid);
+            
+            if (socket.State is WebSocketState.Open or WebSocketState.CloseReceived)
             {
-                await CloseSocketAsync(socket,
-                    WebSocketCloseStatus.NormalClosure,
-                    "Server shutting down"
-                );
+                try
+                {
+                    await socket.CloseAsync(
+                        WebSocketCloseStatus.NormalClosure,
+                        "Server shutting down",
+                        CancellationToken.None
+                    );
+                }
+                catch { /* ignore shutdown errors */ }
             }
         }
-    }
-    
-    private static async Task CloseSocketAsync(
-        WebSocket socket,
-        WebSocketCloseStatus status,
-        string description
-    ) {
-        try
-        {
-            await socket.CloseAsync(status, description, CancellationToken.None);
-        }
-        catch { /* ignore shutdown errors */ }
     }
 }

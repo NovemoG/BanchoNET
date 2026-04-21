@@ -6,13 +6,13 @@ public class PlayerDto
 {
 	public int Id { get; set; }
 	
-	public required string Username { get; set; }
-	public required string SafeName { get; set; }
-	public required string LoginName { get; set; }
-	public required string Email { get; set; }
-	public required string PasswordHash { get; set; }
+	public string Username { get; set; } = null!;
+	public string SafeName { get; set; } = null!;
+	public string LoginName { get; set; } = null!;
+	public string Email { get; set; } = null!;
+	public string PasswordHash { get; set; } = null!;
 	
-	public required string Country { get; set; }
+	public string Country { get; set; } = null!;
 	public int Privileges { get; set; }
 	public bool PmFriendsOnly { get; set; }
 	public bool HideOnlineActivity { get; set; }
@@ -42,6 +42,9 @@ public class PlayerDto
 	public ICollection<ScoreDto> Scores { get; set; } = null!;
 	public ICollection<LoginDto> LoginsData { get; set; } = null!;
 	public ICollection<ClientHashesDto> ClientHashes { get; set; } = null!;
+	public ICollection<ChannelDto> PmChannels { get; set; } = null!;
+	public ICollection<MessageDto> SentMessages { get; set; } = null!;
+	public ICollection<MessageDto> ReceivedMessages { get; set; } = null!;
 	public ICollection<RelationshipDto> Relationships { get; set; } = null!;
 	public ICollection<RelationshipDto> IncomingRelationships { get; set; } = null!;
 	public ICollection<BeatmapDto> Beatmaps { get; set; } = null!;

@@ -1,28 +1,23 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.EntityFrameworkCore;
 
 namespace BanchoNET.Core.Models.Dtos;
 
-[Index(nameof(SenderId))]
-[Index(nameof(ReceiverId))]
-[Index(nameof(Read))]
-[PrimaryKey(nameof(Id))]
 public class MessageDto
 {
-    [Key] public long Id { get; set; }
-    public int SenderId { get; set; }
-    public int ReceiverId { get; set; }
+    public long Id { get; set; }
+    public bool IsAction { get; set; }
     public bool Read { get; set; }
+    public DateTime SentAt { get; set; }
     
     [MaxLength(2048)]
     public string Message { get; set; } = null!;
     
-    public DateTime SentAt { get; set; }
-	
-    [ForeignKey("SenderId")]
+    public int SenderId { get; set; }
     public PlayerDto Sender { get; set; } = null!;
-	
-    [ForeignKey("ReceiverId")]
-    public PlayerDto Receiver { get; set; } = null!;
+    
+    public int? ReceiverId { get; set; }
+    public PlayerDto? Receiver { get; set; }
+    
+    public long ChannelId { get; set; }
+    public ChannelDto Channel { get; set; } = null!;
 }

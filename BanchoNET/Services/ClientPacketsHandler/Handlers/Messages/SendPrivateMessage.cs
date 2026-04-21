@@ -71,8 +71,17 @@ public partial class ClientPacketsHandler
 					.Notification($"{target.Username} is currently offline but will\nreceive your message on their next login.")
 					.FinalizeAndGetContent());
 			}
+
+			var isAction = txt.Length >= 9
+			               && txt.StartsWith(@"\x01ACTION", StringComparison.OrdinalIgnoreCase)
+			               && txt.EndsWith(@"\x01", StringComparison.OrdinalIgnoreCase);
 			
-			await messages.AddMessage(txt, player.Id, target.Id, read);
+			if (isAction)
+				txt = txt[8..^1];
+
+			var pmChannel = await messages.GetOrAddPmChannel(player.Id, target.Id);
+			
+			await messages.AddMessage(txt, player.Id, pmChannel.Id, target.Id, read, isAction);
 		}
 		else
 		{

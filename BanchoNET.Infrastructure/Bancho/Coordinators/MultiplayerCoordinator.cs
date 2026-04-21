@@ -27,7 +27,7 @@ public class MultiplayerCoordinator(
         matchData.Id = matches.GetFreeMatchId;
         matchData.LobbyId = await histories.GetMatchId();
         
-        var matchChannel = new Channel($"#multi_{matchData.Id}")
+        var matchChannel = new Channel($"#multi_{matchData.Id}", id: 0, ChannelType.Multiplayer) //TODO
         {
             Description = "This multiplayer's channel.",
             AutoJoin = false,

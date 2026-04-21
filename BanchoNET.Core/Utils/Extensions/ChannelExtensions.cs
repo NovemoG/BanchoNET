@@ -8,43 +8,47 @@ namespace BanchoNET.Core.Utils.Extensions;
 public static class ChannelExtensions
 {
 	public static readonly ImmutableList<Channel> DefaultChannels = ImmutableList.Create(
-		new Channel("#osu")
+		new Channel("#osu", 5)
 		{
 			Description = "Main osu! chatroom",
 			AutoJoin = true,
 			Hidden = false,
 			ReadOnly = false,
 			Instance = false,
+			Type = ChannelType.Public,
 			ReadPrivileges = ClientPrivileges.Player,
 			WritePrivileges = ClientPrivileges.Player,
 		},
-		new Channel("#lobby")
+		new Channel("#lobby", 6)
 		{
 			Description = "Multiplayer chatroom",
 			AutoJoin = false,
 			Hidden = false,
 			ReadOnly = false,
 			Instance = false,
+			Type = ChannelType.Public,
 			ReadPrivileges = ClientPrivileges.Player,
 			WritePrivileges = ClientPrivileges.Player,
 		},
-		new Channel("#announce")
+		new Channel("#announce", 7)
 		{
 			Description = "Chatroom for announcements about scores and maps",
 			AutoJoin = false,
 			Hidden = false,
 			ReadOnly = false,
 			Instance = false,
+			Type = ChannelType.Announce,
 			ReadPrivileges = ClientPrivileges.Player,
 			WritePrivileges = ClientPrivileges.Player,
 		},
-		new Channel("#staff")
+		new Channel("#staff", 8)
 		{
 			Description = "osu! staff chatroom",
 			AutoJoin = false,
 			Hidden = true,
 			ReadOnly = false,
 			Instance = false,
+			Type = ChannelType.Private,
 			ReadPrivileges = ClientPrivileges.Owner,
 			WritePrivileges = ClientPrivileges.Owner,
 		}

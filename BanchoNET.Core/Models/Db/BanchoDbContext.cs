@@ -30,7 +30,8 @@ public sealed class BanchoDbContext(DbContextOptions<BanchoDbContext> options) :
 			.ApplyConfiguration(new PlayerConfiguration())
 			.ApplyConfiguration(new RelationshipConfiguration())
 			.ApplyConfiguration(new BeatmapConfiguration())
-			.ApplyConfiguration(new BeatmapsetConfiguration());
+			.ApplyConfiguration(new BeatmapsetConfiguration())
+			.ApplyConfiguration(new MessageConfiguration());
 		
 		base.OnModelCreating(modelBuilder);
 	}
@@ -47,7 +48,8 @@ public class BanchoDbContextFactory : IDesignTimeDbContextFactory<BanchoDbContex
 			$"Port=5432;" +
 			$"Username=banchonet;" +
 			$"Password=banchonet;" +
-			$"Database=utopia;";
+			$"Database=utopia;" +
+			$"Include Error Detail=True;";
 		
 		optionsBuilder.UseNpgsql(mySqlConnectionString);
 		

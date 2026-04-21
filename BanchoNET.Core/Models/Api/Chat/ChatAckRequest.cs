@@ -3,5 +3,5 @@
 public class ChatAckRequest
 {
     public long since { get; set; }
-    public long history_since { get; set; }
+    public long? history_since { get; set; }
 }

@@ -12,6 +12,7 @@ public interface IChannelService
     bool RemoveChannel(Channel channel);
     bool RemoveChannel(string id);
     Channel? GetChannel(string name);
+    Channel? GetChannel(long id);
 
     bool JoinPlayer(
         Channel channel,
