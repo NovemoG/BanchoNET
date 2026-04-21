@@ -40,7 +40,7 @@ public class LookupController(
 
     [HttpGet("v2/beatmapsets/lookup")]
     public async Task<ActionResult<ApiBeatmapset?>> LookupBeatmapset(
-        int beatmapId
+        [FromQuery(Name = "beatmap_id")] int beatmapId
     ) {
         if (!User.TryGetUserId(out _)) return Unauthorized();
         
