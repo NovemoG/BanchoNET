@@ -31,6 +31,36 @@ public class ChatController(
         return JsonSnake(new ChatAckResponse());
     }
 
+    [HttpPost("new")]
+    public async Task<ActionResult<ChatNewResponse>> ChatNew(
+        [FromForm] ChatNewRequest request
+    ) {
+        if (!User.TryGetUserId(out var uid)) return Unauthorized();
+
+        var targetId = request.target_id;
+
+        var exists = await Players.PlayerExists(targetId);
+        if (!exists) return NotFound();
+
+        var channel = await messages.GetOrAddPmChannel(uid, request.target_id);
+        var message = await messages.AddMessage(
+            request.message,
+            uid,
+            channel.Id,
+            receiverId: targetId,
+            read: false,
+            request.is_action,
+            loadNav: true
+        );
+        
+        return JsonSnake(new ChatNewResponse
+        {
+            Channel = new ChatChannelExtended(channel, uid),
+            Message = new ChannelMessage(message, request.uuid),
+            NewChannelId = channel.Id
+        });
+    }
+
     [HttpGet("updates")]
     public async Task <ActionResult<ChatUpdatesResponse>> ChatUpdates(
         [FromQuery] long since,
@@ -64,7 +94,12 @@ public class ChatController(
         if (!User.TryGetUserId(out var uid)) return Unauthorized();
         if (request.type != "PM") return BadRequest(); //TODO
 
-        var pmChannel = await messages.GetPmChannel(uid, (int)request.target_id);
+        var targetId = (int)request.target_id;
+        
+        var exists = await Players.PlayerExists(targetId);
+        if (!exists) return NotFound();
+
+        var pmChannel = await messages.GetPmChannel(uid, targetId);
         if (pmChannel == null) return JsonSnake(new ChatPostResponse());
 
         var messagesList = await messages.GetChannelMessages(pmChannel.Id);

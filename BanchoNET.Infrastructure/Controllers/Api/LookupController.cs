@@ -37,6 +37,19 @@ public class LookupController(
         //TODO
         return JsonSnake(new ApiBeatmap(beatmap, new ApiBeatmapset(beatmap.Set, assignBeatmapsList: false)));
     }
+
+    [HttpGet("v2/beatmapsets/lookup")]
+    public async Task<ActionResult<ApiBeatmapset?>> LookupBeatmapset(
+        int beatmapId
+    ) {
+        if (!User.TryGetUserId(out _)) return Unauthorized();
+        
+        var beatmap = await Beatmaps.GetBeatmap(beatmapId);
+        if (beatmap == null) return NotFound();
+        
+        var set = beatmap.Set;
+        return JsonSnake(new ApiBeatmapset(set));
+    }
     
     [HttpGet("v2/users/lookup")]
     public async Task<ActionResult<List<BasicApiPlayer>>> LookupUsers(
