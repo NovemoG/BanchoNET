@@ -81,7 +81,7 @@ public partial class ClientPacketsHandler
 
 			var pmChannel = await messages.GetOrAddPmChannel(player.Id, target.Id);
 			
-			await messages.AddMessage(txt, player.Id, pmChannel.Id, target.Id, read, isAction);
+			await messages.AddMessage(txt, player.Id, pmChannel.Id, read, isAction);
 		}
 		else
 		{

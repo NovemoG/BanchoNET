@@ -6,7 +6,6 @@ public class MessageDto
 {
     public long Id { get; set; }
     public bool IsAction { get; set; }
-    public bool Read { get; set; }
     public DateTime SentAt { get; set; }
     
     [MaxLength(2048)]
@@ -14,9 +13,6 @@ public class MessageDto
     
     public int SenderId { get; set; }
     public PlayerDto Sender { get; set; } = null!;
-    
-    public int? ReceiverId { get; set; }
-    public PlayerDto? Receiver { get; set; }
     
     public long ChannelId { get; set; }
     public ChannelDto Channel { get; set; } = null!;

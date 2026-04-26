@@ -18,6 +18,7 @@ public sealed class BanchoDbContext(DbContextOptions<BanchoDbContext> options) :
 	public DbSet<ClientHashesDto> ClientHashes { get; init; } = null!;
 	public DbSet<MessageDto> Messages { get; init; } = null!;
 	public DbSet<ChannelDto> Channels { get; init; } = null!;
+	public DbSet<ChannelPlayer> ChannelPlayers { get; init; } = null!;
 
 	public DbSet<ReleaseDto> Releases { get; init; } = null!;
 	public DbSet<RefreshToken> RefreshTokens { get; init; } = null!;
@@ -32,6 +33,19 @@ public sealed class BanchoDbContext(DbContextOptions<BanchoDbContext> options) :
 			.ApplyConfiguration(new BeatmapConfiguration())
 			.ApplyConfiguration(new BeatmapsetConfiguration())
 			.ApplyConfiguration(new MessageConfiguration());
+		
+		modelBuilder.Entity<ChannelPlayer>(entity =>
+		{
+			entity.HasKey(x => new { x.PlayerId, x.ChannelId });
+
+			entity.HasOne(x => x.Player)
+				.WithMany(p => p.PlayerChannels)
+				.HasForeignKey(x => x.PlayerId);
+			
+			entity.HasOne(x => x.Channel)
+				.WithMany(c => c.ChannelPlayers)
+				.HasForeignKey(x => x.ChannelId);
+		});
 		
 		base.OnModelCreating(modelBuilder);
 	}

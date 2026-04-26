@@ -28,15 +28,16 @@ public class ChatChannelExtended : ChatChannel
     
     public ChatChannelExtended(
         ChannelDto channel,
-        int playerId
+        int playerId,
+        long? lastReadId
     ) : base(channel, playerId) {
         if (channel.Type is ChannelType.Announce)
             CurrentUserAttributes.CanMessage = false;
 
-        CurrentUserAttributes.LastReadId = channel.LastMessageId;
+        CurrentUserAttributes.LastReadId = lastReadId;
         LastMessageId = channel.LastMessageId;
-        LastReadId = channel.LastMessageId;
+        LastReadId = lastReadId;
 
-        UserIds.AddRange(channel.Players.Select(p => p.Id));
+        UserIds.AddRange(channel.ChannelPlayers.Select(p => p.PlayerId));
     }
 }

@@ -287,17 +287,28 @@ public partial class ChoController
 		if (unreadMessages.Count > 0)
 		{
 			loginPackets.Notification("You have unread messages. Please check them in the chat.");
-			
-			foreach (var message in unreadMessages)
+
+			foreach (var channel in unreadMessages
+				         .OrderBy(m => m.ChannelId)
+				         .ThenBy(m => m.Id)
+				         .GroupBy(m => m.ChannelId))
 			{
-				loginPackets.SendMessage(new Message
+				var lastMessageId = 0L;
+
+				foreach (var message in channel)
 				{
-					Sender = message.Sender.Username,
-					Content = message.Message,
-					Destination = player.Username,
-					SenderId = message.SenderId
-				});
-				await messages.MarkMessageAsRead(message.Id);
+					loginPackets.SendMessage(new Message
+					{
+						Sender = message.Sender.Username,
+						Content = message.Message,
+						Destination = player.Username,
+						SenderId = message.SenderId
+					});
+
+					lastMessageId = message.Id;
+				}
+
+				await messages.MarkMessagesAsRead(channel.Key, player.Id, lastMessageId);
 			}
 		}
 		

@@ -4,7 +4,6 @@ using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Models.Api.Chat;
 using BanchoNET.Core.Models.Api.Player;
 using BanchoNET.Core.Models.Channels;
-using BanchoNET.Core.Models.Notify;
 using BanchoNET.Core.Utils.Extensions;
 using Microsoft.AspNetCore.Mvc;
 
@@ -42,13 +41,11 @@ public class ChatController(
         var exists = await Players.PlayerExists(targetId);
         if (!exists) return NotFound();
 
-        var channel = await messages.GetOrAddPmChannel(uid, targetId);
+        var channel = await messages.GetOrAddPmChannel(uid, targetId, loadNav: true);
         var message = await messages.AddMessage(
             request.message,
             uid,
             channel.Id,
-            receiverId: targetId,
-            read: false,
             request.is_action,
             loadNav: true
         );
@@ -58,7 +55,7 @@ public class ChatController(
         
         return JsonSnake(new ChatNewResponse
         {
-            Channel = new ChatChannelExtended(channel, uid),
+            Channel = new ChatChannelExtended(channel, uid, message.Id),
             Message = channelMessage,
             NewChannelId = channel.Id
         });
@@ -72,7 +69,7 @@ public class ChatController(
         if (!User.TryGetUserId(out var uid)) return Unauthorized();
 
         var channelList = (await messages.GetPmChannels(uid))
-            .Select(c => new ChatChannelExtended(c, uid))
+            .Select(c => new ChatChannelExtended(c, uid, c.ChannelPlayers.Single(cp => cp.PlayerId == uid).LastReadMessageId))
             .ToList();
         
         return JsonSnake(new ChatUpdatesResponse{ Presence = channelList });
@@ -127,10 +124,12 @@ public class ChatController(
         var pmChannel = await messages.GetPmChannel(channelId);
         if (pmChannel != null)
         {
+            var lastReadMessageId = await messages.GetLastReadMessageId(channelId, uid);
+            
             return JsonSnake(new ChannelDetailsResponse
             {
-                Channel = new ChatChannelExtended(pmChannel, uid),
-                Users = pmChannel.Players.Select(p => new BasicApiPlayer(p)).ToList()
+                Channel = new ChatChannelExtended(pmChannel, uid, lastReadMessageId),
+                Users = pmChannel.ChannelPlayers.Select(p => new BasicApiPlayer(p.Player)).ToList()
             });
         }
 
@@ -163,8 +162,6 @@ public class ChatController(
                 request.message,
                 uid,
                 channelId,
-                receiverId: null,
-                read: true,
                 request.is_action,
                 loadNav: true
             );
@@ -182,8 +179,6 @@ public class ChatController(
                 request.message,
                 uid,
                 channelId,
-                targetId.Value,
-                read: false,
                 request.is_action,
                 loadNav: true
             );
@@ -219,9 +214,15 @@ public class ChatController(
         long channelId,
         long messageId
     ) {
-        if (!User.TryGetUserId(out _)) return;
+        if (!User.TryGetUserId(out var uid)) return;
         
-        //TODO
+        var channel = channels.GetChannel(channelId);
+        if (channel != null) return;
+        
+        var lastMessageId = await messages.GetLastChannelMessageId(channelId);
+        if (lastMessageId == null || messageId > lastMessageId) return;
+        
+        await messages.MarkMessagesAsRead(channelId, uid, messageId);
     }
 
     [HttpDelete("channels/{channelId:long}/users/{userId:int}")]

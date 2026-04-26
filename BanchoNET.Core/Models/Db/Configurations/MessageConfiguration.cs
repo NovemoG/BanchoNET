@@ -14,9 +14,7 @@ public class MessageConfiguration : IEntityTypeConfiguration<MessageDto>
         builder.HasKey(m => m.Id);
 
         builder.HasIndex(m => m.SenderId);
-        builder.HasIndex(m => m.ReceiverId);
         builder.HasIndex(m => m.ChannelId);
-        builder.HasIndex(m => m.Read);
         builder.HasIndex(m => m.SentAt);
 
         builder.Property(m => m.Message)
@@ -26,12 +24,6 @@ public class MessageConfiguration : IEntityTypeConfiguration<MessageDto>
         builder.HasOne(m => m.Sender)
             .WithMany(p => p.SentMessages)
             .HasForeignKey(m => m.SenderId)
-            .OnDelete(DeleteBehavior.NoAction);
-        
-        builder.HasOne(m => m.Receiver)
-            .WithMany(p => p.ReceivedMessages)
-            .HasForeignKey(m => m.ReceiverId)
-            .IsRequired(false)
             .OnDelete(DeleteBehavior.NoAction);
         
         builder.HasOne(m => m.Channel)

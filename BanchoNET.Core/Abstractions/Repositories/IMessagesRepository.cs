@@ -5,7 +5,7 @@ namespace BanchoNET.Core.Abstractions.Repositories;
 public interface IMessagesRepository
 {
     Task<MessageDto?> GetMessage(long id);
-    Task<ChannelDto> GetOrAddPmChannel(int senderId, int receiverId);
+    Task<ChannelDto> GetOrAddPmChannel(int senderId, int receiverId, bool loadNav = false);
     Task<List<ChannelDto>> GetPmChannels(int playerId);
     Task<int?> GetTargetOfPmChannel(long channelId, int senderId);
     Task<ChannelDto?> GetPmChannel(int senderId, int receiverId);
@@ -15,16 +15,15 @@ public interface IMessagesRepository
         string message,
         int senderId,
         long channelId,
-        int? receiverId = null,
-        bool read = false,
         bool isAction = false,
         bool loadNav = false
     );
     
     Task<List<MessageDto>> GetChannelMessages(long channelId);
+    Task<long?> GetLastChannelMessageId(long channelId);
+    Task<long?> GetLastReadMessageId(long channelId, int userId);
     Task<List<MessageDto>> GetUnreadMessages(int playerId);
-    Task MarkMessageAsRead(long id);
+    Task MarkMessagesAsRead(long channelId, int userId, long messageId);
     Task DeleteMessage(long id);
-    Task DeletePlayerReceivedMessages(int playerId);
     Task DeletePlayerSentMessages(int playerId);
 }

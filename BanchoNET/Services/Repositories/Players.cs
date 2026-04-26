@@ -766,7 +766,6 @@ public class PlayersRepository : IPlayersRepository
 		
 		await _dbContext.Relationships.Where(r => r.PlayerId == playerId || r.TargetId == playerId).ExecuteDeleteAsync();
 		await _dbContext.Stats.Where(s => s.PlayerId == playerId).ExecuteDeleteAsync();
-		await _dbContext.Messages.Where(m => m.ReceiverId == playerId).ExecuteDeleteAsync();
 		//TODO achievements, comments, favorites, club data
 		
 		if (deleteScores)

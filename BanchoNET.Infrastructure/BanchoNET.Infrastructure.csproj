@@ -16,6 +16,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <Folder Include="Controllers\Api\Rankings\" />
       <Folder Include="Controllers\Api\Scores\" />
     </ItemGroup>
 

@@ -34,7 +34,7 @@ public class ChatChannel
         ChannelDto channel,
         int playerId
     ) {
-        var target = channel.Players.First(p => p.Id != playerId);
+        var target = channel.ChannelPlayers.Single(p => p.PlayerId != playerId).Player;
         
         Id = channel.Id;
         Description = "";

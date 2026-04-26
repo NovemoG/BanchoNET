@@ -24,7 +24,5 @@ public class ChannelDto
 	public long? LastMessageId { get; set; }
 	
 	public ICollection<MessageDto> Messages { get; set; } = new List<MessageDto>();
-	
-	public ICollection<PlayerDto> Players { get; set; } = new List<PlayerDto>();
 	public ICollection<ChannelPlayer> ChannelPlayers { get; } = [];
 }
