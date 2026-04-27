@@ -217,8 +217,7 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
                         && s.Mode == (int)mode)
             .OrderByDescending(s => s.PP)
             .Skip(offset)
-            .Take(limit - offset)
-            .OrderByDescending(s => s.PP)
+            .Take(limit)
             .ToListAsync();
     }
     

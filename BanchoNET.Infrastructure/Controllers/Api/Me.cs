@@ -15,6 +15,8 @@ public partial class ApiController
 
         apiPlayer.SessionVerified = true;
         apiPlayer.SessionVerificationMethod = null; //TODO
+
+        await Players.UpdateLatestActivity(uid);
         
         return JsonSnake(apiPlayer);
     }

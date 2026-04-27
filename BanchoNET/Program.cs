@@ -368,7 +368,7 @@ public class Program
 		{
 			Logger.Shared.LogInfo("Loading channels from database.", "Init");
 			
-			foreach (var channel in db.Channels.ToList())
+			foreach (var channel in db.Channels.Where(c => c.Type != ChannelType.PM).ToList())
 				channels.InsertChannel(new Channel(channel));
 		}
 	}

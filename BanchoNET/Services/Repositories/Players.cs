@@ -430,7 +430,9 @@ public class PlayersRepository : IPlayersRepository
 	
 	public async Task GetPlayerStats(Player player)
 	{
-		var stats = await _dbContext.Stats.Where(s => s.PlayerId == player.Id).ToListAsync();
+		var stats = await _dbContext.Stats
+			.AsNoTracking()
+			.Where(s => s.PlayerId == player.Id).ToListAsync();
 		
 		foreach (var stat in stats)
 		{
