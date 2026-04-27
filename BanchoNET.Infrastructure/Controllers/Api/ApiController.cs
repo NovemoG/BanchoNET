@@ -27,7 +27,7 @@ public partial class ApiController(
     protected static JsonResult JsonSnake(object? value) => new(value, SnakeCaseNamingPolicy.Options);
 
     private static List<Relationship> PopulateRelationships(
-        List<RelationshipDto> relationships,
+        List<RelationshipReadDto> relationships,
         string type
     ) {
         List<Relationship> relationshipList = [];
@@ -36,12 +36,12 @@ public partial class ApiController(
             let target = relationship.Target
             select new Relationship
             {
-                Mutual = relationship.IsMutual,
+                Mutual = relationship.Mutual,
                 RelationType = type,
                 TargetId = relationship.TargetId,
                 Target = new TargetPlayer
-                {
-                    CountryCode = target.Country,
+                {   
+                    CountryCode = target.Country.ToUpper(),
                     Id = target.Id,
                     IsActive = !target.Inactive,
                     IsBot = false,

@@ -18,7 +18,9 @@ public interface IPlayersRepository
     Task<List<LookupApiPlayer>> GetPlayers(int[] ids);
     
     Task AddFriend(Player player, int targetId);
+    Task<bool> AddRelation(int playerId, int targetId, byte relation);
     Task RemoveFriend(Player player, int targetId);
+    Task RemoveRelation(int playerId, int targetId, byte relation);
     
     Task<Player?> GetPlayerFromLogin(string username, string passwordMD5);
     Task<Player?> GetPlayerOrOffline(string username);
@@ -41,11 +43,12 @@ public interface IPlayersRepository
     Task UpdatePlayerStats(StatsDto stats, ApiScore score);
     Task ResetPlayersStats(byte mode);
     
-    Task<List<RelationshipDto>> GetPlayerBlocks(int playerId);
-    Task<List<RelationshipDto>> GetPlayerFriends(int playerId);
+    Task<int> GetFriendsCount(int playerId);
+    Task<List<RelationshipReadDto>> GetPlayerBlocks(int playerId);
+    Task<List<RelationshipReadDto>> GetPlayerFriends(int playerId);
     Task FetchPlayerRelationships(Player player);
     Task UpdatePlayerPrivileges(Player player, PlayerPrivileges playerPrivileges, bool remove);
-
+    
     Task RecalculatePlayerTopScores(Player player, GameMode mode);
     Task RecalculatePlayerTopScores(int playerId, StatsDto stats, GameMode mode);
     Task UpdatePlayerRank(Player player, GameMode mode);
@@ -59,6 +62,7 @@ public interface IPlayersRepository
     Task<int> GetPlayerCountryRank(GameMode mode, string country, int playerId);
     Task InsertPlayerGlobalRank(byte mode, string country, int playerId, int pp);
     Task RemovePlayerGlobalRank(byte mode, string country, int playerId);
+    Task<List<PlayerRankingDto>> GetRanking(byte mode = 0, int page = 1, bool filterByScore = false);
 
     Task CreatePlayer(string username, string email, string passwordHash, string country);
     Task<bool> DeletePlayer(PlayerDto player, bool deleteScores, bool force);

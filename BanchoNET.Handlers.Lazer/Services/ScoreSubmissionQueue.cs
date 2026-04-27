@@ -108,7 +108,9 @@ public class ScoreSubmissionQueue(
             StartedAt = soloRequest.CreatedAt,
             Replay = false,
         };
-        apiScore.TimeElapsed = (int)(apiScore.EndedAt - apiScore.StartedAt!).Value.TotalSeconds - request.Pauses.Sum();
+        //TODO check what exactly is stored in pauses
+        apiScore.TimeElapsed = (int)((apiScore.EndedAt - apiScore.StartedAt!).Value.TotalSeconds - request.Pauses.Sum() / 10000d);
+        SetClockRate(apiScore);
         
         var mode = (GameMode)apiScore.RulesetId;
         
@@ -162,6 +164,16 @@ public class ScoreSubmissionQueue(
         Scores.TryRemove(userId, out _);
 
         return apiScore;
+    }
+
+    private static void SetClockRate(
+        ApiScore score
+    ) {
+        var dt = score.Mods.FirstOrDefault(m => m.Acronym is "DT" or "NC" or "HT" or "DC");
+        
+        score.ClockRate = dt != null ? 1.5d : 1d;
+        if (dt != null && dt.Settings.TryGetValue("speed_change", out var rateChange))
+            score.ClockRate = rateChange.GetDouble();
     }
     
     private static void ComputeSubmissionStatus(

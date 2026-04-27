@@ -58,7 +58,7 @@ public class BasicApiPlayer
     ) {
         CountryCode = playerDto.Country.ToUpper();
         Id = playerDto.Id;
-        //TODO IsActive
+        IsActive = !playerDto.Inactive;
         //TODO IsBot
         //TODO IsOnline
         IsSupporter = playerDto.IsSupporter;

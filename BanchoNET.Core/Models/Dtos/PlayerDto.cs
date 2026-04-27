@@ -29,6 +29,7 @@ public class PlayerDto
 	public DateTime LastLoginTime { get; set; }
 	public DateTime LastActivityTime { get; set; }
 	
+	public int TopPlaysCount { get; set; }
 	public byte PreferredMode { get; set; }
 	public byte PlayStyle { get; set; }
 	

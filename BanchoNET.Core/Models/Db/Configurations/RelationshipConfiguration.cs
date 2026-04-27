@@ -13,12 +13,9 @@ public class RelationshipConfiguration : IEntityTypeConfiguration<RelationshipDt
 
         builder.HasKey(r => r.Id);
 
-        builder.HasIndex(r => r.PlayerId);
-        builder.HasIndex(r => r.TargetId);
-        builder.HasIndex(r => r.Relation);
+        builder.HasIndex(r => new { r.PlayerId, r.TargetId, r.Relation }).IsUnique();
 
         builder.Property(r => r.Relation).IsRequired();
-        builder.Property(r => r.IsMutual).IsRequired();
 
         builder
             .HasOne(r => r.Player)

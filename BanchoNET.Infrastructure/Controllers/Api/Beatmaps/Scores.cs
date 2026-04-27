@@ -51,7 +51,7 @@ public partial class BeatmapsController
             gameMode,
             mods.Select(m => new ApiMod(m, acronymOnly: true)).ToList(),
             uid,
-            player.Geoloc.Country.Acronym,
+            player.CountryCode.ToString().ToLower(),
             player.Friends.ToHashSet(),
             beatmap
         );

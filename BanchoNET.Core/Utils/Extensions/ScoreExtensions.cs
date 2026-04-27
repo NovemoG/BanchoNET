@@ -136,7 +136,7 @@ public static class ScoreExtensions
         double clockRate,
         int timeElapsed
     ) {
-        stats.PlayTime += (int)Math.Floor(timeElapsed / (clockRate * 1000d));
+        stats.PlayTime += (int)Math.Floor(timeElapsed * clockRate);
     }
 
     public static float CalculateCompletion(this Score score, Beatmap beatmap)
@@ -180,7 +180,6 @@ public static class ScoreExtensions
 
         var lazer = mods.FirstOrDefault(m => m.Acronym == "CL") == null;
         var da = mods.FirstOrDefault(m => m.Acronym == "DA"); // Difficulty Adjust
-        var dt = mods.FirstOrDefault(m => m.Acronym is "DT" or "NC" or "HT" or "DC");
 
         var cs = beatmap.Cs;
         var ar = beatmap.Ar;
@@ -196,10 +195,6 @@ public static class ScoreExtensions
             if (da.Settings.TryGetValue("overall_difficulty", out var overallDifficulty))
                 od = overallDifficulty.GetFloat();
         }
-
-        score.ClockRate = dt != null ? 1.5d : 1d;
-        if (dt != null && dt.Settings.TryGetValue("speed_change", out var rateChange))
-            score.ClockRate = rateChange.GetDouble();
 
         var pp = PpMethods.ComputeScorePp(beatmap.Id, score, score.ClockRate, lazer, cs, ar, od);
 

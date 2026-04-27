@@ -109,16 +109,45 @@ public class PlayersRepository : IPlayersRepository
 			return;
 		
 		player.Friends.Add(targetId);
-		
-		_dbContext.Relationships.Add(new RelationshipDto
-		{
-			PlayerId = player.Id,
-			TargetId = targetId,
-			Relation = (int)Relations.Friend
-		});
-		await _dbContext.SaveChangesAsync();
+
+		await AddRelation(player.Id, targetId, (byte)Relations.Friend);
 	}
-	
+
+	public async Task<bool> AddRelation(
+		int playerId,
+		int targetId,
+		byte relation
+	) {
+		var existing = await _dbContext.Relationships
+			.AsNoTracking()
+			.FirstOrDefaultAsync(r =>
+				r.PlayerId == playerId
+				&& r.TargetId == targetId
+				&& r.Relation == relation
+			);
+
+		if (existing == null)
+		{
+			existing = new RelationshipDto
+			{
+				PlayerId = playerId,
+				TargetId = targetId,
+				Relation = relation
+			};
+
+			_dbContext.Relationships.Add(existing);
+			await _dbContext.SaveChangesAsync();
+		}
+
+		if (relation == (byte)Relations.Block) return false;
+
+		return await _dbContext.Relationships.AnyAsync(r =>
+			r.PlayerId == targetId
+			&& r.TargetId == playerId
+			&& r.Relation == relation
+		);
+	}
+
 	public async Task RemoveFriend(Player player, int targetId)
 	{
 		if (!player.Friends.Contains(targetId))
@@ -126,11 +155,19 @@ public class PlayersRepository : IPlayersRepository
 		
 		player.Friends.Remove(targetId);
 
+		await RemoveRelation(player.Id, targetId, (byte)Relations.Friend);
+	}
+
+	public async Task RemoveRelation(
+		int playerId,
+		int targetId,
+		byte relation
+	) {
 		await _dbContext.Relationships
-			.Where(r => r.PlayerId == player.Id && r.TargetId == targetId)
+			.Where(r => r.PlayerId == playerId && r.TargetId == targetId && r.Relation == relation)
 			.ExecuteDeleteAsync();
 	}
-	
+
 	public async Task<Player?> GetPlayerFromLogin(string username, string passwordMD5)
 	{
 		var player = await GetPlayerOrOffline(username);
@@ -238,13 +275,14 @@ public class PlayersRepository : IPlayersRepository
 			Playmode = EnumExtensions.FromModeMap[mode],
 			Country = country,
 			IsRestricted = (userInfo.Privileges & 1) == 0,
+			FollowerCount = await GetFriendsCount(playerId),
 			MonthlyPlaycounts = new MonthlyPlaycounts[playcountHistory.Count],
 			ReplaysWatchedCounts = new ReplaysWatchedCounts[replaysHistory.Count],
 			RankHighest = new RankHighest {
 				Rank = peakRank.Value,
 				UpdatedAt = peakRank.Date
 			},
-			ScoresBestCount = 0, //TODO number of top plays
+			ScoresBestCount = userInfo.TopPlaysCount,
 			ScoresFirstCount = 0, //TODO
 			ScoresPinnedCount = 0, //TODO
 			ScoresRecentCount = 0, //TODO
@@ -278,10 +316,10 @@ public class PlayersRepository : IPlayersRepository
 			};
 		}
 
-		player.RankHistory.Data = new int[rankHistory.Count];
+		player.RankHistory.Data = new int[90];
 		for (var i = rankHistory.Count - 1; i >= 0; i--)
 		{
-			player.RankHistory.Data[i] = rankHistory[i];
+			player.RankHistory.Data[90 - rankHistory.Count + i] = rankHistory[i];
 		}
 
 		return player;
@@ -475,32 +513,60 @@ public class PlayersRepository : IPlayersRepository
 		stats.Total300s += statistics.Great;
 		stats.Total100s += statistics.Ok;
 		stats.Total50s += statistics.Meh;
-		
-		if (((GameMode)score.RulesetId).AsVanilla() is not (GameMode.VanillaMania or GameMode.VanillaTaiko)) return;
-		
-		stats.TotalGekis += statistics.LargeTickHit;
-		stats.TotalKatus += statistics.SliderTailHit;
+
+		if (((GameMode)score.RulesetId).AsVanilla() is GameMode.VanillaMania or GameMode.VanillaTaiko)
+		{
+			stats.TotalGekis += statistics.LargeTickHit;
+			stats.TotalKatus += statistics.SliderTailHit;
+		}
 		
 		await _dbContext.SaveChangesAsync();
 	}
 
-	public async Task<List<RelationshipDto>> GetPlayerBlocks(
+	public async Task<int> GetFriendsCount(
+		int playerId
+	) {
+		return await _dbContext.Relationships
+			.AsNoTracking()
+			.Where(r => r.TargetId == playerId && r.Relation == (byte)Relations.Friend)
+			.CountAsync();
+	}
+
+	public async Task<List<RelationshipReadDto>> GetPlayerBlocks(
 		int playerId
 	) {
 		return await _dbContext.Relationships
 			.AsNoTracking()
 			.Where(p => p.PlayerId == playerId && p.Relation == (byte)Relations.Block)
 			.Include(p => p.Target)
+			.Select(r => new RelationshipReadDto
+			{
+				PlayerId = r.PlayerId,
+				TargetId = r.TargetId,
+				Relation = r.Relation,
+				Target = r.Target
+			})
 			.ToListAsync();
 	}
 
-	public async Task<List<RelationshipDto>> GetPlayerFriends(
+	public async Task<List<RelationshipReadDto>> GetPlayerFriends(
 		int playerId
 	) {
 		return await _dbContext.Relationships
 			.AsNoTracking()
 			.Where(p => p.PlayerId == playerId && p.Relation == (byte)Relations.Friend)
 			.Include(p => p.Target)
+			.Select(r => new RelationshipReadDto
+			{
+				PlayerId = r.PlayerId,
+				TargetId = r.TargetId,
+				Relation = r.Relation,
+				Mutual = _dbContext.Relationships.Any(x =>
+					x.PlayerId == r.TargetId
+					&& x.TargetId == r.PlayerId
+					&& x.Relation == r.Relation),
+				Target = r.Target
+			})
 			.ToListAsync();
 	}
 
@@ -553,7 +619,7 @@ public class PlayersRepository : IPlayersRepository
 			            && s.Status == (int)SubmissionStatus.Best
 			            && s.Mode == (int)mode)
 			.OrderByDescending(s => s.PP)
-			.Take(100)
+			.Take(200)
 			.ToListAsync();
 
 		var weightedAcc = 0.0f;
@@ -574,6 +640,9 @@ public class PlayersRepository : IPlayersRepository
 		var stats = player.Stats[mode];
 		stats.Accuracy = weightedAcc * accWeight / 100;
 		stats.PP = (ushort)MathF.Round(weightedPp + bonusPp);
+		
+		await _dbContext.Players.Where(p => p.Id == player.Id)
+			.ExecuteUpdateAsync(s => s.SetProperty(p => p.TopPlaysCount, Math.Min(bestScores.Count, 200)));
 	}
 
 	public async Task RecalculatePlayerTopScores(
@@ -588,7 +657,7 @@ public class PlayersRepository : IPlayersRepository
 			            && s.Status == (int)SubmissionStatus.Best
 			            && s.Mode == (int)mode)
 			.OrderByDescending(s => s.PP)
-			.Take(100)
+			.Take(200)
 			.ToListAsync();
 
 		var weightedAcc = 0.0f;
@@ -609,6 +678,9 @@ public class PlayersRepository : IPlayersRepository
 		stats.Accuracy = weightedAcc * accWeight / 100;
 		stats.PP = (ushort)MathF.Round(weightedPp + bonusPp);
 		await _dbContext.SaveChangesAsync();
+
+		await _dbContext.Players.Where(p => p.Id == playerId)
+			.ExecuteUpdateAsync(s => s.SetProperty(p => p.TopPlaysCount, Math.Min(bestScores.Count, 200)));
 	}
 
 	public async Task UpdatePlayerRank(
@@ -674,7 +746,30 @@ public class PlayersRepository : IPlayersRepository
 				});
 		}
 	}
-	
+
+	public async Task<List<PlayerRankingDto>> GetRanking(
+		byte mode = 0,
+		int page = 1,
+		bool filterByScore = false
+	) {
+		return await _dbContext.Stats
+			.AsNoTracking()
+			.Include(s => s.Player)
+			.Where(s => s.Mode == mode
+			            && (s.Player.Privileges & 1) == 1
+			)
+			.OrderByDescending(s => filterByScore ? s.TotalScore : s.PP)
+			.Skip((page - 1) * 50)
+			.Take(50)
+			.Select(s => new PlayerRankingDto
+			{
+				Stats = s,
+				Player = s.Player,
+				//TODO RankChangeSince30Days
+			})
+			.ToListAsync();
+	}
+
 	public async Task CreatePlayer(string username, string email, string passwordHash, string country)
 	{
 		var playerDto = new PlayerDto
