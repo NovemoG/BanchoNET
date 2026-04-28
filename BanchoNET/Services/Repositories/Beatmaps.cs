@@ -26,7 +26,10 @@ public class BeatmapsRepository(
 
 		if (setId < 1)
 		{
-			var map = await dbContext.Beatmaps.FirstOrDefaultAsync(b => b.MapId == mapId);
+			var map = await dbContext.Beatmaps
+				.AsNoTracking()
+				.FirstOrDefaultAsync(b => b.MapId == mapId);
+			
 			if (map != null)
 				setId = map.SetId;
 			else
@@ -56,7 +59,10 @@ public class BeatmapsRepository(
 		var mapId = beatmap?.Id;
 		if (setId < 1)
 		{
-			var map = await dbContext.Beatmaps.FirstOrDefaultAsync(b => b.MD5 == beatmapMD5);
+			var map = await dbContext.Beatmaps
+				.AsNoTracking()
+				.FirstOrDefaultAsync(b => b.MD5 == beatmapMD5);
+			
 			if (map != null)
 			{
 				setId = map.SetId;
@@ -90,6 +96,7 @@ public class BeatmapsRepository(
 		if (beatmapSet == null)
 		{
 			var dbBeatmaps = await dbContext.Beatmaps
+				.AsNoTracking()
 				.Where(b => b.SetId == setId)
 				.ToListAsync();
 
@@ -192,8 +199,8 @@ public class BeatmapsRepository(
 	public async Task InsertBeatmapSet(
 		BeatmapSet set
 	) {
-		var dbSet = await dbContext.Beatmapsets.FirstOrDefaultAsync(b => b.SetId == set.Id);
-		if (dbSet == null)
+		var setExists = await dbContext.Beatmapsets.AnyAsync(b => b.SetId == set.Id);
+		if (!setExists)
 		{
 			dbContext.Beatmapsets.Add(new BeatmapsetDto
 			{

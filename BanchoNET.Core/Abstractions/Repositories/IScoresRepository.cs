@@ -64,4 +64,10 @@ public interface IScoresRepository
         int offset,
         int limit
     );
+
+    Task<List<ScoreDto>> GetBestScores(
+        GameMode mode,
+        int skip = 0,
+        int count = 50
+    );
 }

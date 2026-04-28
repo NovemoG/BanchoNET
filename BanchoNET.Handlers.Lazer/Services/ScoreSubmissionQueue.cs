@@ -114,11 +114,11 @@ public class ScoreSubmissionQueue(
         
         var mode = (GameMode)apiScore.RulesetId;
         
-        var prevBest = await scores.GetPlayerBestScoreOnMap(player.Id, mode, beatmap);
+        var prevBest = await scores.GetPlayerBestScoreOnMap(userId, mode, beatmap);
         var sameMods = apiScore.EqualModsWith(prevBest);
         
         var bestWithMods = prevBest != null && !sameMods
-            ? await scores.GetPlayerBestScoreWithModsOnMap(player.Id, mode, apiScore.Mods, beatmap)
+            ? await scores.GetPlayerBestScoreWithModsOnMap(userId, mode, apiScore.Mods, beatmap)
             : null;
         
         if (await beatmapHandler.EnsureLocalBeatmapFile(beatmap.Id, beatmap.MD5))
@@ -151,6 +151,7 @@ public class ScoreSubmissionQueue(
 
         await RecalculatePlayerStats(players, beatmap, player, stats, mode, apiScore, prevBest, bestWithMods);
         await players.UpdatePlayerStats(stats, apiScore);
+        await players.UpdateLatestActivity(userId);
         
         if (!player.IsRestricted)
         {
@@ -252,7 +253,7 @@ public class ScoreSubmissionQueue(
         
         if (score.Status == SubmissionStatus.Best)
         {
-            /*var oldBestScore = 0;
+            var oldBestScore = 0;
             
             if (prevBest != null)
             {
@@ -261,9 +262,9 @@ public class ScoreSubmissionQueue(
                 // leaderboard; then if current score beat both prevBest and bestWithMods
                 // but prevBest is BestWithMods we subtract bestWithMods
                 if (prevBest is { Status: SubmissionStatus.Submitted, Grade: >= Grade.A })
-                    stats.Grades[prevBest.Grade] -= 1;
+                    DecreaseGrade(stats, prevBest.Grade);
                 else if (bestWithMods != null)
-                    stats.Grades[bestWithMods.Grade] -= 1;
+                    DecreaseGrade(stats, bestWithMods.Grade);
                 
                 oldBestScore = prevBest.TotalScore;
             }
@@ -271,19 +272,49 @@ public class ScoreSubmissionQueue(
             stats.RankedScore += score.TotalScore - oldBestScore;
             
             if (score.Grade >= Grade.A)
-                stats.Grades[score.Grade] += 1;*/
+                IncreaseGrade(stats, score.Grade);
             
             await players.RecalculatePlayerTopScores(player.Id, stats, mode);
             await players.UpdatePlayerRank(player.Id, player.IsRestricted, player.CountryCode.ToString(), stats, mode);
         }
-        /*else if (score.Status == SubmissionStatus.BestWithMods)
+        else if (score.Status == SubmissionStatus.BestWithMods)
         {
             // if our score didnt beat prevBest but beat bestWithMods subtract
             if (bestWithMods is { Grade: >= Grade.A })
-                stats.Grades[bestWithMods.Grade] -= 1;
+                DecreaseGrade(stats, bestWithMods.Grade);
             
             if (score.Grade >= Grade.A)
-                stats.Grades[score.Grade] += 1;
-        }*/
+                IncreaseGrade(stats, score.Grade);
+        }
+    }
+
+    private static void IncreaseGrade(
+        StatsDto stats,
+        Grade grade
+    ) {
+        switch (grade)
+        {
+            case Grade.A: stats.ACount++; break;
+            case Grade.S: stats.SCount++; break;
+            case Grade.SH: stats.SHCount++; break;
+            case Grade.X: stats.XCount++; break;
+            case Grade.XH: stats.XHCount++; break;
+            default: return;
+        }
+    }
+
+    private static void DecreaseGrade(
+        StatsDto stats,
+        Grade grade
+    ) {
+        switch (grade)
+        {
+            case Grade.A: stats.ACount--; break;
+            case Grade.S: stats.SCount--; break;
+            case Grade.SH: stats.SHCount--; break;
+            case Grade.X: stats.XCount--; break;
+            case Grade.XH: stats.XHCount--; break;
+            default: return;
+        }
     }
 }

@@ -32,7 +32,8 @@ public sealed class BanchoDbContext(DbContextOptions<BanchoDbContext> options) :
 			.ApplyConfiguration(new RelationshipConfiguration())
 			.ApplyConfiguration(new BeatmapConfiguration())
 			.ApplyConfiguration(new BeatmapsetConfiguration())
-			.ApplyConfiguration(new MessageConfiguration());
+			.ApplyConfiguration(new MessageConfiguration())
+			.ApplyConfiguration(new ScoreConfiguration());
 		
 		modelBuilder.Entity<ChannelPlayer>(entity =>
 		{

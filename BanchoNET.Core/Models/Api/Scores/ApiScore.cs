@@ -169,4 +169,55 @@ public class ApiScore
         
         User = new BasicApiPlayer(player);
     }
+
+    public ApiScore(
+        ScoreDto scoreDto,
+        PlayerDto player,
+        BeatmapDto beatmap
+    ) {
+        //TODO (for players that have Classic score enabled)
+        ClassicTotalScore = AppSettings.SortLeaderboardByPP ? (int)MathF.Round(scoreDto.PP) : scoreDto.LegacyTotalScore;
+        Preserve = scoreDto.Preserve;
+        Processed = scoreDto.Processed;
+        Ranked = scoreDto.Ranked;
+        MaximumStatistics = new MaxStatistics(); //TODO
+        LegacyMods = (LegacyMods)scoreDto.Mods;
+        Mods = scoreDto.LazerMods?.ToMods() ?? LegacyMods.ToLazerMods();
+        Statistics = new Statistics
+        {
+            Ok = scoreDto.Count100,
+            Meh = scoreDto.Count50,
+            Miss = scoreDto.Misses,
+            Great = scoreDto.Count300,
+            IgnoreHit = scoreDto.IgnoreHit,
+            IgnoreMiss = scoreDto.IgnoreMiss,
+            LargeTickHit = scoreDto.Gekis,
+            SliderTailHit = scoreDto.Katus
+        };
+        //TODO TotalScoreWithoutMods
+        BeatmapId = beatmap.MapId;
+        Id = scoreDto.Id;
+        Grade = (Grade)scoreDto.Grade;
+        Rank = Grade.ToString();
+        UserId = scoreDto.PlayerId;
+        Accuracy = scoreDto.Acc / 100f;
+        EndedAt = scoreDto.PlayTime;
+        HasReplay = scoreDto.HasReplay;
+        IsPerfectCombo = scoreDto.IsPerfectCombo;
+        LegacyPerfect = scoreDto.IsPerfectCombo;
+        //TODO LegacyScoreId
+        //TODO LegacyTotalScore
+        MaxCombo = scoreDto.MaxCombo;
+        Passed = scoreDto.Passed;
+        Pp = scoreDto.PP;
+        RulesetId = scoreDto.Mode;
+        StartedAt = scoreDto.StartTime;
+        //TotalScore = scoreDto.TotalScore;
+        TotalScore = AppSettings.SortLeaderboardByPP ? (int)MathF.Round(scoreDto.PP) : scoreDto.LegacyTotalScore;
+        Replay = HasReplay;
+        //TODO CurrentUserAttributes
+        Status = (SubmissionStatus)scoreDto.Status;
+        
+        User = new BasicApiPlayer(player);
+    }
 }

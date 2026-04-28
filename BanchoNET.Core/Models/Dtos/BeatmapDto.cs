@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.EntityFrameworkCore;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 
 namespace BanchoNET.Core.Models.Dtos;
 
@@ -64,4 +62,6 @@ public class BeatmapDto
 	
 	[ForeignKey(nameof(SetId))]
 	public BeatmapsetDto Beatmapset { get; set; } = null!;
+	
+	public ICollection<ScoreDto> Scores { get; set; } = new List<ScoreDto>();
 }

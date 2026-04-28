@@ -9,7 +9,9 @@ namespace BanchoNET.Core.Models.Api.Scores;
 public class ApiScoreExtended : ApiScore
 {
     public BasicApiBeatmap Beatmap { get; set; }
-    public BasicApiBeatmapset Beatmapset { get; set; }
+    
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public BasicApiBeatmapset? Beatmapset { get; set; }
     
     [JsonConstructor]
     public ApiScoreExtended() { }
@@ -18,19 +20,31 @@ public class ApiScoreExtended : ApiScore
         Score score,
         Players.Player player,
         Beatmap beatmap,
-        BeatmapSet beatmapset
+        BeatmapSet? beatmapset
     ) : base(score, player, beatmap) {
         Beatmap = new BasicApiBeatmap(beatmap);
-        Beatmapset = new BasicApiBeatmapset(beatmapset, beatmap);
+        
+        if (beatmapset != null)
+            Beatmapset = new BasicApiBeatmapset(beatmapset, beatmap);
     }
 
     public ApiScoreExtended(
         ScoreDto scoreDto,
         PlayerDto player,
         Beatmap beatmap,
-        BeatmapSet beatmapset
+        BeatmapSet? beatmapset
     ) : base(scoreDto, player, beatmap) {
         Beatmap = new BasicApiBeatmap(beatmap);
-        Beatmapset = new BasicApiBeatmapset(beatmapset, beatmap);
+        
+        if (beatmapset != null)
+            Beatmapset = new BasicApiBeatmapset(beatmapset, beatmap);
+    }
+
+    public ApiScoreExtended(
+        ScoreDto scoreDto,
+        PlayerDto player,
+        BeatmapDto beatmap
+    ) : base(scoreDto, player, beatmap) {
+        Beatmap = new BasicApiBeatmap(beatmap);
     }
 }

@@ -1,23 +1,12 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.EntityFrameworkCore;
 
 namespace BanchoNET.Core.Models.Dtos;
 
-[Index(nameof(PP))]
-[Index(nameof(LegacyTotalScore))]
-[Index(nameof(Mods))]
-[Index(nameof(BeatmapMD5))]
-[Index(nameof(OnlineChecksum))]
-[Index(nameof(Mode))]
-[Index(nameof(Status))]
-[Index(nameof(PlayTime))]
-[PrimaryKey(nameof(Id))]
 public class ScoreDto
 {
-	[Key] public long Id { get; set; }
+	public long Id { get; set; }
 	
-	[Column(TypeName = "CHAR(32)"), Unicode(false)]
 	public required string BeatmapMD5 { get; set; }
 	public int MapId { get; set; }
 	
@@ -28,9 +17,7 @@ public class ScoreDto
 	public bool HasReplay { get; set; }
 	[NotMapped] public bool Passed => Status > 0;
 	
-	[Column(TypeName = "numeric(7,3)")]
 	public float PP { get; set; }
-	[Column(TypeName = "numeric(6,3)")]
 	public float Acc { get; set; }
 	public int MaxCombo { get; set; }
 	public int Mods { get; set; }
@@ -71,7 +58,6 @@ public class ScoreDto
 	public bool LegacyPerfect { get; set; }
 	public bool IsPerfectCombo { get; set; }
 	
-	[Column(TypeName = "CHAR(32)"), Unicode(false)]
 	public string? OnlineChecksum { get; set; }
 
 	//TODO
@@ -80,4 +66,7 @@ public class ScoreDto
 	[ForeignKey("PlayerId")]
 	public PlayerDto Player { get; set; } = null!;
 	public int PlayerId { get; set; }
+	
+	[ForeignKey("BeatmapId")]
+	public BeatmapDto Beatmap { get; set; } = null!;
 }

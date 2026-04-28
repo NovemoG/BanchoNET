@@ -79,5 +79,12 @@ public class BeatmapConfiguration : IEntityTypeConfiguration<BeatmapDto>
             .WithMany(bs => bs.Beatmaps)
             .HasForeignKey(b => b.SetId)
             .OnDelete(DeleteBehavior.Cascade);
+        
+        builder
+            .HasMany(b => b.Scores)
+            .WithOne(s => s.Beatmap)
+            .HasForeignKey(s => s.MapId)
+            .HasPrincipalKey(b => b.MapId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

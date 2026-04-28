@@ -8,7 +8,8 @@ namespace BanchoNET.Infrastructure.Controllers.Api.Rankings;
 public partial class RankingsController(
     IAuthService auth,
     IPlayersRepository players,
-    IBeatmapsRepository beatmaps
+    IBeatmapsRepository beatmaps,
+    ILazerScoresRepository scores
 ) : ApiController(auth, players, beatmaps)
 {
     

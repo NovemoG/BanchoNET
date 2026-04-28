@@ -164,36 +164,37 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
         var withFriendsList = type == LeaderboardType.Friends;
         var friendIds = withFriendsList ? playerIds : [];
         
-        var q = DbContext.Scores
+        var query = DbContext.Scores
             .AsNoTracking()
             .Include(s => s.Player)
             .AsQueryable();
         
         if (mapId.HasValue)
-            q = q.Where(s => s.MapId == mapId.Value);
+            query = query.Where(s => s.MapId == mapId.Value);
         else if (!string.IsNullOrEmpty(md5))
-            q = q.Where(s => s.BeatmapMD5 == md5);
+            query = query.Where(s => s.BeatmapMD5 == md5);
         else
             throw new ArgumentException("Either mapId or md5 must be provided.");
         
-        q = q.Where(s => s.Mode == (int)mode
+        //TODO start using only s.IsRestricted instead of privileges
+        query = query.Where(s => s.Mode == (int)mode
                          && (s.Player.Privileges & 1) == 1
                          && !s.IsRestricted);
         
-        q = withMods
-            ? q.Where(s => s.Status >= (int)SubmissionStatus.BestWithMods
+        query = withMods
+            ? query.Where(s => s.Status >= (int)SubmissionStatus.BestWithMods
                            && s.Mods == (int)mods)
-            : q.Where(s => s.Status == (int)SubmissionStatus.Best);
+            : query.Where(s => s.Status == (int)SubmissionStatus.Best);
 
         if (isCountry)
-            q = q.Where(s => s.Player.Country == country);
+            query = query.Where(s => s.Player.Country == country);
         
         if (withFriendsList && friendIds.Count > 0)
-            q = q.Where(s => friendIds.Contains(s.PlayerId));
+            query = query.Where(s => friendIds.Contains(s.PlayerId));
         
-        q = ApplyOrder(q, mode);
+        query = ApplyOrder(query, mode);
 
-        var result = await q
+        var result = await query
             .Take(AppSettings.ScoresOnLeaderboard)
             .ToListAsync();
         
@@ -210,6 +211,7 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
         int limit
     ) {
         return await DbContext.Scores
+            .AsNoTracking()
             .Where(s => s.PlayerId == playerId
                         && !s.IsRestricted
                         && s.Ranked
@@ -218,6 +220,26 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
             .OrderByDescending(s => s.PP)
             .Skip(offset)
             .Take(limit)
+            .ToListAsync();
+    }
+    
+    public async Task<List<ScoreDto>> GetBestScores(
+        GameMode mode,
+        int skip = 0,
+        int count = 50
+    ) {
+        return await DbContext.Scores
+            .AsNoTracking()
+            .Include(s => s.Player)
+            .Include(s => s.Beatmap)
+            .Where(s => s.Mode == (int)mode
+                        && s.Ranked
+                        && !s.IsRestricted
+                        && s.Status == (int)SubmissionStatus.Best
+            )
+            .OrderByDescending(s => OrderByPp(mode) ? s.PP : s.LegacyTotalScore)
+            .Skip(skip)
+            .Take(count)
             .ToListAsync();
     }
     

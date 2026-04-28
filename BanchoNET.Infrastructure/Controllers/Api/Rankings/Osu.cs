@@ -1,4 +1,5 @@
-﻿using BanchoNET.Core.Models.Api;
+﻿using BanchoNET.Core.Models;
+using BanchoNET.Core.Models.Api;
 using BanchoNET.Core.Models.Api.Player;
 using BanchoNET.Core.Utils.Extensions;
 using Microsoft.AspNetCore.Mvc;
@@ -20,11 +21,31 @@ public partial class RankingsController
         if (!EnumExtensions.ToModeMap.TryGetValue(mode, out var gameMode))
             return BadRequest();
 
-        if (type.Equals("country", StringComparison.OrdinalIgnoreCase))
-            return JsonSnake(new RankingsResponse());
+        switch (type)
+        {
+            case "performance":
+                return await Ranking(gameMode, page);
+            
+            case "score":
+                return await Ranking(gameMode, page, byScore: true);
+            
+            case "country":
+                return JsonSnake(new RankingsResponse());
+            
+            case "charts":
+                return JsonSnake(new RankingsResponse());
+            
+            default:
+                return BadRequest();
+        }
+    }
 
-        var ranking = await Players.GetRanking((byte)gameMode, page, type.Equals("score", StringComparison.OrdinalIgnoreCase));
-        
+    private async Task<ActionResult> Ranking(
+        GameMode mode,
+        int page,
+        bool byScore = false
+    ) {
+        var ranking = await Players.GetRanking((byte)mode, page, byScore);
         var response = new RankingsResponse
         {
             Cursor = new Cursor
@@ -35,5 +56,5 @@ public partial class RankingsController
         };
 
         return JsonSnake(response);
-    }
+    } 
 }
