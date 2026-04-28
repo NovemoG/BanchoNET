@@ -211,8 +211,8 @@ public class BeatmapsRepository(
 		
 		foreach (var beatmap in set.Beatmaps)
 		{
-			//var dbBeatmap = await dbContext.Beatmaps.FirstOrDefaultAsync(b => b.MapId == beatmap.MapId);
-			var dbBeatmap = await dbContext.Beatmaps.FirstOrDefaultAsync(b => b.MD5 == beatmap.MD5);
+			var dbBeatmap = await dbContext.Beatmaps.FirstOrDefaultAsync(b => b.MapId == beatmap.Id);
+			//var dbBeatmap = await dbContext.Beatmaps.FirstOrDefaultAsync(b => b.MD5 == beatmap.MD5);
 			if (dbBeatmap != null)
 			{
 				dbContext.Update(dbBeatmap.UpdateWith(beatmap));

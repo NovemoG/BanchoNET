@@ -8,6 +8,9 @@ public class LookupApiPlayer : BasicApiPlayer
     public GlobalRank GlobalRank { get; set; } = new();
     public Group[] Groups { get; set; } = [];
     
+    [JsonIgnore]
+    public byte PreferredMode { get; set; }
+    
     [JsonConstructor]
     public LookupApiPlayer() { }
 

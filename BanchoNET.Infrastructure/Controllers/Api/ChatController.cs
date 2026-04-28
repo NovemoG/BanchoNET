@@ -1,6 +1,7 @@
 using BanchoNET.Core.Abstractions.Bancho.Services;
 using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Services;
+using BanchoNET.Core.Abstractions.Services.Lazer;
 using BanchoNET.Core.Models.Api.Chat;
 using BanchoNET.Core.Models.Api.Player;
 using BanchoNET.Core.Models.Channels;
@@ -13,11 +14,12 @@ namespace BanchoNET.Infrastructure.Controllers.Api;
 public class ChatController(
     IAuthService auth,
     IPlayersRepository players,
+    ILazerPlayerService playerService,
     IBeatmapsRepository beatmaps,
     IChannelService channels,
     IMessagesRepository messages,
     INotifySocketManager notify
-) : ApiController(auth, players, beatmaps)
+) : ApiController(auth, players, playerService, beatmaps)
 {
     [HttpPost("ack")]
     public ActionResult<ChatAckResponse> ChatAck(

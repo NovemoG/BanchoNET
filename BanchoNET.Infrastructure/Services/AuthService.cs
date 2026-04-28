@@ -1,9 +1,7 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
 using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Services;
-using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Auth;
 using BanchoNET.Core.Models.Db;
 using BanchoNET.Core.Models.Players;

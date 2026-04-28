@@ -22,24 +22,23 @@ public class GeolocService(HttpClient httpClient) : IGeolocService
 	
 	public IPAddress GetIp(IHeaderDictionary headers)
 	{
-		var ipString = "";
-		if (headers.TryGetValue("CF-Connecting-IP", out var cfIp))
-			ipString = cfIp.ToString();
-		else if (headers.TryGetValue("X-Forwarded-For", out var xff))
+		var candidates = new[]
 		{
-			var forwarded = xff.ToString().Split(", ");
-			
-			if (forwarded.Length > 1)
-				ipString = forwarded[0];
-		}
-		else ipString = headers["X-Real-IP"].ToString();
-		
-		if (AppSettings.Debug)
-			return IPAddress.Parse("1.1.1.1");
+			headers.TryGetValue("CF-Connecting-IP", out var cfIp) ? cfIp.ToString() : null,
+			headers.TryGetValue("X-Forwarded-For", out var xff) ? xff.ToString().Split(',')[0].Trim() : null,
+			headers.TryGetValue("X-Real-IP", out var xRealIp) ? xRealIp.ToString() : null
+		};
 
-		return string.IsNullOrEmpty(ipString) //TODO handle invalid ips
-			? IPAddress.Any
-			: IPAddress.Parse(ipString);
+		foreach (var candidate in candidates)
+		{
+			if (string.IsNullOrWhiteSpace(candidate))
+				continue;
+
+			if (IPAddress.TryParse(candidate, out var ip))
+				return ip;
+		}
+
+		return IPAddress.None;
 	}
 
 	private static Geoloc? FromCloudflare(IHeaderDictionary headers)

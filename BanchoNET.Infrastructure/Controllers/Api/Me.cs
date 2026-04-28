@@ -15,6 +15,8 @@ public partial class ApiController
 
         apiPlayer.SessionVerified = true;
         apiPlayer.SessionVerificationMethod = null; //TODO
+
+        PlayerService.AddPlayer(apiPlayer);
         
         return JsonSnake(apiPlayer);
     }

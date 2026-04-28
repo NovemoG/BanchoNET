@@ -87,11 +87,11 @@ public class PlayersRepository : IPlayersRepository
 	public async Task<List<LookupApiPlayer>> GetPlayers(
 		int[] ids
 	) {
-		return await _dbContext.Players
-			.Where(p => ids.Contains(p.Id))
+		var players = await _dbContext.Players
+			.Where(p => ids.AsEnumerable().Contains(p.Id))
 			.Select(p => new LookupApiPlayer
 			{
-				CountryCode = p.Country,
+				CountryCode = p.Country.ToUpper(),
 				Country = p.Country.ParseCountry(),
 				Id = p.Id,
 				IsActive = !p.Inactive,
@@ -100,7 +100,19 @@ public class PlayersRepository : IPlayersRepository
 				LastVisit = p.LastActivityTime,
 				PmFriendsOnly = p.PmFriendsOnly,
 				Username = p.Username,
+				PreferredMode = p.PreferredMode,
 			}).ToListAsync();
+		
+		foreach (var player in players)
+		{
+			player.GlobalRank = new GlobalRank
+			{
+				Rank = await GetPlayerGlobalRank((GameMode)player.PreferredMode, player.Id),
+				RulesetId = player.PreferredMode
+			};
+		}
+
+		return players;
 	}
 
 	public async Task AddFriend(Player player, int targetId)
@@ -323,6 +335,16 @@ public class PlayersRepository : IPlayersRepository
 		}
 
 		return player;
+	}
+
+	public async Task<List<BasicApiPlayer>> GetPlayersFromQuery(
+		string query
+	) {
+		return await _dbContext.Players
+			.Where(p => (p.Privileges & 1) == 1
+			            && EF.Functions.ILike(p.Username, $"%{query.Replace("_", @"\_")}%"))
+			.Select(p => new BasicApiPlayer(p))
+			.ToListAsync();
 	}
 
 	private async Task<Statistics> FetchModeStatistics(
@@ -752,6 +774,7 @@ public class PlayersRepository : IPlayersRepository
 	public async Task<List<PlayerRankingDto>> GetRanking(
 		byte mode = 0,
 		int page = 1,
+		string country = "",
 		bool filterByScore = false
 	) {
 		return await _dbContext.Stats
@@ -759,6 +782,7 @@ public class PlayersRepository : IPlayersRepository
 			.Include(s => s.Player)
 			.Where(s => s.Mode == mode
 			            && (s.Player.Privileges & 1) == 1
+			            && (string.IsNullOrEmpty(country) || s.Player.Country == country)
 			)
 			.OrderByDescending(s => filterByScore ? s.TotalScore : s.PP)
 			.Skip((page - 1) * 50)

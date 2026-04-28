@@ -1,8 +1,9 @@
 <Solution>
-  <Project Path="BanchoNET.Core\BanchoNET.Core.csproj" Type="Classic C#" />
-  <Project Path="BanchoNET.Handlers.Lazer\BanchoNET.Handlers.Lazer.csproj" Type="Classic C#" />
-  <Project Path="BanchoNET.Handlers.Stable\BanchoNET.Handlers.Stable.csproj" Type="Classic C#" />
-  <Project Path="BanchoNET.Infrastructure\BanchoNET.Infrastructure.csproj" Type="Classic C#" />
-  <Project Path="BanchoNET.Tests\BanchoNET.Tests.csproj" Type="Classic C#" />
+  <Project Path="BanchoNET.BeatmapServer/BanchoNET.BeatmapServer.csproj" />
+  <Project Path="BanchoNET.Core\BanchoNET.Core.csproj" Type="C#" />
+  <Project Path="BanchoNET.Handlers.Lazer\BanchoNET.Handlers.Lazer.csproj" Type="C#" />
+  <Project Path="BanchoNET.Handlers.Stable\BanchoNET.Handlers.Stable.csproj" Type="C#" />
+  <Project Path="BanchoNET.Infrastructure\BanchoNET.Infrastructure.csproj" Type="C#" />
+  <Project Path="BanchoNET.Tests\BanchoNET.Tests.csproj" Type="C#" />
   <Project Path="BanchoNET/BanchoNET.csproj" />
 </Solution>

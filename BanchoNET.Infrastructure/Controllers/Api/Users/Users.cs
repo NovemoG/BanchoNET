@@ -1,5 +1,6 @@
 using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Services;
+using BanchoNET.Core.Abstractions.Services.Lazer;
 using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Api.Player;
 using BanchoNET.Core.Utils.Extensions;
@@ -12,9 +13,10 @@ namespace BanchoNET.Infrastructure.Controllers.Api.Users;
 public partial class UsersController(
     IAuthService auth,
     IPlayersRepository players,
+    ILazerPlayerService playerService,
     IBeatmapsRepository beatmaps,
     ILazerScoresRepository scores
-) : ApiController(auth, players, beatmaps)
+) : ApiController(auth, players, playerService, beatmaps)
 {
     [HttpGet("{forMode?}")]
     public async Task<ActionResult<ApiPlayer?>> GetUsers(

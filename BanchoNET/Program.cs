@@ -8,6 +8,7 @@ using BanchoNET.Core.Abstractions.Bancho.Services;
 using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Repositories.Histories;
 using BanchoNET.Core.Abstractions.Services;
+using BanchoNET.Core.Abstractions.Services.Lazer;
 using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Channels;
 using BanchoNET.Core.Models.Db;
@@ -33,6 +34,7 @@ using Novelog.Config;
 using StackExchange.Redis;
 using BanchoNET.Infrastructure;
 using BanchoNET.Infrastructure.Bancho.Services;
+using Microsoft.AspNetCore.SignalR;
 using LogLevel = Novelog.Types.LogLevel;
 // ReSharper disable ExplicitCallerInfoArgument
 
@@ -205,7 +207,8 @@ public class Program
 			.AddScoped<IClientPacketsHandler, ClientPacketsHandler>()
 			.AddScoped<ICommandProcessor, CommandProcessor>();
 		
-		builder.Services.AddSingleton<INotifySocketManager, NotifySocketManager>()
+		builder.Services.AddSingleton<ILazerPlayerService, LazerPlayerService>()
+			.AddSingleton<INotifySocketManager, NotifySocketManager>()
 			.AddSingleton<OsuVersionService>()
 			.AddSingleton<IOsuVersionService>(sp => sp.GetRequiredService<OsuVersionService>())
 			.AddHostedService(sp => sp.GetRequiredService<OsuVersionService>())
@@ -230,6 +233,7 @@ public class Program
 
 		builder.Services.AddHttpClient()
 			.AddSessionServices(assemblies)
+			.AddSingleton<IUserIdProvider, SubUserIdProvider>()
 			.AddSignalR(options =>
 			{
 				if (AppSettings.Debug)

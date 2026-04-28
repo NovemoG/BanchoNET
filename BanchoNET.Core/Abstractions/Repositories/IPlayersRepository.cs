@@ -30,6 +30,7 @@ public interface IPlayersRepository
     Task<PlayerDto?> GetPlayerInfo(string username);
     Task<MeResponse?> GetFullPlayerInfo(int playerId);
     Task<T?> GetPlayerInfoForMode<T>(int playerId, GameMode mode = GameMode.RelaxStd) where T : ApiPlayer, new();
+    Task<List<BasicApiPlayer>> GetPlayersFromQuery(string query);
     
     Task UpdateLatestActivity(Player player);
     Task UpdateLatestActivity(int playerId);
@@ -62,7 +63,7 @@ public interface IPlayersRepository
     Task<int> GetPlayerCountryRank(GameMode mode, string country, int playerId);
     Task InsertPlayerGlobalRank(byte mode, string country, int playerId, int pp);
     Task RemovePlayerGlobalRank(byte mode, string country, int playerId);
-    Task<List<PlayerRankingDto>> GetRanking(byte mode = 0, int page = 1, bool filterByScore = false);
+    Task<List<PlayerRankingDto>> GetRanking(byte mode = 0, int page = 1, string country = "", bool filterByScore = false);
 
     Task CreatePlayer(string username, string email, string passwordHash, string country);
     Task<bool> DeletePlayer(PlayerDto player, bool deleteScores, bool force);

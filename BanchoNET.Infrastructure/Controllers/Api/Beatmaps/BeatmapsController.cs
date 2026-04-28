@@ -1,5 +1,6 @@
 ﻿using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Services;
+using BanchoNET.Core.Abstractions.Services.Lazer;
 using BanchoNET.Core.Models.Api.Beatmaps;
 using BanchoNET.Core.Utils.Extensions;
 using Microsoft.AspNetCore.Mvc;
@@ -10,10 +11,11 @@ namespace BanchoNET.Infrastructure.Controllers.Api.Beatmaps;
 public partial class BeatmapsController(
     IAuthService auth,
     IPlayersRepository players,
+    ILazerPlayerService playerService,
     IBeatmapsRepository beatmaps,
     IScoreSubmissionQueue scoresQueue,
     ILazerScoresRepository scores
-) : ApiController(auth, players, beatmaps)
+) : ApiController(auth, players, playerService, beatmaps)
 {
     [HttpGet]
     public async Task<ActionResult<List<ApiBeatmap>>> GetBeatmaps(
@@ -26,7 +28,7 @@ public partial class BeatmapsController(
         //TODO
         return JsonSnake(new
         {
-            beatmaps = beatmaps.Select(map => new ApiBeatmap(map, new ApiBeatmapset(map.Set, map)))
+            beatmaps = beatmaps.Select(map => new ApiBeatmap(map, new ApiBeatmapset(map.Set, map, assignBeatmapsList: false)))
         });
     }
 }
