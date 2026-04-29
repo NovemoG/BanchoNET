@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Reflection;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using BanchoNET.Commands;
 using BanchoNET.Core.Abstractions;
@@ -178,7 +179,11 @@ public class Program
 		builder.Services.AddEndpointsApiExplorer()
 			.AddAuthorization()
 			.AddOAuth()
-			.AddControllers();
+			.AddControllers()
+			.AddJsonOptions(o =>
+			{
+				o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+			});
 
 		var mongoSettings = MongoClientSettings.FromConnectionString(mongoConnectionString);
 
@@ -199,7 +204,9 @@ public class Program
 		builder.Services.AddScoped<IReleasesRepository, ReleasesRepository>();
 		builder.Services.AddScoped<IBeatmapHandler, BeatmapHandler>();
 			
-		builder.Services.AddSingleton<IScoreSubmissionQueue, ScoreSubmissionQueue>()
+		builder.Services.AddSingleton<ScoreSubmissionQueue>()
+			.AddSingleton<IScoreSubmissionQueue>(sp => sp.GetRequiredService<ScoreSubmissionQueue>())
+			.AddHostedService(sp => sp.GetRequiredService<ScoreSubmissionQueue>())
 			.AddSingleton<ILobbyScoresQueue, LobbyScoresQueue>()
 			.AddHostedService<LobbyQueueHostedService>();
 

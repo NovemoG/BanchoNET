@@ -72,6 +72,6 @@ public interface IPlayersRepository
     Task<bool> RestrictPlayer(Player player, string reason);
     Task<bool> UnrestrictPlayer(Player player, string reason);
 
-    Task<int> TotalPlayerCount(bool countRestricted = false);
+    Task<int> TotalPlayerCount(bool countRestricted = false, string? country = null);
     Task<List<int>> GetPlayerIdsWithExpiredSupporter();
 }

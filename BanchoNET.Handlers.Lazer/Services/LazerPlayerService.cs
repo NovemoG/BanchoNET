@@ -17,13 +17,10 @@ public sealed class LazerPlayerService : ILazerPlayerService
 
     public void AssignFriends(
         int userId,
-        IEnumerable<int> friends
+        int[] friends
     ) {
         if (Players.TryGetValue(userId, out var player))
-        {
-            player.Friends.Clear();
-            player.Friends.AddRange(friends);
-        }
+            player.Friends = friends;
     }
 
     public bool RemovePlayer(

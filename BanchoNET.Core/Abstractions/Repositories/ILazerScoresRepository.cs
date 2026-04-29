@@ -26,7 +26,7 @@ public interface ILazerScoresRepository : IScoresRepository
     Task<ApiScore?> GetPlayerBestScoreWithModsOnMap(
         int playerId,
         GameMode mode,
-        List<ApiMod> mods,
+        ApiMod[] mods,
         Beatmap beatmap
     );
 
@@ -34,13 +34,13 @@ public interface ILazerScoresRepository : IScoresRepository
         ApiScore score,
         bool withMods,
         Beatmap beatmap,
-        List<ApiMod>? mods = null
+        ApiMod[]? mods = null
     );
 
     Task<(List<ApiScore>, int, ApiScore?)> GetLeaderboardScores(
         LeaderboardType type,
         GameMode mode,
-        List<ApiMod> mods,
+        ApiMod[] mods,
         int playerId,
         string country,
         HashSet<int> friendIds,

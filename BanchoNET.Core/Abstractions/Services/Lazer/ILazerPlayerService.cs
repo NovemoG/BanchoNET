@@ -6,7 +6,7 @@ namespace BanchoNET.Core.Abstractions.Services.Lazer;
 public interface ILazerPlayerService
 {
     bool AddPlayer(ApiPlayer player);
-    void AssignFriends(int userId, IEnumerable<int> friends);
+    void AssignFriends(int userId, int[] friends);
     bool RemovePlayer(int userId);
     LazerPlayer? GetPlayer(int userId);
 }

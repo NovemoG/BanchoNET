@@ -5,5 +5,5 @@ namespace BanchoNET.Core.Models.Players;
 public class LazerPlayer
 {
     public required ApiPlayer Player { get; init; }
-    public List<int> Friends { get; } = [];
+    public int[] Friends { get; set; } = [];
 }

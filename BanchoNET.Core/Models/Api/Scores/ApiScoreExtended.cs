@@ -43,6 +43,18 @@ public class ApiScoreExtended : ApiScore
     public ApiScoreExtended(
         ScoreDto scoreDto,
         PlayerDto player,
+        BeatmapDto beatmap,
+        BeatmapsetDto? beatmapset
+    ) : base(scoreDto, player, beatmap) {
+        Beatmap = new BasicApiBeatmap(beatmap);
+        
+        if (beatmapset != null)
+            Beatmapset = new BasicApiBeatmapset(beatmapset, beatmap);
+    }
+
+    public ApiScoreExtended(
+        ScoreDto scoreDto,
+        PlayerDto player,
         BeatmapDto beatmap
     ) : base(scoreDto, player, beatmap) {
         Beatmap = new BasicApiBeatmap(beatmap);

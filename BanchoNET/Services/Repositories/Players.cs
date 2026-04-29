@@ -534,14 +534,14 @@ public class PlayersRepository : IPlayersRepository
 
 		var statistics = score.Statistics;
 		
-		stats.Total300s += statistics.Great;
-		stats.Total100s += statistics.Ok;
-		stats.Total50s += statistics.Meh;
+		stats.Total300s += statistics.GetStatCount(HitResult.Great);
+		stats.Total100s += statistics.GetStatCount(HitResult.Ok);
+		stats.Total50s += statistics.GetStatCount(HitResult.Meh);
 
 		if (((GameMode)score.RulesetId).AsVanilla() is GameMode.VanillaMania or GameMode.VanillaTaiko)
 		{
-			stats.TotalGekis += statistics.LargeTickHit;
-			stats.TotalKatus += statistics.SliderTailHit;
+			stats.TotalGekis += statistics.GetStatCount(HitResult.LargeTickHit);
+			stats.TotalKatus += statistics.GetStatCount(HitResult.SliderTailHit);
 		}
 		
 		await _dbContext.SaveChangesAsync();
@@ -1024,12 +1024,15 @@ public class PlayersRepository : IPlayersRepository
 	/// <summary>
 	/// Returns the total count of players (by default without restricted).
 	/// </summary>
-	public async Task<int> TotalPlayerCount(bool countRestricted = false)
-	{
+	public async Task<int> TotalPlayerCount(
+		bool countRestricted = false,
+		string? country = null
+	) {
 		return countRestricted
 			? await _dbContext.Players.CountAsync()
 			: await _dbContext.Players
-				.Where(p => (p.Privileges & 1) == 1)
+				.Where(p => (p.Privileges & 1) == 1
+				            && (string.IsNullOrEmpty(country) || p.Country == country))
 				.CountAsync();
 	}
 

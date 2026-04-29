@@ -1,6 +1,4 @@
-﻿using System.Text.Json.Serialization;
-
-namespace BanchoNET.Core.Models.Api.Beatmaps;
+﻿namespace BanchoNET.Core.Models.Api.Beatmaps;
 
 public class ScoreRequestDto
 {

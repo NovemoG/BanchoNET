@@ -223,6 +223,9 @@ public static class BeatmapExtensions
 		currentBeatmap.IgnoreHit = newBeatmap.IgnoreHit;
 		currentBeatmap.LargeTickHit = newBeatmap.LargeTickHit;
 		currentBeatmap.CoverId = newBeatmap.CoverId;
+
+		newBeatmap.Plays = currentBeatmap.Plays;
+		newBeatmap.Passes = currentBeatmap.Passes;
 		
 		return currentBeatmap;
 	}

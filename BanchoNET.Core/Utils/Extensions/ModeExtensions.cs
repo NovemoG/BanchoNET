@@ -49,14 +49,14 @@ public static class ModeExtensions
 		) {
 			var statistics = score.Statistics;
 			
-			stats.Total300s += statistics.Great;
-			stats.Total100s += statistics.Ok;
-			stats.Total50s += statistics.Meh;
+			stats.Total300s += statistics.GetStatCount( HitResult.Great);
+			stats.Total100s += statistics.GetStatCount( HitResult.Ok);
+			stats.Total50s += statistics.GetStatCount( HitResult.Meh);
 		
 			if (((GameMode)score.RulesetId).AsVanilla() is not (GameMode.VanillaMania or GameMode.VanillaTaiko)) return;
 		
-			stats.TotalGekis += statistics.LargeTickHit;
-			stats.TotalKatus += statistics.SliderTailHit;
+			stats.TotalGekis += statistics.GetStatCount( HitResult.LargeTickHit);
+			stats.TotalKatus += statistics.GetStatCount( HitResult.SliderTailHit);
 		}
 	}
 

@@ -8,51 +8,45 @@ using BanchoNET.Core.Utils.Extensions;
 namespace BanchoNET.Services.LobbyScoresQueue;
 
 public class LobbyQueueHostedService(
+    ILogger logger,
     IServiceScopeFactory scopeFactory,
     ILobbyScoresQueue lobbyQueue
-) : BackgroundService
+) : ConcurrentBackgroundQueue
 {
-    private const int MAX_CONCURRENT_JOBS = 10;
     private const int MAX_RETRIES = 3;
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        var semaphore = new SemaphoreSlim(MAX_CONCURRENT_JOBS);
-
+    protected override async Task WorkerLoop(
+        CancellationToken stoppingToken
+    ) {
         while (!stoppingToken.IsCancellationRequested)
         {
+            MatchScoreRequestDto request;
+            
             try
             {
-                var request = await lobbyQueue.ReadJobAsync(stoppingToken);
-                
-                _ = Task.Run(async () =>
-                {
-                    await semaphore.WaitAsync(stoppingToken);
-                    
-                    try
-                    {
-                        await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
-                        await ExecuteScoresFetch(request, stoppingToken);
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine(ex);
-                    }
-                    finally
-                    {
-                        semaphore.Release();
-                    }
-                }, stoppingToken);
+                request = await lobbyQueue.ReadJobAsync(stoppingToken);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
                 break;
+            }
+            
+            try
+            {
+                await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+                await ExecuteScoresFetch(request, stoppingToken);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError("Error processing lobby score request", ex, nameof(LobbyQueueHostedService));
             }
         }
     }
 
-    private async Task ExecuteScoresFetch(MatchScoreRequestDto request, CancellationToken stoppingToken)
-    {
+    private async Task ExecuteScoresFetch(
+        MatchScoreRequestDto request,
+        CancellationToken stoppingToken
+    ) {
         using var scope = scopeFactory.CreateScope();
         var scores = scope.ServiceProvider.GetRequiredService<ILegacyScoresRepository>();
         var histories = scope.ServiceProvider.GetRequiredService<IHistoriesRepository>();
@@ -69,7 +63,7 @@ public class LobbyQueueHostedService(
                 request.MapFinishDate
             );
             
-            await Task.Delay(TimeSpan.FromSeconds(3), stoppingToken);
+            await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
         } while (submittedScores.Count != slots.Count && i++ < MAX_RETRIES);
 
         var scoreEntries = submittedScores.Select(score => new ScoreEntry

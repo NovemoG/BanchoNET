@@ -1,5 +1,4 @@
-﻿using System.Text.Json;
-using BanchoNET.Core.Models;
+﻿using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Dtos;
@@ -236,5 +235,65 @@ public static class ScoreExtensions
             GameMode.AutopilotStd => "ap!std",
             _ => throw new ArgumentOutOfRangeException($"Invalid score mode? ({score.Mode})")
         };
+    }
+
+    public static int GetStatCount(
+        this Dictionary<HitResult, int> stats,
+        HitResult result
+    ) {
+        return stats.TryGetValue(result, out var count) ? count : 0;
+    }
+
+    public static int GetCount300(
+        this ApiScore score
+    ) {
+        return score.Statistics.GetStatCount(HitResult.Great);
+    }
+
+    public static int GetCount100(
+        this ApiScore score
+    ) {
+        return score.Statistics.GetStatCount(HitResult.Ok);
+    }
+
+    public static int GetCount50(
+        this ApiScore score
+    ) {
+        return score.Statistics.GetStatCount(HitResult.Meh);
+    }
+
+    public static int GetCountGeki(
+        this ApiScore score
+    ) {
+        return score.Statistics.GetStatCount(HitResult.LargeTickHit);
+    }
+
+    public static int GetCountKatu(
+        this ApiScore score
+    ) {
+        return score.Statistics.GetStatCount(HitResult.SliderTailHit);
+    }
+
+    public static int GetCountMiss(
+        this ApiScore score
+    ) {
+        return score.Statistics.GetStatCount(HitResult.Miss);
+    }
+    
+    public static bool IsHit(this HitResult result)
+    {
+        switch (result)
+        {
+            case HitResult.None:
+            case HitResult.IgnoreMiss:
+            case HitResult.Miss:
+            case HitResult.SmallTickMiss:
+            case HitResult.LargeTickMiss:
+            case HitResult.ComboBreak:
+                return false;
+
+            default:
+                return true;
+        }
     }
 }

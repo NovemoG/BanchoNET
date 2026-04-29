@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace BanchoNET.Core.Utils.Json;
 
@@ -10,6 +11,15 @@ public class SnakeCaseNamingPolicy : JsonNamingPolicy
         PropertyNamingPolicy = new SnakeCaseNamingPolicy(),
         DictionaryKeyPolicy = new SnakeCaseNamingPolicy(),
         PropertyNameCaseInsensitive = true
+    };
+
+    public static readonly JsonSerializerOptions ReplayOptions = new()
+    {
+        ReferenceHandler = ReferenceHandler.IgnoreCycles,
+        WriteIndented = true,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
+        PropertyNamingPolicy = new SnakeCaseNamingPolicy(),
+        DictionaryKeyPolicy = new SnakeCaseNamingPolicy(),
     };
     
     public override string ConvertName(

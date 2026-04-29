@@ -43,6 +43,22 @@ public class ApiScoreBest : ApiScoreExtended
             Pp = Pp * weight
         };
     }
+
+    public ApiScoreBest(
+        ScoreDto scoreDto,
+        PlayerDto player,
+        BeatmapDto beatmap,
+        BeatmapsetDto beatmapset,
+        int index
+    ) : base(scoreDto, player, beatmap, beatmapset) {
+        var weight = MathF.Pow(0.95f, index);
+        
+        Weight = new Performance
+        {
+            Percentage = weight * 100d,
+            Pp = Pp * weight
+        };
+    }
 }
 
 public class Performance

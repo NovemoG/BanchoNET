@@ -139,7 +139,7 @@ public static class EnumExtensions
 		return sb.ToString();
 	}
 	
-	public static List<ApiMod> ToLazerMods(
+	public static ApiMod[] ToLazerMods(
 		this LegacyMods legacyMods
 	) {
 		var mods = new List<ApiMod>{ new(){ Acronym = "CL" } };
@@ -148,6 +148,6 @@ public static class EnumExtensions
 			if (legacyMods.HasMod(mod))
 				mods.Add(new ApiMod{ Acronym = code });
 
-		return mods;
+		return mods.ToArray();
 	}
 }

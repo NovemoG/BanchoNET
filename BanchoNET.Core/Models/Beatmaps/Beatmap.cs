@@ -1,5 +1,6 @@
 ﻿using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Models.Dtos;
+using BanchoNET.Core.Models.Scores;
 using BanchoNET.Core.Utils.Extensions;
 
 namespace BanchoNET.Core.Models.Beatmaps;
@@ -64,7 +65,7 @@ public class Beatmap : IBeatmap,
 	public int LargeTickHit { get; set; }
 	public int SliderTailHit => SlidersCount;
 	public readonly int NotesCount;
-	public readonly MaxStatistics MaxStatistics;
+	public readonly Dictionary<HitResult, int> MaxStatistics;
 	
 	public long CoverId { get; set; }
 	
@@ -102,12 +103,11 @@ public class Beatmap : IBeatmap,
 		Hp = apiBeatmap.DiffDrain;
 		StarRating = (float)apiBeatmap.DifficultyRating;
 		NotesCount = CirclesCount + SlidersCount + SpinnersCount;
-		MaxStatistics = new MaxStatistics
-		{
-			Great = NotesCount,
-			LargeTickHit = LargeTickHit,
-			IgnoreHit = IgnoreHit,
-			SliderTailHit = SliderTailHit
+		MaxStatistics = new Dictionary<HitResult, int> {
+			[HitResult.Great] = NotesCount,
+			[HitResult.LargeTickHit] = LargeTickHit,
+			[HitResult.IgnoreHit] = IgnoreHit,
+			[HitResult.SliderTailHit] = SliderTailHit
 			//TODO LegacyComboIncrease
 			//	   also there are different maximum statistics depending on client
 		};
@@ -155,12 +155,11 @@ public class Beatmap : IBeatmap,
 		catch { /* ignore */ }
 		
 		NotesCount = CirclesCount + SlidersCount + SpinnersCount;
-		MaxStatistics = new MaxStatistics
-		{
-			Great = NotesCount,
-			LargeTickHit = LargeTickHit,
-			IgnoreHit = IgnoreHit,
-			SliderTailHit = SliderTailHit
+		MaxStatistics = new Dictionary<HitResult, int> {
+			[HitResult.Great] = NotesCount,
+			[HitResult.LargeTickHit] = LargeTickHit,
+			[HitResult.IgnoreHit] = IgnoreHit,
+			[HitResult.SliderTailHit] = SliderTailHit
 		};
 		
 		IsRankedOfficially = Status is BeatmapStatus.Ranked or BeatmapStatus.Approved;
@@ -209,12 +208,11 @@ public class Beatmap : IBeatmap,
 		CoverId = beatmapDto.CoverId;
 		
 		NotesCount = CirclesCount + SlidersCount + SpinnersCount;
-		MaxStatistics = new MaxStatistics
-		{
-			Great = NotesCount,
-			LargeTickHit = LargeTickHit,
-			IgnoreHit = IgnoreHit,
-			SliderTailHit = SliderTailHit
+		MaxStatistics = new Dictionary<HitResult, int> {
+			[HitResult.Great] = NotesCount,
+			[HitResult.LargeTickHit] = LargeTickHit,
+			[HitResult.IgnoreHit] = IgnoreHit,
+			[HitResult.SliderTailHit] = SliderTailHit
 		};
 	}
 

@@ -10,12 +10,14 @@ using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Scores;
 using BanchoNET.Core.Utils.Extensions;
 using Microsoft.Extensions.DependencyInjection;
+using Novelog.Abstractions;
 
 namespace BanchoNET.Handlers.Lazer.Services;
 
-public class ScoreSubmissionQueue(
+public sealed partial class ScoreSubmissionQueue(
+    ILogger logger,
     IServiceScopeFactory scopeFactory
-) : IScoreSubmissionQueue
+) : ConcurrentBackgroundQueue, IScoreSubmissionQueue
 {
     private static readonly ConcurrentDictionary<int, ScoreResponseDto> Scores = new();
     
@@ -27,6 +29,8 @@ public class ScoreSubmissionQueue(
         int userId,
         int beatmapId
     ) {
+        //TODO store scores in db and retrieve them after restart
+        
         if (Scores.TryGetValue(userId, out var value) && userId != value.UserId)
             return null;
 
@@ -100,13 +104,14 @@ public class ScoreSubmissionQueue(
             UserId = userId,
             BuildId = 0, //TODO
             EndedAt = DateTimeOffset.UtcNow,
-            HasReplay = false, //TODO figure out how the replay is sent to server??
+            HasReplay = false,
             IsPerfectCombo = beatmap.MaxCombo == request.MaxCombo,
             LegacyPerfect = beatmap.MaxCombo == request.MaxCombo, //TODO these can differ?
             LegacyScoreId = null, //TODO
             LegacyTotalScore = null, //TODO calculate
             StartedAt = soloRequest.CreatedAt,
             Replay = false,
+            Pauses = request.Pauses,
         };
         //TODO check what exactly is stored in pauses
         apiScore.TimeElapsed = (int)((apiScore.EndedAt - apiScore.StartedAt!).Value.TotalSeconds - request.Pauses.Sum() / 10000d);
@@ -145,7 +150,8 @@ public class ScoreSubmissionQueue(
             apiScore.Status = apiScore.Passed ? SubmissionStatus.Submitted : SubmissionStatus.Failed;
         }
         
-        await scores.InsertScore(apiScore, false, beatmap.MD5, beatmapId);
+        soloRequest.Score = await scores.InsertScore(apiScore, false, beatmap.MD5, beatmapId);
+        soloRequest.Beatmap = beatmap;
         
         var stats = (await players.GetPlayerModeStats(userId, (byte)mode))!;
 
@@ -161,8 +167,6 @@ public class ScoreSubmissionQueue(
 			
             await beatmaps.UpdateBeatmapPlayCount(beatmap);
         }
-
-        Scores.TryRemove(userId, out _);
 
         return apiScore;
     }

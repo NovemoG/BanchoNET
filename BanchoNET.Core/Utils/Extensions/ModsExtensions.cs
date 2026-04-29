@@ -107,18 +107,18 @@ public static class ModsExtensions
         return score.Mods.Aggregate(string.Empty, (current, mod) => current + mod);
     }
 
-    public static List<ApiMod> ToMods(
+    public static ApiMod[] ToMods(
         this string mods
     ) {
         return string.IsNullOrWhiteSpace(mods)
             ? []
             : mods.Split(';', StringSplitOptions.RemoveEmptyEntries)
                 .Select(mod => new ApiMod(mod))
-                .ToList();
+                .ToArray();
     }
 
     public static LegacyMods ToLegacyMods(
-        this List<ApiMod> mods
+        this ApiMod[] mods
     ) {
         var legacyMods = LegacyMods.None;
         

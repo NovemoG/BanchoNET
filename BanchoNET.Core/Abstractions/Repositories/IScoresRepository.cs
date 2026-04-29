@@ -8,16 +8,26 @@ namespace BanchoNET.Core.Abstractions.Repositories;
 public interface IScoresRepository
 {
     Task<ScoreDto?> GetScore(long id);
+    Task RemoveScore(long id);
     Task<bool> ScoreExists(string checksum);
     Task<List<long>> DeleteOldScores(short differenceInHours = 48);
     
     Task ToggleBeatmapScoresVisibility(int mapId, bool visible);
     Task ToggleBeatmapScoresVisibility(string md5, bool visible);
+    Task ToggleScoreReplayAvailability(long scoreId);
 
     Task<List<ScoreDto>> GetPlayerRecentScores(
         int playerId,
-        int start,
-        int count = 10
+        GameMode mode,
+        int start = 0,
+        int count = 50
+    );
+
+    Task<List<ScoreDto>> GetPlayerFirstPlaceScores(
+        int playerId,
+        GameMode mode,
+        int start = 0,
+        int count = 50
     );
 
     Task<List<ScoreDto>> GetMultiplayerScores(
@@ -66,6 +76,12 @@ public interface IScoresRepository
     );
 
     Task<List<ScoreDto>> GetBestScores(
+        GameMode mode,
+        int skip = 0,
+        int count = 50
+    );
+
+    Task<List<ScoreDto>> GetRecentScores(
         GameMode mode,
         int skip = 0,
         int count = 50

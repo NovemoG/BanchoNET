@@ -15,13 +15,9 @@ public class ApiScore
     public bool Preserve { get; set; }
     public bool Processed { get; set; }
     public bool Ranked { get; set; }
-    public MaxStatistics MaximumStatistics { get; set; } = null!;
-    
-    public List<ApiMod> Mods { get; set; } = [];
-    [JsonIgnore]
-    public LegacyMods LegacyMods { get; set; }
-    
-    public Statistics Statistics { get; set; } = new();
+    public Dictionary<HitResult, int> MaximumStatistics { get; set; } = new();
+    public Dictionary<HitResult, int> Statistics { get; set; } = new();
+    public ApiMod[] Mods { get; set; } = [];
     public int TotalScoreWithoutMods { get; set; }
     public int BeatmapId { get; set; }
     public long? BestId { get; set; }
@@ -50,20 +46,14 @@ public class ApiScore
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public BasicApiPlayer? User { get; set; }
     
-    [JsonIgnore]
-    public int LeaderboardPosition { get; set; }
-    
-    [JsonIgnore]
-    public SubmissionStatus Status { get; set; }
-    
-    [JsonIgnore]
-    public int TimeElapsed { get; set; }
-    
-    [JsonIgnore]
-    public double ClockRate { get; set; }
-    
-    [JsonIgnore]
-    public ApiScore? PreviousBest { get; set; }
+    [JsonIgnore] public LegacyMods LegacyMods { get; set; }
+    [JsonIgnore] public int Combo { get; set; }
+    [JsonIgnore] public int LeaderboardPosition { get; set; }
+    [JsonIgnore] public SubmissionStatus Status { get; set; }
+    [JsonIgnore] public int TimeElapsed { get; set; }
+    [JsonIgnore] public double ClockRate { get; set; }
+    [JsonIgnore] public ApiScore? PreviousBest { get; set; }
+    [JsonIgnore] public int[] Pauses { get; init; } = [];
     
     [JsonConstructor]
     public ApiScore() { }
@@ -81,16 +71,15 @@ public class ApiScore
         MaximumStatistics = beatmap.MaxStatistics;
         Mods = score.Mods.ToLazerMods();
         LegacyMods = Mods.ToLegacyMods();
-        Statistics = new Statistics
-        {
-            Ok = score.Count100,
-            Meh = score.Count50,
-            Miss = score.Misses,
-            Great = score.Count300,
-            IgnoreHit = score.IgnoreHit,
-            IgnoreMiss = score.IgnoreMiss,
-            LargeTickHit = score.Gekis,
-            SliderTailHit = score.Katus
+        Statistics = new Dictionary<HitResult, int> {
+            [HitResult.Ok] = score.Count100,
+            [HitResult.Meh] = score.Count50,
+            [HitResult.Miss] = score.Misses,
+            [HitResult.Great] = score.Count300,
+            [HitResult.IgnoreHit] = score.IgnoreHit,
+            [HitResult.IgnoreMiss] = score.IgnoreMiss,
+            [HitResult.LargeTickHit] = score.Gekis,
+            [HitResult.SliderTailHit] = score.Katus,
         };
         //TODO TotalScoreWithoutMods
         BeatmapId = beatmap.Id;
@@ -132,16 +121,15 @@ public class ApiScore
         MaximumStatistics = beatmap.MaxStatistics;
         LegacyMods = (LegacyMods)scoreDto.Mods;
         Mods = scoreDto.LazerMods?.ToMods() ?? LegacyMods.ToLazerMods();
-        Statistics = new Statistics
-        {
-            Ok = scoreDto.Count100,
-            Meh = scoreDto.Count50,
-            Miss = scoreDto.Misses,
-            Great = scoreDto.Count300,
-            IgnoreHit = scoreDto.IgnoreHit,
-            IgnoreMiss = scoreDto.IgnoreMiss,
-            LargeTickHit = scoreDto.Gekis,
-            SliderTailHit = scoreDto.Katus
+        Statistics = new Dictionary<HitResult, int> {
+            [HitResult.Ok] = scoreDto.Count100,
+            [HitResult.Meh] = scoreDto.Count50,
+            [HitResult.Miss] = scoreDto.Misses,
+            [HitResult.Great] = scoreDto.Count300,
+            [HitResult.IgnoreHit] = scoreDto.IgnoreHit,
+            [HitResult.IgnoreMiss] = scoreDto.IgnoreMiss,
+            [HitResult.LargeTickHit] = scoreDto.Gekis,
+            [HitResult.SliderTailHit] = scoreDto.Katus,
         };
         //TODO TotalScoreWithoutMods
         BeatmapId = beatmap.Id;
@@ -180,19 +168,18 @@ public class ApiScore
         Preserve = scoreDto.Preserve;
         Processed = scoreDto.Processed;
         Ranked = scoreDto.Ranked;
-        MaximumStatistics = new MaxStatistics(); //TODO
+        MaximumStatistics = new Dictionary<HitResult, int>(); //TODO
         LegacyMods = (LegacyMods)scoreDto.Mods;
         Mods = scoreDto.LazerMods?.ToMods() ?? LegacyMods.ToLazerMods();
-        Statistics = new Statistics
-        {
-            Ok = scoreDto.Count100,
-            Meh = scoreDto.Count50,
-            Miss = scoreDto.Misses,
-            Great = scoreDto.Count300,
-            IgnoreHit = scoreDto.IgnoreHit,
-            IgnoreMiss = scoreDto.IgnoreMiss,
-            LargeTickHit = scoreDto.Gekis,
-            SliderTailHit = scoreDto.Katus
+        Statistics = new Dictionary<HitResult, int> {
+            [HitResult.Ok] = scoreDto.Count100,
+            [HitResult.Meh] = scoreDto.Count50,
+            [HitResult.Miss] = scoreDto.Misses,
+            [HitResult.Great] = scoreDto.Count300,
+            [HitResult.IgnoreHit] = scoreDto.IgnoreHit,
+            [HitResult.IgnoreMiss] = scoreDto.IgnoreMiss,
+            [HitResult.LargeTickHit] = scoreDto.Gekis,
+            [HitResult.SliderTailHit] = scoreDto.Katus,
         };
         //TODO TotalScoreWithoutMods
         BeatmapId = beatmap.MapId;

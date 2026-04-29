@@ -18,6 +18,14 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
             .AsNoTracking()
             .FirstOrDefaultAsync(s => s.Id == id);
     }
+
+    public async Task RemoveScore(
+        long id
+    ) {
+        await DbContext.Scores
+            .Where(s => s.Id == id)
+            .ExecuteDeleteAsync();
+    }
     
     public async Task<bool> ScoreExists(string checksum)
     {
@@ -39,6 +47,7 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
 
         // Saving IDs of scores that are not failed (we don't store failed scores replays)
         var scoreIds = await DbContext.Scores
+            .AsNoTracking()
             .Where(s => s.PlayTime < date
                         && s.Status == (int)SubmissionStatus.Submitted)
             .Select(s => s.Id)
@@ -72,18 +81,62 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
             .Where(s => s.BeatmapMD5 == md5)
             .ExecuteUpdateAsync(p => p.SetProperty(s => s.IsRestricted, visible));
     }
-    
-    public async Task<List<ScoreDto>> GetPlayerRecentScores(int playerId, int start, int count = 10)
-    {
+
+    public async Task ToggleScoreReplayAvailability(
+        long scoreId
+    ) {
+        await DbContext.Scores
+            .Where(s => s.Id == scoreId)
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.HasReplay, true));
+    }
+
+    public async Task<List<ScoreDto>> GetPlayerRecentScores(
+        int playerId,
+        GameMode mode,
+        int start = 0,
+        int count = 50
+    ) {
         return await DbContext.Scores
             .AsNoTracking()
-            .Where(s => s.PlayerId == playerId)
+            .Include(s => s.Player)
+            .Include(s => s.Beatmap)
+            .Where(s => s.PlayerId == playerId && s.Mode == (int)mode)
             .OrderByDescending(s => s.PlayTime)
             .Skip(start)
             .Take(count)
             .ToListAsync();
     }
-    
+
+    public async Task<List<ScoreDto>> GetPlayerFirstPlaceScores(
+        int playerId,
+        GameMode mode,
+        int start = 0,
+        int count = 50
+    ) {
+        return await DbContext.Scores
+            .AsNoTracking()
+            .Include(s => s.Player)
+            .Include(s => s.Beatmap)
+            .Where(s => s.PlayerId == playerId
+                        && s.Mode == (int)mode
+                        && s.Status == (int)SubmissionStatus.Best
+                        && s.Ranked)
+            .Where(s =>
+                !DbContext.Scores.Any(o =>
+                    o.PlayerId == playerId
+                    && o.Mode == (int)mode
+                    && o.Status == (int)SubmissionStatus.Best
+                    && o.Ranked
+                    && o.MapId == s.MapId
+                    && (OrderByPp(mode)
+                        ? o.PP > s.PP
+                        : o.LegacyTotalScore > s.LegacyTotalScore)))
+            .OrderByDescending(s => s.PlayTime)
+            .Skip(start)
+            .Take(count)
+            .ToListAsync();
+    }
+
     public async Task<List<ScoreDto>> GetMultiplayerScores(List<int> playerIds, DateTime finishDate)
     {
         return await DbContext.Scores
@@ -212,6 +265,9 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
     ) {
         return await DbContext.Scores
             .AsNoTracking()
+            .Include(s => s.Player)
+            .Include(s => s.Beatmap)
+                .ThenInclude(b => b.Beatmapset)
             .Where(s => s.PlayerId == playerId
                         && !s.IsRestricted
                         && s.Ranked
@@ -242,7 +298,26 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
             .Take(count)
             .ToListAsync();
     }
-    
+
+    public async Task<List<ScoreDto>> GetRecentScores(
+        GameMode mode,
+        int skip = 0,
+        int count = 50
+    ) {
+        return await DbContext.Scores
+            .AsNoTracking()
+            .Include(s => s.Player)
+            .Include(s => s.Beatmap)
+            .Where(s => s.Mode == (int)mode
+                        && s.Ranked
+                        && !s.IsRestricted
+            )
+            .OrderByDescending(s => s.PlayTime)
+            .Skip(skip)
+            .Take(count)
+            .ToListAsync();
+    }
+
     protected static bool OrderByPp(GameMode mode) => mode >= GameMode.RelaxStd || AppSettings.SortLeaderboardByPP;
     
     protected static IOrderedQueryable<ScoreDto> ApplyOrder(IQueryable<ScoreDto> q, GameMode mode)

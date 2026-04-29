@@ -8,7 +8,11 @@ using Novelog.Abstractions;
 
 namespace BanchoNET.Handlers.Lazer.Hubs;
 
-public class MetadataHub(ILogger logger, ILazerPlayerService playerService) : BaseHub<IMetadataClient>(logger)
+public class MetadataHub(
+    ILogger logger,
+    IPlayersRepository players,
+    ILazerPlayerService playerService
+) : BaseHub<IMetadataClient>(logger)
 {
     private const string PresenceWatchersGroup = "presence-watchers";
     private static string UserPresenceGroup(int userId) => $"presence:{userId}";
@@ -26,47 +30,49 @@ public class MetadataHub(ILogger logger, ILazerPlayerService playerService) : Ba
         UserActivity? activity
     ) {
         if (!TryGetUserId(out var userId)) return;
-        if (!ConnectedUsers.TryGetValue(userId, out var presence)) return;
+        ConnectedUsers.TryGetValue(userId, out var presence);
+
+        if (presence.Activity == null && activity == null)
+            return;
 
         presence.Activity = activity;
         ConnectedUsers[userId] = presence;
-        
-        await Clients.Group(PresenceWatchersGroup)
-            .UserPresenceUpdated(userId, presence);
 
-        await Clients.Group(UserPresenceGroup(userId))
-            .FriendPresenceUpdated(userId, presence);
-        
-        Logger.LogDebug($"{userId} updated their activity to {activity?.GetType()}");
+        await Task.WhenAll(
+            presence.Status != UserStatus.Offline
+                ? BroadcastUserPresenceUpdate(userId, presence)
+                : Task.CompletedTask,
+            Clients.Caller.UserPresenceUpdated(userId, presence)
+        );
     }
 
     public async Task UpdateStatus(
         UserStatus? status
     ) {
         if (!TryGetUserId(out var userId)) return;
-        if (!ConnectedUsers.TryGetValue(userId, out var presence)) return;
+        ConnectedUsers.TryGetValue(userId, out var presence);
+
+        if (presence.Status == status) return;
         
         presence.Status = status;
         ConnectedUsers[userId] = presence;
 
-        await Clients.Group(PresenceWatchersGroup)
-            .UserPresenceUpdated(userId, presence);
-
-        await Clients.Group(UserPresenceGroup(userId))
-            .FriendPresenceUpdated(userId, presence);
-        
-        Logger.LogDebug($"{userId} updated their status to {status}");
+        await BroadcastUserPresenceUpdate(userId, presence);
     }
 
     public async Task BeginWatchingUserPresence() {
+        foreach (var (userId, presence) in ConnectedUsers)
+        {
+            if (presence.Status == UserStatus.Offline) continue;
+            
+            await Clients.Caller.UserPresenceUpdated(userId, presence);
+        }
+        
         await Groups.AddToGroupAsync(Context.ConnectionId, PresenceWatchersGroup);
-        Logger.LogDebug("Invoked");
     }
 
-    public async Task EndWatchingUserPresence() {
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, PresenceWatchersGroup);
-        Logger.LogDebug("Invoked");
-    }
+    public async Task EndWatchingUserPresence()
+        => await Groups.RemoveFromGroupAsync(Context.ConnectionId, PresenceWatchersGroup);
 
     public async Task<MultiplayerPlaylistItemStats[]> BeginWatchingMultiplayerRoom(
         long id
@@ -81,45 +87,60 @@ public class MetadataHub(ILogger logger, ILazerPlayerService playerService) : Ba
         Logger.LogDebug("Invoked");
     }
 
-    public async Task RefreshFriends(
-        IPlayersRepository players
-    ) {
+    public async Task RefreshFriends() {
         if (!TryGetUserId(out var userId)) return;
 
-        var prevFriends = playerService.GetPlayer(userId)?.Friends ?? [];
-        var friends = await players.GetPlayerFriends(userId);
+        var friendIds = playerService.GetPlayer(userId)?.Friends ?? [];
+        foreach (var friendId in friendIds)
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, UserPresenceGroup(friendId));
         
-        foreach (var friendId in friends.Select(f => f.TargetId))
+        friendIds = (await players.GetPlayerFriends(userId))
+            .Select(f => f.TargetId)
+            .ToArray();
+        
+        foreach (var friendId in friendIds)
         {
-            if (prevFriends.Contains(friendId)) continue;
-            
             await Groups.AddToGroupAsync(Context.ConnectionId, UserPresenceGroup(friendId));
             
             if (ConnectedUsers.TryGetValue(friendId, out var presence))
                 await Clients.Caller.FriendPresenceUpdated(friendId, presence);
         }
         
-        playerService.AssignFriends(userId, friends.Select(f => f.TargetId));
-        
-        Logger.LogDebug("Invoked");
+        playerService.AssignFriends(userId, friendIds);
     }
 
-    public override Task OnConnectedAsync() {
+    public override async Task OnConnectedAsync() {
         if (TryGetUserId(out var userId))
+        {
             ConnectedUsers.TryAdd(userId, new UserPresence());
+            await RefreshFriends();
+        }
         
-        return base.OnConnectedAsync();
+        await base.OnConnectedAsync();
     }
 
-    public override Task OnDisconnectedAsync(
+    public override async Task OnDisconnectedAsync(
         Exception exception
     ) {
         if (TryGetUserId(out var userId))
         {
-            ConnectedUsers.TryRemove(userId, out _);
+            ConnectedUsers.TryRemove(userId, out var presence);
             playerService.RemovePlayer(userId);
+            
+            if (presence.Status != UserStatus.Offline)
+                await BroadcastUserPresenceUpdate(userId, null);
         }
         
-        return base.OnDisconnectedAsync(exception);
+        await base.OnDisconnectedAsync(exception);
+    }
+
+    private Task BroadcastUserPresenceUpdate(
+        int userId,
+        UserPresence? presence
+    ) {
+        return Task.WhenAll(
+            Clients.Group(PresenceWatchersGroup).UserPresenceUpdated(userId, presence),
+            Clients.Group(UserPresenceGroup(userId)).FriendPresenceUpdated(userId, presence)
+        );
     }
 }

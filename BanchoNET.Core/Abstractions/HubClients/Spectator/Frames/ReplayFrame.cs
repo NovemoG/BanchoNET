@@ -7,9 +7,6 @@ public class ReplayFrame
 {
     [Key(0)]
     public double Time;
-
-    [Key(1)]
-    public FrameHeader? Header;
     
     public ReplayFrame() { }
 

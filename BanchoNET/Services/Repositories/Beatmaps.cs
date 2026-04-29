@@ -141,8 +141,8 @@ public class BeatmapsRepository(
 		var beatmapSet = await beatmapHandler.GetBeatmapSetFromApi(setId);
 		if (beatmapSet == null) return;
 		
-		beatmaps.InsertBeatmapSet(beatmapSet);
 		await InsertBeatmapSet(beatmapSet);
+		beatmaps.InsertBeatmapSet(beatmapSet);
 	}
 
 	/// <summary>

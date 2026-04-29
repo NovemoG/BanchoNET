@@ -1,5 +1,5 @@
 ﻿using System.Text.Json.Serialization;
-using BanchoNET.Core.Models.Api.Scores;
+using BanchoNET.Core.Models.Scores;
 
 namespace BanchoNET.Core.Models.Api.Beatmaps;
 
@@ -28,13 +28,13 @@ public class ScoreSubmitRequestDto
     
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("mods")]
-    public List<ApiMod>? Mods { get; set; }
+    public ApiMod[]? Mods { get; set; }
     
     [JsonPropertyName("statistics")]
-    public Statistics Statistics { get; set; } = new();
+    public Dictionary<HitResult, int> Statistics { get; set; } = new();
     
     [JsonPropertyName("maximum_statistics")]
-    public MaxStatistics MaximumStatistics { get; set; } = new();
+    public Dictionary<HitResult, int> MaximumStatistics { get; set; } = new();
     
     [JsonPropertyName("pauses")]
     public int[] Pauses { get; set; } = [];

@@ -1,4 +1,5 @@
 ﻿using BanchoNET.Core.Models.Api.Scores;
+using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Utils.Extensions;
 using Microsoft.AspNetCore.Mvc;
 
@@ -22,22 +23,8 @@ public partial class UsersController
             return BadRequest();
         
         var bestScores = await scores.GetPlayerBestScores(userId, gameMode, offset, limit);
-        
-        var bestScoresList = new List<ApiScoreBest>();
-        foreach (var score in bestScores)
-        {
-            var beatmap = await Beatmaps.GetBeatmap(score.MapId);
-            if (beatmap == null)
-            {
-                offset++;
-                continue;
-            }
-            
-            bestScoresList.Add(new ApiScoreBest(score, player, beatmap, beatmap.Set, offset));
-            offset++;
-        }
 
-        return JsonSnake(bestScoresList);
+        return JsonSnake(bestScores.Select((s, i) => new ApiScoreBest(s, player, s.Beatmap, s.Beatmap.Beatmapset, i)));
     }
     
     [HttpGet("scores/{type}")]
@@ -48,9 +35,25 @@ public partial class UsersController
         [FromQuery] int limit,
         [FromQuery] string mode
     ) {
-        if (!User.TryGetUserId(out _)) return Unauthorized();
+        if (!User.TryGetUserId(out var uid)) return Unauthorized();
         if (!EnumExtensions.ToModeMap.TryGetValue(mode, out var gameMode)) return BadRequest();
 
-        return JsonSnake(new List<ApiScoreExtended>());
+        List<ScoreDto> tempScores;
+        switch (type)
+        {
+            case "recent":
+                tempScores = await scores.GetPlayerRecentScores(uid, gameMode, offset, limit);
+                return JsonSnake(tempScores.Select(s => new ApiScoreExtended(s, s.Player, s.Beatmap)));
+            
+            case "firsts":
+                tempScores = await scores.GetPlayerFirstPlaceScores(uid, gameMode, offset, limit);
+                return JsonSnake(tempScores.Select(s => new ApiScoreExtended(s, s.Player, s.Beatmap)));
+            
+            case "pinned":
+                return JsonSnake(new List<ApiScoreExtended>());
+            
+            default:
+                return BadRequest();
+        }
     }
 }

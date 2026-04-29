@@ -49,7 +49,7 @@ public partial class BeatmapsController
         var (leaderboardScores, scoreCount, playerBest) = await scores.GetLeaderboardScores(
             leaderboardType,
             gameMode,
-            mods.Select(m => new ApiMod(m, acronymOnly: true)).ToList(),
+            mods.Select(m => new ApiMod(m, acronymOnly: true)).ToArray(),
             uid,
             player.CountryCode.ToString().ToLower(),
             player.Friends.ToHashSet(),
