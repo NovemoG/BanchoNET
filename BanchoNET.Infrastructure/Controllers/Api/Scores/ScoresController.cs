@@ -28,6 +28,6 @@ public partial class ScoresController(
         
         var recentScores = await scores.GetRecentScores(gameMode, offset, limit);
         
-        return JsonSnake(recentScores.Select(s => new ApiScoreExtended(s, s.Player, s.Beatmap)));
+        return JsonSnake(recentScores.Select(s => new ApiScoreExtended(s, s.Player, s.Beatmap, s.Beatmap.Beatmapset)));
     }
 }

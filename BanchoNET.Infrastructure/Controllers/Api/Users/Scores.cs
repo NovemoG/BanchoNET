@@ -43,11 +43,11 @@ public partial class UsersController
         {
             case "recent":
                 tempScores = await scores.GetPlayerRecentScores(uid, gameMode, offset, limit);
-                return JsonSnake(tempScores.Select(s => new ApiScoreExtended(s, s.Player, s.Beatmap)));
+                return JsonSnake(tempScores.Select(s => new ApiScoreExtended(s, s.Player, s.Beatmap, s.Beatmap.Beatmapset)));
             
             case "firsts":
                 tempScores = await scores.GetPlayerFirstPlaceScores(uid, gameMode, offset, limit);
-                return JsonSnake(tempScores.Select(s => new ApiScoreExtended(s, s.Player, s.Beatmap)));
+                return JsonSnake(tempScores.Select(s => new ApiScoreExtended(s, s.Player, s.Beatmap, s.Beatmap.Beatmapset)));
             
             case "pinned":
                 return JsonSnake(new List<ApiScoreExtended>());

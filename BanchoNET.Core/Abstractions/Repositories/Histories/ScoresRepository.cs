@@ -100,6 +100,7 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
             .AsNoTracking()
             .Include(s => s.Player)
             .Include(s => s.Beatmap)
+                .ThenInclude(b => b.Beatmapset)
             .Where(s => s.PlayerId == playerId && s.Mode == (int)mode)
             .OrderByDescending(s => s.PlayTime)
             .Skip(start)
@@ -117,6 +118,7 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
             .AsNoTracking()
             .Include(s => s.Player)
             .Include(s => s.Beatmap)
+                .ThenInclude(b => b.Beatmapset)
             .Where(s => s.PlayerId == playerId
                         && s.Mode == (int)mode
                         && s.Status == (int)SubmissionStatus.Best
@@ -308,6 +310,7 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
             .AsNoTracking()
             .Include(s => s.Player)
             .Include(s => s.Beatmap)
+                .ThenInclude(s => s.Beatmapset)
             .Where(s => s.Mode == (int)mode
                         && s.Ranked
                         && !s.IsRestricted
