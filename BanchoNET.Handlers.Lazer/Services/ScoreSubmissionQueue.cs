@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Models;
@@ -9,6 +8,7 @@ using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Scores;
 using BanchoNET.Core.Utils.Extensions;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Novelog.Abstractions;
 
@@ -16,13 +16,20 @@ namespace BanchoNET.Handlers.Lazer.Services;
 
 public sealed partial class ScoreSubmissionQueue(
     ILogger logger,
-    IServiceScopeFactory scopeFactory
+    IServiceScopeFactory scopeFactory,
+    IMemoryCache cache
 ) : ConcurrentBackgroundQueue, IScoreSubmissionQueue
 {
-    private static readonly ConcurrentDictionary<int, ScoreResponseDto> Scores = new();
-    
     private static long _nextScoreId;
     private static long GetNextScoreId => Interlocked.Increment(ref _nextScoreId);
+    
+    private static readonly MemoryCacheEntryOptions ScoreCacheOptions = new()
+    {
+        AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(24)
+    };
+    
+    public bool TryGetScore(long id, out ScoreResponseDto? score)
+        => cache.TryGetValue(id, out score);
     
     public async Task<ScoreResponseDto?> EnqueueScore(
         ScoreRequestDto request,
@@ -30,9 +37,6 @@ public sealed partial class ScoreSubmissionQueue(
         int beatmapId
     ) {
         //TODO store scores in db and retrieve them after restart
-        
-        if (Scores.TryGetValue(userId, out var value) && userId != value.UserId)
-            return null;
 
         using var scope = scopeFactory.CreateScope();
         var beatmaps = scope.ServiceProvider.GetRequiredService<IBeatmapsRepository>();
@@ -49,7 +53,8 @@ public sealed partial class ScoreSubmissionQueue(
             UserId = userId
         };
 
-        return Scores.AddOrUpdate(userId, response, (_, _) => response);
+        cache.Set(response.Id, response, ScoreCacheOptions);
+        return response;
     }
 
     public async Task<ApiScore?> SubmitScore(
@@ -58,9 +63,8 @@ public sealed partial class ScoreSubmissionQueue(
         int userId,
         int beatmapId
     ) {
-        if (!Scores.TryGetValue(userId, out var soloRequest)
-            || soloRequest.UserId != userId
-            || soloRequest.Id != queueId
+        if (!TryGetScore(queueId, out var soloRequest)
+            || soloRequest!.UserId != userId
             || soloRequest.BeatmapId != beatmapId)
         {
             return null;
@@ -289,6 +293,8 @@ public sealed partial class ScoreSubmissionQueue(
             
             if (score.Grade >= Grade.A)
                 IncreaseGrade(stats, score.Grade);
+            
+            //TODO save db
         }
     }
 

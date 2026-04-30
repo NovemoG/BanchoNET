@@ -239,6 +239,7 @@ public class Program
 		];
 
 		builder.Services.AddHttpClient()
+			.AddMemoryCache()
 			.AddSessionServices(assemblies)
 			.AddSingleton<IUserIdProvider, SubUserIdProvider>()
 			.AddSignalR(options =>

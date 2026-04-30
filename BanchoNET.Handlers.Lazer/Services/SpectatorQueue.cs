@@ -57,29 +57,15 @@ public sealed partial class ScoreSubmissionQueue
         var userId = spectatorState.Score!.User!.Id;
         var scoreToken = spectatorState.ScoreToken!.Value;
         
-        if (!Scores.TryGetValue(userId, out var scoreRequest))
+        if (!TryGetScore(scoreToken, out var scoreRequest))
             return;
 
-        var scope = scopeFactory.CreateScope();
-        var scores = scope.ServiceProvider.GetRequiredService<ILazerScoresRepository>();
-
-        if (scoreRequest.Id != scoreToken)
-        {
-            logger.LogWarning("Score token mismatch");
-            Scores.TryRemove(userId, out _);
-            
-            if (scoreRequest.Score != null)
-                await scores.RemoveScore(scoreRequest.Score.Id);
-            
-            return;
-        }
-
-        if (scoreRequest.Score == null)
+        if (scoreRequest!.Score == null)
         {
             if (spectatorState.SubmitTime > DateTime.UtcNow.AddSeconds(-TIMEOUT_INTERVAL_SECONDS))
             {
                 logger.LogWarning("Score submission timed out");
-                Scores.TryRemove(userId, out _);
+                cache.Remove(scoreToken);
                 return;
             }
             
@@ -100,6 +86,9 @@ public sealed partial class ScoreSubmissionQueue
         
         try
         {
+            var scope = scopeFactory.CreateScope();
+            var scores = scope.ServiceProvider.GetRequiredService<ILazerScoresRepository>();
+            
             logger.LogInfo($"Writing replay for score {scoreId}");
             
             ReplaySerializer.Serialize(scoreRequest.Score, spectatorState.Frames, scoreRequest.Beatmap!);
@@ -115,7 +104,7 @@ public sealed partial class ScoreSubmissionQueue
         }
         finally
         {
-            Scores.TryRemove(userId, out _);
+            cache.Remove(scoreToken);
         }
     }
 }
