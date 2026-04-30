@@ -139,8 +139,7 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
                         && s.Ranked)
             .Where(s =>
                 !DbContext.Scores.Any(o =>
-                    o.PlayerId == playerId
-                    && o.Mode == (int)mode
+                    o.Mode == (int)mode
                     && o.Status == (int)SubmissionStatus.Best
                     && o.Ranked
                     && o.MapId == s.MapId
@@ -165,8 +164,7 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
                         && s.Ranked)
             .Where(s =>
                 !DbContext.Scores.Any(o =>
-                    o.PlayerId == playerId
-                    && o.Mode == (int)mode
+                    o.Mode == (int)mode
                     && o.Status == (int)SubmissionStatus.Best
                     && o.Ranked
                     && o.MapId == s.MapId

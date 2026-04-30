@@ -295,9 +295,7 @@ public class PlayersRepository : IPlayersRepository
 				UpdatedAt = peakRank.Date
 			},
 			ScoresBestCount = userInfo.TopPlaysCount,
-			ScoresFirstCount = 0, //TODO
 			ScoresPinnedCount = 0, //TODO
-			ScoresRecentCount = 0, //TODO
 			Statistics = stats,
 			DailyChallengeUserStats = {
 				UserId = playerId

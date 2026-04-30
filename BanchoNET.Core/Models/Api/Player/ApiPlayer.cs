@@ -13,7 +13,7 @@ public class ApiPlayer : BasicApiPlayer
     public int MaxBlocks { get; set; } = 200;
     public int MaxFriends { get; set; } = 1000;
     public string? Occupation { get; set; }
-    public string Playmode { get; set; } = "osu"; //TODO main mode
+    public string Playmode { get; set; } = "osu";
     public string[] Playstyle { get; set; } = [];
     public int PostCount { get; set; }
     public int ProfileHue { get; set; }

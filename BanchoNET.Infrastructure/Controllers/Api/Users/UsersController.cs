@@ -34,6 +34,8 @@ public partial class UsersController(
         var apiPlayer = await Players.GetPlayerInfoForMode<ApiPlayer>(userId, mode);
         if (apiPlayer == null) return NotFound();
         
+        mode = EnumExtensions.ToModeMap[apiPlayer.Playmode];
+        
         apiPlayer.ScoresFirstCount = await scores.PlayerFirstPlaceScoresCount(userId, mode);
         apiPlayer.ScoresRecentCount = await scores.PlayerRecentScoresCount(userId, mode);
 
