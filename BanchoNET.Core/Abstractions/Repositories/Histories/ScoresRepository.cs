@@ -101,11 +101,25 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
             .Include(s => s.Player)
             .Include(s => s.Beatmap)
                 .ThenInclude(b => b.Beatmapset)
-            .Where(s => s.PlayerId == playerId && s.Mode == (int)mode)
+            .Where(s => s.PlayerId == playerId
+                        && s.Mode == (int)mode
+                        && s.PlayTime > DateTime.UtcNow.AddHours(-24))
             .OrderByDescending(s => s.PlayTime)
             .Skip(start)
             .Take(count)
             .ToListAsync();
+    }
+
+    public async Task<int> PlayerRecentScoresCount(
+        int playerId,
+        GameMode mode
+    ) {
+        return await DbContext.Scores
+            .AsNoTracking()
+            .Where(s => s.PlayerId == playerId
+                        && s.Mode == (int)mode
+                        && s.PlayTime > DateTime.UtcNow.AddHours(-24))
+            .CountAsync();
     }
 
     public async Task<List<ScoreDto>> GetPlayerFirstPlaceScores(
@@ -137,6 +151,29 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
             .Skip(start)
             .Take(count)
             .ToListAsync();
+    }
+
+    public async Task<int> PlayerFirstPlaceScoresCount(
+        int playerId,
+        GameMode mode
+    ) {
+        return await DbContext.Scores
+            .AsNoTracking()
+            .Where(s => s.PlayerId == playerId
+                        && s.Mode == (int)mode
+                        && s.Status == (int)SubmissionStatus.Best
+                        && s.Ranked)
+            .Where(s =>
+                !DbContext.Scores.Any(o =>
+                    o.PlayerId == playerId
+                    && o.Mode == (int)mode
+                    && o.Status == (int)SubmissionStatus.Best
+                    && o.Ranked
+                    && o.MapId == s.MapId
+                    && (OrderByPp(mode)
+                        ? o.PP > s.PP
+                        : o.LegacyTotalScore > s.LegacyTotalScore)))
+            .CountAsync();
     }
 
     public async Task<List<ScoreDto>> GetMultiplayerScores(List<int> playerIds, DateTime finishDate)

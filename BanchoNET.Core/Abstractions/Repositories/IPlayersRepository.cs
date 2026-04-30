@@ -43,6 +43,7 @@ public interface IPlayersRepository
     Task UpdatePlayerStats(Player player, GameMode mode);
     Task UpdatePlayerStats(StatsDto stats, ApiScore score);
     Task ResetPlayersStats(byte mode);
+    Task IncreasePlayerReplaysViewed(int playerId, byte mode, int mapId);
     
     Task<int> GetFriendsCount(int playerId);
     Task<List<RelationshipReadDto>> GetPlayerBlocks(int playerId);

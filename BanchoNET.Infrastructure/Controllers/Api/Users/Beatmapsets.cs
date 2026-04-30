@@ -11,7 +11,7 @@ public partial class UsersController
         int userId,
         string type
     ) {
-        if (!User.TryGetUserId(out var uid)) return Unauthorized();
+        if (!User.TryGetUserId(out _)) return Unauthorized();
 
         return JsonSnake(new List<ApiBeatmapset>());
     }

@@ -33,6 +33,9 @@ public partial class UsersController(
 
         var apiPlayer = await Players.GetPlayerInfoForMode<ApiPlayer>(userId, mode);
         if (apiPlayer == null) return NotFound();
+        
+        apiPlayer.ScoresFirstCount = await scores.PlayerFirstPlaceScoresCount(userId, mode);
+        apiPlayer.ScoresRecentCount = await scores.PlayerRecentScoresCount(userId, mode);
 
         return JsonSnake(apiPlayer);
     }

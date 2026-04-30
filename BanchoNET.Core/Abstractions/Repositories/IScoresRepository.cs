@@ -23,11 +23,21 @@ public interface IScoresRepository
         int count = 50
     );
 
+    Task<int> PlayerRecentScoresCount(
+        int playerId,
+        GameMode mode
+    );
+
     Task<List<ScoreDto>> GetPlayerFirstPlaceScores(
         int playerId,
         GameMode mode,
         int start = 0,
         int count = 50
+    );
+
+    Task<int> PlayerFirstPlaceScoresCount(
+        int playerId,
+        GameMode mode
     );
 
     Task<List<ScoreDto>> GetMultiplayerScores(

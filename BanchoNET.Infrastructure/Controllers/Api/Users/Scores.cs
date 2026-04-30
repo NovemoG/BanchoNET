@@ -35,18 +35,18 @@ public partial class UsersController
         [FromQuery] int limit,
         [FromQuery] string mode
     ) {
-        if (!User.TryGetUserId(out var uid)) return Unauthorized();
+        if (!User.TryGetUserId(out _)) return Unauthorized();
         if (!EnumExtensions.ToModeMap.TryGetValue(mode, out var gameMode)) return BadRequest();
 
         List<ScoreDto> tempScores;
         switch (type)
         {
             case "recent":
-                tempScores = await scores.GetPlayerRecentScores(uid, gameMode, offset, limit);
+                tempScores = await scores.GetPlayerRecentScores(userId, gameMode, offset, limit);
                 return JsonSnake(tempScores.Select(s => new ApiScoreExtended(s, s.Player, s.Beatmap, s.Beatmap.Beatmapset)));
             
             case "firsts":
-                tempScores = await scores.GetPlayerFirstPlaceScores(uid, gameMode, offset, limit);
+                tempScores = await scores.GetPlayerFirstPlaceScores(userId, gameMode, offset, limit);
                 return JsonSnake(tempScores.Select(s => new ApiScoreExtended(s, s.Player, s.Beatmap, s.Beatmap.Beatmapset)));
             
             case "pinned":

@@ -547,6 +547,20 @@ public class PlayersRepository : IPlayersRepository
 		await _dbContext.SaveChangesAsync();
 	}
 
+	public async Task IncreasePlayerReplaysViewed(
+		int playerId,
+		byte mode,
+		int mapId
+	) {
+		var stats = await _dbContext.Stats.FindAsync(playerId, mode);
+		
+		if (stats is null)
+			return;
+		
+		stats.ReplayViews += 1;
+		await _dbContext.SaveChangesAsync();
+	}
+
 	public async Task<int> GetFriendsCount(
 		int playerId
 	) {
