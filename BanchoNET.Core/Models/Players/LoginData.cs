@@ -1,4 +1,6 @@
-﻿namespace BanchoNET.Core.Models.Players;
+﻿using BanchoNET.Core.Models.Stable;
+
+namespace BanchoNET.Core.Models.Players;
 
 public class LoginData
 {

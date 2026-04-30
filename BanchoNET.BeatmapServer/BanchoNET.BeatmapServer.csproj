@@ -6,4 +6,14 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\BanchoNET.Core\BanchoNET.Core.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Using Include="Novelog" />
+        <Using Include="Novelog.Abstractions" />
+        <Using Remove="Microsoft.Extensions.Logging" />
+    </ItemGroup>
+
 </Project>

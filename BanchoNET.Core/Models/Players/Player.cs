@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
 using BanchoNET.Core.Models.Dtos;
-using BanchoNET.Core.Models.Multiplayer;
 using BanchoNET.Core.Models.Privileges;
 using BanchoNET.Core.Models.Scores;
+using BanchoNET.Core.Models.Stable.Multiplayer;
 using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils.Extensions;
 

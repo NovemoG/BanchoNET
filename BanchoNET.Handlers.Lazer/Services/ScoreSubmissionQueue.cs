@@ -10,7 +10,6 @@ using BanchoNET.Core.Models.Scores;
 using BanchoNET.Core.Utils.Extensions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
-using Novelog.Abstractions;
 
 namespace BanchoNET.Handlers.Lazer.Services;
 

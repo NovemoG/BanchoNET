@@ -1,5 +1,4 @@
-﻿using System.Text;
-using BanchoNET.Core.Abstractions.Services;
+﻿using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Utils;
 using BanchoNET.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;

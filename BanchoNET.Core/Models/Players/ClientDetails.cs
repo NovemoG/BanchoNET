@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using BanchoNET.Core.Models.Stable;
 
 namespace BanchoNET.Core.Models.Players;
 

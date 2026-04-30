@@ -1,7 +1,7 @@
-﻿using BanchoNET.Core.Abstractions.HubClients.Spectator;
-using BanchoNET.Core.Abstractions.HubClients.Spectator.Frames;
-using BanchoNET.Core.Models.Api.Scores;
+﻿using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Models.Beatmaps;
+using BanchoNET.Core.Models.Lazer.Spectator;
+using BanchoNET.Core.Models.Lazer.Spectator.Frames;
 
 namespace BanchoNET.Core.Models.Api;
 

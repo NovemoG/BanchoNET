@@ -1,5 +1,4 @@
 ﻿using BanchoNET.Core.Models.Players;
-using Novelog;
 
 namespace BanchoNET.Core.Utils;
 

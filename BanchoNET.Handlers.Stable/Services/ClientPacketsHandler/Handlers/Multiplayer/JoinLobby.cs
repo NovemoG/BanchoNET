@@ -1,0 +1,13 @@
+﻿using BanchoNET.Core.Models.Players;
+
+namespace BanchoNET.Handlers.Stable.Services.ClientPacketsHandler;
+
+public partial class ClientPacketsHandler
+{
+	private Task JoinLobby(Player player, BinaryReader br)
+	{
+		multiplayerCoordinator.JoinLobby(player);
+
+		return Task.CompletedTask;
+	}
+}

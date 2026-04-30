@@ -15,4 +15,10 @@
       <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     </ItemGroup>
 
+    <ItemGroup>
+        <Using Include="Novelog" />
+        <Using Include="Novelog.Abstractions" />
+        <Using Remove="Microsoft.Extensions.Logging" />
+    </ItemGroup>
+
 </Project>

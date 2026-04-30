@@ -12,12 +12,14 @@
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="Cronos" Version="0.13.0" />
       <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.3" />
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Models\Metadata\" />
-      <Folder Include="Models\Multiplayer\" />
+        <Using Include="Novelog" />
+        <Using Include="Novelog.Abstractions" />
+        <Using Remove="Microsoft.Extensions.Logging" />
     </ItemGroup>
 
 </Project>

@@ -26,15 +26,20 @@ public partial class UsersController(
     ) {
         if (!User.TryGetUserId(out _)) return Unauthorized();
         
-        var mode = GameMode.RelaxStd;
+        GameMode? requestedMode = null;
+        
         if (!string.IsNullOrWhiteSpace(forMode))
-            if (!EnumExtensions.ToModeMap.TryGetValue(forMode, out mode))
+        {
+            if (!EnumExtensions.ToModeMap.TryGetValue(forMode, out var parsedMode))
                 return BadRequest();
 
-        var apiPlayer = await Players.GetPlayerInfoForMode<ApiPlayer>(userId, mode);
+            requestedMode = parsedMode;
+        }
+
+        var apiPlayer = await Players.GetPlayerInfoForMode<ApiPlayer>(userId, requestedMode);
         if (apiPlayer == null) return NotFound();
-        
-        mode = EnumExtensions.ToModeMap[apiPlayer.Playmode];
+
+        var mode = requestedMode ?? EnumExtensions.ToModeMap[apiPlayer.Playmode];
         
         apiPlayer.ScoresFirstCount = await scores.PlayerFirstPlaceScoresCount(userId, mode);
         apiPlayer.ScoresRecentCount = await scores.PlayerRecentScoresCount(userId, mode);

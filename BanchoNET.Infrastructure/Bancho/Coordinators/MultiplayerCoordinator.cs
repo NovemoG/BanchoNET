@@ -2,13 +2,12 @@
 using BanchoNET.Core.Abstractions.Bancho.Services;
 using BanchoNET.Core.Abstractions.Repositories.Histories;
 using BanchoNET.Core.Models.Channels;
-using BanchoNET.Core.Models.Multiplayer;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
+using BanchoNET.Core.Models.Stable.Multiplayer;
 using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
-using Novelog.Abstractions;
 
 namespace BanchoNET.Infrastructure.Bancho.Coordinators;
 

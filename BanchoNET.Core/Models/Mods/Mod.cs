@@ -1,0 +1,90 @@
+using System.Text.Json.Serialization;
+using BanchoNET.Core.Utils;
+using MessagePack;
+
+namespace BanchoNET.Core.Models.Mods;
+
+[MessagePackObject]
+public class Mod : IEquatable<Mod>
+{
+    [JsonPropertyName("acronym")]
+    [Key(0)]
+    public string Acronym { get; init; } = "Unknown";
+    
+    [JsonIgnore]
+    [Key(1)]
+    [MessagePackFormatter(typeof(ModSettingsDictionaryFormatter))]
+    public Dictionary<string, object> Settings { get; set; } = new();
+    
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), JsonInclude]
+    [JsonPropertyName("settings")]
+    private Dictionary<string, object>? SettingsForSerialization
+    {
+        get => Settings.Count > 0 ? Settings : null;
+        set => Settings = value ?? new Dictionary<string, object>();
+    }
+    
+    [JsonConstructor]
+    [SerializationConstructor]
+    public Mod() { }
+
+    public Mod(
+        string modString,
+        bool acronymOnly = false
+    ) {
+        if (acronymOnly)
+        {
+            Acronym = modString;
+            return;
+        }
+        
+        var modValues = modString.Split(',');
+        Acronym = modValues[0];
+
+        foreach (var setting in modValues[1..])
+        {
+            var kv = setting.Split('=');
+            Settings.Add(kv[0], kv[1]);
+        }
+    }
+
+    public override string ToString() {
+        var modString = $"{Acronym}";
+
+        modString = Settings.Aggregate(modString,
+            (current, setting) => current + $",{setting.Key}={setting.Value}"
+        );
+
+        return $"{modString};";
+    }
+    
+    public static bool operator ==(Mod? left, Mod? right) {
+        if (left is null) return right is null;
+        return left.Equals(right);
+    }
+    
+    public static bool operator !=(Mod? left, Mod? right) {
+        return !(left == right);
+    }
+    
+    public bool Equals(
+        Mod? other
+    ) {
+        if (other is null) return false;
+        if (ReferenceEquals(this, other)) return true;
+        return Acronym == other.Acronym;
+    }
+
+    public override bool Equals(
+        object? obj
+    ) {
+        if (obj is null) return false;
+        if (ReferenceEquals(this, obj)) return true;
+        if (obj.GetType() != GetType()) return false;
+        return Equals((Mod)obj);
+    }
+
+    public override int GetHashCode() {
+        return Acronym.GetHashCode();
+    }
+}

@@ -1,11 +1,11 @@
 ﻿using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Repositories.Histories;
 using BanchoNET.Core.Models;
-using BanchoNET.Core.Models.Api;
 using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Db;
 using BanchoNET.Core.Models.Dtos;
+using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Models.Scores;
 using BanchoNET.Core.Utils.Extensions;
 using Microsoft.EntityFrameworkCore;
@@ -90,7 +90,7 @@ public class LazerScoresRepository(BanchoDbContext dbContext) : ScoresRepository
     public async Task<ApiScore?> GetPlayerBestScoreWithModsOnMap(
         int playerId,
         GameMode mode,
-        ApiMod[] mods,
+        Mod[] mods,
         Beatmap beatmap
     ) {
         var score = await DbContext.Scores
@@ -111,7 +111,7 @@ public class LazerScoresRepository(BanchoDbContext dbContext) : ScoresRepository
         ApiScore score,
         bool withMods,
         Beatmap beatmap,
-        ApiMod[]? mods = null
+        Mod[]? mods = null
     ) {
         score.LeaderboardPosition = await DbContext.Scores
             .Include(s => s.Player)
@@ -133,7 +133,7 @@ public class LazerScoresRepository(BanchoDbContext dbContext) : ScoresRepository
     public async Task<(List<ApiScore>, int, ApiScore?)> GetLeaderboardScores(
         LeaderboardType type,
         GameMode mode,
-        ApiMod[] mods,
+        Mod[] mods,
         int playerId,
         string country,
         HashSet<int> friendIds,

@@ -1,5 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using Novelog.Abstractions;
 
 namespace BanchoNET.Core.Abstractions.Bancho.Services;
 

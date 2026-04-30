@@ -8,7 +8,6 @@ using BanchoNET.Core.Utils.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Novelog.Abstractions;
 
 namespace BanchoNET.Infrastructure.Controllers;
 

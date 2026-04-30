@@ -5,7 +5,6 @@ using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Scores;
-using Novelog;
 using Pp;
 
 namespace BanchoNET.Core.Utils.Extensions;

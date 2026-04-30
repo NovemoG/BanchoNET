@@ -1,4 +1,4 @@
-﻿using BanchoNET.Core.Models.Multiplayer;
+﻿using BanchoNET.Core.Models.Stable.Multiplayer;
 
 namespace BanchoNET.Core.Abstractions.Bancho.Services;
 

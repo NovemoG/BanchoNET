@@ -1,7 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Dtos;
-using BanchoNET.Core.Utils.Extensions;
 
 namespace BanchoNET.Core.Models.Api.Beatmaps;
 

@@ -1,5 +1,4 @@
-﻿using BanchoNET.Core.Models.Api.Scores;
-using BanchoNET.Core.Models.Dtos;
+﻿using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Scores;
 using BanchoNET.Core.Utils.Extensions;
 

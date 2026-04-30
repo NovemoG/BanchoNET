@@ -1,6 +1,5 @@
 ﻿using BanchoNET.Core.Abstractions.Bancho.Services;
-using BanchoNET.Core.Models.Multiplayer;
-using Novelog.Abstractions;
+using BanchoNET.Core.Models.Stable.Multiplayer;
 
 namespace BanchoNET.Infrastructure.Bancho.Services;
 

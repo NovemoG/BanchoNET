@@ -1,7 +1,6 @@
 ﻿using BanchoNET.Core.Utils.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
-using Novelog.Abstractions;
 
 namespace BanchoNET.Core.Abstractions.HubClients;
 

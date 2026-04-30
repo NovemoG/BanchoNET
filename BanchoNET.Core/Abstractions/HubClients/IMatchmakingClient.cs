@@ -1,5 +1,4 @@
-﻿using BanchoNET.Core.Abstractions.HubClients.Multiplayer;
-using BanchoNET.Core.Abstractions.HubClients.Multiplayer.Matchmaking;
+﻿using BanchoNET.Core.Models.Lazer.Multiplayer.Matchmaking;
 
 namespace BanchoNET.Core.Abstractions.HubClients;
 

@@ -1,6 +1,4 @@
-﻿using Novelog;
-
-namespace BanchoNET.Core.Utils;
+﻿namespace BanchoNET.Core.Utils;
 
 public static class Storage
 {

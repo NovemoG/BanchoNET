@@ -1,4 +1,4 @@
-﻿using BanchoNET.Core.Abstractions.HubClients.Metadata;
+﻿using BanchoNET.Core.Models.Lazer.Metadata;
 using BanchoNET.Core.Models.Players;
 
 namespace BanchoNET.Core.Abstractions.HubClients;

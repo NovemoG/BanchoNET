@@ -1,0 +1,136 @@
+﻿using BanchoNET.Core.Models;
+using BanchoNET.Core.Models.Beatmaps;
+using BanchoNET.Core.Models.Dtos;
+using BanchoNET.Core.Models.Mods;
+using BanchoNET.Core.Models.Players;
+using BanchoNET.Core.Models.Scores;
+using BanchoNET.Core.Packets;
+using BanchoNET.Core.Utils;
+using BanchoNET.Core.Utils.Extensions;
+using Microsoft.AspNetCore.Mvc;
+
+namespace BanchoNET.Handlers.Stable.Controllers.OsuApi;
+
+public partial class OsuController
+{
+	[HttpGet("osu-osz2-getscores.php")]
+	public async Task<IActionResult> GetScores(
+		[FromQuery(Name = "us")] string username,
+		[FromQuery(Name = "ha")] string passwordMD5,
+		[FromQuery(Name = "v")] int leaderboardType,
+		[FromQuery(Name = "c")] string mapMD5,
+		[FromQuery(Name = "f")] string mapFilename,
+		[FromQuery(Name = "m")] int modeValue,
+		[FromQuery(Name = "i")] int setId,
+		[FromQuery(Name = "mods")] int modsValue,
+		[FromQuery(Name = "h")] string? mapPackageHash,
+		[FromQuery(Name = "a")] string? aqnFilesFoundValue,
+		[FromQuery(Name = "s")] string? fromEditorValue = null
+	) {
+		var fromEditor = fromEditorValue == "1";
+		var aqnFilesFound = aqnFilesFoundValue == "1";
+		
+		var player = await players.GetPlayerFromLogin(username, passwordMD5);
+		if (player == null)
+			return Unauthorized("auth fail");
+
+		if (beatmapService.BeatmapNeedsUpdate(mapMD5))
+			return Responses.BytesContentResult("1|false");
+		
+		var beatmap = await beatmaps.GetBeatmap(beatmapMD5: mapMD5, setId: setId);
+		if (beatmap == null)
+		{
+			if (await beatmapHandler.CheckIfMapExistsOnBanchoByFilename(mapFilename))
+				return Ok("1|false");
+			
+			//any string can be provided through this endpoint so we shouldn't cache any
+			return Ok("-1|false");
+		}
+		
+		var mods = (LegacyMods)modsValue;
+		if (mods.HasMod(LegacyMods.Relax))
+		{
+			if (modeValue == (int)GameMode.VanillaMania)
+				mods &= ~LegacyMods.Relax;
+			else
+				modeValue += 4;
+		}
+		else if (mods.HasMod(LegacyMods.Autopilot))
+		{
+			if (modeValue is (int)GameMode.VanillaTaiko or (int)GameMode.VanillaCatch or (int)GameMode.VanillaMania)
+				mods &= ~LegacyMods.Autopilot;
+			else
+				modeValue += 8;
+		}
+
+		var mode = (GameMode)modeValue;
+		if (mode != player.Status.Mode)
+		{
+			player.Status.Mode = mode;
+			player.Status.CurrentMods = mods;
+
+			if (!player.IsRestricted)
+			{
+				playerService.EnqueueToPlayers(new ServerPackets()
+					.UserStats(player)
+					.FinalizeAndGetContent());
+			}
+		}
+
+		if (beatmap.Status < BeatmapStatus.Ranked)
+			return Responses.BytesContentResult($"{(int)beatmap.Status}|false");
+		
+		(List<ScoreDto> Scores, Score? PlayerBest) leaderboard = !fromEditor
+			? await scores.GetLeaderboardScores(
+				(LeaderboardType)leaderboardType,
+				mode,
+				mods,
+				player.Id,
+				player.Geoloc.Country.Acronym,
+				player.Friends.ToHashSet(),
+				beatmap.MD5)
+			: ([], null);
+		
+		//TODO fetch rating
+		var rating = 0.0f;
+
+		string response;
+		var responseLines = new List<string>
+		{
+			$"{(int)beatmap.Status}|false|{beatmap.Id}|{beatmap.SetId}|{leaderboard.Scores.Count}|0|",
+			$"0\n{beatmap.FullName()}\n{rating}"
+		};
+
+		if (leaderboard.Scores.Count == 0)
+		{
+			responseLines.AddRange(["", ""]);
+			response = string.Join("\n", responseLines);
+
+			return Responses.BytesContentResult(response);
+		}
+
+		responseLines.Add(leaderboard.PlayerBest != null ? FormatBestScore(leaderboard.PlayerBest, player) : "");
+		responseLines.AddRange(leaderboard.Scores.Select((score, i) => FormatScore(score, i + 1)));
+		
+		response = string.Join("\n", responseLines);
+		
+		return Responses.BytesContentResult(response);
+	}
+
+	private static string FormatScore(ScoreDto dto, int position)
+	{
+		var scoreAsPp = dto.Mode >= (byte)GameMode.RelaxStd || AppSettings.SortLeaderboardByPP;
+		return $"{(int)dto.Id}|{dto.Player.Username}|{(int)(scoreAsPp ? MathF.Round(dto.PP) : dto.LegacyTotalScore)}|{dto.MaxCombo}|{dto.Count50}|{dto.Count100}|{dto.Count300}|{dto.Misses}|{dto.Katus}|{dto.Gekis}|{dto.LegacyPerfect}|{dto.Mods}|{dto.PlayerId}|{position}|{dto.PlayTime.ToUnixTimeSeconds()}|1"; //TODO this '1' tells client whether score has a saved replay
+	}
+
+	private static string FormatBestScore(Score score, Player player)
+	{
+		var scoreAsPp = score.Mode >= GameMode.RelaxStd || AppSettings.SortLeaderboardByPP;
+		return $"{(int)score.Id}|{player.Username}|{(int)(scoreAsPp ? MathF.Round(score.PP) : score.TotalScore)}|{score.MaxCombo}|{score.Count50}|{score.Count100}|{score.Count300}|{score.Misses}|{score.Katus}|{score.Gekis}|{score.Perfect}|{(int)score.Mods}|{player.Id}|{score.LeaderboardPosition}|{score.ClientTime.ToUnixTimeSeconds()}|1"; //TODO this '1' tells client whether score has a saved replay
+	}
+
+	private static long DateTimeToUnix(DateTime dateTime)
+	{
+		return new DateTimeOffset(dateTime.ToUniversalTime()).ToUnixTimeSeconds();
+	}
+}

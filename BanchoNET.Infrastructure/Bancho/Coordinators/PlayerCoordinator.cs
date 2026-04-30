@@ -4,7 +4,6 @@ using BanchoNET.Core.Models.Channels;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils.Extensions;
-using Novelog.Abstractions;
 
 namespace BanchoNET.Infrastructure.Bancho.Coordinators;
 

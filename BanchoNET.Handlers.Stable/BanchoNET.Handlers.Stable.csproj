@@ -11,4 +11,14 @@
       <ProjectReference Include="..\BanchoNET.Infrastructure\BanchoNET.Infrastructure.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="BouncyCastle.Cryptography" Version="2.6.2" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Using Include="Novelog" />
+        <Using Include="Novelog.Abstractions" />
+        <Using Remove="Microsoft.Extensions.Logging" />
+    </ItemGroup>
+
 </Project>

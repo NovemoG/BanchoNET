@@ -1,6 +1,6 @@
-﻿using BanchoNET.Core.Models.Api;
-using BanchoNET.Core.Models.Api.Beatmaps;
+﻿using BanchoNET.Core.Models.Api.Beatmaps;
 using BanchoNET.Core.Models.Api.Scores;
+using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Models.Scores;
 using BanchoNET.Core.Utils.Extensions;
 using Microsoft.AspNetCore.Mvc;
@@ -49,7 +49,7 @@ public partial class BeatmapsController
         var (leaderboardScores, scoreCount, playerBest) = await scores.GetLeaderboardScores(
             leaderboardType,
             gameMode,
-            mods.Select(m => new ApiMod(m, acronymOnly: true)).ToArray(),
+            mods.Select(m => new Mod(m, acronymOnly: true)).ToArray(),
             uid,
             player.CountryCode.ToString().ToLower(),
             player.Friends.ToHashSet(),

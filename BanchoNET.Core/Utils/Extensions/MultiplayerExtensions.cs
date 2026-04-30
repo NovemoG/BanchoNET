@@ -1,6 +1,6 @@
 ﻿using BanchoNET.Core.Models.Mods;
-using BanchoNET.Core.Models.Multiplayer;
 using BanchoNET.Core.Models.Players;
+using BanchoNET.Core.Models.Stable.Multiplayer;
 
 namespace BanchoNET.Core.Utils.Extensions;
 

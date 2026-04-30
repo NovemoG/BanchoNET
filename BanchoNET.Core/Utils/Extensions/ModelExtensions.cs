@@ -1,7 +1,7 @@
 using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Channels;
-using BanchoNET.Core.Models.Multiplayer;
 using BanchoNET.Core.Models.Players;
+using BanchoNET.Core.Models.Stable.Multiplayer;
 
 namespace BanchoNET.Core.Utils.Extensions;
 

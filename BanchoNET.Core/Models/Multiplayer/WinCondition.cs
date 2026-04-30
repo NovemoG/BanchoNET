@@ -1,9 +1,0 @@
-﻿namespace BanchoNET.Core.Models.Multiplayer;
-
-public enum WinCondition : byte
-{
-	Score,
-	Accuracy,
-	Combo,
-	ScoreV2
-}

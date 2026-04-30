@@ -1,6 +1,5 @@
 ﻿using BanchoNET.Core.Abstractions.Bancho.Services;
 using BanchoNET.Core.Models.Beatmaps;
-using Novelog.Abstractions;
 
 namespace BanchoNET.Infrastructure.Bancho.Services;
 

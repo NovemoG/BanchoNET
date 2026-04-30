@@ -1,5 +1,5 @@
-﻿using BanchoNET.Core.Abstractions.HubClients.Multiplayer;
-using BanchoNET.Core.Abstractions.HubClients.Multiplayer.RankedPlay;
+﻿using BanchoNET.Core.Models.Lazer.Multiplayer;
+using BanchoNET.Core.Models.Lazer.Multiplayer.RankedPlay;
 
 namespace BanchoNET.Core.Abstractions.HubClients;
 

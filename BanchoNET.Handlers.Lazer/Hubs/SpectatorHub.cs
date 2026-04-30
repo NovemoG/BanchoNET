@@ -1,7 +1,5 @@
 ﻿using System.Collections.Concurrent;
 using BanchoNET.Core.Abstractions.HubClients;
-using BanchoNET.Core.Abstractions.HubClients.Spectator;
-using BanchoNET.Core.Abstractions.HubClients.Spectator.Frames;
 using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Abstractions.Services.Lazer;
@@ -9,8 +7,9 @@ using BanchoNET.Core.Models.Api;
 using BanchoNET.Core.Models.Api.Player;
 using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Models.Beatmaps;
+using BanchoNET.Core.Models.Lazer.Spectator;
+using BanchoNET.Core.Models.Lazer.Spectator.Frames;
 using BanchoNET.Core.Utils.Extensions;
-using Novelog.Abstractions;
 
 namespace BanchoNET.Handlers.Lazer.Hubs;
 

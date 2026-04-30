@@ -1,10 +1,10 @@
 ﻿using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using BanchoNET.Core.Abstractions.HubClients.Spectator.Frames;
-using BanchoNET.Core.Models.Api;
 using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Models.Beatmaps;
+using BanchoNET.Core.Models.Lazer.Spectator.Frames;
+using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Models.Scores;
 using BanchoNET.Core.Utils.Extensions;
 using BanchoNET.Core.Utils.Json;
@@ -226,7 +226,7 @@ public static class ReplaySerializer
 		public long OnlineID { get; set; } = -1;
 
 		[JsonPropertyName("mods")]
-		public ApiMod[] Mods { get; set; } = [];
+		public Mod[] Mods { get; set; } = [];
 
 		[JsonPropertyName("statistics")]
 		public Dictionary<HitResult, int> Statistics { get; set; } = new();

@@ -3,7 +3,6 @@ using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
 using BanchoNET.Core.Utils.Extensions;
-using Novelog;
 
 namespace BanchoNET.Core.Models.Channels;
 

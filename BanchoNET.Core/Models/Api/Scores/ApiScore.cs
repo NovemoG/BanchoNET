@@ -17,7 +17,7 @@ public class ApiScore
     public bool Ranked { get; set; }
     public Dictionary<HitResult, int> MaximumStatistics { get; set; } = new();
     public Dictionary<HitResult, int> Statistics { get; set; } = new();
-    public ApiMod[] Mods { get; set; } = [];
+    public Mod[] Mods { get; set; } = [];
     public int TotalScoreWithoutMods { get; set; }
     public int BeatmapId { get; set; }
     public long? BestId { get; set; }

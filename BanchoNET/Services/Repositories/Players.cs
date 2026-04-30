@@ -254,20 +254,20 @@ public class PlayersRepository : IPlayersRepository
 
 	public async Task<T?> GetPlayerInfoForMode<T>(
 		int playerId,
-		GameMode mode = GameMode.RelaxStd //dummy default if the preferred mode is not known
+		GameMode? mode = null
 	) where T : ApiPlayer, new() {
 		var userInfo = await GetPlayerInfo(playerId);
 		if (userInfo == null) return null;
 
-		mode = mode >= GameMode.RelaxStd ? (GameMode)userInfo.PreferredMode : mode;
+		var playerMode = mode ?? (GameMode)userInfo.PreferredMode;
 		var country = userInfo.Country.ParseCountry();
 		
-		var peakRank = await _histories.GetPeakRank(playerId, (byte)mode) ?? new PeakRank();
-		var playcountHistory = await _histories.GetPlayCountHistory(playerId, (byte)mode);
-		var replaysHistory = await _histories.GetReplaysHistory(playerId, (byte)mode);
-		var rankHistory = await _histories.GetRankHistory(playerId, (byte)mode);
+		var peakRank = await _histories.GetPeakRank(playerId, (byte)playerMode) ?? new PeakRank();
+		var playcountHistory = await _histories.GetPlayCountHistory(playerId, (byte)playerMode);
+		var replaysHistory = await _histories.GetReplaysHistory(playerId, (byte)playerMode);
+		var rankHistory = await _histories.GetRankHistory(playerId, (byte)playerMode);
 		
-		var stats = await FetchModeStatistics(playerId, mode, userInfo.Country);
+		var stats = await FetchModeStatistics(playerId, playerMode, userInfo.Country);
 
 		var player = new T
 		{
@@ -284,7 +284,7 @@ public class PlayersRepository : IPlayersRepository
 			Username = userInfo.Username,
 			HasSupported = userInfo.HasSupported,
 			JoinDate = userInfo.CreationTime,
-			Playmode = EnumExtensions.FromModeMap[mode],
+			Playmode = EnumExtensions.FromModeMap[(GameMode)userInfo.PreferredMode],
 			Country = country,
 			IsRestricted = (userInfo.Privileges & 1) == 0,
 			FollowerCount = await GetFriendsCount(playerId),

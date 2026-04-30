@@ -1,7 +1,7 @@
-﻿using BanchoNET.Core.Abstractions.HubClients.Multiplayer;
-using BanchoNET.Core.Abstractions.HubClients.Multiplayer.Match;
-using BanchoNET.Core.Abstractions.HubClients.Multiplayer.MultiplayerRooms;
-using BanchoNET.Core.Models.Api;
+﻿using BanchoNET.Core.Models.Lazer.Multiplayer;
+using BanchoNET.Core.Models.Lazer.Multiplayer.Match;
+using BanchoNET.Core.Models.Lazer.Multiplayer.MultiplayerRooms;
+using BanchoNET.Core.Models.Mods;
 
 namespace BanchoNET.Core.Abstractions.HubClients;
 
@@ -68,7 +68,7 @@ public interface IMultiplayerClient : IMatchmakingClient, IRankedPlayClient
 
     Task UserModsChanged(
         int userId,
-        IEnumerable<ApiMod> mods
+        IEnumerable<Mod> mods
     );
 
     Task LoadRequested();

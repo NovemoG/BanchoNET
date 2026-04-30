@@ -3,7 +3,6 @@ using BanchoNET.Core.Models.Api.Player;
 using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Utils;
-using BanchoNET.Core.Utils.Extensions;
 
 namespace BanchoNET.Core.Models.Api.Beatmaps;
 

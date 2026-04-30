@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Serialization;
+using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Models.Scores;
 
 namespace BanchoNET.Core.Models.Api.Beatmaps;
@@ -28,7 +29,7 @@ public class ScoreSubmitRequestDto
     
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("mods")]
-    public ApiMod[]? Mods { get; set; }
+    public Mod[]? Mods { get; set; }
     
     [JsonPropertyName("statistics")]
     public Dictionary<HitResult, int> Statistics { get; set; } = new();

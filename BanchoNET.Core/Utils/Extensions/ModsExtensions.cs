@@ -1,7 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Text.Json;
 using BanchoNET.Core.Models;
-using BanchoNET.Core.Models.Api;
 using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Models.Mods;
 
@@ -107,18 +106,18 @@ public static class ModsExtensions
         return score.Mods.Aggregate(string.Empty, (current, mod) => current + mod);
     }
 
-    public static ApiMod[] ToMods(
+    public static Mod[] ToMods(
         this string mods
     ) {
         return string.IsNullOrWhiteSpace(mods)
             ? []
             : mods.Split(';', StringSplitOptions.RemoveEmptyEntries)
-                .Select(mod => new ApiMod(mod))
+                .Select(mod => new Mod(mod))
                 .ToArray();
     }
 
     public static LegacyMods ToLegacyMods(
-        this ApiMod[] mods
+        this Mod[] mods
     ) {
         var legacyMods = LegacyMods.None;
         

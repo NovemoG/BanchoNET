@@ -1,6 +1,5 @@
 ﻿using System.Collections.Concurrent;
 using BanchoNET.Core.Models.Players;
-using Novelog.Abstractions;
 
 namespace BanchoNET.Core.Abstractions.Bancho.Services;
 

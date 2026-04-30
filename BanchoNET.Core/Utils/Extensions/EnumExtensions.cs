@@ -1,6 +1,5 @@
 ﻿using System.Text;
 using BanchoNET.Core.Models;
-using BanchoNET.Core.Models.Api;
 using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
@@ -139,14 +138,14 @@ public static class EnumExtensions
 		return sb.ToString();
 	}
 	
-	public static ApiMod[] ToLazerMods(
+	public static Mod[] ToLazerMods(
 		this LegacyMods legacyMods
 	) {
-		var mods = new List<ApiMod>{ new(){ Acronym = "CL" } };
+		var mods = new List<Mod>{ new(){ Acronym = "CL" } };
 
 		foreach (var (mod, code) in ModMap)
 			if (legacyMods.HasMod(mod))
-				mods.Add(new ApiMod{ Acronym = code });
+				mods.Add(new Mod{ Acronym = code });
 
 		return mods.ToArray();
 	}

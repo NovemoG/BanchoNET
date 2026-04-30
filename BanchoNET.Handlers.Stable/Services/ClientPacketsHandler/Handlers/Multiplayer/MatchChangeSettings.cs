@@ -1,0 +1,101 @@
+﻿using BanchoNET.Core.Models.Mods;
+using BanchoNET.Core.Models.Players;
+using BanchoNET.Core.Models.Stable.Multiplayer;
+using BanchoNET.Core.Utils.Extensions;
+
+namespace BanchoNET.Handlers.Stable.Services.ClientPacketsHandler;
+
+public partial class ClientPacketsHandler
+{
+	private async Task MatchChangeSettings(Player player, BinaryReader br)
+	{
+		var matchData = br.ReadOsuMatch();
+		
+		if (!player.InMatch) return;
+		
+		var match = player.Match!;
+		if (match.HostId != player.Id) return;
+
+		var host = match.GetHostSlot();
+		var slots = match.Slots;
+		
+		if (matchData.Freemods != match.Freemods)
+		{
+			match.Freemods = matchData.Freemods;
+
+			if (matchData.Freemods)
+			{
+				foreach (var slot in slots)
+                {
+                	if (slot.Player == null) continue;
+                	slot.Mods = match.Mods & ~LegacyMods.SpeedChangingMods;
+                }
+                
+                match.Mods &= LegacyMods.SpeedChangingMods;
+			}
+			else
+			{
+				match.Mods &= LegacyMods.SpeedChangingMods;
+				match.Mods |= host.Mods;
+				
+				foreach (var slot in slots)
+				{
+					if (slot.Player == null) continue;
+					slot.Mods = LegacyMods.None;
+				}
+			}
+		}
+
+		if (matchData.BeatmapId == -1)
+		{
+			match.UnreadyPlayers();
+			match.PreviousBeatmapId = matchData.LobbyId;
+
+			match.BeatmapId = -1;
+			match.BeatmapName = "";
+			match.BeatmapMD5 = "";
+		}
+		else if (match.BeatmapId == -1)
+		{
+			if (match.PreviousBeatmapId != matchData.BeatmapId)
+				channels.SendBotMessageTo(match.Chat, $"Selected: {matchData.MapEmbed()}", playerService.BanchoBot);
+
+			var beatmap = await beatmaps.GetBeatmap(matchData.BeatmapMD5);
+
+			if (beatmap != null)
+			{
+				match.BeatmapId = beatmap.Id;
+				match.BeatmapName = beatmap.FullName();
+				match.BeatmapMD5 = beatmap.MD5;
+				match.Mode = host.Player!.Status.Mode.AsVanilla();
+			}
+			else
+			{
+				match.BeatmapId = matchData.BeatmapId;
+				match.BeatmapName = matchData.BeatmapName;
+				match.BeatmapMD5 = matchData.BeatmapMD5;
+				match.Mode = matchData.Mode;
+			}
+		}
+
+		if (match.Type != matchData.Type)
+		{
+			var newType = matchData.Type is LobbyType.HeadToHead or LobbyType.TagCoop
+				? LobbyTeams.Neutral
+				: LobbyTeams.Red;
+
+			foreach (var slot in slots)
+				if (slot.Player != null)
+					slot.Team = newType;
+
+			match.Type = matchData.Type;
+		}
+
+		if (match.WinCondition != matchData.WinCondition)
+			match.WinCondition = matchData.WinCondition;
+		
+		match.Name = matchData.Name;
+		
+		multiplayerCoordinator.EnqueueStateTo(match);
+	}
+}

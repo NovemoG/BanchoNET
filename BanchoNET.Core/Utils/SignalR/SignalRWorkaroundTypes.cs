@@ -1,7 +1,7 @@
-﻿using BanchoNET.Core.Abstractions.HubClients.Metadata;
-using BanchoNET.Core.Abstractions.HubClients.Multiplayer;
-using BanchoNET.Core.Abstractions.HubClients.Multiplayer.Match;
-using BanchoNET.Core.Abstractions.HubClients.Multiplayer.Matchmaking;
+﻿using BanchoNET.Core.Models.Lazer.Metadata;
+using BanchoNET.Core.Models.Lazer.Multiplayer;
+using BanchoNET.Core.Models.Lazer.Multiplayer.Match;
+using BanchoNET.Core.Models.Lazer.Multiplayer.Matchmaking;
 
 namespace BanchoNET.Core.Utils.SignalR;
 

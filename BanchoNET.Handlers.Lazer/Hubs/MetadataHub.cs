@@ -1,10 +1,9 @@
 ﻿using System.Collections.Concurrent;
 using BanchoNET.Core.Abstractions.HubClients;
-using BanchoNET.Core.Abstractions.HubClients.Metadata;
 using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Services.Lazer;
+using BanchoNET.Core.Models.Lazer.Metadata;
 using BanchoNET.Core.Models.Players;
-using Novelog.Abstractions;
 
 namespace BanchoNET.Handlers.Lazer.Hubs;
 

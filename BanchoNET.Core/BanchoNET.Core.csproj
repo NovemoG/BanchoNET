@@ -28,6 +28,13 @@
 
     <ItemGroup>
       <Folder Include="Migrations\" />
+      <Folder Include="Models\Lazer\" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Using Include="Novelog" />
+        <Using Include="Novelog.Abstractions" />
+        <Using Remove="Microsoft.Extensions.Logging" />
     </ItemGroup>
 
 </Project>

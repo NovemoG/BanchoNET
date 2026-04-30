@@ -29,7 +29,7 @@ public interface IPlayersRepository
     Task<PlayerDto?> GetPlayerInfo(int playerId);
     Task<PlayerDto?> GetPlayerInfo(string username);
     Task<MeResponse?> GetFullPlayerInfo(int playerId);
-    Task<T?> GetPlayerInfoForMode<T>(int playerId, GameMode mode = GameMode.RelaxStd) where T : ApiPlayer, new();
+    Task<T?> GetPlayerInfoForMode<T>(int playerId, GameMode? mode = null) where T : ApiPlayer, new();
     Task<List<BasicApiPlayer>> GetPlayersFromQuery(string query);
     
     Task UpdateLatestActivity(Player player);

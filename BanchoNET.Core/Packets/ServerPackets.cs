@@ -1,6 +1,6 @@
 ﻿using BanchoNET.Core.Models.Channels;
-using BanchoNET.Core.Models.Multiplayer;
 using BanchoNET.Core.Models.Players;
+using BanchoNET.Core.Models.Stable.Multiplayer;
 using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
 using Microsoft.AspNetCore.Mvc;

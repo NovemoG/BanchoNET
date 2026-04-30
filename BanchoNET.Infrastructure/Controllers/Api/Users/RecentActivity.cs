@@ -1,4 +1,4 @@
-﻿using BanchoNET.Core.Models.Api;
+﻿using BanchoNET.Core.Models.Api.Player;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BanchoNET.Infrastructure.Controllers.Api.Users;

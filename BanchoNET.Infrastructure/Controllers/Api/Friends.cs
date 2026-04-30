@@ -1,4 +1,3 @@
-using BanchoNET.Core.Models.Api;
 using BanchoNET.Core.Models.Api.Relationships;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Utils.Extensions;

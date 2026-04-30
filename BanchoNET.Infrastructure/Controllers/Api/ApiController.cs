@@ -1,5 +1,4 @@
-﻿using BanchoNET.Core.Abstractions.Bancho.Services;
-using BanchoNET.Core.Abstractions.Repositories;
+﻿using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Abstractions.Services.Lazer;
 using BanchoNET.Core.Attributes;

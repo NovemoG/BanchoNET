@@ -35,7 +35,6 @@ public class LookupController(
             return NotFound();
         }
         
-        //TODO
         return JsonSnake(new ApiBeatmap(beatmap, new ApiBeatmapset(beatmap.Set, assignBeatmapsList: false)));
     }
 

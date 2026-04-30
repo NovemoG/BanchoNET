@@ -1,4 +1,4 @@
-using BanchoNET.Core.Models.Api;
+using BanchoNET.Core.Models.Api.Beatmaps;
 using BanchoNET.Core.Utils.Extensions;
 using Microsoft.AspNetCore.Mvc;
 

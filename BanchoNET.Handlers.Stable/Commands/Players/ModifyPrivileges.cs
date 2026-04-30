@@ -1,0 +1,89 @@
+﻿using BanchoNET.Core.Attributes;
+using BanchoNET.Core.Models.Privileges;
+using BanchoNET.Core.Utils.Extensions;
+using static BanchoNET.Handlers.Stable.Commands.CommandHandlerMap;
+
+namespace BanchoNET.Handlers.Stable.Commands;
+
+public partial class CommandProcessor
+{
+    [Command("addpriv",
+        PlayerPrivileges.Administrator | PlayerPrivileges.Developer,
+        "Adds given privilege to a player with given username. Syntax: addpriv <username> <privilege>",
+        "\nYou can only add privileges that are lower in rank than yours. If player's username contains spaces" +
+        "\nplease replace them with underscores." +
+        "\nAvailable privileges: nominator, submitter, moderator, administrator, developer.",
+        ["ap"])]
+    private async Task<string> AddPrivileges(string[] args)
+    {
+        if (args.Length == 0)
+            return $"No parameter(s) provided. Syntax: {Commands.CommandProcessor.Prefix}addpriv <username> <privilege>.";
+        
+        if (args.Length == 1)
+            return $"No privilege provided. Available privileges: {string.Join(", ", ValidPrivileges)}.";
+
+        var username = args[0];
+        var priv = args[1].ToLower();
+        
+        if (!ValidPrivileges.Contains(priv) || !Enum.TryParse(priv, true, out PlayerPrivileges privilege))
+            return $"Invalid privilege provided. Available privileges: {string.Join(", ", ValidPrivileges)}.";
+        
+        if (EnumExtensions.GetHighestPrivilege((PlayerPrivileges)_playerCtx.Privileges) < privilege)
+            return "You can't add a privilege that is higher in rank than yours.";
+        
+        var player = await players.GetPlayerOrOffline(username);
+        if (player == null) return PlayerNotFound;
+        
+        if (player.IsBot)
+            return "Dummy, you can't modify bot's privileges \ud83d\udc7c";
+        
+        if (EnumExtensions.HasPrivilege(player.Privileges, privilege))
+            return $"{player.Username} already has this privilege.";
+            
+        await players.UpdatePlayerPrivileges(player, privilege, false);
+        return $"Successfully added privilege to {player.Username}.";
+    }
+
+    [Command("rmpriv",
+        PlayerPrivileges.Administrator | PlayerPrivileges.Developer,
+        "Removes given privilege from a player with given username. Syntax: rmpriv <username> <privilege>",
+        "\nYou can only remove privileges that are lower in rank than yours. If player's username contains spaces" +
+        "\nplease replace them with underscores." +
+        "\nAvailable privileges: nominator, submitter, moderator, administrator, developer.",
+        ["rp"])]
+    private async Task<string> RemovePrivileges(string[] args)
+    {
+        if (args.Length == 0)
+            return $"No parameter(s) provided. Use '{Commands.CommandProcessor.Prefix}help rmpriv' for more information.";
+        
+        if (args.Length == 1)
+            return $"No privilege provided. Available privileges: {string.Join(", ", ValidPrivileges)}.";
+        
+        var username = args[0];
+        var priv = args[1].ToLower();
+        
+        if (_playerCtx.SafeName == username.MakeSafe())
+            return "You can't remove your own privileges.";
+        
+        if (!ValidPrivileges.Contains(priv) || !Enum.TryParse(priv, true, out PlayerPrivileges privilege))
+            return $"Invalid privilege provided. Available privileges: {string.Join(", ", ValidPrivileges)}.";
+        
+        if (EnumExtensions.GetHighestPrivilege((PlayerPrivileges)_playerCtx.Privileges) <= privilege)
+            return "You can't remove a privilege that is higher or equal in rank.";
+        
+        var player = await players.GetPlayerOrOffline(username);
+        if (player == null) return PlayerNotFound;
+        
+        if (player.IsBot)
+            return "Dummy, you can't modify bot's privileges \ud83d\udc7c";
+        
+        if (EnumExtensions.CompareHighestPrivileges((PlayerPrivileges)_playerCtx.Privileges, player.Privileges))
+            return $"{player.Username} has a privilege that is higher or equal in rank.";
+        
+        if (!EnumExtensions.HasPrivilege(player.Privileges, privilege))
+            return $"{player.Username} does not have that privilege.";
+            
+        await players.UpdatePlayerPrivileges(player, privilege, true);
+        return $"Stripped {player.Username} from his privilege.";
+    }
+}

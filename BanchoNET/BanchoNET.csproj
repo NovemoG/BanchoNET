@@ -11,8 +11,6 @@
 
     <ItemGroup>
         <PackageReference Include="BCrypt.Net-Next" Version="4.1.0" />
-        <PackageReference Include="BouncyCastle.Cryptography" Version="2.6.2" />
-        <PackageReference Include="Cronos" Version="0.11.1" />
         <PackageReference Include="dotenv.net" Version="4.0.1" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.3" />
         <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack" Version="10.0.3" />
@@ -24,12 +22,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Cache\" />
-      <Folder Include="Migrations\" />
-      <Folder Include="Objects\Commands\" />
-    </ItemGroup>
-
-    <ItemGroup>
       <None Remove=".env" />
       <Content Include="..\.dockerignore">
         <Link>.dockerignore</Link>
@@ -37,7 +29,6 @@
       <Content Include="..\docker-compose.yml">
         <Link>docker-compose.yml</Link>
       </Content>
-      <Content Include=".env" />
     </ItemGroup>
 
     <ItemGroup>
@@ -47,6 +38,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\BanchoNET.BeatmapServer\BanchoNET.BeatmapServer.csproj" />
       <ProjectReference Include="..\BanchoNET.Core\BanchoNET.Core.csproj" />
       <ProjectReference Include="..\BanchoNET.Handlers.Lazer\BanchoNET.Handlers.Lazer.csproj" />
       <ProjectReference Include="..\BanchoNET.Handlers.Stable\BanchoNET.Handlers.Stable.csproj" />
