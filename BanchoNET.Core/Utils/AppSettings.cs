@@ -86,14 +86,6 @@ public static class AppSettings
             ? ""
             : menuOnclickUrl;
 
-        var searchEndpoints = Environment.GetEnvironmentVariable("OSU_DIRECT_SEARCH_ENDPOINTS");
-        OsuDirectSearchEndpoints =
-        [
-            ..string.IsNullOrEmpty(searchEndpoints)
-                ? ["https://osu.direct/api/search"]
-                : searchEndpoints.Split(",")
-        ];
-
         var downloadEndpoint = Environment.GetEnvironmentVariable("OSU_DIRECT_DOWNLOAD_ENDPOINT");
         OsuDirectDownloadEndpoint = string.IsNullOrEmpty(downloadEndpoint)
             ? "https://osu.direct/d"
@@ -156,6 +148,21 @@ public static class AppSettings
         OsuApiKey = string.IsNullOrEmpty(osuApiKey)
             ? ""
             : osuApiKey;
+
+        var osuCookie = Environment.GetEnvironmentVariable("OSU_COOKIE");
+        OsuCookie = string.IsNullOrEmpty(osuCookie)
+            ? ""
+            : osuCookie;
+
+        var clientId = Environment.GetEnvironmentVariable("CLIENT_ID");
+        OsuClientId = string.IsNullOrEmpty(clientId)
+            ? ""
+            : clientId;
+
+        var clientSecret = Environment.GetEnvironmentVariable("CLIENT_SECRET");
+        OsuClientSecret = string.IsNullOrEmpty(clientSecret)
+            ? ""
+            : clientSecret;
     }
 
     public static readonly string Domain;
@@ -172,7 +179,6 @@ public static class AppSettings
     public static readonly string MenuOnclickUrl;
     public static readonly string BanchoBotName;
     public static readonly List<string> DisallowedNames;
-    public static readonly List<string> OsuDirectSearchEndpoints;
     public static readonly List<(Activity Activity, string Description)> BotStatuses;
     public static readonly string OsuDirectDownloadEndpoint;
     public static readonly string WelcomeMessage;
@@ -184,4 +190,7 @@ public static class AppSettings
     public static readonly string CommandPrefix;
     public static readonly string? GithubToken;
     public static readonly string OsuApiKey;
+    public static readonly string OsuCookie;
+    public static readonly string OsuClientId;
+    public static readonly string OsuClientSecret;
 }

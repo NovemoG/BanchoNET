@@ -34,7 +34,7 @@ public partial class OsuController
         if (rankedStatus != 4)
             parameters["status"] = rankedStatus.ToApiFromDirect().ToString();
 
-        var searchEndpoints = AppSettings.OsuDirectSearchEndpoints;
+        var searchEndpoints = new List<string>{string.Empty}/*AppSettings.OsuDirectSearchEndpoints*/;
         var uriParams = parameters.ToString();
         string responseJson;
         int statusCode;

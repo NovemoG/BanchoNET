@@ -16,6 +16,16 @@ public class BeatmapsRepository(
 	ILegacyScoresRepository scores
 ) : IBeatmapsRepository
 {
+	public async Task<List<BeatmapsetDto>> GetRandomBeatmaps() {
+		var randomIndex = new Random().Next(0, 110);
+
+		return await dbContext.Beatmapsets
+			.Include(bs => bs.Beatmaps)
+			.Skip(randomIndex)
+			.Take(10)
+			.ToListAsync();
+	}
+	
 	public async Task<Beatmap?> GetBeatmap(
 		int mapId,
 		int setId = -1

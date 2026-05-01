@@ -121,7 +121,7 @@ public class ApiBeatmapset : BasicApiBeatmapset
             List<ApiBeatmap> apiBeatmaps = [];
             apiBeatmaps.AddRange(
                 from beatmap in beatmaps
-                select new ApiBeatmap(beatmap, beatmap != null ? this : null)
+                select new ApiBeatmap(beatmap)
             );
 
             Beatmaps = apiBeatmaps;
