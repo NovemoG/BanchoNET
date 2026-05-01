@@ -1,3 +1,4 @@
+using BanchoNET.Core.Abstractions.HubClients;
 using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Models;
@@ -8,6 +9,8 @@ using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Scores;
 using BanchoNET.Core.Utils.Extensions;
+using BanchoNET.Handlers.Lazer.Hubs;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -16,7 +19,8 @@ namespace BanchoNET.Handlers.Lazer.Services;
 public sealed partial class ScoreSubmissionQueue(
     ILogger logger,
     IServiceScopeFactory scopeFactory,
-    IMemoryCache cache
+    IMemoryCache cache,
+    IHubContext<SpectatorHub, ISpectatorClient> spectatorHub
 ) : ConcurrentBackgroundQueue, IScoreSubmissionQueue
 {
     private static long _nextScoreId;
@@ -26,8 +30,8 @@ public sealed partial class ScoreSubmissionQueue(
     {
         AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(24)
     };
-    
-    public bool TryGetScore(long id, out ScoreResponseDto? score)
+
+    private bool TryGetScore(long id, out ScoreResponseDto? score)
         => cache.TryGetValue(id, out score);
     
     public async Task<ScoreResponseDto?> EnqueueScore(

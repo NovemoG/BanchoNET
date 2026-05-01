@@ -62,7 +62,7 @@ public sealed partial class ScoreSubmissionQueue
 
         if (scoreRequest!.Score == null)
         {
-            if (spectatorState.SubmitTime > DateTime.UtcNow.AddSeconds(-TIMEOUT_INTERVAL_SECONDS))
+            if (spectatorState.SubmitTime < DateTime.UtcNow.AddSeconds(-TIMEOUT_INTERVAL_SECONDS))
             {
                 logger.LogWarning("Score submission timed out");
                 cache.Remove(scoreToken);
@@ -93,6 +93,7 @@ public sealed partial class ScoreSubmissionQueue
             
             ReplaySerializer.Serialize(scoreRequest.Score, spectatorState.Frames, scoreRequest.Beatmap!);
             await scores.ToggleScoreReplayAvailability(scoreId);
+            await spectatorHub.Clients.User(userId.ToString()).UserScoreProcessed(userId, scoreId);
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
