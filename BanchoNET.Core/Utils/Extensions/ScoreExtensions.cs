@@ -230,13 +230,13 @@ public static class ScoreExtensions
         if (da != null)
         {
             if (da.Settings.TryGetValue("circle_size", out var circleSize))
-                cs = circleSize.GetFloat();
+                cs = Convert.ToSingle(circleSize);
             
             if (da.Settings.TryGetValue("approach_rate", out var approachRate))
-                ar = approachRate.GetFloat();
+                ar = Convert.ToSingle(approachRate);
             
             if (da.Settings.TryGetValue("overall_difficulty", out var overallDifficulty))
-                od = overallDifficulty.GetFloat();
+                od = Convert.ToSingle(overallDifficulty);
         }
         
         var clockRate = dt != null ? 1.5d : 1d;
