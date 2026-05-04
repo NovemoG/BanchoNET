@@ -160,12 +160,13 @@ public class BeatmapsRepository(
 
 	public async Task UpdateBeatmapsetFavoriteCount(
 		Beatmapset beatmapset,
-		int playerId
+		int playerId,
+		bool add
 	) {
 		var play = await dbContext.BeatmapsetFavorites
 			.SingleOrDefaultAsync(bf => bf.BeatmapsetId == beatmapset.Id && bf.PlayerId == playerId);
 
-		if (play is null)
+		if (play is null && add)
 		{
 			dbContext.BeatmapsetFavorites.Add(new BeatmapsetFavorite
 			{
@@ -173,8 +174,12 @@ public class BeatmapsRepository(
 				PlayerId = playerId,
 			});
 		}
-		await dbContext.SaveChangesAsync();
+		else if (play is not null && !add)
+		{
+			dbContext.BeatmapsetFavorites.Remove(play);
+		}
 		
+		await dbContext.SaveChangesAsync();
 		await dbContext.Beatmapsets.Where(s => s.Id == beatmapset.Id)
 			.ExecuteUpdateAsync(p =>
 				p.SetProperty(s => s.FavoriteCount, beatmapset.FavoriteCount)

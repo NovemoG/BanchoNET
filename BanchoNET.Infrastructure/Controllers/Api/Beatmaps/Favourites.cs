@@ -28,9 +28,10 @@ public partial class BeatmapsController
         var beatmapset = await Beatmaps.GetBeatmapset(beatmapsetId);
         if (beatmapset == null) return NotFound();
         
-        beatmapset.FavoriteCount += favAction == FavoriteAction.Add ? 1 : -1;
+        var add = favAction == FavoriteAction.Add;
+        beatmapset.FavoriteCount += add ? 1 : -1;
         
-        await beatmapsRepository.UpdateBeatmapsetFavoriteCount(beatmapset, uid);
+        await beatmapsRepository.UpdateBeatmapsetFavoriteCount(beatmapset, uid, add);
 
         return Ok(new { favourite_count = beatmapset.FavoriteCount });
     }

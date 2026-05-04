@@ -53,7 +53,8 @@ public interface IBeatmapsRepository
 
     Task UpdateBeatmapsetFavoriteCount(
         Beatmapset beatmapset,
-        int playerId
+        int playerId,
+        bool add
     );
 
     Task UpdateBeatmapMaxStatistics(
