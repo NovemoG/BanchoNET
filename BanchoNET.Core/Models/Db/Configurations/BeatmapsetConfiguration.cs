@@ -31,7 +31,7 @@ public class BeatmapsetConfiguration : IEntityTypeConfiguration<BeatmapsetDto>
 
         builder.Property(b => b.Description)
             .HasDefaultValue(string.Empty)
-            .HasMaxLength(8192)
+            .HasMaxLength(16384)
             .IsUnicode();
 
         builder.Property(b => b.Artist)

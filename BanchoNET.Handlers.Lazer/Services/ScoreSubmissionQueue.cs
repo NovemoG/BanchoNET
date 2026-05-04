@@ -195,7 +195,6 @@ public sealed partial class ScoreSubmissionQueue(
         var lazerPlayer = lazerPlayers.GetPlayer(player.Id);
         if (lazerPlayer != null)
         {
-            Console.WriteLine((float)score.TimeElapsed / beatmap.HitLength * 100);
             var index = (int)Math.Round(Math.Min(100, (float)score.TimeElapsed / beatmap.HitLength * 100));
 
             if (lazerPlayer.LastPlayedBeatmap != null)
