@@ -241,7 +241,7 @@ public static class ScoreExtensions
         
         var clockRate = dt != null ? 1.5d : 1d;
         if (dt != null && dt.Settings.TryGetValue("speed_change", out var rateChange))
-            clockRate = rateChange.GetDouble();
+            clockRate = Convert.ToDouble(rateChange);
 
         var pp = PpMethods.ComputeScorePp(beatmap.Id, score, clockRate, lazer, cs, ar, od);
 
