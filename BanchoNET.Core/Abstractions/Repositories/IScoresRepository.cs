@@ -1,6 +1,5 @@
 using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Dtos;
-using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Models.Scores;
 
 namespace BanchoNET.Core.Abstractions.Repositories;
@@ -10,6 +9,8 @@ public interface IScoresRepository
     Task<ScoreDto?> GetScore(long id);
     Task RemoveScore(long id);
     Task<bool> ScoreExists(string checksum);
+    Task<bool> RecalculateScore(long id);
+    Task RecalculateAllScores();
     Task<List<long>> DeleteOldScores(short differenceInHours = 48);
     
     Task ToggleBeatmapScoresVisibility(int mapId, bool visible);
@@ -63,7 +64,7 @@ public interface IScoresRepository
     Task<List<ScoreDto>> GetBeatmapLeaderboard(
         GameMode mode,
         LeaderboardType type,
-        LegacyMods mods,
+        string mods,
         string country,
         HashSet<int> playerIds,
         string md5
@@ -72,7 +73,7 @@ public interface IScoresRepository
     Task<List<ScoreDto>> GetBeatmapLeaderboard(
         GameMode mode,
         LeaderboardType type,
-        LegacyMods mods,
+        string mods,
         string country,
         HashSet<int> playerIds,
         int mapId

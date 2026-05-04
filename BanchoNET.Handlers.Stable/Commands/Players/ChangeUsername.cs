@@ -15,7 +15,7 @@ public partial class CommandProcessor
     private async Task<string> ChangeUsername(string[] args)
     {
         if (args.Length == 0)
-            return $"No parameters provided. Syntax: {Commands.CommandProcessor.Prefix}change_username <old_username>/<new_username>";
+            return $"No parameters provided. Syntax: {Prefix}change_username <old_username>/<new_username>";
         
         var usernames = string.Join(' ', args).Split('/', 2);
         var changingSelf = usernames.Length == 1;

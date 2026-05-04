@@ -19,13 +19,12 @@ public partial class ApiController(
     IAuthService auth,
     IPlayersRepository players,
     ILazerPlayerService playerService,
-    IBeatmapsRepository beatmaps
+    IBeatmapHandler beatmaps
 ) : ControllerBase
 {
-    protected readonly IAuthService Auth = auth;
-    protected readonly IPlayersRepository Players = players;
     protected readonly ILazerPlayerService PlayerService = playerService;
-    protected readonly IBeatmapsRepository Beatmaps = beatmaps;
+    protected readonly IPlayersRepository Players = players;
+    protected readonly IBeatmapHandler Beatmaps = beatmaps;
     
     protected static JsonResult JsonSnake(object? value) => new(value, SnakeCaseNamingPolicy.Options);
 

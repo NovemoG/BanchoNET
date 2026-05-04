@@ -18,7 +18,7 @@ public partial class CommandProcessor(
     IChannelService channels,
     ILegacyScoresRepository scores,
     IPlayersRepository players,
-    IBeatmapsRepository beatmaps,
+    IBeatmapsRepository beatmapsRepository,
     IBeatmapHandler beatmapHandler,
     IHistoriesRepository histories
 ) : ICommandProcessor

@@ -42,6 +42,7 @@ public class Score
 	public SubmissionStatus Status { get; set; }
 	public Grade Grade { get; set; }
 	public LegacyMods Mods { get; set; }
+	public string ModKeys { get; set; } = string.Empty;
 	public GameMode Mode { get; set; }
 	public string ClientChecksum { get; set; } = null!;
 	public ClientFlags ClientFlags { get; set; }
@@ -71,7 +72,7 @@ public class Score
 		Mode = ((GameMode)int.Parse(scoreData[13])).FromMods(mods);
 		
 		Beatmap = beatmap;
-		BeatmapMD5 = beatmap.MD5;
+		BeatmapMD5 = beatmap.Checksum;
 		Player = player;
 		PlayerId = player.Id;
 		
@@ -87,6 +88,7 @@ public class Score
 		Perfect = scoreData[9] == "True";
 		Grade = grade;
 		Mods = mods;
+		ModKeys = mods.ToKeysString();
 		
 		ClientTime = DateTime.SpecifyKind(
 			DateTime.ParseExact(scoreData[14], "yyMMddHHmmss", null),
@@ -105,24 +107,25 @@ public class Score
 		PlayerId = scoreDto.PlayerId;
 		PP = scoreDto.PP;
 		Acc = scoreDto.Acc;
-		Count300 = scoreDto.Count300;
-		Count100 = scoreDto.Count100;
-		Count50 = scoreDto.Count50;
-		Misses = scoreDto.Misses;
-		Gekis = scoreDto.Gekis;
-		Katus = scoreDto.Katus;
-		IgnoreHit = scoreDto.IgnoreHit;
-		IgnoreMiss = scoreDto.IgnoreMiss;
+		Count300 = scoreDto.GetCount300();
+		Count100 = scoreDto.GetCount100();
+		Count50 = scoreDto.GetCount50();
+		Misses = scoreDto.GetCountMiss();
+		Gekis = scoreDto.GetCountGeki();
+		Katus = scoreDto.GetCountKatu();
+		IgnoreHit = scoreDto.GetCountIgnoreHit();
+		IgnoreMiss = scoreDto.GetCountIgnoreMiss();
 		TotalScore = scoreDto.LegacyTotalScore;
 		MaxCombo = scoreDto.MaxCombo;
 		Perfect = scoreDto.LegacyPerfect;
-		Status = (SubmissionStatus)scoreDto.Status;
+		Status = scoreDto.Status;
 		Passed = Status != SubmissionStatus.Failed;
 		Preserve = scoreDto.Preserve;
 		Processed = scoreDto.Processed;
-		Grade = (Grade)scoreDto.Grade;
-		Mods = (LegacyMods)scoreDto.Mods;
-		Mode = (GameMode)scoreDto.Mode;
+		Grade = scoreDto.Grade;
+		Mods = scoreDto.Mods;
+		ModKeys = scoreDto.ModKeys ?? "";
+		Mode = scoreDto.Mode;
 		ClientChecksum = scoreDto.OnlineChecksum ?? string.Empty;
 		ClientFlags = (ClientFlags)scoreDto.ClientFlags;
 		TimeElapsed = scoreDto.TimeElapsed;

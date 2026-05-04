@@ -1,4 +1,5 @@
 ﻿using BanchoNET.Core.Models.Dtos;
+using BanchoNET.Core.Utils.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -33,7 +34,17 @@ public class ScoreConfiguration : IEntityTypeConfiguration<ScoreDto>
             .HasColumnType("CHAR(32)")
             .HasMaxLength(32)
             .IsUnicode(false);
+        
+        builder.Property(b => b.ModKeys)
+            .HasMaxLength(128)
+            .IsRequired()
+            .IsUnicode();
 
+        builder.Property(b => b.LazerMods)
+            .HasMaxLength(2048)
+            .IsRequired(false)
+            .IsUnicode();
+        
         builder.Property(s => s.PP)
             .HasColumnType("numeric(7,3)");
 
@@ -43,16 +54,18 @@ public class ScoreConfiguration : IEntityTypeConfiguration<ScoreDto>
         builder.Property(s => s.PlayTime);
         builder.Property(s => s.StartTime);
 
+        builder.Property(x => x.Statistics)
+            .HasConversion(DatabaseDictionaryConverter.StatisticsConverter);
+
         builder.HasOne(s => s.Beatmap)
             .WithMany(b => b.Scores)
             .HasForeignKey(s => s.MapId)
-            .HasPrincipalKey(b => b.MapId)
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasOne(s => s.Player)
             .WithMany(p => p.Scores)
             .HasForeignKey(s => s.PlayerId)
-            .OnDelete(DeleteBehavior.NoAction);
+            .OnDelete(DeleteBehavior.Cascade);
 
         builder.Ignore(s => s.Passed);
     }

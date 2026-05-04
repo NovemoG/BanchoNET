@@ -1,6 +1,7 @@
 using BanchoNET.Core.Abstractions.HubClients;
 using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Services;
+using BanchoNET.Core.Abstractions.Services.Lazer;
 using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Api.Beatmaps;
 using BanchoNET.Core.Models.Api.Scores;
@@ -19,6 +20,7 @@ namespace BanchoNET.Handlers.Lazer.Services;
 public sealed partial class ScoreSubmissionQueue(
     ILogger logger,
     IServiceScopeFactory scopeFactory,
+    ILazerPlayerService lazerPlayers,
     IMemoryCache cache,
     IHubContext<SpectatorHub, ISpectatorClient> spectatorHub
 ) : ConcurrentBackgroundQueue, IScoreSubmissionQueue
@@ -42,7 +44,7 @@ public sealed partial class ScoreSubmissionQueue(
         //TODO store scores in db and retrieve them after restart
 
         using var scope = scopeFactory.CreateScope();
-        var beatmaps = scope.ServiceProvider.GetRequiredService<IBeatmapsRepository>();
+        var beatmaps = scope.ServiceProvider.GetRequiredService<IBeatmapHandler>();
 
         var beatmap = await beatmaps.GetBeatmap(request.beatmap_hash);
         if (beatmap == null)
@@ -79,14 +81,13 @@ public sealed partial class ScoreSubmissionQueue(
         var player = await players.GetPlayerOrOffline(userId);
         if (player == null) return null;
         
-        var beatmaps = scope.ServiceProvider.GetRequiredService<IBeatmapsRepository>();
+        var beatmaps = scope.ServiceProvider.GetRequiredService<IBeatmapHandler>();
         
         var beatmap = await beatmaps.GetBeatmap(beatmapId);
         if (beatmap == null) return null;
         
-        var beatmapHandler = scope.ServiceProvider.GetRequiredService<IBeatmapHandler>();
         var scores = scope.ServiceProvider.GetRequiredService<ILazerScoresRepository>();
-
+        
         var apiScore = new ApiScore
         {
             RulesetId = request.RulesetId,
@@ -98,6 +99,7 @@ public sealed partial class ScoreSubmissionQueue(
             Rank = request.Rank,
             Grade = Enum.Parse<Grade>(request.Rank, true),
             Mods = request.Mods ?? [],
+            ModKeys = request.Mods?.ToKeysString() ?? "",
             LegacyMods = request.Mods?.ToLegacyMods() ?? 0,
             Statistics = request.Statistics,
             MaximumStatistics = request.MaximumStatistics,
@@ -120,8 +122,7 @@ public sealed partial class ScoreSubmissionQueue(
             Replay = false,
             Pauses = request.Pauses,
         };
-        //TODO check what exactly is stored in pauses
-        apiScore.TimeElapsed = (int)((apiScore.EndedAt - apiScore.StartedAt!).Value.TotalSeconds - request.Pauses.Sum() / 10000d);
+        apiScore.TimeElapsed = (int)Math.Round((apiScore.EndedAt - apiScore.StartedAt!).Value.TotalSeconds - request.Pauses.Sum() / 1000d);
         SetClockRate(apiScore);
         
         var mode = (GameMode)apiScore.RulesetId;
@@ -130,10 +131,10 @@ public sealed partial class ScoreSubmissionQueue(
         var sameMods = apiScore.EqualModsWith(prevBest);
         
         var bestWithMods = prevBest != null && !sameMods
-            ? await scores.GetPlayerBestScoreWithModsOnMap(userId, mode, apiScore.Mods, beatmap)
+            ? await scores.GetPlayerBestScoreWithModsOnMap(userId, mode, apiScore.ModKeys, beatmap)
             : null;
         
-        if (await beatmapHandler.EnsureLocalBeatmapFile(beatmap.Id, beatmap.MD5))
+        if (await beatmaps.EnsureLocalBeatmapFile(beatmap.Id, beatmap.Checksum))
         {
             if (apiScore.Passed)
             {
@@ -157,7 +158,7 @@ public sealed partial class ScoreSubmissionQueue(
             apiScore.Status = apiScore.Passed ? SubmissionStatus.Submitted : SubmissionStatus.Failed;
         }
         
-        soloRequest.Score = await scores.InsertScore(apiScore, false, beatmap.MD5, beatmapId);
+        soloRequest.Score = await scores.InsertScore(apiScore, false, beatmap.Checksum, beatmapId);
         soloRequest.Beatmap = beatmap;
         
         var stats = (await players.GetPlayerModeStats(userId, (byte)mode))!;
@@ -165,17 +166,61 @@ public sealed partial class ScoreSubmissionQueue(
         await RecalculatePlayerStats(players, beatmap, player, stats, mode, apiScore, prevBest, bestWithMods);
         await players.UpdatePlayerStats(stats, apiScore);
         await players.UpdateLatestActivity(userId);
+        await UpdateBeatmapStats(scope, apiScore, beatmap, player);
+
+        return apiScore;
+    }
+
+    private async Task UpdateBeatmapStats(
+        IServiceScope scope,
+        ApiScore score,
+        Beatmap beatmap,
+        Player player
+    ) {
+        var beatmapsRepository = scope.ServiceProvider.GetRequiredService<IBeatmapsRepository>();
         
         if (!player.IsRestricted)
         {
+            beatmap.Set.PlayCount += 1;
             beatmap.Plays += 1;
-            if (apiScore.Passed)
+            if (score.Passed)
                 beatmap.Passes += 1;
-			
-            await beatmaps.UpdateBeatmapPlayCount(beatmap);
+            
+            await beatmapsRepository.UpdateBeatmapPlayCount(beatmap, player.Id);
+            await beatmapsRepository.UpdateBeatmapMaxStatistics(beatmap, score.MaximumStatistics);
         }
 
-        return apiScore;
+        if (score.Passed) return;
+        
+        var lazerPlayer = lazerPlayers.GetPlayer(player.Id);
+        if (lazerPlayer != null)
+        {
+            Console.WriteLine((float)score.TimeElapsed / beatmap.HitLength * 100);
+            var index = (int)Math.Round(Math.Min(100, (float)score.TimeElapsed / beatmap.HitLength * 100));
+
+            if (lazerPlayer.LastPlayedBeatmap != null)
+            {
+                if (lazerPlayer.LastPlayedBeatmap.Id == beatmap.Id)
+                {
+                    beatmap.Fails[index] += 1;
+                    
+                    await beatmapsRepository.UpdateBeatmapFailTimes(beatmap.Id, index, isFail: true);
+                }
+                else
+                {
+                    lazerPlayer.LastPlayedBeatmap.Exits[lazerPlayer.LastPlayedBeatmapExitIndex] += 1;
+                    
+                    await beatmapsRepository.UpdateBeatmapFailTimes(
+                        lazerPlayer.LastPlayedBeatmap.Id,
+                        lazerPlayer.LastPlayedBeatmapExitIndex,
+                        isFail: false
+                    );
+                }
+            }
+            
+            lazerPlayer.LastPlayedBeatmap = beatmap;
+            lazerPlayer.LastPlayedBeatmapExitIndex = index;
+        }
     }
 
     private static void SetClockRate(
@@ -256,7 +301,7 @@ public sealed partial class ScoreSubmissionQueue(
         ApiScore? prevBest,
         ApiScore? bestWithMods
     ) {
-        if (!score.Passed || !beatmap.AwardsPP())
+        if (!score.Passed || !beatmap.AwardsPp())
             return;
         
         if (score.MaxCombo > stats.MaxCombo)

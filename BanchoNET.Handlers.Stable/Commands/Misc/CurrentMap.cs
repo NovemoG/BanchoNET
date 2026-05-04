@@ -17,7 +17,7 @@ public partial class CommandProcessor
         if (lobby == null)
             return (true, "You can only use this command in a multiplayer lobby.");
         
-        var beatmap = await beatmaps.GetBeatmap(mapId: lobby.BeatmapId);
+        var beatmap = await beatmapHandler.GetBeatmap(mapId: lobby.BeatmapId);
         return beatmap == null
             ? (false, BeatmapNotFound)
             : (false, $"Current map: {BeatmapExtensions.Embed(beatmap)}");

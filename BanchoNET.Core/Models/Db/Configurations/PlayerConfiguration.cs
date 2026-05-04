@@ -41,6 +41,10 @@ public class PlayerConfiguration : IEntityTypeConfiguration<PlayerDto>
             .HasMaxLength(160)
             .IsUnicode(false);
         
+        builder.Property(p => p.Title)
+            .HasMaxLength(64)
+            .IsUnicode();
+        
         builder.Property(p => p.PasswordHash)
             .IsRequired()
             .HasColumnType("CHAR(60)")

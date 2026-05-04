@@ -16,10 +16,10 @@ public partial class CommandProcessor
     private async Task<string> Silence(string[] args)
     {
         if (args.Length == 0)
-            return $"No parameters provided. Syntax: {Commands.CommandProcessor.Prefix}silence <username> <duration> <reason>";
+            return $"No parameters provided. Syntax: {Prefix}silence <username> <duration> <reason>";
         
         if (args.Length < 3)
-            return $"Invalid number of parameters provided. Syntax: {Commands.CommandProcessor.Prefix}silence <username> <duration> <reason>";
+            return $"Invalid number of parameters provided. Syntax: {Prefix}silence <username> <duration> <reason>";
 
         var username = args[0];
         var duration = TimeSpan.Zero; //TODO cool time parser
@@ -31,7 +31,7 @@ public partial class CommandProcessor
         if (player.IsBot)
             return "You can't silence a bot.";
         
-        if (EnumExtensions.GetHighestPrivilege((PlayerPrivileges)player.Privileges) >= EnumExtensions.GetHighestPrivilege((PlayerPrivileges)_playerCtx.Privileges))
+        if (EnumExtensions.GetHighestPrivilege(player.Privileges) >= EnumExtensions.GetHighestPrivilege(_playerCtx.Privileges))
             return "You can't silence an account that has higher or equal privileges than you.";
 
         var result = await players.SilencePlayer(player, duration, reason);
@@ -48,7 +48,7 @@ public partial class CommandProcessor
     private async Task<string> Unsilence(string[] args)
     {
         if (args.Length == 0)
-            return $"No parameters provided. Syntax: {Commands.CommandProcessor.Prefix}unsilence <username> <reason>";
+            return $"No parameters provided. Syntax: {Prefix}unsilence <username> <reason>";
         
         if (args.Length < 2)
             return "You must provide a reason for removing a silence status.";

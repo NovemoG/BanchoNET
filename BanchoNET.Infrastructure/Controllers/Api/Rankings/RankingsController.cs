@@ -14,7 +14,7 @@ public partial class RankingsController(
     IAuthService auth,
     IPlayersRepository players,
     ILazerPlayerService playerService,
-    IBeatmapsRepository beatmaps,
+    IBeatmapHandler beatmaps,
     ILazerScoresRepository scores
 ) : ApiController(auth, players, playerService, beatmaps)
 {

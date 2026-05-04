@@ -1,6 +1,5 @@
 ﻿using System.Collections.Concurrent;
 using BanchoNET.Core.Abstractions.HubClients;
-using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Abstractions.Services.Lazer;
 using BanchoNET.Core.Models.Api;
@@ -25,7 +24,7 @@ public class SpectatorHub(
     public async Task BeginPlaySession(
         long? scoreToken,
         SpectatorState state,
-        IBeatmapsRepository beatmaps
+        IBeatmapHandler beatmaps
     ) {
         if (!TryGetUserId(out var userId)) return;
 

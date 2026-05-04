@@ -6,9 +6,9 @@ public interface IBeatmap : IHasOnlineId<int>,
     IEquatable<IBeatmap>
 {
     int Id { get; set; }
-    int SetId { get; set; }
+    int BeatmapsetId { get; set; }
     
-    string MD5 { get; set; }
+    string Checksum { get; set; }
     
     //TODO
     
@@ -17,6 +17,6 @@ public interface IBeatmap : IHasOnlineId<int>,
         if (other == null)
             return false;
 
-        return OnlineId == other.OnlineId && SetId == other.SetId && MD5 == other.MD5;
+        return OnlineId == other.OnlineId && BeatmapsetId == other.BeatmapsetId && Checksum == other.Checksum;
     }
 }

@@ -13,15 +13,14 @@ public class LookupController(
     IAuthService auth,
     IPlayersRepository players,
     ILazerPlayerService playerService,
-    IBeatmapsRepository beatmaps,
-    IBeatmapHandler beatmapHandler,
+    IBeatmapHandler beatmaps,
     IBeatmapService beatmapService
 ) : ApiController(auth, players, playerService, beatmaps)
 {
     [HttpGet("v2/beatmaps/lookup")]
     public async Task<ActionResult<ApiBeatmap?>> LookupBeatmap(
         string checksum,
-        string filename
+        string? filename
     ) {
         if (!User.TryGetUserId(out _)) return Unauthorized();
         
@@ -31,24 +30,28 @@ public class LookupController(
         var beatmap = await Beatmaps.GetBeatmap(checksum);
         if (beatmap == null)
         {
-            await beatmapHandler.CheckIfMapExistsOnBanchoByFilename(filename);
+            if (!string.IsNullOrWhiteSpace(filename))
+                await Beatmaps.CheckIfMapExistsOnBanchoByFilename(filename);
+            
             return NotFound();
         }
         
-        return JsonSnake(new ApiBeatmap(beatmap, new ApiBeatmapset(beatmap.Set, assignBeatmapsList: false)));
+        return JsonSnake(new ApiBeatmap(beatmap, new ApiBeatmapset(beatmap.Set)));
     }
 
     [HttpGet("v2/beatmapsets/lookup")]
-    public async Task<ActionResult<ApiBeatmapset?>> LookupBeatmapset(
+    public async Task<ActionResult<ApiBeatmapsetFull?>> LookupBeatmapset(
         [FromQuery(Name = "beatmap_id")] int beatmapId
     ) {
-        if (!User.TryGetUserId(out _)) return Unauthorized();
+        if (!User.TryGetUserId(out var uid)) return Unauthorized();
         
-        var beatmap = await Beatmaps.GetBeatmap(beatmapId);
-        if (beatmap == null) return NotFound();
+        var beatmapset = await Beatmaps.GetBeatmapsetByMapIdFromApiOrCached(beatmapId);
+        if (beatmapset == null) return NotFound();
         
-        var set = beatmap.Set;
-        return JsonSnake(new ApiBeatmapset(set));
+        await Beatmaps.FetchPlayerPlaycount(beatmapset, uid);
+        await Beatmaps.FetchPlayerFavorited(beatmapset, uid);
+        
+        return JsonSnake(beatmapset);
     }
     
     [HttpGet("v2/users/lookup")]

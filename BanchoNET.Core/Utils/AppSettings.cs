@@ -144,11 +144,6 @@ public static class AppSettings
 
         GithubToken = Environment.GetEnvironmentVariable("GITHUB_TOKEN");
 
-        var osuApiKey = Environment.GetEnvironmentVariable("OSU_API_KEY");
-        OsuApiKey = string.IsNullOrEmpty(osuApiKey)
-            ? ""
-            : osuApiKey;
-
         var osuCookie = Environment.GetEnvironmentVariable("OSU_COOKIE");
         OsuCookie = string.IsNullOrEmpty(osuCookie)
             ? ""
@@ -163,6 +158,11 @@ public static class AppSettings
         OsuClientSecret = string.IsNullOrEmpty(clientSecret)
             ? ""
             : clientSecret;
+
+        var evictDays = Environment.GetEnvironmentVariable("BEATMAP_EVICT_DAYS");
+        BeatmapEvictDays = string.IsNullOrEmpty(evictDays)
+            ? -1
+            : int.Parse(evictDays);
     }
 
     public static readonly string Domain;
@@ -189,8 +189,8 @@ public static class AppSettings
     public static readonly int DaysUntilPlayerIsMarkedInactive;
     public static readonly string CommandPrefix;
     public static readonly string? GithubToken;
-    public static readonly string OsuApiKey;
     public static readonly string OsuCookie;
     public static readonly string OsuClientId;
     public static readonly string OsuClientSecret;
+    public static readonly int BeatmapEvictDays;
 }

@@ -16,7 +16,7 @@ public partial class ScoresController
         if (score is not { HasReplay: true })
             return NotFound();
 
-        await Players.IncreasePlayerReplaysViewed(score.PlayerId, score.Mode, score.MapId);
+        await Players.IncreasePlayerReplaysViewed(score.PlayerId, (byte)score.Mode, score.Id);
         
         return new PhysicalFileResult(Storage.GetReplayPath(id), "application/x-osu-replay");
     }

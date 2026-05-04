@@ -139,9 +139,12 @@ public static class EnumExtensions
 	}
 	
 	public static Mod[] ToLazerMods(
-		this LegacyMods legacyMods
+		this LegacyMods legacyMods,
+		bool addClassic = true
 	) {
-		var mods = new List<Mod>{ new(){ Acronym = "CL" } };
+		var mods = addClassic
+			? new List<Mod> { new() { Acronym = "CL" } }
+			: new List<Mod>();
 
 		foreach (var (mod, code) in ModMap)
 			if (legacyMods.HasMod(mod))

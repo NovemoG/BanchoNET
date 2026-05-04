@@ -112,6 +112,15 @@ public class MetadataHub(
         if (TryGetUserId(out var userId))
         {
             ConnectedUsers.TryAdd(userId, new UserPresence());
+
+            // if server has restarted but player is still logged in
+            if (playerService.GetPlayer(userId) == null)
+            {
+                var apiPlayer = await players.GetFullPlayerInfo(userId);
+                if (apiPlayer != null)
+                    playerService.AddPlayer(apiPlayer);
+            }
+            
             await RefreshFriends();
         }
         

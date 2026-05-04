@@ -20,20 +20,23 @@ public class ApiBeatmap : BasicApiBeatmap
     public ApiBeatmap() { }
 
     public ApiBeatmap(
-        BeatmapDto mapDto,
+        BeatmapDto beatmap,
         ApiBeatmapset? beatmapset = null
-    ) : base(mapDto) {
-        CurrentUserPlaycount = 0; //TODO fetch
-        CurrentUserTagIds = []; //TODO
+    ) : base(beatmap) {
         Failtimes = new Failtime
         {
-            Fail = [], //TODO
-            Exit = [] //TODO
+            Fail = beatmap.Fails,
+            Exit = beatmap.Exits
         };
-        MaxCombo = mapDto.MaxCombo;
-        Owners = []; //TODO
-        TopTagIds = []; //TODO
-
+        MaxCombo = beatmap.MaxCombo;
+        Owners = beatmap.Owners
+            .Select(o => new Owner
+            {
+                Id = o.PlayerId,
+                Username = o.Username
+            }).ToList();
+        UserId = Owners.First().Id;
+        
         Beatmapset = beatmapset;
     }
 
@@ -41,16 +44,13 @@ public class ApiBeatmap : BasicApiBeatmap
         Beatmap beatmap,
         ApiBeatmapset? beatmapset = null
     ) : base(beatmap) {
-        CurrentUserPlaycount = 0; //TODO fetch
-        CurrentUserTagIds = []; //TODO
         Failtimes = new Failtime
         {
-            Fail = [], //TODO
-            Exit = [] //TODO
+            Fail = beatmap.Fails,
+            Exit = beatmap.Exits
         };
         MaxCombo = beatmap.MaxCombo;
-        Owners = []; //TODO
-        TopTagIds = []; //TODO
+        Owners = [];
         
         Beatmapset = beatmapset;
     }

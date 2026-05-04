@@ -1,5 +1,4 @@
-﻿using BanchoNET.Core.Models;
-using BanchoNET.Core.Models.Stable;
+﻿using BanchoNET.Core.Models.Stable;
 using BanchoNET.Core.Utils;
 using Microsoft.AspNetCore.Mvc;
 

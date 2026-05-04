@@ -1,9 +1,9 @@
 ﻿using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Db;
 using BanchoNET.Core.Models.Dtos;
-using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Models.Scores;
 using BanchoNET.Core.Utils;
+using BanchoNET.Core.Utils.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace BanchoNET.Core.Abstractions.Repositories.Histories;
@@ -35,6 +35,36 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
             .AsNoTracking()
             .AnyAsync(s => s.OnlineChecksum == checksum);
     }
+
+    public async Task<bool> RecalculateScore(
+        long id
+    ) {
+        var score = await DbContext.Scores
+            .Include(scoreDto => scoreDto.Beatmap)
+            .FirstOrDefaultAsync(s => s.Id == id);
+        
+        if (score == null) return false;
+        
+        score.RecalculatePerformance(score.Beatmap);
+        await DbContext.SaveChangesAsync();
+        
+        return true;
+    }
+
+    public async Task RecalculateAllScores() {
+        var validScores = await DbContext.Scores
+            .Include(s => s.Beatmap)
+            .Where(s => s.Status >= SubmissionStatus.BestWithMods && s.Ranked)
+            .ToListAsync();
+        
+        foreach (var score in validScores) {
+            score.RecalculatePerformance(score.Beatmap);
+        }
+        
+        Logger.Shared.LogInfo($"Recalculated pp for {validScores.Count} scores");
+        
+        await DbContext.SaveChangesAsync();
+    }
     
     /// <summary>
     /// Deletes all scores with status not flagged as best older than 2 days from when the method was used.
@@ -49,21 +79,16 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
         var scoreIds = await DbContext.Scores
             .AsNoTracking()
             .Where(s => s.PlayTime < date
-                        && s.Status == (int)SubmissionStatus.Submitted)
+                        && s.Status == SubmissionStatus.Submitted)
             .Select(s => s.Id)
             .ToListAsync();
 
         var affected = await DbContext.Scores
-            .Where(s => s.Status <= (int)SubmissionStatus.Submitted
+            .Where(s => s.Status <= SubmissionStatus.Submitted
                         && s.PlayTime < date)
             .ExecuteDeleteAsync();
-        // Deleting scores
-/*#pragma warning disable EF1002
-        var affected = await dbContext.Database.ExecuteSqlRawAsync(
-            $"DELETE FROM Scores WHERE PlayTime < TIMESTAMP(\"{date:yyyy-MM-dd}\", \"{date:HH:mm:ss}\") " +
-            $"AND Status < {(int)SubmissionStatus.BestWithMods}");
-#pragma warning restore EF1002*/
-        Console.WriteLine($"[BackgroundTasks] Deleted {affected} scores.");
+        
+        Logger.Shared.LogInfo($"Deleted {affected} scores", caller: "BackgroundTasks");
         
         return scoreIds;
     }
@@ -102,7 +127,7 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
             .Include(s => s.Beatmap)
                 .ThenInclude(b => b.Beatmapset)
             .Where(s => s.PlayerId == playerId
-                        && s.Mode == (int)mode
+                        && s.Mode == mode
                         && s.PlayTime > DateTime.UtcNow.AddHours(-24))
             .OrderByDescending(s => s.PlayTime)
             .Skip(start)
@@ -117,7 +142,7 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
         return await DbContext.Scores
             .AsNoTracking()
             .Where(s => s.PlayerId == playerId
-                        && s.Mode == (int)mode
+                        && s.Mode == mode
                         && s.PlayTime > DateTime.UtcNow.AddHours(-24))
             .CountAsync();
     }
@@ -134,13 +159,13 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
             .Include(s => s.Beatmap)
                 .ThenInclude(b => b.Beatmapset)
             .Where(s => s.PlayerId == playerId
-                        && s.Mode == (int)mode
-                        && s.Status == (int)SubmissionStatus.Best
+                        && s.Mode == mode
+                        && s.Status == SubmissionStatus.Best
                         && s.Ranked)
             .Where(s =>
                 !DbContext.Scores.Any(o =>
-                    o.Mode == (int)mode
-                    && o.Status == (int)SubmissionStatus.Best
+                    o.Mode == mode
+                    && o.Status == SubmissionStatus.Best
                     && o.Ranked
                     && o.MapId == s.MapId
                     && (OrderByPp(mode)
@@ -159,13 +184,13 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
         return await DbContext.Scores
             .AsNoTracking()
             .Where(s => s.PlayerId == playerId
-                        && s.Mode == (int)mode
-                        && s.Status == (int)SubmissionStatus.Best
+                        && s.Mode == mode
+                        && s.Status == SubmissionStatus.Best
                         && s.Ranked)
             .Where(s =>
                 !DbContext.Scores.Any(o =>
-                    o.Mode == (int)mode
-                    && o.Status == (int)SubmissionStatus.Best
+                    o.Mode == mode
+                    && o.Status == SubmissionStatus.Best
                     && o.Ranked
                     && o.MapId == s.MapId
                     && (OrderByPp(mode)
@@ -187,7 +212,7 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
         await DbContext.Scores
             .AsNoTracking()
             .Where(s => s.Id == id)
-            .ExecuteUpdateAsync(p => p.SetProperty(s => s.Status, (int)newStatus));
+            .ExecuteUpdateAsync(p => p.SetProperty(s => s.Status, newStatus));
     }
     
     public async Task<ScoreDto?> GetBestBeatmapScore(
@@ -198,8 +223,8 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
             .AsNoTracking()
             .Include(s => s.Player)
             .Where(s => s.MapId == mapId
-                        && s.Mode == (int)mode
-                        && s.Status == (int)SubmissionStatus.Best
+                        && s.Mode == mode
+                        && s.Status == SubmissionStatus.Best
                         && (s.Player.Privileges & 1) == 1
                         && !s.IsRestricted)
             .OrderByDescending(s => OrderByPp(mode) ? s.PP : s.LegacyTotalScore)
@@ -214,8 +239,8 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
             .AsNoTracking()
             .Include(s => s.Player)
             .Where(s => s.BeatmapMD5 == md5
-                        && s.Mode == (int)mode
-                        && s.Status == (int)SubmissionStatus.Best
+                        && s.Mode == mode
+                        && s.Status == SubmissionStatus.Best
                         && (s.Player.Privileges & 1) == 1
                         && !s.IsRestricted)
             .OrderByDescending(s => OrderByPp(mode) ? s.PP : s.LegacyTotalScore)
@@ -225,7 +250,7 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
     public Task<List<ScoreDto>> GetBeatmapLeaderboard(
         GameMode mode,
         LeaderboardType type,
-        LegacyMods mods,
+        string mods,
         string country,
         HashSet<int> playerIds,
         string md5
@@ -234,7 +259,7 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
     public Task<List<ScoreDto>> GetBeatmapLeaderboard(
         GameMode mode,
         LeaderboardType type,
-        LegacyMods mods,
+        string mods,
         string country,
         HashSet<int> playerIds,
         int mapId
@@ -243,7 +268,7 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
     protected async Task<List<ScoreDto>> GetBeatmapLeaderboardInternal(
         GameMode mode,
         LeaderboardType type,
-        LegacyMods mods,
+        string mods,
         string country,
         HashSet<int> playerIds,
         int? mapId,
@@ -267,14 +292,14 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
             throw new ArgumentException("Either mapId or md5 must be provided.");
         
         //TODO start using only s.IsRestricted instead of privileges
-        query = query.Where(s => s.Mode == (int)mode
+        query = query.Where(s => s.Mode == mode
                          && (s.Player.Privileges & 1) == 1
                          && !s.IsRestricted);
         
         query = withMods
-            ? query.Where(s => s.Status >= (int)SubmissionStatus.BestWithMods
-                           && s.Mods == (int)mods)
-            : query.Where(s => s.Status == (int)SubmissionStatus.Best);
+            ? query.Where(s => s.Status >= SubmissionStatus.BestWithMods
+                           && s.ModKeys == mods)
+            : query.Where(s => s.Status == SubmissionStatus.Best);
 
         if (isCountry)
             query = query.Where(s => s.Player.Country == country);
@@ -308,8 +333,8 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
             .Where(s => s.PlayerId == playerId
                         && !s.IsRestricted
                         && s.Ranked
-                        && s.Status == (int)SubmissionStatus.Best
-                        && s.Mode == (int)mode)
+                        && s.Status == SubmissionStatus.Best
+                        && s.Mode == mode)
             .OrderByDescending(s => s.PP)
             .Skip(offset)
             .Take(limit)
@@ -325,10 +350,10 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
             .AsNoTracking()
             .Include(s => s.Player)
             .Include(s => s.Beatmap)
-            .Where(s => s.Mode == (int)mode
+            .Where(s => s.Mode == mode
                         && s.Ranked
                         && !s.IsRestricted
-                        && s.Status == (int)SubmissionStatus.Best
+                        && s.Status == SubmissionStatus.Best
             )
             .OrderByDescending(s => OrderByPp(mode) ? s.PP : s.LegacyTotalScore)
             .Skip(skip)
@@ -346,7 +371,7 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
             .Include(s => s.Player)
             .Include(s => s.Beatmap)
                 .ThenInclude(s => s.Beatmapset)
-            .Where(s => s.Mode == (int)mode
+            .Where(s => s.Mode == mode
                         && s.Ranked
                         && !s.IsRestricted
             )

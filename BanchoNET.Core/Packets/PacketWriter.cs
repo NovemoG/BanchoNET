@@ -42,12 +42,12 @@ public sealed partial class ServerPackets
 		
 		if (dataArray.Length == 0)
 		{
-			_binaryWriter.Write((int)0);
+			_binaryWriter.Write(0);
 			return;
 		}
 		
 		var lengthPosition = _binaryWriter.BaseStream.Position;
-		_binaryWriter.Write((int)0);
+		_binaryWriter.Write(0);
 		
 		foreach (var data in dataArray)
 			ActionsMap[data.Type](_binaryWriter, data.Data!);

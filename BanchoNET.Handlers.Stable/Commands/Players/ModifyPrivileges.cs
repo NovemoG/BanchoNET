@@ -17,7 +17,7 @@ public partial class CommandProcessor
     private async Task<string> AddPrivileges(string[] args)
     {
         if (args.Length == 0)
-            return $"No parameter(s) provided. Syntax: {Commands.CommandProcessor.Prefix}addpriv <username> <privilege>.";
+            return $"No parameter(s) provided. Syntax: {Prefix}addpriv <username> <privilege>.";
         
         if (args.Length == 1)
             return $"No privilege provided. Available privileges: {string.Join(", ", ValidPrivileges)}.";
@@ -28,7 +28,7 @@ public partial class CommandProcessor
         if (!ValidPrivileges.Contains(priv) || !Enum.TryParse(priv, true, out PlayerPrivileges privilege))
             return $"Invalid privilege provided. Available privileges: {string.Join(", ", ValidPrivileges)}.";
         
-        if (EnumExtensions.GetHighestPrivilege((PlayerPrivileges)_playerCtx.Privileges) < privilege)
+        if (EnumExtensions.GetHighestPrivilege(_playerCtx.Privileges) < privilege)
             return "You can't add a privilege that is higher in rank than yours.";
         
         var player = await players.GetPlayerOrOffline(username);
@@ -54,7 +54,7 @@ public partial class CommandProcessor
     private async Task<string> RemovePrivileges(string[] args)
     {
         if (args.Length == 0)
-            return $"No parameter(s) provided. Use '{Commands.CommandProcessor.Prefix}help rmpriv' for more information.";
+            return $"No parameter(s) provided. Use '{Prefix}help rmpriv' for more information.";
         
         if (args.Length == 1)
             return $"No privilege provided. Available privileges: {string.Join(", ", ValidPrivileges)}.";
@@ -68,7 +68,7 @@ public partial class CommandProcessor
         if (!ValidPrivileges.Contains(priv) || !Enum.TryParse(priv, true, out PlayerPrivileges privilege))
             return $"Invalid privilege provided. Available privileges: {string.Join(", ", ValidPrivileges)}.";
         
-        if (EnumExtensions.GetHighestPrivilege((PlayerPrivileges)_playerCtx.Privileges) <= privilege)
+        if (EnumExtensions.GetHighestPrivilege(_playerCtx.Privileges) <= privilege)
             return "You can't remove a privilege that is higher or equal in rank.";
         
         var player = await players.GetPlayerOrOffline(username);
@@ -77,7 +77,7 @@ public partial class CommandProcessor
         if (player.IsBot)
             return "Dummy, you can't modify bot's privileges \ud83d\udc7c";
         
-        if (EnumExtensions.CompareHighestPrivileges((PlayerPrivileges)_playerCtx.Privileges, player.Privileges))
+        if (EnumExtensions.CompareHighestPrivileges(_playerCtx.Privileges, player.Privileges))
             return $"{player.Username} has a privilege that is higher or equal in rank.";
         
         if (!EnumExtensions.HasPrivilege(player.Privileges, privilege))

@@ -1,5 +1,4 @@
-﻿using BanchoNET.Core.Models;
-using BanchoNET.Core.Models.Stable;
+﻿using BanchoNET.Core.Models.Stable;
 
 namespace BanchoNET.Core.Abstractions.Services;
 

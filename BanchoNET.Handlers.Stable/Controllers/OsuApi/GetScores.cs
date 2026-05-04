@@ -37,7 +37,7 @@ public partial class OsuController
 		if (beatmapService.BeatmapNeedsUpdate(mapMD5))
 			return Responses.BytesContentResult("1|false");
 		
-		var beatmap = await beatmaps.GetBeatmap(beatmapMD5: mapMD5, setId: setId);
+		var beatmap = await beatmapHandler.GetBeatmap(beatmapMD5: mapMD5, setId: setId);
 		if (beatmap == null)
 		{
 			if (await beatmapHandler.CheckIfMapExistsOnBanchoByFilename(mapFilename))
@@ -84,11 +84,11 @@ public partial class OsuController
 			? await scores.GetLeaderboardScores(
 				(LeaderboardType)leaderboardType,
 				mode,
-				mods,
+				mods.ToKeysString(),
 				player.Id,
 				player.Geoloc.Country.Acronym,
 				player.Friends.ToHashSet(),
-				beatmap.MD5)
+				beatmap.Checksum)
 			: ([], null);
 		
 		//TODO fetch rating
@@ -97,7 +97,7 @@ public partial class OsuController
 		string response;
 		var responseLines = new List<string>
 		{
-			$"{(int)beatmap.Status}|false|{beatmap.Id}|{beatmap.SetId}|{leaderboard.Scores.Count}|0|",
+			$"{(int)beatmap.Status}|false|{beatmap.Id}|{beatmap.BeatmapsetId}|{leaderboard.Scores.Count}|0|",
 			$"0\n{beatmap.FullName()}\n{rating}"
 		};
 
@@ -119,8 +119,8 @@ public partial class OsuController
 
 	private static string FormatScore(ScoreDto dto, int position)
 	{
-		var scoreAsPp = dto.Mode >= (byte)GameMode.RelaxStd || AppSettings.SortLeaderboardByPP;
-		return $"{(int)dto.Id}|{dto.Player.Username}|{(int)(scoreAsPp ? MathF.Round(dto.PP) : dto.LegacyTotalScore)}|{dto.MaxCombo}|{dto.Count50}|{dto.Count100}|{dto.Count300}|{dto.Misses}|{dto.Katus}|{dto.Gekis}|{dto.LegacyPerfect}|{dto.Mods}|{dto.PlayerId}|{position}|{dto.PlayTime.ToUnixTimeSeconds()}|1"; //TODO this '1' tells client whether score has a saved replay
+		var scoreAsPp = dto.Mode >= GameMode.RelaxStd || AppSettings.SortLeaderboardByPP;
+		return $"{(int)dto.Id}|{dto.Player.Username}|{(int)(scoreAsPp ? MathF.Round(dto.PP) : dto.LegacyTotalScore)}|{dto.MaxCombo}|{dto.GetCount50()}|{dto.GetCount100()}|{dto.GetCount300()}|{dto.GetCountMiss()}|{dto.GetCountKatu()}|{dto.GetCountGeki()}|{dto.LegacyPerfect}|{dto.Mods}|{dto.PlayerId}|{position}|{dto.PlayTime.ToUnixTimeSeconds()}|1"; //TODO this '1' tells client whether score has a saved replay
 	}
 
 	private static string FormatBestScore(Score score, Player player)

@@ -61,12 +61,11 @@ public partial class ClientPacketsHandler
 				channels.SendBotMessageTo(match.Chat, $"Selected: {matchData.MapEmbed()}", playerService.BanchoBot);
 
 			var beatmap = await beatmaps.GetBeatmap(matchData.BeatmapMD5);
-
 			if (beatmap != null)
 			{
 				match.BeatmapId = beatmap.Id;
 				match.BeatmapName = beatmap.FullName();
-				match.BeatmapMD5 = beatmap.MD5;
+				match.BeatmapMD5 = beatmap.Checksum;
 				match.Mode = host.Player!.Status.Mode.AsVanilla();
 			}
 			else

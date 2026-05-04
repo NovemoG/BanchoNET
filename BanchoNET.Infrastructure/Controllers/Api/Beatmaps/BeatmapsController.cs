@@ -12,7 +12,9 @@ public partial class BeatmapsController(
     IAuthService auth,
     IPlayersRepository players,
     ILazerPlayerService playerService,
-    IBeatmapsRepository beatmaps,
+    IBeatmapHandler beatmaps,
+    IBeatmapsRepository beatmapsRepository,
+    IBeatmapDownloader beatmapDownloader,
     IScoreSubmissionQueue scoresQueue,
     ILazerScoresRepository scores
 ) : ApiController(auth, players, playerService, beatmaps)
@@ -28,7 +30,7 @@ public partial class BeatmapsController(
         //TODO
         return JsonSnake(new
         {
-            beatmaps = beatmaps.Select(map => new ApiBeatmap(map, new ApiBeatmapset(map.Set, map, assignBeatmapsList: false)))
+            beatmaps = beatmaps.Select(map => new ApiBeatmap(map, new ApiBeatmapset(map.Set)))
         });
     }
 }

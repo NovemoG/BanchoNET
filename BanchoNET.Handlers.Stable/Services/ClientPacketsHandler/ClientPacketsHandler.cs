@@ -17,7 +17,7 @@ public partial class ClientPacketsHandler(
 	IMultiplayerCoordinator multiplayerCoordinator,
 	IPlayersRepository players,
 	IHistoriesRepository histories,
-	IBeatmapsRepository beatmaps,
+	IBeatmapHandler beatmaps,
 	IMessagesRepository messages,
 	ICommandProcessor commands,
 	ILobbyScoresQueue scoresQueue,

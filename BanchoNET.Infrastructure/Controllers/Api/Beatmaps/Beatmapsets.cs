@@ -9,19 +9,22 @@ namespace BanchoNET.Infrastructure.Controllers.Api;
 public partial class ApiController
 {
     [HttpGet("beatmapsets/{beatmapsetId:int}")]
-    public async Task<ActionResult<ApiBeatmapset>> GetBeatmapset(
+    public async Task<ActionResult<ApiBeatmapsetFull>> GetBeatmapset(
         int beatmapsetId
     ) {
-        if (!User.TryGetUserId(out _)) return Unauthorized();
+        if (!User.TryGetUserId(out var uid)) return Unauthorized();
         
-        var beatmapset = await Beatmaps.GetBeatmapSet(beatmapsetId);
+        var beatmapset = await Beatmaps.GetBeatmapsetFromApiOrCached(beatmapsetId, withAllData: false);
         if (beatmapset == null) return NotFound();
+        
+        await Beatmaps.FetchPlayerPlaycount(beatmapset, uid);
+        await Beatmaps.FetchPlayerFavorited(beatmapset, uid);
 
-        return JsonSnake(new ApiBeatmapset(beatmapset));
+        return JsonSnake(beatmapset);
     }
     
     [HttpGet("beatmapsets/search")]
-    public async Task<ActionResult> SearchBeatmapsets(
+    public async Task<ActionResult<BeatmapsetSearchResponse>> SearchBeatmapsets(
         [FromQuery(Name = "q")] string? query,
         [FromQuery(Name = "m")] string? mode,
         [FromQuery(Name = "c")] string? category,
@@ -35,10 +38,8 @@ public partial class ApiController
         bool? nsfw
     ) {
         if (!User.TryGetUserId(out _)) return Unauthorized();
-        
-        var beatmapsets = (await Beatmaps.GetRandomBeatmaps())
-            .Select(bs => new ApiBeatmapset(bs, bs.Beatmaps.First()))
-            .ToList();
+
+        var beatmapsets = await Beatmaps.GetRandomBeatmaps();
         
         return JsonSnake(new BeatmapsetSearchResponse
         {

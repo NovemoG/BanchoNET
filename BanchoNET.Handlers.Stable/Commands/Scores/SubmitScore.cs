@@ -21,7 +21,7 @@ public partial class CommandProcessor
     private async Task<string> SubmitScore(string[] args)
     {
         if (args.Length is < 12)
-            return $"Invalid number of parameters provided. Syntax: {Commands.CommandProcessor.Prefix}submit <beatmap_id> <mode> <score> " +
+            return $"Invalid number of parameters provided. Syntax: {Prefix}submit <beatmap_id> <mode> <score> " +
                    $"<max_combo> <count300> <count100> <count50> <misses> <geki> <katu> <grade> <date> [<perfect_fc>] " +
                    $"[<mods>] [<username>]";
 
@@ -47,7 +47,7 @@ public partial class CommandProcessor
 
         var mods = args.Length > 13 ? args[13].ParseMods((GameMode)parsedValues[1]) : LegacyMods.None;
 
-        var beatmap = await beatmaps.GetBeatmap(parsedValues[0]);
+        var beatmap = await beatmapHandler.GetBeatmap(parsedValues[0]);
         if (beatmap == null) return BeatmapNotFound;
         
         var player = await players.GetPlayerOrOffline(args.Length > 14 ? args[14] : _playerCtx.Username);

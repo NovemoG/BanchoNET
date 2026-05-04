@@ -219,14 +219,14 @@ public static class BufferExtensions
 			bw.Write((byte)player.Status.Activity);
 			bw.WriteOsuString(player.Status.ActivityDescription);
 			bw.WriteOsuString(null);
-			bw.Write((int)0);
+			bw.Write(0);
 			bw.Write((byte)0);
-			bw.Write((int)0);
+			bw.Write(0);
 			bw.Write((long)0);
 			bw.Write(0.0f);
-			bw.Write((int)0);
+			bw.Write(0);
 			bw.Write((long)0);
-			bw.Write((int)0);
+			bw.Write(0);
 			bw.Write((ushort)0);
 		}
 
@@ -255,7 +255,7 @@ public static class BufferExtensions
 			bw.Write((byte)31);
 			bw.Write(6669.420f);
 			bw.Write(727.27f);
-			bw.Write((int)0);
+			bw.Write(0);
 		}
 
 		public void WriteOsuString(

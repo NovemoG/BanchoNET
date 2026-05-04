@@ -15,13 +15,14 @@ public partial class OsuController
         if (await players.GetPlayerFromLogin(username, passwordMD5) == null)
             return Unauthorized("auth fail");
 
-        var beatmap = await beatmaps.GetBeatmap(mapId, mapSetId);
-
+        var beatmap = await beatmapHandler.GetBeatmap(mapId, mapSetId);
         if (beatmap == null)
             return Ok();
+
+        var set = beatmap.Set;
         
         //TODO replace 10.0 with actual rating
-        var response = $"{beatmap.SetId}.osz|{beatmap.Artist}|{beatmap.Title}|{beatmap.Creator}|{beatmap.Status}|10.0|{beatmap.LastUpdate}|{beatmap.SetId}|0|{beatmap.HasVideo}|0|0|0";
+        var response = $"{beatmap.BeatmapsetId}.osz|{set.Artist}|{set.Title}|{set.CreatorName}|{beatmap.Status}|10.0|{beatmap.LastUpdated}|{beatmap.BeatmapsetId}|0|{set.Video}|0|0|0";
         return Responses.BytesContentResult(response);
     }
 }

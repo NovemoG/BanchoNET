@@ -5,27 +5,33 @@ public static class Storage
 	static Storage()
 	{
 		CreateDirectoryIfNotExists(BeatmapsPath);
+		CreateDirectoryIfNotExists(BeatmapsetsPath);
 		CreateDirectoryIfNotExists(ReplaysPath);
 		CreateDirectoryIfNotExists(AvatarsPath);
 		CreateDirectoryIfNotExists(ScreenshotsPath);
 		CreateDirectoryIfNotExists(MedalIconsPath);
 		CreateDirectoryIfNotExists(LogsPath);
+		CreateDirectoryIfNotExists(TempPath);
 		CreateDirectoryIfNotExists(LazerPath);
 	}
 
 	private const string BasePath = "/app/files";
 	private static readonly string BeatmapsPath = Path.Combine(BasePath, "Beatmaps");
+	private static readonly string BeatmapsetsPath = Path.Combine(BasePath, "Beatmapsets");
 	private static readonly string ReplaysPath = Path.Combine(BasePath, "Replays");
 	private static readonly string AvatarsPath = Path.Combine(BasePath, "Avatars");
 	private static readonly string ScreenshotsPath = Path.Combine(BasePath, "Screenshots");
 	private static readonly string MedalIconsPath = Path.Combine(BasePath, "MedalIcons");
 	private static readonly string LogsPath = Path.Combine(BasePath, "Logs");
+	private static readonly string TempPath = Path.Combine(BasePath, "Temp");
 
 	private const string BaseLazerPath = "/data/lazer";
 	public static readonly string LazerPath = Path.Combine(BaseLazerPath, "Lazer");
-	public static readonly string TempPath = Path.Combine(BaseLazerPath, "Temp");
+	public static readonly string LazerTempPath = Path.Combine(BaseLazerPath, "Temp");
 	
 	public static string GetBeatmapPath(int beatmapId) => Path.Combine(BeatmapsPath, $"{beatmapId}.osu");
+	public static string GetBeatmapsetPath(int beatmapsetId) => Path.Combine(BeatmapsetsPath, $"{beatmapsetId}.osz");
+	public static string GetTempBeatmapsetPath() => Path.Combine(TempPath, $"{Guid.NewGuid()}.osz");
 	public static string GetReplayPath(long scoreId) => Path.Combine(ReplaysPath, $"{scoreId}.osr");
 	public static string GetMajorOsuVersionFilePath() => Path.Combine(BasePath, "major_osu_versions.txt");
 	public static string GetLogFilePath(string filename) => Path.Combine(LogsPath, filename);

@@ -3,8 +3,8 @@ using BanchoNET.Core.Abstractions.Repositories.Histories;
 using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Db;
 using BanchoNET.Core.Models.Dtos;
-using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Models.Scores;
+using BanchoNET.Core.Utils.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace BanchoNET.Services.Repositories;
@@ -30,16 +30,13 @@ public class LegacyScoresRepository(BanchoDbContext dbContext) : ScoresRepositor
                 Acc = score.Acc,
                 LegacyTotalScore = score.TotalScore,
                 MaxCombo = score.MaxCombo,
-                Mods = (int)score.Mods,
-                Count300 = score.Count300,
-                Count100 = score.Count100,
-                Count50 = score.Count50,
-                Misses = score.Misses,
-                Gekis = score.Gekis,
-                Katus = score.Katus,
-                Grade = (byte)score.Grade,
-                Status = (byte)score.Status,
-                Mode = (byte)score.Mode,
+                Mods = score.Mods,
+                ModKeys = score.ModKeys,
+                LazerMods = score.ModsToString(),
+                Statistics = score.GetStatistics(),
+                Grade = score.Grade,
+                Status = score.Status,
+                Mode = score.Mode,
                 PlayTime = score.ClientTime,
                 TimeElapsed = score.TimeElapsed,
                 ClientFlags = (int)score.ClientFlags,
@@ -97,8 +94,8 @@ public class LegacyScoresRepository(BanchoDbContext dbContext) : ScoresRepositor
                                           : s.BeatmapMD5 == md5)
                                       && !s.IsRestricted
                                       && s.PlayerId == playerId
-                                      && s.Mode == (int)mode
-                                      && s.Status == (int)SubmissionStatus.Best);
+                                      && s.Mode == mode
+                                      && s.Status == SubmissionStatus.Best);
         
         return score == null ? null : new Score(score);
     }
@@ -106,21 +103,21 @@ public class LegacyScoresRepository(BanchoDbContext dbContext) : ScoresRepositor
     public Task<Score?> GetPlayerBestScoreWithModsOnMap(
         int playerId,
         GameMode mode,
-        LegacyMods mods,
+        string mods,
         int mapId
     ) => GetPlayerBestScoreWithModsOnMapInternal(playerId, mode, mods, mapId: mapId, md5: null);
 
     public Task<Score?> GetPlayerBestScoreWithModsOnMap(
         int playerId,
         GameMode mode,
-        LegacyMods mods,
+        string mods,
         string md5
     ) => GetPlayerBestScoreWithModsOnMapInternal(playerId, mode, mods, md5: md5, mapId: null);
     
     private async Task<Score?> GetPlayerBestScoreWithModsOnMapInternal(
         int playerId,
         GameMode mode,
-        LegacyMods mods,
+        string mods,
         int? mapId,
         string? md5
     ) {
@@ -131,9 +128,9 @@ public class LegacyScoresRepository(BanchoDbContext dbContext) : ScoresRepositor
                                           : s.BeatmapMD5 == md5)
                                       && !s.IsRestricted
                                       && s.PlayerId == playerId
-                                      && s.Mode == (int)mode
-                                      && s.Mods == (int)mods
-                                      && s.Status >= (int)SubmissionStatus.BestWithMods);
+                                      && s.Mode == mode
+                                      && s.ModKeys == mods
+                                      && s.Status >= SubmissionStatus.BestWithMods);
         
         return score == null ? null : new Score(score);
     }
@@ -142,14 +139,14 @@ public class LegacyScoresRepository(BanchoDbContext dbContext) : ScoresRepositor
         Score score,
         bool withMods,
         string md5,
-        LegacyMods mods = LegacyMods.None
+        string mods = ""
     ) => SetScoreLeaderboardPositionInternal(score, withMods, md5: md5, mapId: null, mods: mods);
 
     public Task SetScoreLeaderboardPosition(
         Score score,
         bool withMods,
         int mapId,
-        LegacyMods mods = LegacyMods.None
+        string mods = ""
     ) => SetScoreLeaderboardPositionInternal(score, withMods, mapId: mapId, md5: null, mods: mods);
 
     private async Task SetScoreLeaderboardPositionInternal(
@@ -157,18 +154,18 @@ public class LegacyScoresRepository(BanchoDbContext dbContext) : ScoresRepositor
         bool withMods,
         int? mapId,
         string? md5,
-        LegacyMods mods = LegacyMods.None
+        string mods = ""
     ) {
         score.LeaderboardPosition = await DbContext.Scores
             .Include(s => s.Player)
             .Where(s => (mapId.HasValue
                             ? s.MapId == mapId
                             : s.BeatmapMD5 == md5)
-                        && s.Mode == (int)score.Mode
+                        && s.Mode == score.Mode
                         && (withMods
-                            ? s.Status >= (int)SubmissionStatus.BestWithMods
-                            : s.Status == (int)SubmissionStatus.Best)
-                        && (!withMods || s.Mods == (int)mods) 
+                            ? s.Status >= SubmissionStatus.BestWithMods
+                            : s.Status == SubmissionStatus.Best)
+                        && (!withMods || s.ModKeys == mods) 
                         && (s.Player.Privileges & 1) == 1 
                         && !s.IsRestricted
                         && (OrderByPp(score.Mode)
@@ -180,7 +177,7 @@ public class LegacyScoresRepository(BanchoDbContext dbContext) : ScoresRepositor
     public Task<(List<ScoreDto>, Score?)> GetLeaderboardScores(
         LeaderboardType type,
         GameMode mode,
-        LegacyMods mods,
+        string mods,
         int playerId,
         string country,
         HashSet<int> friendIds,
@@ -190,7 +187,7 @@ public class LegacyScoresRepository(BanchoDbContext dbContext) : ScoresRepositor
     public Task<(List<ScoreDto>, Score?)> GetLeaderboardScores(
         LeaderboardType type,
         GameMode mode,
-        LegacyMods mods,
+        string mods,
         int playerId,
         string country,
         HashSet<int> friendIds,
@@ -200,7 +197,7 @@ public class LegacyScoresRepository(BanchoDbContext dbContext) : ScoresRepositor
     private async Task<(List<ScoreDto>, Score?)> GetLeaderboardScoresInternal(
         LeaderboardType type,
         GameMode mode,
-        LegacyMods mods,
+        string mods,
         int playerId,
         string country,
         HashSet<int> friendIds,

@@ -1,29 +1,42 @@
 ﻿using BanchoNET.Core.Abstractions.Bancho.Services;
+using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Models.Beatmaps;
 
 namespace BanchoNET.Infrastructure.Bancho.Services;
 
 public class BeatmapService(
-    ILogger logger
+    ILogger logger,
+    IBeatmapDownloader beatmapDownloader
 ) : BeatmapStateService(logger), IBeatmapService
 {
-    public void InsertBeatmapSet(
-        BeatmapSet set
+    public void InsertBeatmapset(
+        Beatmapset set
     ) {
         //no need to verify since we're only adding api-validated sets
         Logger.LogDebug($"Caching beatmap set with id: {set.Id}");
         
         BeatmapSets.AddOrUpdate(set.Id, set, (prevKey, prevSet) =>
         {
-            foreach (var map in prevSet.Beatmaps)
-                BeatmapsByMD5.TryRemove(map.MD5, out _);
+            var previousChecksums = prevSet.Beatmaps
+                .Select(b => b.Checksum)
+                .ToHashSet(StringComparer.Ordinal);
+
+            var newChecksums = set.Beatmaps
+                .Select(b => b.Checksum)
+                .ToHashSet(StringComparer.Ordinal);
+
+            if (!previousChecksums.SetEquals(newChecksums))
+                beatmapDownloader.AddBeatmapsetForUpdate(set.Id);
+            
+            foreach (var checksum in previousChecksums)
+                BeatmapsByMD5.TryRemove(checksum, out _);
             
             return set;
         });
         
         foreach (var beatmap in set.Beatmaps)
         {
-            BeatmapsByMD5.TryAdd(beatmap.MD5, beatmap.Id);
+            BeatmapsByMD5.TryAdd(beatmap.Checksum, beatmap.Id);
             Items.AddOrUpdate(beatmap.Id, beatmap, (_, prev) => UpdateStatus(beatmap, prev));
         }
     }
@@ -46,7 +59,7 @@ public class BeatmapService(
             return null;
         }
         
-        if (string.Equals(beatmap!.MD5, beatmapMD5, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(beatmap!.Checksum, beatmapMD5, StringComparison.OrdinalIgnoreCase))
             return beatmap;
         
         BeatmapsByMD5.TryRemove(beatmapMD5, out _);
@@ -60,7 +73,7 @@ public class BeatmapService(
         return TryGet(mapId, out var cachedBeatmap) ? cachedBeatmap : null;
     }
 
-    public BeatmapSet? GetBeatmapSet(
+    public Beatmapset? GetBeatmapset(
         int setId
     ) {
         return BeatmapSets.TryGetValue(setId, out var beatmapSet) ? beatmapSet : null;
@@ -70,11 +83,12 @@ public class BeatmapService(
         Beatmap currentBeatmap,
         Beatmap prevBeatmap
     ) {
-        if (!currentBeatmap.IsRankedOfficially)
+        var set = currentBeatmap.Set;
+        if (!set.IsRankedOfficially)
         {
             currentBeatmap.Status = prevBeatmap.Status;
-            currentBeatmap.ApiChecks = prevBeatmap.ApiChecks;
-            currentBeatmap.NextApiCheck = prevBeatmap.NextApiCheck;
+            set.ApiChecks = prevBeatmap.Set.ApiChecks;
+            set.NextApiCheck = prevBeatmap.Set.NextApiCheck;
         }
 
         return currentBeatmap;

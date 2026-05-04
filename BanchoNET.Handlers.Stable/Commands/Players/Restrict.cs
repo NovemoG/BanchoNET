@@ -14,7 +14,7 @@ public partial class CommandProcessor
     private async Task<string> Restrict(string[] args)
     {
         if (args.Length == 0)
-            return $"No parameters provided. Syntax: {Commands.CommandProcessor.Prefix}restrict <username> <reason>";
+            return $"No parameters provided. Syntax: {Prefix}restrict <username> <reason>";
         
         if (args.Length < 2)
             return "You must provide a reason for a restriction.";
@@ -32,7 +32,7 @@ public partial class CommandProcessor
             || !EnumExtensions.HasPrivilege(player.Privileges, PlayerPrivileges.Unrestricted))
             return "This player is already restricted.";
         
-        if (EnumExtensions.GetHighestPrivilege((PlayerPrivileges)player.Privileges) >= EnumExtensions.GetHighestPrivilege((PlayerPrivileges)_playerCtx.Privileges))
+        if (EnumExtensions.GetHighestPrivilege(player.Privileges) >= EnumExtensions.GetHighestPrivilege(_playerCtx.Privileges))
             return "You can't restrict an account that has higher or equal privileges than you.";
 
         var result = await players.RestrictPlayer(player, reason);
@@ -49,7 +49,7 @@ public partial class CommandProcessor
     private async Task<string> Unrestrict(string[] args)
     {
         if (args.Length == 0)
-            return $"No parameters provided. Syntax: {Commands.CommandProcessor.Prefix}unrestrict <username> <reason>";
+            return $"No parameters provided. Syntax: {Prefix}unrestrict <username> <reason>";
         
         if (args.Length < 2)
             return "You must provide a reason for removing a restriction.";

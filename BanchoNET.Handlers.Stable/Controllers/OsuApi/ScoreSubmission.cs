@@ -43,7 +43,7 @@ public partial class OsuController
         var clientHash = decryptedData.Value.clientHash;
 
         var beatmapMD5 = scoreData[0];
-        var beatmap = await beatmaps.GetBeatmap(beatmapMD5: beatmapMD5);
+        var beatmap = await beatmapHandler.GetBeatmap(beatmapMD5);
         if (beatmap == null)
             return Ok("error: beatmap");
 
@@ -118,8 +118,10 @@ public partial class OsuController
         score.CalculateAccuracy();
         
         var prevBest = await scores.GetPlayerBestScoreOnMap(player.Id, score.Mode, beatmapId);
-        var bestWithMods = prevBest != null && score.Mods != prevBest.Mods
-            ? await scores.GetPlayerBestScoreWithModsOnMap(player.Id, score.Mode, score.Mods, beatmapId)
+        var sameMods = score.EqualModsWith(prevBest);
+        
+        var bestWithMods = prevBest != null && !sameMods
+            ? await scores.GetPlayerBestScoreWithModsOnMap(player.Id, score.Mode, score.ModKeys ?? "", beatmapId)
             : null;
         
         if (await beatmapHandler.EnsureLocalBeatmapFile(beatmap.Id, beatmapMD5))
@@ -128,7 +130,7 @@ public partial class OsuController
             {
                 score.CalculatePerformance(beatmap);
                 
-                ComputeSubmissionStatus(score, prevBest, bestWithMods);
+                ComputeSubmissionStatus(score, prevBest, bestWithMods, sameMods);
 
                 score.Preserve = score.Status > SubmissionStatus.Submitted;
                 
@@ -182,7 +184,7 @@ public partial class OsuController
         }
         
         score.Player = player;
-        player.RecentScore = await scores.InsertScore(score, player.IsRestricted, beatmap.MD5, beatmapId);
+        player.RecentScore = await scores.InsertScore(score, player.IsRestricted, beatmap.Checksum, beatmapId);
         
         if (score.Passed)
         {
@@ -222,11 +224,12 @@ public partial class OsuController
                 .UserStats(player)
                 .FinalizeAndGetContent());
 
+            beatmap.Set.PlayCount += 1;
             beatmap.Plays += 1;
             if (score.Passed)
                 beatmap.Passes += 1;
 			
-            await beatmaps.UpdateBeatmapPlayCount(beatmap);
+            await beatmapsRepository.UpdateBeatmapPlayCount(beatmap, player.Id);
         }
 		
         string response;
@@ -237,10 +240,10 @@ public partial class OsuController
             List<string> submissionCharts =
             [
                 $"beatmapId:{beatmap.Id}",
-                $"beatmapSetId:{beatmap.SetId}",
+                $"beatmapSetId:{beatmap.BeatmapsetId}",
                 $"beatmapPlaycount:{(int)beatmap.Plays}",
                 $"beatmapPasscount:{(int)beatmap.Passes}",
-                $"approvedDate:{beatmap.LastUpdate:yyyy-MM-dd HH:mm:ss}",
+                $"approvedDate:{beatmap.LastUpdated:yyyy-MM-dd HH:mm:ss}",
                 "\n",
                 "chartId:beatmap",
                 $"chartUrl:{beatmap.Set.Url()}",
@@ -269,7 +272,7 @@ public partial class OsuController
                 $"achievements-new:{achievements}",
             ];
 
-            if (beatmap.AwardsPP() && !player.IsRestricted)
+            if (beatmap.AwardsPp() && !player.IsRestricted)
             {
                 //var unlockedAchievements = new List<Achievement>();
                 //TODO server achievements
@@ -287,7 +290,8 @@ public partial class OsuController
     private static void ComputeSubmissionStatus(
         Score newScore,
         Score? prevBest,
-        Score? bestWithMods
+        Score? bestWithMods,
+        bool sameMods
     ) {
         // if we beat prevBest
         if (newScore.IsBetterThan(prevBest))
@@ -297,7 +301,7 @@ public partial class OsuController
             // if prevBest exists, we update its status depending on if mods are equal
             if (prevBest != null)
             {
-                prevBest.Status = newScore.Mods != prevBest.Mods
+                prevBest.Status = !sameMods
                     ? SubmissionStatus.BestWithMods
                     : SubmissionStatus.Submitted;
 
@@ -307,7 +311,7 @@ public partial class OsuController
         else
         {
             // prevBest must exist because the current score is worse
-            newScore.Status = newScore.Mods != prevBest!.Mods
+            newScore.Status = !sameMods
                 ? SubmissionStatus.BestWithMods
                 : SubmissionStatus.Submitted;
 
@@ -349,7 +353,7 @@ public partial class OsuController
         Score? prevBest,
         Score? bestWithMods
     ) {
-        if (!score.Passed || !beatmap.AwardsPP())
+        if (!score.Passed || !beatmap.AwardsPp())
             return;
         
         if (score.MaxCombo > stats.MaxCombo)

@@ -103,7 +103,7 @@ public partial class CommandProcessor
             return "";
         
         var lobbyDetails = string.Join(' ', args).Split('/', 2);
-        var beatmap = await beatmaps.GetBeatmap(_playerCtx.LastValidBeatmapId);
+        var beatmap = await beatmapHandler.GetBeatmap(_playerCtx.LastValidBeatmapId);
         
         var lobby = new MultiplayerMatch
         {
@@ -113,7 +113,7 @@ public partial class CommandProcessor
             CreatorId = _playerCtx.Id,
             Freemods = true,
             BeatmapId = beatmap?.Id ?? -1,
-            BeatmapMD5 = beatmap?.MD5 ?? "",
+            BeatmapMD5 = beatmap?.Checksum ?? "",
             BeatmapName = beatmap?.FullName() ?? "",
             Seed = Random.Shared.Next(),
         };
@@ -440,12 +440,12 @@ public partial class CommandProcessor
             ? (GameMode)mode
             : GameMode.VanillaStd;
         
-        var beatmap = await beatmaps.GetBeatmap(beatmapId);
+        var beatmap = await beatmapHandler.GetBeatmap(beatmapId);
         if (beatmap == null)
             return "Beatmap not found.";
         
         _match.BeatmapId = beatmapId;
-        _match.BeatmapMD5 = beatmap.MD5;
+        _match.BeatmapMD5 = beatmap.Checksum;
         _match.BeatmapName = beatmap.FullName();
         _match.Mode = gameMode;
         

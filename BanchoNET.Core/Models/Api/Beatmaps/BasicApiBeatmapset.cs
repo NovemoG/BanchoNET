@@ -15,7 +15,7 @@ public class BasicApiBeatmapset
     public string Creator { get; set; }
     public int FavouriteCount { get; set; }
     public int GenreId { get; set; }
-    public int? Hype { get; set; }
+    public Hype? Hype { get; set; }
     public int Id { get; set; }
     public int LanguageId { get; set; }
     public bool Nsfw { get; set; }
@@ -27,7 +27,7 @@ public class BasicApiBeatmapset
     public string Status { get; set; }
     public string Title { get; set; }
     public string TitleUnicode { get; set; }
-    public object? TrackId { get; set; } //TODO
+    public object? TrackId { get; set; }
     public int UserId { get; set; }
     public bool Video { get; set; }
 
@@ -35,63 +35,56 @@ public class BasicApiBeatmapset
     public BasicApiBeatmapset() { }
 
     public BasicApiBeatmapset(
-        BeatmapsetDto beatmapset,
-        BeatmapDto? beatmap = null
+        BeatmapsetDto beatmapset
     ) {
-        var beatmaps = beatmapset.Beatmaps;
-        var firstMap = beatmap ?? beatmaps.First();
-        
-        AnimeCover = false; //TODO
-        Artist = firstMap.Artist;
-        ArtistUnicode = firstMap.ArtistUnicode;
-        Covers = new Covers(beatmapset.SetId, firstMap.CoverId);
-        Creator = firstMap.CreatorName;
-        FavouriteCount = 0; //TODO
-        GenreId = 0; //TODO
-        Hype = null; //TODO
-        Id = beatmapset.SetId;
-        LanguageId = 0; //TODO
-        Nsfw = false; //TODO
+        AnimeCover = false;
+        Artist = beatmapset.Artist;
+        ArtistUnicode = beatmapset.ArtistUnicode;
+        Covers = new Covers(beatmapset.Id);
+        Creator = beatmapset.CreatorName;
+        FavouriteCount = beatmapset.FavoriteCount;
+        GenreId = beatmapset.GenreId;
+        Hype = null;
+        Id = beatmapset.Id;
+        LanguageId = beatmapset.LanguageId;
+        Nsfw = false;
         Offset = 0; //TODO
-        PlayCount = beatmaps.Sum(b => b.Plays);
-        PreviewUrl = $"//b.{AppSettings.Domain}/preview/{beatmapset.SetId}.mp3";
-        Source = ""; //TODO
-        Spotlight = false; //TODO
-        Status = ((BeatmapStatus)firstMap.Status).ToApiBeatmapStatus();
-        Title = firstMap.Title;
-        TitleUnicode = firstMap.TitleUnicode;
-        TrackId = null; //TODO
-        UserId = firstMap.CreatorId;
-        Video = firstMap.HasVideo;
+        PlayCount = beatmapset.PlayCount;
+        PreviewUrl = $"//b.{AppSettings.Domain}/preview/{beatmapset.Id}.mp3";
+        Source = beatmapset.Source;
+        Spotlight = false;
+        Status = beatmapset.Status.ToApiBeatmapStatus();
+        Title = beatmapset.Title;
+        TitleUnicode = beatmapset.TitleUnicode;
+        TrackId = null;
+        UserId = beatmapset.CreatorId;
+        Video = beatmapset.Video;
     }
 
     public BasicApiBeatmapset(
-        BeatmapSet beatmapset,
-        Beatmap? beatmap = null
+        Beatmapset beatmapset
     ) {
-        var firstMap = beatmap ?? beatmapset.Beatmaps[0];
-        
-        AnimeCover = false; //TODO
-        Artist = firstMap.Artist;
-        ArtistUnicode = firstMap.ArtistUnicode;
-        Covers = new Covers(firstMap.SetId, firstMap.CoverId);
-        Creator = firstMap.Creator;
-        FavouriteCount = 0; //TODO
-        GenreId = 0; //TODO
-        Hype = null; //TODO
-        Id = firstMap.SetId;
-        LanguageId = 0; //TODO
-        Nsfw = false; //TODO
+        AnimeCover = false;
+        Artist = beatmapset.Artist;
+        ArtistUnicode = beatmapset.ArtistUnicode;
+        Covers = new Covers(beatmapset.Id);
+        Creator = beatmapset.CreatorName;
+        FavouriteCount = beatmapset.FavoriteCount;
+        GenreId = beatmapset.GenreId;
+        Hype = null;
+        Id = beatmapset.Id;
+        LanguageId = beatmapset.LanguageId;
+        Nsfw = false;
         Offset = 0; //TODO
-        PlayCount = beatmapset.Beatmaps.Sum(b => b.Plays);
-        PreviewUrl = $"//b.{AppSettings.Domain}/preview/{firstMap.SetId}.mp3";
-        Source = ""; //TODO
-        Spotlight = false; //TODO
-        Status = firstMap.Status.ToApiBeatmapStatus();
-        Title = firstMap.Title;
-        TitleUnicode = firstMap.TitleUnicode;
-        TrackId = null; //TODO
-        UserId = firstMap.CreatorId;
-        Video = firstMap.HasVideo;
+        PlayCount = beatmapset.PlayCount;
+        PreviewUrl = $"//b.{AppSettings.Domain}/preview/{beatmapset.Id}.mp3";
+        Source = beatmapset.Source;
+        Spotlight = false;
+        Status = beatmapset.Status.ToApiBeatmapStatus();
+        Title = beatmapset.Title;
+        TitleUnicode = beatmapset.TitleUnicode;
+        TrackId = null;
+        UserId = beatmapset.CreatorId;
+        Video = beatmapset.Video;
     }
 }

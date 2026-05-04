@@ -89,27 +89,14 @@ namespace BanchoNET.Core.Migrations
 
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.BeatmapDto", b =>
                 {
-                    b.Property<int>("MapId")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("MapId"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<float>("Ar")
                         .HasColumnType("numeric(4,2)");
-
-                    b.Property<string>("Artist")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .IsUnicode(false)
-                        .HasColumnType("character varying(128)");
-
-                    b.Property<string>("ArtistUnicode")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)")
-                        .HasDefaultValue("");
 
                     b.Property<float>("Bpm")
                         .HasColumnType("numeric(15,3)");
@@ -117,29 +104,16 @@ namespace BanchoNET.Core.Migrations
                     b.Property<int>("CirclesCount")
                         .HasColumnType("integer");
 
-                    b.Property<long>("CoverId")
-                        .HasColumnType("bigint");
-
-                    b.Property<int>("CreatorId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("CreatorName")
-                        .IsRequired()
-                        .HasMaxLength(16)
-                        .IsUnicode(false)
-                        .HasColumnType("character varying(16)");
-
                     b.Property<float>("Cs")
                         .HasColumnType("numeric(4,2)");
 
-                    b.Property<bool>("Frozen")
-                        .HasColumnType("boolean");
+                    b.PrimitiveCollection<int[]>("Exits")
+                        .IsRequired()
+                        .HasColumnType("integer[]");
 
-                    b.Property<bool>("HasStoryboard")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("HasVideo")
-                        .HasColumnType("boolean");
+                    b.PrimitiveCollection<int[]>("Fails")
+                        .IsRequired()
+                        .HasColumnType("integer[]");
 
                     b.Property<int>("HitLength")
                         .HasColumnType("integer");
@@ -147,34 +121,26 @@ namespace BanchoNET.Core.Migrations
                     b.Property<float>("Hp")
                         .HasColumnType("numeric(4,2)");
 
-                    b.Property<int>("IgnoreHit")
-                        .HasColumnType("integer");
-
-                    b.Property<bool>("IsRankedOfficially")
+                    b.Property<bool>("IsScoreable")
                         .HasColumnType("boolean");
 
-                    b.Property<int>("LargeTickHit")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("LastUpdate")
-                        .HasColumnType("timestamp without time zone");
+                    b.Property<DateTimeOffset>("LastUpdated")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("MD5")
                         .IsRequired()
-                        .IsUnicode(true)
+                        .IsUnicode(false)
                         .HasColumnType("CHAR(32)");
 
                     b.Property<int>("MaxCombo")
                         .HasColumnType("integer");
 
+                    b.Property<string>("MaximumStatistics")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<byte>("Mode")
                         .HasColumnType("smallint");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .IsUnicode(false)
-                        .HasColumnType("character varying(128)");
 
                     b.Property<float>("Od")
                         .HasColumnType("numeric(4,2)");
@@ -185,14 +151,11 @@ namespace BanchoNET.Core.Migrations
                     b.Property<long>("Plays")
                         .HasColumnType("bigint");
 
-                    b.Property<bool>("Private")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime>("RankedDate")
-                        .HasColumnType("timestamp without time zone");
-
                     b.Property<int>("SetId")
                         .HasColumnType("integer");
+
+                    b.Property<long>("SkillsId")
+                        .HasColumnType("bigint");
 
                     b.Property<int>("SlidersCount")
                         .HasColumnType("integer");
@@ -206,15 +169,161 @@ namespace BanchoNET.Core.Migrations
                     b.Property<short>("Status")
                         .HasColumnType("smallint");
 
-                    b.Property<DateTime>("SubmitDate")
-                        .HasColumnType("timestamp without time zone");
+                    b.Property<int>("TotalLength")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(128)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MD5")
+                        .IsUnique();
+
+                    b.HasIndex("Mode");
+
+                    b.HasIndex("Plays");
+
+                    b.HasIndex("SetId");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("Beatmaps", (string)null);
+                });
+
+            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.BeatmapOwner", b =>
+                {
+                    b.Property<int>("PlayerId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("BeatmapId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.HasKey("PlayerId", "BeatmapId");
+
+                    b.HasIndex("BeatmapId");
+
+                    b.ToTable("BeatmapOwners");
+                });
+
+            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.BeatmapPlays", b =>
+                {
+                    b.Property<int>("PlayerId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("BeatmapId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Plays")
+                        .HasColumnType("integer");
+
+                    b.HasKey("PlayerId", "BeatmapId");
+
+                    b.HasIndex("BeatmapId");
+
+                    b.ToTable("BeatmapPlays");
+                });
+
+            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.BeatmapsetDto", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Artist")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("ArtistUnicode")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .IsUnicode(true)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<float>("Bpm")
+                        .HasColumnType("real");
+
+                    b.Property<int>("CreatorId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CreatorName")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(8192)
+                        .IsUnicode(true)
+                        .HasColumnType("character varying(8192)")
+                        .HasDefaultValue("");
+
+                    b.Property<int>("FavoriteCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("GenreId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsPrivateUpload")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsRankedOfficially")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsScoreable")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("LanguageId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("LastUpdated")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("PlayCount")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("RankedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.PrimitiveCollection<int[]>("Ratings")
+                        .IsRequired()
+                        .HasColumnType("integer[]");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .IsUnicode(true)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<short>("Status")
+                        .HasColumnType("smallint");
+
+                    b.Property<bool>("Storyboard")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset>("SubmittedDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Tags")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(1024)
-                        .IsUnicode(false)
-                        .HasColumnType("character varying(1024)")
+                        .HasMaxLength(2048)
+                        .IsUnicode(true)
+                        .HasColumnType("character varying(2048)")
                         .HasDefaultValue("");
 
                     b.Property<string>("Title")
@@ -225,44 +334,50 @@ namespace BanchoNET.Core.Migrations
 
                     b.Property<string>("TitleUnicode")
                         .IsRequired()
-                        .ValueGeneratedOnAdd()
                         .HasMaxLength(128)
-                        .HasColumnType("character varying(128)")
-                        .HasDefaultValue("");
+                        .IsUnicode(true)
+                        .HasColumnType("character varying(128)");
 
-                    b.Property<int>("TotalLength")
-                        .HasColumnType("integer");
+                    b.Property<bool>("Video")
+                        .HasColumnType("boolean");
 
-                    b.HasKey("MapId");
+                    b.HasKey("Id");
 
                     b.HasIndex("CreatorId");
 
-                    b.HasIndex("MD5")
-                        .IsUnique();
+                    b.HasIndex("Id");
 
-                    b.HasIndex("MapId");
+                    b.HasIndex("LastUpdated");
 
-                    b.HasIndex("SetId");
+                    b.HasIndex("PlayCount");
 
-                    b.ToTable("Beatmaps", (string)null);
-                });
+                    b.HasIndex("RankedDate");
 
-            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.BeatmapsetDto", b =>
-                {
-                    b.Property<int>("SetId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                    b.HasIndex("Status");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("SetId"));
-
-                    b.Property<int>("OwnerId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("SetId");
-
-                    b.HasIndex("OwnerId");
+                    b.HasIndex("SubmittedDate");
 
                     b.ToTable("Beatmapsets", (string)null);
+                });
+
+            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.BeatmapsetFavorite", b =>
+                {
+                    b.Property<int>("PlayerId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("BeatmapsetId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("FavoriteAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.HasKey("PlayerId", "BeatmapsetId");
+
+                    b.HasIndex("BeatmapsetId");
+
+                    b.ToTable("BeatmapsetFavorites");
                 });
 
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.ChannelDto", b =>
@@ -524,8 +639,17 @@ namespace BanchoNET.Core.Migrations
                         .IsUnicode(false)
                         .HasColumnType("character varying(16)");
 
+                    b.Property<long>("SkillsId")
+                        .HasColumnType("bigint");
+
                     b.Property<byte>("SupporterLevel")
                         .HasColumnType("smallint");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(true)
+                        .HasColumnType("character varying(64)");
 
                     b.Property<int>("TopPlaysCount")
                         .HasColumnType("integer");
@@ -642,6 +766,24 @@ namespace BanchoNET.Core.Migrations
                     b.ToTable("Releases");
                 });
 
+            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.ReplayWatches", b =>
+                {
+                    b.Property<int>("PlayerId")
+                        .HasColumnType("integer");
+
+                    b.Property<long>("ScoreId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("Count")
+                        .HasColumnType("integer");
+
+                    b.HasKey("PlayerId", "ScoreId");
+
+                    b.HasIndex("ScoreId");
+
+                    b.ToTable("ReplayWatches");
+                });
+
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.ScoreDto", b =>
                 {
                     b.Property<long>("Id")
@@ -652,9 +794,6 @@ namespace BanchoNET.Core.Migrations
 
                     b.Property<float>("Acc")
                         .HasColumnType("numeric(6,3)");
-
-                    b.Property<int>("BeatmapId")
-                        .HasColumnType("integer");
 
                     b.Property<string>("BeatmapMD5")
                         .IsRequired()
@@ -704,8 +843,9 @@ namespace BanchoNET.Core.Migrations
                         .HasColumnType("integer");
 
                     b.Property<string>("LazerMods")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)");
+                        .HasMaxLength(2048)
+                        .IsUnicode(true)
+                        .HasColumnType("character varying(2048)");
 
                     b.Property<bool>("LegacyPerfect")
                         .HasColumnType("boolean");
@@ -721,6 +861,12 @@ namespace BanchoNET.Core.Migrations
 
                     b.Property<int>("Misses")
                         .HasColumnType("integer");
+
+                    b.Property<string>("ModKeys")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .IsUnicode(true)
+                        .HasColumnType("character varying(128)");
 
                     b.Property<byte>("Mode")
                         .HasColumnType("smallint");
@@ -753,6 +899,10 @@ namespace BanchoNET.Core.Migrations
 
                     b.Property<DateTimeOffset?>("StartTime")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Statistics")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<byte>("Status")
                         .HasColumnType("smallint");
@@ -791,6 +941,38 @@ namespace BanchoNET.Core.Migrations
                     b.HasIndex("Status");
 
                     b.ToTable("Scores", (string)null);
+                });
+
+            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.SkillsDto", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<int?>("BeatmapId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("PlayerId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Skills")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BeatmapId")
+                        .IsUnique();
+
+                    b.HasIndex("PlayerId")
+                        .IsUnique();
+
+                    b.ToTable("Skills", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Skills_ExactlyOneOwner", "(\"PlayerId\" IS NOT NULL AND \"BeatmapId\" IS NULL) OR (\"PlayerId\" IS NULL AND \"BeatmapId\" IS NOT NULL)");
+                        });
                 });
 
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.StatsDto", b =>
@@ -868,12 +1050,6 @@ namespace BanchoNET.Core.Migrations
 
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.BeatmapDto", b =>
                 {
-                    b.HasOne("BanchoNET.Core.Models.Dtos.PlayerDto", "Creator")
-                        .WithMany("Beatmaps")
-                        .HasForeignKey("CreatorId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("BanchoNET.Core.Models.Dtos.BeatmapsetDto", "Beatmapset")
                         .WithMany("Beatmaps")
                         .HasForeignKey("SetId")
@@ -881,19 +1057,74 @@ namespace BanchoNET.Core.Migrations
                         .IsRequired();
 
                     b.Navigation("Beatmapset");
+                });
 
-                    b.Navigation("Creator");
+            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.BeatmapOwner", b =>
+                {
+                    b.HasOne("BanchoNET.Core.Models.Dtos.BeatmapDto", "Beatmap")
+                        .WithMany("Owners")
+                        .HasForeignKey("BeatmapId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BanchoNET.Core.Models.Dtos.PlayerDto", "Player")
+                        .WithMany("OwnedBeatmaps")
+                        .HasForeignKey("PlayerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Beatmap");
+
+                    b.Navigation("Player");
+                });
+
+            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.BeatmapPlays", b =>
+                {
+                    b.HasOne("BanchoNET.Core.Models.Dtos.BeatmapDto", "Beatmap")
+                        .WithMany("PlaysData")
+                        .HasForeignKey("BeatmapId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BanchoNET.Core.Models.Dtos.PlayerDto", "Player")
+                        .WithMany("PlayedBeatmaps")
+                        .HasForeignKey("PlayerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Beatmap");
+
+                    b.Navigation("Player");
                 });
 
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.BeatmapsetDto", b =>
                 {
-                    b.HasOne("BanchoNET.Core.Models.Dtos.PlayerDto", "Owner")
+                    b.HasOne("BanchoNET.Core.Models.Dtos.PlayerDto", "Creator")
                         .WithMany("Beatmapsets")
-                        .HasForeignKey("OwnerId")
+                        .HasForeignKey("CreatorId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Owner");
+                    b.Navigation("Creator");
+                });
+
+            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.BeatmapsetFavorite", b =>
+                {
+                    b.HasOne("BanchoNET.Core.Models.Dtos.BeatmapsetDto", "Beatmapset")
+                        .WithMany("BeatmapsetFavorites")
+                        .HasForeignKey("BeatmapsetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BanchoNET.Core.Models.Dtos.PlayerDto", "Player")
+                        .WithMany("FavoriteBeatmapsets")
+                        .HasForeignKey("PlayerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Beatmapset");
+
+                    b.Navigation("Player");
                 });
 
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.ChannelPlayer", b =>
@@ -975,6 +1206,25 @@ namespace BanchoNET.Core.Migrations
                     b.Navigation("Target");
                 });
 
+            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.ReplayWatches", b =>
+                {
+                    b.HasOne("BanchoNET.Core.Models.Dtos.PlayerDto", "Player")
+                        .WithMany("WatchedReplays")
+                        .HasForeignKey("PlayerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BanchoNET.Core.Models.Dtos.ScoreDto", "Score")
+                        .WithMany("ReplayWatches")
+                        .HasForeignKey("ScoreId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Player");
+
+                    b.Navigation("Score");
+                });
+
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.ScoreDto", b =>
                 {
                     b.HasOne("BanchoNET.Core.Models.Dtos.BeatmapDto", "Beatmap")
@@ -986,8 +1236,25 @@ namespace BanchoNET.Core.Migrations
                     b.HasOne("BanchoNET.Core.Models.Dtos.PlayerDto", "Player")
                         .WithMany("Scores")
                         .HasForeignKey("PlayerId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Beatmap");
+
+                    b.Navigation("Player");
+                });
+
+            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.SkillsDto", b =>
+                {
+                    b.HasOne("BanchoNET.Core.Models.Dtos.BeatmapDto", "Beatmap")
+                        .WithOne("Skills")
+                        .HasForeignKey("BanchoNET.Core.Models.Dtos.SkillsDto", "BeatmapId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("BanchoNET.Core.Models.Dtos.PlayerDto", "Player")
+                        .WithOne("Skills")
+                        .HasForeignKey("BanchoNET.Core.Models.Dtos.SkillsDto", "PlayerId")
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("Beatmap");
 
@@ -1007,12 +1274,21 @@ namespace BanchoNET.Core.Migrations
 
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.BeatmapDto", b =>
                 {
+                    b.Navigation("Owners");
+
+                    b.Navigation("PlaysData");
+
                     b.Navigation("Scores");
+
+                    b.Navigation("Skills")
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.BeatmapsetDto", b =>
                 {
                     b.Navigation("Beatmaps");
+
+                    b.Navigation("BeatmapsetFavorites");
                 });
 
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.ChannelDto", b =>
@@ -1024,15 +1300,19 @@ namespace BanchoNET.Core.Migrations
 
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.PlayerDto", b =>
                 {
-                    b.Navigation("Beatmaps");
-
                     b.Navigation("Beatmapsets");
 
                     b.Navigation("ClientHashes");
 
+                    b.Navigation("FavoriteBeatmapsets");
+
                     b.Navigation("IncomingRelationships");
 
                     b.Navigation("LoginsData");
+
+                    b.Navigation("OwnedBeatmaps");
+
+                    b.Navigation("PlayedBeatmaps");
 
                     b.Navigation("PlayerChannels");
 
@@ -1042,7 +1322,17 @@ namespace BanchoNET.Core.Migrations
 
                     b.Navigation("SentMessages");
 
+                    b.Navigation("Skills")
+                        .IsRequired();
+
                     b.Navigation("Stats");
+
+                    b.Navigation("WatchedReplays");
+                });
+
+            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.ScoreDto", b =>
+                {
+                    b.Navigation("ReplayWatches");
                 });
 #pragma warning restore 612, 618
         }

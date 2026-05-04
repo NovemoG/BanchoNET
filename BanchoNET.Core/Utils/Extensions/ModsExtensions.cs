@@ -3,6 +3,7 @@ using System.Text.Json;
 using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Models.Mods;
+using BanchoNET.Core.Models.Scores;
 
 namespace BanchoNET.Core.Utils.Extensions;
 
@@ -100,10 +101,43 @@ public static class ModsExtensions
         return result;
     }
     
-    public static string ModsToString(
-        this ApiScore score
+    extension(
+        Score score
     ) {
-        return score.Mods.Aggregate(string.Empty, (current, mod) => current + mod);
+        public string ModsToString() {
+            return score.Mods.ToLazerMods().Aggregate(string.Empty, (current, mod) => current + mod);
+        }
+
+        public string ModsToKeysString() {
+            return score.Mods.ToKeysString();
+        }
+    }
+
+    extension(
+        ApiScore score
+    ) {
+        public string ModsToString() {
+            return score.Mods.Aggregate(string.Empty, (current, mod) => current + mod);
+        }
+
+        public string ModsToKeysString() {
+            return score.Mods.Aggregate(string.Empty, (current, mod) => $"{current}{mod.Acronym};");
+        }
+    }
+
+    public static string ToKeysString(
+        this LegacyMods mods
+    ) {
+        return mods
+            .ToLazerMods(addClassic: false)
+            .OrderBy(m => m.Acronym)
+            .Aggregate(string.Empty, (current, mod) => $"{current}{mod.Acronym};");
+    }
+
+    public static string ToKeysString(
+        this Mod[] mods
+    ) {
+        return mods.Aggregate(string.Empty, (current, mod) => $"{current}{mod.Acronym};");
     }
 
     public static Mod[] ToMods(

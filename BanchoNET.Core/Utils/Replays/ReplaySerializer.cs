@@ -32,7 +32,7 @@ public static class ReplaySerializer
 		
 		bw.Write((byte)score.RulesetId);
 		bw.Write(LATEST_VERSION);
-		bw.WriteString(beatmap.MD5);
+		bw.WriteString(beatmap.Checksum);
 		bw.WriteString(score.User!.Username);
 		bw.WriteString($"lazer-{score.User.Username}-{score.EndedAt}".CreateMD5());
 		bw.Write((ushort)score.GetCount300());

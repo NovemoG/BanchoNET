@@ -10,12 +10,19 @@ public sealed class BanchoDbContext(DbContextOptions<BanchoDbContext> options) :
 {
 	public DbSet<PlayerDto> Players { get; init; } = null!;
 	public DbSet<StatsDto> Stats { get; init; } = null!;
-	public DbSet<BeatmapDto> Beatmaps { get; init; } = null!;
-	public DbSet<BeatmapsetDto> Beatmapsets { get; init; } = null!;
 	public DbSet<RelationshipDto> Relationships { get; init; } = null!;
-	public DbSet<ScoreDto> Scores { get; init; } = null!;
 	public DbSet<LoginDto> PlayerLogins { get; init; } = null!;
 	public DbSet<ClientHashesDto> ClientHashes { get; init; } = null!;
+	
+	public DbSet<ScoreDto> Scores { get; init; } = null!;
+	public DbSet<ReplayWatches> ReplayWatches { get; init; } = null!;
+	
+	public DbSet<BeatmapDto> Beatmaps { get; init; } = null!;
+	public DbSet<BeatmapsetDto> Beatmapsets { get; init; } = null!;
+	public DbSet<BeatmapOwner> BeatmapOwners { get; init; } = null!;
+	public DbSet<BeatmapsetFavorite> BeatmapsetFavorites { get; init; } = null!;
+	public DbSet<BeatmapPlays> BeatmapPlays { get; init; } = null!;
+	
 	public DbSet<MessageDto> Messages { get; init; } = null!;
 	public DbSet<ChannelDto> Channels { get; init; } = null!;
 	public DbSet<ChannelPlayer> ChannelPlayers { get; init; } = null!;
@@ -33,7 +40,8 @@ public sealed class BanchoDbContext(DbContextOptions<BanchoDbContext> options) :
 			.ApplyConfiguration(new BeatmapConfiguration())
 			.ApplyConfiguration(new BeatmapsetConfiguration())
 			.ApplyConfiguration(new MessageConfiguration())
-			.ApplyConfiguration(new ScoreConfiguration());
+			.ApplyConfiguration(new ScoreConfiguration())
+			.ApplyConfiguration(new SkillsConfiguration());
 		
 		modelBuilder.Entity<ChannelPlayer>(entity =>
 		{
@@ -41,11 +49,76 @@ public sealed class BanchoDbContext(DbContextOptions<BanchoDbContext> options) :
 
 			entity.HasOne(x => x.Player)
 				.WithMany(p => p.PlayerChannels)
-				.HasForeignKey(x => x.PlayerId);
+				.HasForeignKey(x => x.PlayerId)
+				.OnDelete(DeleteBehavior.Cascade);
 			
 			entity.HasOne(x => x.Channel)
 				.WithMany(c => c.ChannelPlayers)
-				.HasForeignKey(x => x.ChannelId);
+				.HasForeignKey(x => x.ChannelId)
+				.OnDelete(DeleteBehavior.Cascade);
+		});
+		
+		modelBuilder.Entity<BeatmapOwner>(entity =>
+		{
+			entity.HasKey(x => new { x.PlayerId, x.BeatmapId });
+
+			entity.HasOne(x => x.Player)
+				.WithMany(p => p.OwnedBeatmaps)
+				.HasForeignKey(x => x.PlayerId)
+				.OnDelete(DeleteBehavior.Cascade);
+			
+			entity.HasOne(x => x.Beatmap)
+				.WithMany(c => c.Owners)
+				.HasForeignKey(x => x.BeatmapId)
+				.OnDelete(DeleteBehavior.Cascade);
+		});
+		
+		modelBuilder.Entity<BeatmapPlays>(entity =>
+		{
+			entity.HasKey(x => new { x.PlayerId, x.BeatmapId });
+
+			entity.HasOne(x => x.Player)
+				.WithMany(p => p.PlayedBeatmaps)
+				.HasForeignKey(x => x.PlayerId)
+				.OnDelete(DeleteBehavior.Cascade);
+			
+			entity.HasOne(x => x.Beatmap)
+				.WithMany(c => c.PlaysData)
+				.HasForeignKey(x => x.BeatmapId)
+				.OnDelete(DeleteBehavior.Cascade);
+		});
+		
+		modelBuilder.Entity<BeatmapsetFavorite>(entity =>
+		{
+			entity.HasKey(x => new { x.PlayerId, x.BeatmapsetId });
+
+			entity.Property(x => x.FavoriteAt)
+				.HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+			entity.HasOne(x => x.Player)
+				.WithMany(p => p.FavoriteBeatmapsets)
+				.HasForeignKey(x => x.PlayerId)
+				.OnDelete(DeleteBehavior.Cascade);
+			
+			entity.HasOne(x => x.Beatmapset)
+				.WithMany(c => c.BeatmapsetFavorites)
+				.HasForeignKey(x => x.BeatmapsetId)
+				.OnDelete(DeleteBehavior.Cascade);
+		});
+		
+		modelBuilder.Entity<ReplayWatches>(entity =>
+		{
+			entity.HasKey(x => new { x.PlayerId, x.ScoreId });
+
+			entity.HasOne(x => x.Player)
+				.WithMany(p => p.WatchedReplays)
+				.HasForeignKey(x => x.PlayerId)
+				.OnDelete(DeleteBehavior.Cascade);
+			
+			entity.HasOne(x => x.Score)
+				.WithMany(c => c.ReplayWatches)
+				.HasForeignKey(x => x.ScoreId)
+				.OnDelete(DeleteBehavior.Cascade);
 		});
 		
 		base.OnModelCreating(modelBuilder);

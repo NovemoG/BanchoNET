@@ -15,7 +15,7 @@ public class ChatController(
     IAuthService auth,
     IPlayersRepository players,
     ILazerPlayerService playerService,
-    IBeatmapsRepository beatmaps,
+    IBeatmapHandler beatmaps,
     IChannelService channels,
     IMessagesRepository messages,
     INotifySocketManager notify

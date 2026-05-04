@@ -41,14 +41,14 @@ public partial class CommandProcessor
 
         player.RecentScore = score;
         
-        var beatmap = await beatmaps.GetBeatmap(beatmapMD5: score.BeatmapMD5!);
+        var beatmap = await beatmapHandler.GetBeatmap(score.BeatmapMD5!);
         if (beatmap == null)
             return (true, BeatmapNotFound);
         
-        var fcPP = 0.0f;
+        var fcPp = 0.0f;
         if (score.Misses > 0 || beatmap.MaxCombo - score.MaxCombo > 15)
-            if (await beatmapHandler.EnsureLocalBeatmapFile(beatmap.Id, beatmap.MD5))
-                fcPP = PpMethods.ComputeNoMissesScorePp(beatmap, score, beatmap.MaxCombo);
+            if (await beatmapHandler.EnsureLocalBeatmapFile(beatmap.Id, beatmap.Checksum))
+                fcPp = PpMethods.ComputeNoMissesScorePp(beatmap, score, beatmap.MaxCombo);
         
         var completionString = $"{score.Grade}";
         if (score.Status == (byte)SubmissionStatus.Failed)
@@ -63,7 +63,7 @@ public partial class CommandProcessor
 
         return (false,
             $"[{score.ModeToString()}] {player.Username}'s recent score on {BeatmapExtensions.Embed(beatmap)}{(modsString.Length > 0 ? $" +{modsString}" : "")}" +
-            $"\n                {completionString} | {score.PP:F2}pp{(fcPP > 0 ? $" (if fc: {fcPP:F2}pp)" : "")} | " +
+            $"\n                {completionString} | {score.PP:F2}pp{(fcPp > 0 ? $" (if fc: {fcPp:F2}pp)" : "")} | " +
             $"{score.Acc:F2}% | {score.TotalScore.SplitNumber()} | x{score.MaxCombo}/{beatmap.MaxCombo} | {notesHitString}");
     }
 }

@@ -335,7 +335,7 @@ public class LazerUpdaterService(
         string tagName,
         CancellationToken ct
     ) {
-        var tempRoot = Path.Combine(Storage.TempPath, "ghrel-" + Guid.NewGuid().ToString("N"));
+        var tempRoot = Path.Combine(Storage.LazerTempPath, "ghrel-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempRoot);
 
         try

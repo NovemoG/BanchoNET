@@ -5,7 +5,6 @@ using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Db;
 using BanchoNET.Core.Models.Dtos;
-using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Models.Scores;
 using BanchoNET.Core.Utils.Extensions;
 using Microsoft.EntityFrameworkCore;
@@ -20,8 +19,6 @@ public class LazerScoresRepository(BanchoDbContext dbContext) : ScoresRepository
         string md5,
         int mapId
     ) {
-        var stats = score.Statistics;
-        
         var dbScore = DbContext.Scores
             .Add(new ScoreDto
             {
@@ -35,19 +32,13 @@ public class LazerScoresRepository(BanchoDbContext dbContext) : ScoresRepository
                 Acc = (float)score.Accuracy,
                 LegacyTotalScore = score.TotalScore,
                 MaxCombo = score.MaxCombo,
-                Mods = (int)score.LegacyMods, //TODO temporary
+                Mods = score.Mods.ToLegacyMods(),
+                ModKeys = score.ModKeys,
                 LazerMods = score.ModsToString(),
-                Count300 = stats.GetStatCount(HitResult.Great),
-                Count100 = stats.GetStatCount(HitResult.Ok),
-                Count50 = stats.GetStatCount(HitResult.Meh),
-                Misses = stats.GetStatCount(HitResult.Miss),
-                Gekis = stats.GetStatCount(HitResult.LargeTickHit),
-                Katus = stats.GetStatCount(HitResult.SliderTailHit),
-                IgnoreHit = stats.GetStatCount(HitResult.IgnoreHit),
-                IgnoreMiss = stats.GetStatCount(HitResult.IgnoreMiss),
-                Grade = (byte)score.Grade,
-                Status = (byte)score.Status,
-                Mode = (byte)score.RulesetId,
+                Statistics = score.Statistics,
+                Grade = score.Grade,
+                Status = score.Status,
+                Mode = (GameMode)score.RulesetId,
                 TimeElapsed = score.TimeElapsed,
                 StartTime = score.StartedAt,
                 PlayTime = score.EndedAt,
@@ -60,7 +51,7 @@ public class LazerScoresRepository(BanchoDbContext dbContext) : ScoresRepository
         score.Id = dbScore.Entity.Id;
         return score;
     }
-
+    
     public async Task UpdateScoreStatus(
         ApiScore? score
     ) {
@@ -81,8 +72,8 @@ public class LazerScoresRepository(BanchoDbContext dbContext) : ScoresRepository
                 s.MapId == beatmap.Id
                 && !s.IsRestricted
                 && s.PlayerId == playerId
-                && s.Mode == (int)mode
-                && s.Status == (int)SubmissionStatus.Best);
+                && s.Mode == mode
+                && s.Status == SubmissionStatus.Best);
 
         return score == null ? null : new ApiScore(score, score.Player, beatmap);
     }
@@ -90,7 +81,7 @@ public class LazerScoresRepository(BanchoDbContext dbContext) : ScoresRepository
     public async Task<ApiScore?> GetPlayerBestScoreWithModsOnMap(
         int playerId,
         GameMode mode,
-        Mod[] mods,
+        string mods,
         Beatmap beatmap
     ) {
         var score = await DbContext.Scores
@@ -100,9 +91,9 @@ public class LazerScoresRepository(BanchoDbContext dbContext) : ScoresRepository
                 s.MapId == beatmap.Id
                 && !s.IsRestricted
                 && s.PlayerId == playerId
-                && s.Mode == (int)mode
-                && s.Mods == (int)mods.ToLegacyMods()
-                && s.Status >= (int)SubmissionStatus.BestWithMods);
+                && s.Mode == mode
+                && s.ModKeys == mods
+                && s.Status >= SubmissionStatus.BestWithMods);
         
         return score == null ? null : new ApiScore(score, score.Player, beatmap);
     }
@@ -111,17 +102,17 @@ public class LazerScoresRepository(BanchoDbContext dbContext) : ScoresRepository
         ApiScore score,
         bool withMods,
         Beatmap beatmap,
-        Mod[]? mods = null
+        string mods = ""
     ) {
         score.LeaderboardPosition = await DbContext.Scores
             .Include(s => s.Player)
             .Where(s =>
                 s.MapId == beatmap.Id
-                && s.Mode == score.RulesetId
+                && s.Mode == (GameMode)score.RulesetId
                 && (withMods
-                    ? s.Status >= (int)SubmissionStatus.BestWithMods
-                    : s.Status == (int)SubmissionStatus.Best)
-                && (!withMods || s.Mods == (int)score.LegacyMods)
+                    ? s.Status >= SubmissionStatus.BestWithMods
+                    : s.Status == SubmissionStatus.Best)
+                && (!withMods || s.ModKeys == mods)
                 && (s.Player.Privileges & 1) == 1
                 && !s.IsRestricted
                 && (OrderByPp((GameMode)score.RulesetId)
@@ -133,7 +124,7 @@ public class LazerScoresRepository(BanchoDbContext dbContext) : ScoresRepository
     public async Task<(List<ApiScore>, int, ApiScore?)> GetLeaderboardScores(
         LeaderboardType type,
         GameMode mode,
-        Mod[] mods,
+        string mods,
         int playerId,
         string country,
         HashSet<int> friendIds,
@@ -144,7 +135,7 @@ public class LazerScoresRepository(BanchoDbContext dbContext) : ScoresRepository
         var leaderboard = (await GetBeatmapLeaderboardInternal(
                 mode,
                 type,
-                mods.ToLegacyMods(), //TODO
+                mods,
                 country,
                 friendIds,
                 mapId,

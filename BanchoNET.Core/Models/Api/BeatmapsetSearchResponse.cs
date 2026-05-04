@@ -4,7 +4,7 @@ namespace BanchoNET.Core.Models.Api;
 
 public class BeatmapsetSearchResponse
 {
-    public List<ApiBeatmapset> Beatmapsets { get; set; } = [];
+    public List<ApiBeatmapsetFull> Beatmapsets { get; set; } = [];
     public BeatmapsetSearch Search { get; set; } = new();
     public string RecommendedDifficulty { get; set; } = "0.0";
     public object? Error { get; set; } = null;

@@ -21,7 +21,7 @@ public partial class CommandProcessor
             if (command.Attribute.Aliases == null)
                 return Task.FromResult(description);
 
-            var aliases = command.Attribute.Aliases.Aggregate("", (current, alias) => current + $"{Commands.CommandProcessor.Prefix}{alias}, ");
+            var aliases = command.Attribute.Aliases.Aggregate("", (current, alias) => current + $"{Prefix}{alias}, ");
             return Task.FromResult(description + "\nAliases/shortcuts: " + aliases[..^2]);
         }
 
@@ -32,7 +32,7 @@ public partial class CommandProcessor
                 .Where(c => PlayerExtensions.CanUseCommand(_playerCtx, c.Value.Attribute.Privileges))
                 .OrderBy(c => c.Key)
                 .Aggregate("Here is a list of available commands [name - description and usage]:\n",
-                    (current, c) => current + $"{Commands.CommandProcessor.Prefix}{c.Key} - {c.Value.Attribute.BriefDescription}\n")[..^1]);
+                    (current, c) => current + $"{Prefix}{c.Key} - {c.Value.Attribute.BriefDescription}\n")[..^1]);
         }
 
         return Task.FromResult(CommandNotFound);

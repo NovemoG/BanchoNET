@@ -1,7 +1,6 @@
 ﻿using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Models.Beatmaps;
-using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Models.Scores;
 
 namespace BanchoNET.Core.Abstractions.Repositories;
@@ -26,7 +25,7 @@ public interface ILazerScoresRepository : IScoresRepository
     Task<ApiScore?> GetPlayerBestScoreWithModsOnMap(
         int playerId,
         GameMode mode,
-        Mod[] mods,
+        string mods,
         Beatmap beatmap
     );
 
@@ -34,13 +33,13 @@ public interface ILazerScoresRepository : IScoresRepository
         ApiScore score,
         bool withMods,
         Beatmap beatmap,
-        Mod[]? mods = null
+        string mods = ""
     );
 
     Task<(List<ApiScore>, int, ApiScore?)> GetLeaderboardScores(
         LeaderboardType type,
         GameMode mode,
-        Mod[] mods,
+        string mods,
         int playerId,
         string country,
         HashSet<int> friendIds,

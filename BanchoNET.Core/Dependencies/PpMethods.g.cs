@@ -39,7 +39,18 @@ public static partial class PpMethods
         float od,
         bool lazer
     );
+    
+    [LibraryImport(__DllName, EntryPoint = "rosu_difficulty_graph_calculate_from_path", StringMarshalling = StringMarshalling.Utf8)]
+    private static partial RosuDifficultyGraphNativeResult CalculateFromPathNative(
+        string pathUtf8,
+        uint mods
+    );
 
+    [LibraryImport(__DllName, EntryPoint = "rosu_difficulty_graph_string_free")]
+    private static partial void FreeStringNative(
+        IntPtr value
+    );
+    
     public static float ComputeScorePp(
         Beatmap beatmap,
         Score score
@@ -73,20 +84,47 @@ public static partial class PpMethods
         float ar,
         float od
     ) {
-        var stats = score.Statistics;
-        
         return (float)ComputePp(
             Storage.GetBeatmapPath(beatmapId),
             (byte)score.RulesetId,
             (uint)score.LegacyMods,
             (uint)score.MaxCombo,
             score.Accuracy,
-            (uint)(stats.GetStatCount(HitResult.Great)),
-            (uint)(stats.GetStatCount(HitResult.LargeTickHit)),
-            (uint)(stats.GetStatCount(HitResult.Ok)),
-            (uint)(stats.GetStatCount(HitResult.SliderTailHit)),
-            (uint)(stats.GetStatCount(HitResult.Meh)),
-            (uint)(stats.GetStatCount(HitResult.Miss)),
+            (uint)score.GetCount300(),
+            (uint)score.GetCountGeki(),
+            (uint)score.GetCount100(),
+            (uint)score.GetCountKatu(),
+            (uint)score.GetCount50(),
+            (uint)score.GetCountMiss(),
+            (nint)(&clockRate),
+            cs,
+            ar,
+            od,
+            isLazer
+        );
+    }
+    
+    public static unsafe float ComputeScorePp(
+        int beatmapId,
+        ScoreDto score,
+        double clockRate,
+        bool isLazer,
+        float cs,
+        float ar,
+        float od
+    ) {
+        return (float)ComputePp(
+            Storage.GetBeatmapPath(beatmapId),
+            (byte)score.Mode,
+            (uint)score.Mods,
+            (uint)score.MaxCombo,
+            score.Acc,
+            (uint)score.GetCount300(),
+            (uint)score.GetCountGeki(),
+            (uint)score.GetCount100(),
+            (uint)score.GetCountKatu(),
+            (uint)score.GetCount50(),
+            (uint)score.GetCountMiss(),
             (nint)(&clockRate),
             cs,
             ar,
@@ -149,15 +187,15 @@ public static partial class PpMethods
             
         return (float)ComputePp(
             Storage.GetBeatmapPath(beatmap.Id),
-            score.Mode,
+            (byte)score.Mode,
             (uint)score.Mods,
             (uint)maxCombo,
             acc,
-            (uint)(score.Count300 + score.Misses),
-            (uint)score.Gekis,
-            (uint)score.Count100,
-            (uint)score.Katus,
-            (uint)score.Count50,
+            (uint)(score.GetCount300() + score.GetCountMiss()),
+            (uint)score.GetCountGeki(),
+            (uint)score.GetCount100(),
+            (uint)score.GetCountKatu(),
+            (uint)score.GetCount50(),
             (uint)0,
             nint.Zero,
             beatmap.Cs,
@@ -165,5 +203,62 @@ public static partial class PpMethods
             beatmap.Od,
             lazer: false
         );
+    }
+    
+    public static string CalculateGraphJson(
+        string path,
+        uint mods = 0
+    ) {
+        var result = CalculateFromPathNative(path, mods);
+
+        try
+        {
+            var status = (RosuDifficultyGraphStatus)result.StatusCode;
+
+            if (status == RosuDifficultyGraphStatus.Success)
+                return Marshal.PtrToStringUTF8(result.Json) ?? string.Empty;
+
+            var message = Marshal.PtrToStringUTF8(result.Error) ?? "Unknown native error";
+            throw new RosuDifficultyGraphException(status, message);
+        }
+        finally
+        {
+            if (result.Json != IntPtr.Zero)
+                FreeStringNative(result.Json);
+
+            if (result.Error != IntPtr.Zero)
+                FreeStringNative(result.Error);
+        }
+    }
+    
+    public enum RosuDifficultyGraphStatus
+    {
+        Success = 0,
+        NullPointer = 1,
+        InvalidUtf8 = 2,
+        IoError = 3,
+        DecodeError = 4,
+        UnsupportedMode = 5,
+        SerializeError = 6,
+        Panic = 255,
+    }
+    
+    [StructLayout(LayoutKind.Sequential)]
+    internal readonly struct RosuDifficultyGraphNativeResult
+    {
+        public readonly int StatusCode;
+        public readonly IntPtr Json;
+        public readonly IntPtr Error;
+    }
+    
+    public sealed class RosuDifficultyGraphException : Exception
+    {
+        public RosuDifficultyGraphStatus Status { get; }
+
+        public RosuDifficultyGraphException(RosuDifficultyGraphStatus status, string message)
+            : base(message)
+        {
+            Status = status;
+        }
     }
 }

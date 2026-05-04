@@ -14,7 +14,8 @@ public partial class UsersController(
     IAuthService auth,
     IPlayersRepository players,
     ILazerPlayerService playerService,
-    IBeatmapsRepository beatmaps,
+    IBeatmapHandler beatmaps,
+    IBeatmapsRepository beatmapsRepository,
     ILazerScoresRepository scores
 ) : ApiController(auth, players, playerService, beatmaps)
 {

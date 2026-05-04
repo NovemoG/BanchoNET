@@ -40,39 +40,7 @@ public class BasicApiBeatmap
     public BasicApiBeatmap() { }
 
     public BasicApiBeatmap(
-        BeatmapDto mapDto
-    ) {
-        BeatmapsetId = mapDto.SetId;
-        DifficultyRating = mapDto.StarRating;
-        Id = mapDto.MapId;
-        Mode = EnumExtensions.FromModeMap[(GameMode)mapDto.Mode];
-        Status = ((BeatmapStatus)mapDto.Status).ToApiBeatmapStatus();
-        TotalLength = mapDto.TotalLength;
-        UserId = mapDto.CreatorId;
-        Version = mapDto.Name;
-        Accuracy = mapDto.Od;
-        Ar = mapDto.Ar;
-        Bpm = mapDto.Bpm;
-        Convert = false; //TODO
-        CountCircles = mapDto.CirclesCount;
-        CountSliders = mapDto.SlidersCount;
-        CountSpinners = mapDto.SpinnersCount;
-        Cs = mapDto.Cs;
-        DeletedAt = null; //TODO
-        Drain = mapDto.Hp;
-        HitLength = mapDto.HitLength;
-        IsScoreable = true; //TODO
-        LastUpdated = mapDto.LastUpdate;
-        ModeInt = mapDto.Mode;
-        Passcount = mapDto.Passes;
-        Playcount = mapDto.Plays;
-        Ranked = mapDto.Status == (sbyte)BeatmapStatus.Ranked ? 1 : 0;
-        Url = $"https://osu.{AppSettings.Domain}/beatmaps/{mapDto.MapId}";
-        Checksum = mapDto.MD5;
-    }
-
-    public BasicApiBeatmap(
-        Beatmap beatmap
+        BeatmapDto beatmap
     ) {
         BeatmapsetId = beatmap.SetId;
         DifficultyRating = beatmap.StarRating;
@@ -80,12 +48,12 @@ public class BasicApiBeatmap
         Mode = EnumExtensions.FromModeMap[beatmap.Mode];
         Status = beatmap.Status.ToApiBeatmapStatus();
         TotalLength = beatmap.TotalLength;
-        UserId = beatmap.CreatorId;
-        Version = beatmap.Name;
+        UserId = 1;
+        Version = beatmap.Version;
         Accuracy = beatmap.Od;
         Ar = beatmap.Ar;
         Bpm = beatmap.Bpm;
-        Convert = false; //TODO
+        Convert = false;
         CountCircles = beatmap.CirclesCount;
         CountSliders = beatmap.SlidersCount;
         CountSpinners = beatmap.SpinnersCount;
@@ -93,13 +61,45 @@ public class BasicApiBeatmap
         DeletedAt = null; //TODO
         Drain = beatmap.Hp;
         HitLength = beatmap.HitLength;
-        IsScoreable = true; //TODO
-        LastUpdated = beatmap.LastUpdate;
+        IsScoreable = beatmap.IsScoreable;
+        LastUpdated = beatmap.LastUpdated;
         ModeInt = (int)beatmap.Mode;
         Passcount = beatmap.Passes;
         Playcount = beatmap.Plays;
-        Ranked = beatmap.Status == BeatmapStatus.Ranked ? 1 : 0;
+        Ranked = (int)beatmap.Status;
         Url = $"https://osu.{AppSettings.Domain}/beatmaps/{beatmap.Id}";
         Checksum = beatmap.MD5;
+    }
+
+    public BasicApiBeatmap(
+        Beatmap beatmap
+    ) {
+        BeatmapsetId = beatmap.BeatmapsetId;
+        DifficultyRating = beatmap.StarRating;
+        Id = beatmap.Id;
+        Mode = EnumExtensions.FromModeMap[beatmap.Mode];
+        Status = beatmap.Status.ToApiBeatmapStatus();
+        TotalLength = beatmap.TotalLength;
+        UserId = 1;
+        Version = beatmap.Version;
+        Accuracy = beatmap.Od;
+        Ar = beatmap.Ar;
+        Bpm = beatmap.Bpm;
+        Convert = false;
+        CountCircles = beatmap.CirclesCount;
+        CountSliders = beatmap.SlidersCount;
+        CountSpinners = beatmap.SpinnersCount;
+        Cs = beatmap.Cs;
+        DeletedAt = null; //TODO
+        Drain = beatmap.Hp;
+        HitLength = beatmap.HitLength;
+        IsScoreable = beatmap.IsScoreable;
+        LastUpdated = beatmap.LastUpdated;
+        ModeInt = (int)beatmap.Mode;
+        Passcount = beatmap.Passes;
+        Playcount = beatmap.Plays;
+        Ranked = (int)beatmap.Status;
+        Url = $"https://osu.{AppSettings.Domain}/beatmaps/{beatmap.Id}";
+        Checksum = beatmap.Checksum;
     }
 }

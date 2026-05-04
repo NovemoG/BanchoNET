@@ -44,12 +44,12 @@ public static class ModelExtensions
     }
 
     extension(
-        BeatmapSet? instance
+        Beatmapset? instance
     ) {
-        public bool MatchesOnlineId(BeatmapSet? other) => instance.matchesOnlineID(other);
+        public bool MatchesOnlineId(Beatmapset? other) => instance.matchesOnlineID(other);
 
         private bool matchesOnlineID(
-            BeatmapSet? other
+            Beatmapset? other
         ) {
             if (instance is null || other is null)
                 return false;

@@ -24,16 +24,15 @@ public class Covers
     public Covers() { }
 
     public Covers(
-        int beatmapsetId,
-        long coverId
+        int beatmapsetId
     ) {
-        Cover = $"https://assets.ppy.sh/beatmaps/{beatmapsetId}/covers/cover.jpg?{coverId}";
-        Cover2X = $"https://assets.ppy.sh/beatmaps/{beatmapsetId}/covers/cover@2x.jpg?{coverId}";
-        Card = $"https://assets.ppy.sh/beatmaps/{beatmapsetId}/covers/card.jpg?{coverId}";
-        Card2X = $"https://assets.ppy.sh/beatmaps/{beatmapsetId}/covers/card@2x.jpg?{coverId}";
-        List = $"https://assets.ppy.sh/beatmaps/{beatmapsetId}/covers/list.jpg?{coverId}";
-        List2X = $"https://assets.ppy.sh/beatmaps/{beatmapsetId}/covers/list@2x.jpg?{coverId}";
-        SlimCover = $"https://assets.ppy.sh/beatmaps/{beatmapsetId}/covers/slimcover.jpg?{coverId}";
-        SlimCover2X = $"https://assets.ppy.sh/beatmaps/{beatmapsetId}/covers/slimcover@2x.jpg?{coverId}";
+        Cover = $"https://assets.ppy.sh/beatmaps/{beatmapsetId}/covers/cover.jpg";
+        Cover2X = $"https://assets.ppy.sh/beatmaps/{beatmapsetId}/covers/cover@2x.jpg";
+        Card = $"https://assets.ppy.sh/beatmaps/{beatmapsetId}/covers/card.jpg";
+        Card2X = $"https://assets.ppy.sh/beatmaps/{beatmapsetId}/covers/card@2x.jpg";
+        List = $"https://assets.ppy.sh/beatmaps/{beatmapsetId}/covers/list.jpg";
+        List2X = $"https://assets.ppy.sh/beatmaps/{beatmapsetId}/covers/list@2x.jpg";
+        SlimCover = $"https://assets.ppy.sh/beatmaps/{beatmapsetId}/covers/slimcover.jpg";
+        SlimCover2X = $"https://assets.ppy.sh/beatmaps/{beatmapsetId}/covers/slimcover@2x.jpg";
     }
 }

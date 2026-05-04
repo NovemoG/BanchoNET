@@ -22,6 +22,7 @@ public interface IPlayersRepository
     Task RemoveFriend(Player player, int targetId);
     Task RemoveRelation(int playerId, int targetId, byte relation);
     
+    Task<PlayerDto?> GetPlayer(int playerId);
     Task<Player?> GetPlayerFromLogin(string username, string passwordMD5);
     Task<Player?> GetPlayerOrOffline(string username);
     Task<Player?> GetPlayerOrOffline(int playerId);
@@ -43,7 +44,7 @@ public interface IPlayersRepository
     Task UpdatePlayerStats(Player player, GameMode mode);
     Task UpdatePlayerStats(StatsDto stats, ApiScore score);
     Task ResetPlayersStats(byte mode);
-    Task IncreasePlayerReplaysViewed(int playerId, byte mode, int mapId);
+    Task IncreasePlayerReplaysViewed(int playerId, byte mode, long scoreId);
     
     Task<int> GetFriendsCount(int playerId);
     Task<List<RelationshipReadDto>> GetPlayerBlocks(int playerId);

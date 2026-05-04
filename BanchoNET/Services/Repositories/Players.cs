@@ -100,7 +100,7 @@ public class PlayersRepository : IPlayersRepository
 				LastVisit = p.LastActivityTime,
 				PmFriendsOnly = p.PmFriendsOnly,
 				Username = p.Username,
-				PreferredMode = p.PreferredMode,
+				PreferredMode = (byte)p.PreferredMode,
 			}).ToListAsync();
 		
 		foreach (var player in players)
@@ -178,6 +178,12 @@ public class PlayersRepository : IPlayersRepository
 		await _dbContext.Relationships
 			.Where(r => r.PlayerId == playerId && r.TargetId == targetId && r.Relation == relation)
 			.ExecuteDeleteAsync();
+	}
+
+	public async Task<PlayerDto?> GetPlayer(
+		int playerId
+	) {
+		return await _dbContext.Players.FirstOrDefaultAsync(p => p.Id == playerId);
 	}
 
 	public async Task<Player?> GetPlayerFromLogin(string username, string passwordMD5)
@@ -259,7 +265,7 @@ public class PlayersRepository : IPlayersRepository
 		var userInfo = await GetPlayerInfo(playerId);
 		if (userInfo == null) return null;
 
-		var playerMode = mode ?? (GameMode)userInfo.PreferredMode;
+		var playerMode = mode ?? userInfo.PreferredMode;
 		var country = userInfo.Country.ParseCountry();
 		
 		var peakRank = await _histories.GetPeakRank(playerId, (byte)playerMode) ?? new PeakRank();
@@ -284,7 +290,7 @@ public class PlayersRepository : IPlayersRepository
 			Username = userInfo.Username,
 			HasSupported = userInfo.HasSupported,
 			JoinDate = userInfo.CreationTime,
-			Playmode = EnumExtensions.FromModeMap[(GameMode)userInfo.PreferredMode],
+			Playmode = EnumExtensions.FromModeMap[userInfo.PreferredMode],
 			Country = country,
 			IsRestricted = (userInfo.Privileges & 1) == 0,
 			FollowerCount = await GetFriendsCount(playerId),
@@ -548,14 +554,28 @@ public class PlayersRepository : IPlayersRepository
 	public async Task IncreasePlayerReplaysViewed(
 		int playerId,
 		byte mode,
-		int mapId
+		long scoreId
 	) {
 		var stats = await _dbContext.Stats.FindAsync(playerId, mode);
-		
 		if (stats is null)
 			return;
 		
+		var replayWatches = await _dbContext.ReplayWatches
+			.SingleOrDefaultAsync(rw => rw.ScoreId == scoreId && rw.PlayerId == playerId);
+
+		if (replayWatches is null)
+		{
+			_dbContext.ReplayWatches.Add(new ReplayWatches
+			{
+				ScoreId = scoreId,
+				PlayerId = playerId,
+				Count = 1
+			});
+		}
+		else replayWatches.Count += 1;
+		
 		stats.ReplayViews += 1;
+		
 		await _dbContext.SaveChangesAsync();
 	}
 
@@ -652,8 +672,8 @@ public class PlayersRepository : IPlayersRepository
 			.Where(s => s.PlayerId == player.Id
 			            && !s.IsRestricted
 			            && s.Ranked
-			            && s.Status == (int)SubmissionStatus.Best
-			            && s.Mode == (int)mode)
+			            && s.Status == SubmissionStatus.Best
+			            && s.Mode == mode)
 			.OrderByDescending(s => s.PP)
 			.Take(200)
 			.ToListAsync();
@@ -690,8 +710,8 @@ public class PlayersRepository : IPlayersRepository
 			.Where(s => s.PlayerId == playerId
 			            && !s.IsRestricted
 			            && s.Ranked
-			            && s.Status == (int)SubmissionStatus.Best
-			            && s.Mode == (int)mode)
+			            && s.Status == SubmissionStatus.Best
+			            && s.Mode == mode)
 			.OrderByDescending(s => s.PP)
 			.Take(200)
 			.ToListAsync();

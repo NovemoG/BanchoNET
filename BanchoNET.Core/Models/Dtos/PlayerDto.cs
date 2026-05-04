@@ -16,6 +16,7 @@ public class PlayerDto
 	public int Privileges { get; set; }
 	public bool PmFriendsOnly { get; set; }
 	public bool HideOnlineActivity { get; set; }
+	public string Title { get; set; } = null!;
 	
 	public bool Inactive { get; set; }
 	public bool Deleted { get; set; } //TODO
@@ -30,25 +31,31 @@ public class PlayerDto
 	public DateTime LastActivityTime { get; set; }
 	
 	public int TopPlaysCount { get; set; }
-	public byte PreferredMode { get; set; }
+	public GameMode PreferredMode { get; set; }
 	public byte PlayStyle { get; set; }
 	
 	public string? AwayMessage { get; set; }
-	
 	public string? UserPageContent { get; set; }
-	
 	public string? ApiKey { get; set; }
 
 	public ICollection<StatsDto> Stats { get; set; } = null!;
-	public ICollection<ScoreDto> Scores { get; set; } = null!;
 	public ICollection<LoginDto> LoginsData { get; set; } = null!;
 	public ICollection<ClientHashesDto> ClientHashes { get; set; } = null!;
-	public ICollection<MessageDto> SentMessages { get; set; } = null!;
-	public ICollection<RelationshipDto> Relationships { get; set; } = null!;
-	public ICollection<RelationshipDto> IncomingRelationships { get; set; } = null!;
-	public ICollection<BeatmapDto> Beatmaps { get; set; } = null!;
-	public ICollection<BeatmapsetDto> Beatmapsets { get; set; } = null!;
+	public ICollection<MessageDto> SentMessages { get; set; } = [];
+	public ICollection<RelationshipDto> Relationships { get; set; } = [];
+	public ICollection<RelationshipDto> IncomingRelationships { get; set; } = [];
 	public ICollection<ChannelPlayer> PlayerChannels { get; } = [];
+	
+	public ICollection<ScoreDto> Scores { get; set; } = [];
+	public ICollection<ReplayWatches> WatchedReplays { get; set; } = [];
+
+	public ICollection<BeatmapPlays> PlayedBeatmaps { get; set; } = [];
+	public ICollection<BeatmapsetFavorite> FavoriteBeatmapsets { get; set; } = [];
+	public ICollection<BeatmapOwner> OwnedBeatmaps { get; set; } = [];
+	public ICollection<BeatmapsetDto> Beatmapsets { get; set; } = [];
+	
+	public long SkillsId { get; set; }
+	public SkillsDto Skills { get; set; } = new();
 	
 	[NotMapped]
 	public bool IsSupporter => RemainingSupporter > DateTime.UtcNow;

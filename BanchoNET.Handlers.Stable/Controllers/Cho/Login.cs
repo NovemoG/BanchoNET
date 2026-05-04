@@ -1,5 +1,4 @@
 ﻿using System.Text;
-using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Channels;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;

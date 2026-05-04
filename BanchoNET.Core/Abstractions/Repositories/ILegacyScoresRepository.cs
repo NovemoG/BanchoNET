@@ -1,6 +1,5 @@
 ﻿using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Dtos;
-using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Models.Scores;
 
 namespace BanchoNET.Core.Abstractions.Repositories;
@@ -32,14 +31,14 @@ public interface ILegacyScoresRepository : IScoresRepository
     Task<Score?> GetPlayerBestScoreWithModsOnMap(
         int playerId,
         GameMode mode,
-        LegacyMods mods,
+        string mods,
         string md5
     );
 
     Task<Score?> GetPlayerBestScoreWithModsOnMap(
         int playerId,
         GameMode mode,
-        LegacyMods mods,
+        string mods,
         int mapId
     );
     
@@ -47,20 +46,20 @@ public interface ILegacyScoresRepository : IScoresRepository
         Score score,
         bool withMods,
         string md5,
-        LegacyMods mods = LegacyMods.None
+        string mods = ""
     );
 
     Task SetScoreLeaderboardPosition(
         Score score,
         bool withMods,
         int mapId,
-        LegacyMods mods = LegacyMods.None
+        string mods = ""
     );
     
     Task<(List<ScoreDto>, Score?)> GetLeaderboardScores(
         LeaderboardType type,
         GameMode mode,
-        LegacyMods mods,
+        string mods,
         int playerId,
         string country,
         HashSet<int> friendIds,
@@ -70,7 +69,7 @@ public interface ILegacyScoresRepository : IScoresRepository
     Task<(List<ScoreDto>, Score?)> GetLeaderboardScores(
         LeaderboardType type,
         GameMode mode,
-        LegacyMods mods,
+        string mods,
         int playerId,
         string country,
         HashSet<int> friendIds,

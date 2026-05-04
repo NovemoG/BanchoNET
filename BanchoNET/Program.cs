@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text.Json.Serialization;
@@ -36,6 +37,7 @@ using Novelog.Config;
 using StackExchange.Redis;
 using BanchoNET.Infrastructure;
 using BanchoNET.Infrastructure.Bancho.Services;
+using BanchoNET.Infrastructure.Services;
 using Microsoft.AspNetCore.SignalR;
 using LogLevel = Novelog.Types.LogLevel;
 // ReSharper disable ExplicitCallerInfoArgument
@@ -105,6 +107,9 @@ public class Program
 			"REDIS_PORT",
 			"MONGO_HOST",
 			"MONGO_PORT",
+			"CLIENT_ID",
+			"CLIENT_SECRET",
+			"GITHUB_TOKEN"
 		};
 		
 		var missing = false;
@@ -177,7 +182,8 @@ public class Program
 		
 		#endregion
 
-		builder.Services.AddEndpointsApiExplorer()
+		builder.Services
+			.AddEndpointsApiExplorer()
 			.AddAuthorization()
 			.AddOAuth()
 			.AddControllers()
@@ -188,7 +194,8 @@ public class Program
 
 		var mongoSettings = MongoClientSettings.FromConnectionString(mongoConnectionString);
 
-		builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConnectionString))
+		builder.Services
+			.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConnectionString))
 			.AddSingleton(new MongoClient(mongoSettings))
 			.AddDbContext<BanchoDbContext>(options => {
 				options.UseNpgsql(mySqlConnectionString);
@@ -205,24 +212,28 @@ public class Program
 		builder.Services.AddScoped<IReleasesRepository, ReleasesRepository>();
 		builder.Services.AddScoped<IBeatmapHandler, BeatmapHandler>();
 			
-		builder.Services.AddSingleton<ScoreSubmissionQueue>()
+		builder.Services
+			.AddSingleton<ScoreSubmissionQueue>()
 			.AddSingleton<IScoreSubmissionQueue>(sp => sp.GetRequiredService<ScoreSubmissionQueue>())
 			.AddHostedService(sp => sp.GetRequiredService<ScoreSubmissionQueue>())
 			.AddSingleton<ILobbyScoresQueue, LobbyScoresQueue>()
 			.AddHostedService<LobbyQueueHostedService>();
 
-		builder.Services.AddScoped<IGeolocService, GeolocService>()
+		builder.Services
+			.AddScoped<IGeolocService, GeolocService>()
 			.AddScoped<IClientPacketsHandler, ClientPacketsHandler>()
 			.AddScoped<ICommandProcessor, CommandProcessor>();
 		
-		builder.Services.AddSingleton<ILazerPlayerService, LazerPlayerService>()
+		builder.Services
+			.AddSingleton<ILazerPlayerService, LazerPlayerService>()
 			.AddSingleton<INotifySocketManager, NotifySocketManager>()
 			.AddSingleton<OsuVersionService>()
 			.AddSingleton<IOsuVersionService>(sp => sp.GetRequiredService<OsuVersionService>())
 			.AddHostedService(sp => sp.GetRequiredService<OsuVersionService>())
 			.AddHostedService<BackgroundTasks>();
 
-		builder.Services.AddHostedService<LazerUpdaterService>()
+		builder.Services
+			.AddHostedService<LazerUpdaterService>()
 			.AddHttpClient(nameof(LazerUpdaterService), client =>
 			{
 				client.DefaultRequestHeaders.Accept.Add(
@@ -233,13 +244,51 @@ public class Program
 				if (!string.IsNullOrWhiteSpace(AppSettings.GithubToken))
 					client.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", "token " + AppSettings.GithubToken);
 			});
+
+		builder.Services
+			.AddSingleton<OsuTokenProvider>()
+			.AddTransient<OsuAuthHandler>()
+			.AddHttpClient(nameof(BeatmapHandler), client =>
+			{
+				client.BaseAddress = new Uri("https://osu.ppy.sh/api/v2");
+			})
+			.AddHttpMessageHandler<OsuAuthHandler>();
+		
+		builder.Services
+			.AddSingleton<IBeatmapDownloader, BeatmapDownloader>()
+			.AddHttpClient(nameof(BeatmapDownloader), client =>
+			{
+				client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36");
+				client.DefaultRequestHeaders.TryAddWithoutValidation("Referer", "https://osu.ppy.sh/beatmapsets/");
+				client.Timeout = TimeSpan.FromSeconds(5);
+			})
+			.ConfigurePrimaryHttpMessageHandler(() =>
+			{
+				var container = new CookieContainer();
+				
+				var cookie = new Cookie("osu_session", AppSettings.OsuCookie, "/", ".ppy.sh")
+				{
+					Secure = true,
+					HttpOnly = true
+				};
+				
+				container.Add(cookie);
+
+				return new HttpClientHandler
+				{
+					CookieContainer = container,
+					UseCookies = true,
+					AllowAutoRedirect = true
+				};
+			});
 		
 		Assembly[] assemblies = [
 			typeof(ICoordinator).Assembly,
 			typeof(PlayerCoordinator).Assembly
 		];
 
-		builder.Services.AddHttpClient()
+		builder.Services
+			.AddHttpClient()
 			.AddMemoryCache()
 			.AddSessionServices(assemblies)
 			.AddSingleton<IUserIdProvider, SubUserIdProvider>()
@@ -269,11 +318,6 @@ public class Program
 		app.MapControllers();
 
 		#region Initialization
-		
-		if (string.IsNullOrEmpty(AppSettings.OsuApiKey))
-		{
-			Logger.Shared.LogWarning("OSU_API_KEY is not set. Some features will be disabled.", caller: "Init");
-		}
 		
 		EnsureDatabaseExists(app.Services.CreateScope());
 		

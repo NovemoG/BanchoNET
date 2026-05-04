@@ -47,6 +47,7 @@ public class ApiScore
     public BasicApiPlayer? User { get; set; }
     
     [JsonIgnore] public LegacyMods LegacyMods { get; set; }
+    [JsonIgnore] public string ModKeys { get; set; } = string.Empty;
     [JsonIgnore] public int Combo { get; set; }
     [JsonIgnore] public int LeaderboardPosition { get; set; }
     [JsonIgnore] public SubmissionStatus Status { get; set; }
@@ -58,40 +59,29 @@ public class ApiScore
     [JsonConstructor]
     public ApiScore() { }
 
-    public ApiScore(
-        Score score,
-        Players.Player player,
-        Beatmap beatmap
+    private ApiScore(
+        ScoreDto score,
+        PlayerDto player
     ) {
         //TODO (for players that have Classic score enabled)
-        TotalScore = AppSettings.SortLeaderboardByPP ? (int)MathF.Round(score.PP) : score.TotalScore;
+        ClassicTotalScore = AppSettings.SortLeaderboardByPP ? (int)MathF.Round(score.PP) : score.LegacyTotalScore;
         Preserve = score.Preserve;
         Processed = score.Processed;
         Ranked = score.Ranked;
-        MaximumStatistics = beatmap.MaxStatistics;
-        Mods = score.Mods.ToLazerMods();
-        LegacyMods = Mods.ToLegacyMods();
-        Statistics = new Dictionary<HitResult, int> {
-            [HitResult.Ok] = score.Count100,
-            [HitResult.Meh] = score.Count50,
-            [HitResult.Miss] = score.Misses,
-            [HitResult.Great] = score.Count300,
-            [HitResult.IgnoreHit] = score.IgnoreHit,
-            [HitResult.IgnoreMiss] = score.IgnoreMiss,
-            [HitResult.LargeTickHit] = score.Gekis,
-            [HitResult.SliderTailHit] = score.Katus,
-        };
-        //TODO TotalScoreWithoutMods
-        BeatmapId = beatmap.Id;
+        LegacyMods = score.Mods;
+        Mods = score.LazerMods?.ToMods() ?? LegacyMods.ToLazerMods();
+        ModKeys = score.ModKeys ?? "";
+        Statistics = score.Statistics;
+        TotalScoreWithoutMods = score.TotalScoreWithoutMods;
         Id = score.Id;
-        Rank = score.Grade.ToString();
-        Grade = Enum.Parse<Grade>(Rank, true);
+        Grade = score.Grade;
+        Rank = Grade.ToString();
         UserId = score.PlayerId;
         Accuracy = score.Acc / 100f;
-        EndedAt = score.ClientTime;
+        EndedAt = score.PlayTime;
         HasReplay = score.HasReplay;
-        IsPerfectCombo = score.Perfect;
-        LegacyPerfect = score.Perfect;
+        IsPerfectCombo = score.IsPerfectCombo;
+        LegacyPerfect = score.IsPerfectCombo;
         //TODO LegacyScoreId
         //TODO LegacyTotalScore
         MaxCombo = score.MaxCombo;
@@ -99,112 +89,29 @@ public class ApiScore
         Pp = score.PP;
         RulesetId = (int)score.Mode;
         StartedAt = score.StartTime;
-        TotalScore = AppSettings.SortLeaderboardByPP ? (int)MathF.Round(score.PP) : score.TotalScore;
+        TotalScore = AppSettings.SortLeaderboardByPP ? (int)MathF.Round(score.PP) : score.LegacyTotalScore;
         Replay = HasReplay;
-        //TODO CurrentUserAttributes
+        //TODO CurrentUserAttributes pin
         Status = score.Status;
-        LeaderboardPosition = score.LeaderboardPosition;
         
         User = new BasicApiPlayer(player);
     }
 
     public ApiScore(
-        ScoreDto scoreDto,
+        ScoreDto score,
         PlayerDto player,
         Beatmap beatmap
-    ) {
-        //TODO (for players that have Classic score enabled)
-        ClassicTotalScore = AppSettings.SortLeaderboardByPP ? (int)MathF.Round(scoreDto.PP) : scoreDto.LegacyTotalScore;
-        Preserve = scoreDto.Preserve;
-        Processed = scoreDto.Processed;
-        Ranked = scoreDto.Ranked;
+    ) : this(score, player) {
         MaximumStatistics = beatmap.MaxStatistics;
-        LegacyMods = (LegacyMods)scoreDto.Mods;
-        Mods = scoreDto.LazerMods?.ToMods() ?? LegacyMods.ToLazerMods();
-        Statistics = new Dictionary<HitResult, int> {
-            [HitResult.Ok] = scoreDto.Count100,
-            [HitResult.Meh] = scoreDto.Count50,
-            [HitResult.Miss] = scoreDto.Misses,
-            [HitResult.Great] = scoreDto.Count300,
-            [HitResult.IgnoreHit] = scoreDto.IgnoreHit,
-            [HitResult.IgnoreMiss] = scoreDto.IgnoreMiss,
-            [HitResult.LargeTickHit] = scoreDto.Gekis,
-            [HitResult.SliderTailHit] = scoreDto.Katus,
-        };
-        //TODO TotalScoreWithoutMods
         BeatmapId = beatmap.Id;
-        Id = scoreDto.Id;
-        Grade = (Grade)scoreDto.Grade;
-        Rank = Grade.ToString();
-        UserId = scoreDto.PlayerId;
-        Accuracy = scoreDto.Acc / 100f;
-        EndedAt = scoreDto.PlayTime;
-        HasReplay = scoreDto.HasReplay;
-        IsPerfectCombo = scoreDto.IsPerfectCombo;
-        LegacyPerfect = scoreDto.IsPerfectCombo;
-        //TODO LegacyScoreId
-        //TODO LegacyTotalScore
-        MaxCombo = scoreDto.MaxCombo;
-        Passed = scoreDto.Passed;
-        Pp = scoreDto.PP;
-        RulesetId = scoreDto.Mode;
-        StartedAt = scoreDto.StartTime;
-        //TotalScore = scoreDto.TotalScore;
-        TotalScore = AppSettings.SortLeaderboardByPP ? (int)MathF.Round(scoreDto.PP) : scoreDto.LegacyTotalScore;
-        Replay = HasReplay;
-        //TODO CurrentUserAttributes
-        Status = (SubmissionStatus)scoreDto.Status;
-        
-        User = new BasicApiPlayer(player);
     }
 
     public ApiScore(
-        ScoreDto scoreDto,
+        ScoreDto score,
         PlayerDto player,
         BeatmapDto beatmap
-    ) {
-        //TODO (for players that have Classic score enabled)
-        ClassicTotalScore = AppSettings.SortLeaderboardByPP ? (int)MathF.Round(scoreDto.PP) : scoreDto.LegacyTotalScore;
-        Preserve = scoreDto.Preserve;
-        Processed = scoreDto.Processed;
-        Ranked = scoreDto.Ranked;
-        MaximumStatistics = new Dictionary<HitResult, int>(); //TODO
-        LegacyMods = (LegacyMods)scoreDto.Mods;
-        Mods = scoreDto.LazerMods?.ToMods() ?? LegacyMods.ToLazerMods();
-        Statistics = new Dictionary<HitResult, int> {
-            [HitResult.Ok] = scoreDto.Count100,
-            [HitResult.Meh] = scoreDto.Count50,
-            [HitResult.Miss] = scoreDto.Misses,
-            [HitResult.Great] = scoreDto.Count300,
-            [HitResult.IgnoreHit] = scoreDto.IgnoreHit,
-            [HitResult.IgnoreMiss] = scoreDto.IgnoreMiss,
-            [HitResult.LargeTickHit] = scoreDto.Gekis,
-            [HitResult.SliderTailHit] = scoreDto.Katus,
-        };
-        //TODO TotalScoreWithoutMods
-        BeatmapId = beatmap.MapId;
-        Id = scoreDto.Id;
-        Grade = (Grade)scoreDto.Grade;
-        Rank = Grade.ToString();
-        UserId = scoreDto.PlayerId;
-        Accuracy = scoreDto.Acc / 100f;
-        EndedAt = scoreDto.PlayTime;
-        HasReplay = scoreDto.HasReplay;
-        IsPerfectCombo = scoreDto.IsPerfectCombo;
-        LegacyPerfect = scoreDto.IsPerfectCombo;
-        //TODO LegacyScoreId
-        //TODO LegacyTotalScore
-        MaxCombo = scoreDto.MaxCombo;
-        Passed = scoreDto.Passed;
-        Pp = scoreDto.PP;
-        RulesetId = scoreDto.Mode;
-        StartedAt = scoreDto.StartTime;
-        //TotalScore = scoreDto.TotalScore;
-        TotalScore = AppSettings.SortLeaderboardByPP ? (int)MathF.Round(scoreDto.PP) : scoreDto.LegacyTotalScore;
-        Replay = HasReplay;
-        //TODO CurrentUserAttributes
-        Status = (SubmissionStatus)scoreDto.Status;
-        
-        User = new BasicApiPlayer(player);
+    ) : this(score, player) {
+        MaximumStatistics = beatmap.MaximumStatistics;
+        BeatmapId = beatmap.Id;
     }
 }

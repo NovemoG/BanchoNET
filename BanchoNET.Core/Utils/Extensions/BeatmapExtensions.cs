@@ -1,6 +1,7 @@
 ﻿using System.Security.Cryptography;
 using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Dtos;
+using BanchoNET.Core.Models.Scores;
 
 namespace BanchoNET.Core.Utils.Extensions;
 
@@ -39,10 +40,53 @@ public static class BeatmapExtensions
 			_ => "unknown"
 		};
 	}
+
+	public static BeatmapStatus FromApiBeatmapStatus(
+		this string status
+	) {
+		return status switch
+		{
+			"graveyard" => BeatmapStatus.Graveyard,
+			"wip" => BeatmapStatus.WIP,
+			"pending" => BeatmapStatus.LatestPending,
+			"ranked" => BeatmapStatus.Ranked,
+			"approved" => BeatmapStatus.Approved,
+			"qualified" => BeatmapStatus.Qualified,
+			"loved" => BeatmapStatus.Loved,
+			_ => BeatmapStatus.Graveyard
+		};
+	}
 	
-	public static string Url(this BeatmapSet set)
-	{
-		return $"https://osu.{AppSettings.Domain}/s/{set.Id}";
+	extension(
+		Beatmapset set
+	) {
+		public string Url()
+		{
+			return $"https://osu.{AppSettings.Domain}/s/{set.Id}";
+		}
+
+		public bool ShouldRecheckApi() {
+			if (set.IsRankedOfficially) return false;
+			if (set.Status < BeatmapStatus.LatestPending) return false;
+			if (set.NextApiCheck < DateTime.UtcNow)
+			{
+				set.UpdateApiChecks();
+				return true;
+			}
+
+			return false;
+		}
+
+		public void UpdateApiChecks() {
+			set.NextApiCheck = DateTime.UtcNow.Add(ApiCheckIntervals[set.ApiChecks]);
+			if (set.ApiChecks < ApiCheckIntervals.Length - 1) set.ApiChecks++;
+		}
+	}
+
+	public static bool HasNominations(
+		this BeatmapStatus status
+	) {
+		return status is BeatmapStatus.Ranked or BeatmapStatus.Approved or BeatmapStatus.Qualified;
 	}
 	
 	extension(
@@ -53,18 +97,17 @@ public static class BeatmapExtensions
 		}
 
 		public string FullName() {
-			return $"{beatmap.Artist} - {beatmap.Title} [{beatmap.Name}]";
+			return $"{beatmap.Set.Artist} - {beatmap.Set.Title} [{beatmap.Version}]";
 		}
-
-		//TODO why trim
+		
 		public string DisplayTitle() {
-			return $"{beatmap.ArtistUnicode} - {beatmap.TitleUnicode} {beatmap.Creator} {beatmap.Name}".Trim();
+			return $"{beatmap.Set.ArtistUnicode} - {beatmap.Set.TitleUnicode} {beatmap.Set.CreatorName} {beatmap.Version}".Trim();
 		}
 
 		public string Embed() {
 			return $"[{beatmap.Url()} {beatmap.FullName()}]";
 		}
-
+		
 		public bool HasLeaderboard() {
 			return beatmap.Status is
 				BeatmapStatus.Approved or
@@ -73,15 +116,14 @@ public static class BeatmapExtensions
 				BeatmapStatus.Qualified;
 		}
 
-		public bool AwardsPP()
-		{
+		public bool AwardsPp() {
 			return beatmap.Status is BeatmapStatus.Approved or BeatmapStatus.Ranked;
 		}
 
 		public bool ShouldRecheckApi() {
-			if (beatmap.IsRankedOfficially) return false;
+			if (beatmap.Set.IsRankedOfficially) return false;
 			if (beatmap.Status < BeatmapStatus.LatestPending) return false;
-			if (beatmap.NextApiCheck < DateTime.UtcNow)
+			if (beatmap.Set.NextApiCheck < DateTime.UtcNow)
 			{
 				beatmap.UpdateApiChecks();
 				return true;
@@ -91,11 +133,10 @@ public static class BeatmapExtensions
 		}
 
 		public void UpdateApiChecks() {
-			foreach (var map in beatmap.Set.Beatmaps)
-			{
-				map.NextApiCheck = DateTime.UtcNow.Add(ApiCheckIntervals[map.ApiChecks]);
-				if (map.ApiChecks < ApiCheckIntervals.Length - 1) map.ApiChecks++;
-			}
+			var set = beatmap.Set;
+			
+			set.NextApiCheck = DateTime.UtcNow.Add(ApiCheckIntervals[set.ApiChecks]);
+			if (set.ApiChecks < ApiCheckIntervals.Length - 1) set.ApiChecks++;
 		}
 	}
 
@@ -113,8 +154,8 @@ public static class BeatmapExtensions
 	public static BeatmapStatus StatusFromApi(
 		this int status,
 		bool frozen,
-		BeatmapStatus prevStatus)
-	{
+		BeatmapStatus prevStatus
+	) {
 		if (frozen) return prevStatus;
 		
 		return status switch
@@ -126,7 +167,7 @@ public static class BeatmapExtensions
 			2 => BeatmapStatus.Approved,
 			3 => BeatmapStatus.Qualified,
 			4 => BeatmapStatus.Loved,
-			_ => BeatmapStatus.Unknown
+			_ => BeatmapStatus.Graveyard
 		};
 	}
 
@@ -144,89 +185,159 @@ public static class BeatmapExtensions
 		};
 	}
 
+	public static BeatmapsetDto ToDto(
+		this Beatmapset set
+	) {
+		return new BeatmapsetDto
+		{
+			Id = set.Id,
+			Artist = set.Artist,
+			ArtistUnicode = set.ArtistUnicode,
+			Title = set.Title,
+			TitleUnicode = set.TitleUnicode,
+			IsRankedOfficially = set.IsRankedOfficially,
+			IsPrivateUpload = set.IsPrivateUpload,
+			Status = set.Status,
+			FavoriteCount = set.FavoriteCount,
+			PlayCount = set.PlayCount,
+			Source = set.Source,
+			GenreId = set.GenreId,
+			LanguageId = set.LanguageId,
+			Video = set.Video,
+			Storyboard = set.Storyboard,
+			Bpm = set.Bpm,
+			IsScoreable = set.IsScoreable,
+			Tags = set.Tags,
+			Description = set.Description,
+			SubmittedDate = set.SubmitDate,
+			LastUpdated = set.LastUpdate,
+			RankedDate = set.RankedDate,
+			Ratings = set.Ratings,
+
+			CreatorName = set.CreatorName,
+			CreatorId = 1, //TODO for now it's bancho bot
+
+			Beatmaps = set.Beatmaps.Select(b => b.ToDto()).ToList(),
+		};
+	}
+
 	public static BeatmapDto ToDto(this Beatmap beatmap)
 	{
 		return new BeatmapDto
 		{
-			MapId = beatmap.Id,
-			SetId = beatmap.SetId,
-			Private = beatmap.Private,
-			Mode = (byte)beatmap.Mode,
-			Status = (sbyte)beatmap.Status,
-			IsRankedOfficially = beatmap.IsRankedOfficially,
-			MD5 = beatmap.MD5,
-			Artist = beatmap.Artist,
-			ArtistUnicode = beatmap.ArtistUnicode,
-			Title = beatmap.Title,
-			TitleUnicode = beatmap.TitleUnicode,
-			Name = beatmap.Name,
-			CreatorName = beatmap.Creator,
-			CreatorId = beatmap.CreatorId,
-			Tags = beatmap.Tags,
-			SubmitDate = beatmap.SubmitDate,
-			LastUpdate = beatmap.LastUpdate,
-			RankedDate = beatmap.RankedDate,
-			TotalLength = beatmap.TotalLength,
-			HitLength = beatmap.HitLength,
-			MaxCombo = beatmap.MaxCombo,
-			Frozen = beatmap.StatusFrozen,
-			HasVideo = beatmap.HasVideo,
-			HasStoryboard = beatmap.HasStoryboard,
-			Plays = beatmap.Plays,
-			Passes = beatmap.Passes,
+			Id = beatmap.Id,
+			SetId = beatmap.BeatmapsetId,
+			MD5 = beatmap.Checksum,
+			Version = beatmap.Version,
+			Mode = beatmap.Mode,
+			Status = beatmap.Status,
+			StarRating = beatmap.StarRating,
 			Bpm = beatmap.Bpm,
 			Cs = beatmap.Cs,
 			Ar = beatmap.Ar,
 			Od = beatmap.Od,
 			Hp = beatmap.Hp,
-			StarRating = beatmap.StarRating,
 			CirclesCount = beatmap.CirclesCount,
 			SlidersCount = beatmap.SlidersCount,
 			SpinnersCount = beatmap.SpinnersCount,
-			IgnoreHit = beatmap.IgnoreHit,
-			LargeTickHit = beatmap.LargeTickHit,
-			CoverId = beatmap.CoverId,
+			MaxCombo = beatmap.MaxCombo,
+			TotalLength = beatmap.TotalLength,
+			HitLength = beatmap.HitLength,
+			IsScoreable = beatmap.IsScoreable,
+			LastUpdated = beatmap.LastUpdated,
+			Plays = beatmap.Plays,
+			Passes = beatmap.Passes,
+			Fails = beatmap.Fails,
+			Exits = beatmap.Exits,
+			Owners = [
+				new BeatmapOwner
+				{
+					BeatmapId = beatmap.Id,
+					PlayerId = 1,
+					Username = "Bancho Bot"
+				}
+			]
 		};
 	}
 
-	public static BeatmapDto UpdateWith(this BeatmapDto currentBeatmap, Beatmap newBeatmap)
-	{
-		currentBeatmap.Status = newBeatmap.IsRankedOfficially //TODO preservestatusonranked .env
-			? (sbyte)newBeatmap.Status
+	public static BeatmapDto UpdateWith(
+		this BeatmapDto currentBeatmap,
+		Beatmap newBeatmap,
+		bool rankedOfficially
+	) {
+		currentBeatmap.Status = rankedOfficially //TODO preservestatusonranked .env
+			? newBeatmap.Status
 			: currentBeatmap.Status;
-		currentBeatmap.IsRankedOfficially = newBeatmap.IsRankedOfficially;
-		currentBeatmap.MD5 = newBeatmap.MD5;
-		currentBeatmap.Artist = newBeatmap.Artist;
-		currentBeatmap.ArtistUnicode = newBeatmap.ArtistUnicode;
-		currentBeatmap.Title = newBeatmap.Title;
-		currentBeatmap.TitleUnicode = newBeatmap.TitleUnicode;
-		currentBeatmap.Name = newBeatmap.Name;
-		currentBeatmap.CreatorName = newBeatmap.Creator;
-		currentBeatmap.SubmitDate = newBeatmap.SubmitDate;
-		currentBeatmap.LastUpdate = newBeatmap.LastUpdate;
-		currentBeatmap.RankedDate = newBeatmap.RankedDate;
-		currentBeatmap.TotalLength = newBeatmap.TotalLength;
-		currentBeatmap.HitLength = newBeatmap.HitLength;
-		currentBeatmap.MaxCombo = newBeatmap.MaxCombo;
-		currentBeatmap.Frozen = newBeatmap.StatusFrozen;
-		currentBeatmap.HasVideo = newBeatmap.HasVideo;
-		currentBeatmap.HasStoryboard = newBeatmap.HasStoryboard;
+		
+		currentBeatmap.Id = newBeatmap.Id;
+		currentBeatmap.SetId = newBeatmap.BeatmapsetId;
+		currentBeatmap.MD5 = newBeatmap.Checksum;
+		currentBeatmap.Version = newBeatmap.Version;
+		currentBeatmap.Mode = newBeatmap.Mode;
+		currentBeatmap.Status = newBeatmap.Status;
+		currentBeatmap.StarRating = newBeatmap.StarRating;
 		currentBeatmap.Bpm = newBeatmap.Bpm;
 		currentBeatmap.Cs = newBeatmap.Cs;
 		currentBeatmap.Ar = newBeatmap.Ar;
 		currentBeatmap.Od = newBeatmap.Od;
 		currentBeatmap.Hp = newBeatmap.Hp;
-		currentBeatmap.StarRating = newBeatmap.StarRating;
 		currentBeatmap.CirclesCount = newBeatmap.CirclesCount;
 		currentBeatmap.SlidersCount = newBeatmap.SlidersCount;
 		currentBeatmap.SpinnersCount = newBeatmap.SpinnersCount;
-		currentBeatmap.IgnoreHit = newBeatmap.IgnoreHit;
-		currentBeatmap.LargeTickHit = newBeatmap.LargeTickHit;
-		currentBeatmap.CoverId = newBeatmap.CoverId;
-
+		currentBeatmap.MaxCombo = newBeatmap.MaxCombo;
+		currentBeatmap.TotalLength = newBeatmap.TotalLength;
+		currentBeatmap.HitLength = newBeatmap.HitLength;
+		currentBeatmap.IsScoreable = newBeatmap.IsScoreable;
+		currentBeatmap.LastUpdated = newBeatmap.LastUpdated;
+		
 		newBeatmap.Plays = currentBeatmap.Plays;
 		newBeatmap.Passes = currentBeatmap.Passes;
+		newBeatmap.Fails = currentBeatmap.Fails;
+		newBeatmap.Exits = currentBeatmap.Exits;
+
+		currentBeatmap.MaximumStatistics = new Dictionary<HitResult, int>();
+		newBeatmap.MaxStatistics = new Dictionary<HitResult, int>();
 		
 		return currentBeatmap;
+	}
+
+	public static BeatmapsetDto UpdateWith(
+		this BeatmapsetDto currentBeatmapset,
+		Beatmapset newBeatmapset
+	) {
+		currentBeatmapset.Status = newBeatmapset.IsRankedOfficially //TODO preservestatusonranked .env
+			? newBeatmapset.Status
+			: currentBeatmapset.Status;
+		
+		currentBeatmapset.Id = newBeatmapset.Id;
+		currentBeatmapset.Artist = newBeatmapset.Artist;
+		currentBeatmapset.ArtistUnicode = newBeatmapset.ArtistUnicode;
+		currentBeatmapset.Title = newBeatmapset.Title;
+		currentBeatmapset.TitleUnicode = newBeatmapset.TitleUnicode;
+		currentBeatmapset.IsRankedOfficially = newBeatmapset.IsRankedOfficially;
+		currentBeatmapset.IsPrivateUpload = newBeatmapset.IsPrivateUpload;
+		currentBeatmapset.Status = newBeatmapset.Status;
+		currentBeatmapset.Source = newBeatmapset.Source;
+		currentBeatmapset.GenreId = newBeatmapset.GenreId;
+		currentBeatmapset.LanguageId = newBeatmapset.LanguageId;
+		currentBeatmapset.Video = newBeatmapset.Video;
+		currentBeatmapset.Storyboard = newBeatmapset.Storyboard;
+		currentBeatmapset.Bpm = newBeatmapset.Bpm;
+		currentBeatmapset.IsScoreable = newBeatmapset.IsScoreable;
+		currentBeatmapset.Tags = newBeatmapset.Tags;
+		currentBeatmapset.Description = newBeatmapset.Description;
+		currentBeatmapset.SubmittedDate = newBeatmapset.SubmitDate;
+		currentBeatmapset.LastUpdated = newBeatmapset.LastUpdate;
+		currentBeatmapset.RankedDate = newBeatmapset.RankedDate;
+		currentBeatmapset.Ratings = newBeatmapset.Ratings;
+		currentBeatmapset.CreatorName = newBeatmapset.CreatorName;
+		currentBeatmapset.CreatorId = newBeatmapset.CreatorId;
+
+		newBeatmapset.FavoriteCount = currentBeatmapset.FavoriteCount;
+		newBeatmapset.PlayCount = currentBeatmapset.PlayCount;
+		newBeatmapset.Ratings = currentBeatmapset.Ratings;
+		newBeatmapset.Rating = (float)currentBeatmapset.Ratings.Average();
+		
+		return currentBeatmapset;
 	}
 }

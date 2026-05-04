@@ -11,12 +11,58 @@ public class BeatmapsetConfiguration : IEntityTypeConfiguration<BeatmapsetDto>
     ) {
         builder.ToTable("Beatmapsets");
 
-        builder.HasKey(bs => bs.SetId);
+        builder.HasKey(bs => bs.Id);
+        
+        builder.HasIndex(b => b.Id);
+        builder.HasIndex(b => b.Status);
+        builder.HasIndex(b => b.PlayCount);
+        builder.HasIndex(b => b.SubmittedDate);
+        builder.HasIndex(b => b.LastUpdated);
+        builder.HasIndex(b => b.RankedDate);
+
+        builder.Property(b => b.CreatorName)
+            .HasMaxLength(16)
+            .IsUnicode(false);
+
+        builder.Property(b => b.Tags)
+            .HasDefaultValue(string.Empty)
+            .HasMaxLength(2048)
+            .IsUnicode();
+
+        builder.Property(b => b.Description)
+            .HasDefaultValue(string.Empty)
+            .HasMaxLength(8192)
+            .IsUnicode();
+
+        builder.Property(b => b.Artist)
+            .HasMaxLength(128)
+            .IsUnicode(false);
+
+        builder.Property(b => b.ArtistUnicode)
+            .HasMaxLength(128)
+            .IsUnicode();
+
+        builder.Property(b => b.Title)
+            .HasMaxLength(128)
+            .IsUnicode(false);
+
+        builder.Property(b => b.TitleUnicode)
+            .HasMaxLength(128)
+            .IsUnicode();
+
+        builder.Property(b => b.Source)
+            .HasMaxLength(128)
+            .IsUnicode();
+
+        builder.Property(b => b.SubmittedDate);
+        builder.Property(b => b.LastUpdated);
+        builder.Property(b => b.RankedDate)
+            .IsRequired(false);
 
         builder
-            .HasOne(bs => bs.Owner)
+            .HasOne(bs => bs.Creator)
             .WithMany(p => p.Beatmapsets)
-            .HasForeignKey(bs => bs.OwnerId)
+            .HasForeignKey(bs => bs.CreatorId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

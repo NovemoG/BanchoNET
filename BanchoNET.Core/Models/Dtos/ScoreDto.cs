@@ -1,5 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using BanchoNET.Core.Models.Mods;
+using BanchoNET.Core.Models.Scores;
 
 namespace BanchoNET.Core.Models.Dtos;
 
@@ -20,32 +21,40 @@ public class ScoreDto
 	public float PP { get; set; }
 	public float Acc { get; set; }
 	public int MaxCombo { get; set; }
-	public int Mods { get; set; }
-	[MaxLength(512)]
+	public LegacyMods Mods { get; set; }
+	
+	/// <summary>
+	/// Mods are stored as an ordered string of keys separated by semicolon
+	/// </summary>
+	public required string ModKeys { get; set; }
+	/// <summary>
+	/// All mods as a string value
+	/// </summary>
 	public string? LazerMods { get; set; }
+	
+	//TODO temporary
 	public int Count300 { get; set; }
 	public int Count100 { get; set; }
 	public int Count50 { get; set; }
 	public int Misses { get; set; }
-	/// <summary>
-	/// On lazer used as LargeTickHit
-	/// </summary>
 	public int Gekis { get; set; }
-	/// <summary>
-	/// On lazer used as SliderTailHit
-	/// </summary>
 	public int Katus { get; set; }
 	public int IgnoreHit { get; set; }
 	public int IgnoreMiss { get; set; }
+	
+	/// <summary>
+	/// JSON value of Statistics
+	/// </summary>
+	public Dictionary<HitResult, int> Statistics { get; set; } = new();
 	
 	public int TotalScore { get; set; }
 	public int ClassicScore { get; set; }
 	public int TotalScoreWithoutMods { get; set; }
 	public int LegacyTotalScore { get; set; }
 	
-	public byte Grade { get; set; }
-	public byte Status { get; set; }
-	public byte Mode { get; set; }
+	public Grade Grade { get; set; }
+	public SubmissionStatus Status { get; set; }
+	public GameMode Mode { get; set; }
 	
 	/// <summary>
 	/// On lazer used as EndedAt
@@ -63,10 +72,10 @@ public class ScoreDto
 	//TODO
 	public bool IsRestricted { get; set; }
 	
-	[ForeignKey("PlayerId")]
 	public PlayerDto Player { get; set; } = null!;
 	public int PlayerId { get; set; }
 	
-	[ForeignKey("BeatmapId")]
 	public BeatmapDto Beatmap { get; set; } = null!;
+	
+	public ICollection<ReplayWatches> ReplayWatches { get; set; } = [];
 }

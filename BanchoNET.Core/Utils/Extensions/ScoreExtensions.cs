@@ -25,7 +25,7 @@ public static class ScoreExtensions
             score.Gekis,
             score.Katus,
             score.Misses,
-            score.Beatmap.MD5,
+            score.Beatmap.Checksum,
             score.MaxCombo,
             score.Perfect,
             score.Player.Username,
@@ -153,8 +153,20 @@ public static class ScoreExtensions
         if (score is null || other is null)
             return false;
 
-        return score.Mods.SequenceEqual(other.Mods)
-               || (score.LegacyMods == 0 && score.LegacyMods == other.LegacyMods);
+        return score.ModKeys == other.ModKeys;
+    }
+
+    public static bool EqualModsWith(
+        this Score? score,
+        Score? other
+    ) {
+        if (ReferenceEquals(score, other))
+            return true;
+
+        if (score is null || other is null)
+            return false;
+
+        return score.ModKeys == other.ModKeys;
     }
 
     public static void CalculatePerformance(
@@ -201,6 +213,42 @@ public static class ScoreExtensions
 
         Logger.Shared.LogInfo($"Submitted lazer score pp: {score.Pp}", nameof(ScoreExtensions));
     }
+
+    public static void RecalculatePerformance(
+        this ScoreDto score,
+        BeatmapDto beatmap
+    ) {
+        var mods = score.LazerMods?.ToMods() ?? [];
+
+        var lazer = mods.FirstOrDefault(m => m.Acronym == "CL") == null;
+        var da = mods.FirstOrDefault(m => m.Acronym == "DA"); // Difficulty Adjust
+        var dt = mods.FirstOrDefault(m => m.Acronym is "DT" or "NC" or "HT" or "DC");
+
+        var cs = beatmap.Cs;
+        var ar = beatmap.Ar;
+        var od = beatmap.Od;
+        if (da != null)
+        {
+            if (da.Settings.TryGetValue("circle_size", out var circleSize))
+                cs = circleSize.GetFloat();
+            
+            if (da.Settings.TryGetValue("approach_rate", out var approachRate))
+                ar = approachRate.GetFloat();
+            
+            if (da.Settings.TryGetValue("overall_difficulty", out var overallDifficulty))
+                od = overallDifficulty.GetFloat();
+        }
+        
+        var clockRate = dt != null ? 1.5d : 1d;
+        if (dt != null && dt.Settings.TryGetValue("speed_change", out var rateChange))
+            clockRate = rateChange.GetDouble();
+
+        var pp = PpMethods.ComputeScorePp(beatmap.Id, score, clockRate, lazer, cs, ar, od);
+
+        Logger.Shared.LogInfo($"Recalculated score {score.Id}: {score.PP} -> {pp}", nameof(ScoreExtensions));
+        
+        score.PP = double.IsInfinity(pp) || double.IsNaN(pp) ? 0.0f : MathF.Round(pp, 5);
+    }
     
     public static bool IsBetterThan(this Score score, Score? other)
     {
@@ -243,42 +291,47 @@ public static class ScoreExtensions
         return stats.TryGetValue(result, out var count) ? count : 0;
     }
 
-    public static int GetCount300(
-        this ApiScore score
+    public static Dictionary<HitResult, int> GetStatistics(
+        this Score score
     ) {
-        return score.Statistics.GetStatCount(HitResult.Great);
-    }
-
-    public static int GetCount100(
-        this ApiScore score
-    ) {
-        return score.Statistics.GetStatCount(HitResult.Ok);
-    }
-
-    public static int GetCount50(
-        this ApiScore score
-    ) {
-        return score.Statistics.GetStatCount(HitResult.Meh);
-    }
-
-    public static int GetCountGeki(
-        this ApiScore score
-    ) {
-        return score.Statistics.GetStatCount(HitResult.LargeTickHit);
-    }
-
-    public static int GetCountKatu(
-        this ApiScore score
-    ) {
-        return score.Statistics.GetStatCount(HitResult.SliderTailHit);
-    }
-
-    public static int GetCountMiss(
-        this ApiScore score
-    ) {
-        return score.Statistics.GetStatCount(HitResult.Miss);
+        var stats = new Dictionary<HitResult, int>();
+        
+        if (score.Count300 > 0) stats.Add(HitResult.Great, score.Count300);
+        if (score.Count100 > 0) stats.Add(HitResult.Ok, score.Count100);
+        if (score.Count50 > 0) stats.Add(HitResult.Meh, score.Count50);
+        if (score.Gekis > 0) stats.Add(HitResult.LargeTickHit, score.Gekis);
+        if (score.Katus > 0) stats.Add(HitResult.SliderTailHit, score.Katus);
+        if (score.Misses > 0) stats.Add(HitResult.Miss, score.Misses);
+        
+        return stats;
     }
     
+    extension(
+        ApiScore score
+    ) {
+        public int GetCount300() => score.Statistics.GetStatCount(HitResult.Great);
+        public int GetCount100() => score.Statistics.GetStatCount(HitResult.Ok);
+        public int GetCount50() => score.Statistics.GetStatCount(HitResult.Meh);
+        public int GetCountGeki() => score.Statistics.GetStatCount(HitResult.LargeTickHit);
+        public int GetCountKatu() => score.Statistics.GetStatCount(HitResult.SliderTailHit);
+        public int GetCountMiss() => score.Statistics.GetStatCount(HitResult.Miss);
+        public int GetCountIgnoreHit() => score.Statistics.GetStatCount(HitResult.IgnoreHit);
+        public int GetCountIgnoreMiss() => score.Statistics.GetStatCount(HitResult.IgnoreMiss);
+    }
+
+    extension(
+        ScoreDto score
+    ) {
+        public int GetCount300() => score.Statistics.GetStatCount(HitResult.Great);
+        public int GetCount100() => score.Statistics.GetStatCount(HitResult.Ok);
+        public int GetCount50() => score.Statistics.GetStatCount(HitResult.Meh);
+        public int GetCountGeki() => score.Statistics.GetStatCount(HitResult.LargeTickHit);
+        public int GetCountKatu() => score.Statistics.GetStatCount(HitResult.SliderTailHit);
+        public int GetCountMiss() => score.Statistics.GetStatCount(HitResult.Miss);
+        public int GetCountIgnoreHit() => score.Statistics.GetStatCount(HitResult.IgnoreHit);
+        public int GetCountIgnoreMiss() => score.Statistics.GetStatCount(HitResult.IgnoreMiss);
+    }
+
     public static bool IsHit(this HitResult result)
     {
         switch (result)
