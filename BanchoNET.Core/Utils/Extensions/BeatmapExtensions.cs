@@ -274,7 +274,6 @@ public static class BeatmapExtensions
 		currentBeatmap.MD5 = newBeatmap.Checksum;
 		currentBeatmap.Version = newBeatmap.Version;
 		currentBeatmap.Mode = newBeatmap.Mode;
-		currentBeatmap.Status = newBeatmap.Status;
 		currentBeatmap.StarRating = newBeatmap.StarRating;
 		currentBeatmap.Bpm = newBeatmap.Bpm;
 		currentBeatmap.Cs = newBeatmap.Cs;
@@ -316,7 +315,6 @@ public static class BeatmapExtensions
 		currentBeatmapset.TitleUnicode = newBeatmapset.TitleUnicode;
 		currentBeatmapset.IsRankedOfficially = newBeatmapset.IsRankedOfficially;
 		currentBeatmapset.IsPrivateUpload = newBeatmapset.IsPrivateUpload;
-		currentBeatmapset.Status = newBeatmapset.Status;
 		currentBeatmapset.Source = newBeatmapset.Source;
 		currentBeatmapset.GenreId = newBeatmapset.GenreId;
 		currentBeatmapset.LanguageId = newBeatmapset.LanguageId;
