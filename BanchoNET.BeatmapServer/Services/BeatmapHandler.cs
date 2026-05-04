@@ -297,6 +297,8 @@ public sealed class BeatmapHandler(
 		await beatmaps.InsertBeatmapset(cache);
 		beatmapCache.InsertBeatmapset(cache);
 		
+		beatmapset.Status = cache.Status.ToApiBeatmapStatus();
+		beatmapset.Ranked = (int)cache.Status;
 		beatmapset.FavouriteCount = cache.FavoriteCount;
 		beatmapset.PlayCount = cache.PlayCount;
 		beatmapset.Ratings = cache.Ratings;
@@ -306,6 +308,8 @@ public sealed class BeatmapHandler(
 		{
 			var cachedBeatmap = cache.Beatmaps.First(b => b.Id == beatmap.Id);
 			
+			beatmap.Status = cachedBeatmap.Status.ToApiBeatmapStatus();
+			beatmap.Ranked = (int)cachedBeatmap.Status;
 			beatmap.Playcount = cachedBeatmap.Plays;
 			beatmap.Passcount = cachedBeatmap.Passes;
 			beatmap.Failtimes = new Failtime

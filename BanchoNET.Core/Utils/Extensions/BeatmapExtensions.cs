@@ -289,6 +289,7 @@ public static class BeatmapExtensions
 		currentBeatmap.IsScoreable = newBeatmap.IsScoreable;
 		currentBeatmap.LastUpdated = newBeatmap.LastUpdated;
 		
+		newBeatmap.Status = currentBeatmap.Status;
 		newBeatmap.Plays = currentBeatmap.Plays;
 		newBeatmap.Passes = currentBeatmap.Passes;
 		newBeatmap.Fails = currentBeatmap.Fails;
@@ -331,6 +332,7 @@ public static class BeatmapExtensions
 		currentBeatmapset.CreatorName = newBeatmapset.CreatorName;
 		currentBeatmapset.CreatorId = newBeatmapset.CreatorId;
 
+		newBeatmapset.Status = currentBeatmapset.Status;
 		newBeatmapset.FavoriteCount = currentBeatmapset.FavoriteCount;
 		newBeatmapset.PlayCount = currentBeatmapset.PlayCount;
 		newBeatmapset.Ratings = currentBeatmapset.Ratings;

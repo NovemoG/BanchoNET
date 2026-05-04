@@ -24,8 +24,11 @@ public sealed class BeatmapDownloader(
         if (beatmapsetId < 1)
             return false;
 
-        if (!BeatmapsetUpdates.ContainsKey(beatmapsetId))
+        if (File.Exists(Storage.GetBeatmapsetPath(beatmapsetId))
+            && !BeatmapsetUpdates.ContainsKey(beatmapsetId))
+        {
             return false;
+        }
 
         var lazyTask = InFlightDownloads.GetOrAdd(
             beatmapsetId,
