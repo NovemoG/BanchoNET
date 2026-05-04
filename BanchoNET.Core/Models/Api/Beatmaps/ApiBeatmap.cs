@@ -35,7 +35,7 @@ public class ApiBeatmap : BasicApiBeatmap
                 Id = o.PlayerId,
                 Username = o.Username
             }).ToList();
-        UserId = Owners.First().Id;
+        UserId = Owners.FirstOrDefault()?.Id ?? 1;
         
         Beatmapset = beatmapset;
     }
