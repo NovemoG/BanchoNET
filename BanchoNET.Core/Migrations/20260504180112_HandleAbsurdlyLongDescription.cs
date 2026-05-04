@@ -13,8 +13,8 @@ namespace BanchoNET.Core.Migrations
             migrationBuilder.AlterColumn<string>(
                 name: "Description",
                 table: "Beatmapsets",
-                type: "character varying(16384)",
-                maxLength: 16384,
+                type: "character varying(32768)",
+                maxLength: 32768,
                 nullable: false,
                 defaultValue: "",
                 oldClrType: typeof(string),
@@ -34,8 +34,8 @@ namespace BanchoNET.Core.Migrations
                 nullable: false,
                 defaultValue: "",
                 oldClrType: typeof(string),
-                oldType: "character varying(16384)",
-                oldMaxLength: 16384,
+                oldType: "character varying(32768)",
+                oldMaxLength: 32768,
                 oldDefaultValue: "");
         }
     }

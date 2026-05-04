@@ -195,18 +195,22 @@ public sealed partial class ScoreSubmissionQueue(
         var lazerPlayer = lazerPlayers.GetPlayer(player.Id);
         if (lazerPlayer != null)
         {
-            var index = (int)Math.Round(Math.Min(100, (float)score.TimeElapsed / beatmap.HitLength * 100));
+            var index = (int)Math.Round(Math.Min(99, Math.Max(0, (float)score.TimeElapsed / beatmap.HitLength * 100)));
 
             if (lazerPlayer.LastPlayedBeatmap != null)
             {
                 if (lazerPlayer.LastPlayedBeatmap.Id == beatmap.Id)
                 {
+                    Console.WriteLine($"Fails: {beatmap.Fails.Length}/{index}");
+                    
                     beatmap.Fails[index] += 1;
                     
                     await beatmapsRepository.UpdateBeatmapFailTimes(beatmap.Id, index, isFail: true);
                 }
                 else
                 {
+                    Console.WriteLine($"Exits: {lazerPlayer.LastPlayedBeatmap.Exits.Length}/{lazerPlayer.LastPlayedBeatmapExitIndex}");
+                    
                     lazerPlayer.LastPlayedBeatmap.Exits[lazerPlayer.LastPlayedBeatmapExitIndex] += 1;
                     
                     await beatmapsRepository.UpdateBeatmapFailTimes(
