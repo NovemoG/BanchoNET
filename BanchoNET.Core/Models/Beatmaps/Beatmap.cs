@@ -58,7 +58,7 @@ public class Beatmap : IBeatmap,
 		Version = beatmap.Version;
 		TotalLength = beatmap.TotalLength;
 		HitLength = beatmap.HitLength;
-		MaxCombo = beatmap.MaxCombo;
+		MaxCombo = beatmap.MaxCombo ?? 0;
 		IsScoreable = beatmap.IsScoreable;
 		LastUpdated = beatmap.LastUpdated.DateTime;
 		Bpm = (float)beatmap.Bpm;
