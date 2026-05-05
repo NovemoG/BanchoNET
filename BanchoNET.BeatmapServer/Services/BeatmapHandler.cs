@@ -154,7 +154,7 @@ public sealed class BeatmapHandler(
 			}
 			else beatmapset = new Beatmapset(dbBeatmapset);
 			
-			if (didApiRequest || !recheckApi)
+			if (didApiRequest && !recheckApi)
 				beatmapCache.InsertBeatmapset(beatmapset);
 		}
 		

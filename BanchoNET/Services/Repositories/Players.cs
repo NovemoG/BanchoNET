@@ -534,7 +534,6 @@ public class PlayersRepository : IPlayersRepository
 	) {
 		stats.PlayCount += 1;
 		stats.TotalScore += score.TotalScore;
-		stats.IncreasePlaytime(score.ClockRate, score.TimeElapsed);
 
 		var statistics = score.Statistics;
 		
@@ -549,6 +548,15 @@ public class PlayersRepository : IPlayersRepository
 		}
 		
 		await _dbContext.SaveChangesAsync();
+	}
+
+	public async Task IncreasePlayerPlayTime(
+		int playerId,
+		int mode,
+		int timeElapsed
+	) {
+		await _dbContext.Stats.Where(s => s.PlayerId == playerId && s.Mode == mode)
+			.ExecuteUpdateAsync(p => p.SetProperty(s => s.PlayTime, s => s.PlayTime + timeElapsed));
 	}
 
 	public async Task IncreasePlayerReplaysViewed(

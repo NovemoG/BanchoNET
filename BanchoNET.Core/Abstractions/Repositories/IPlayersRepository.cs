@@ -43,6 +43,7 @@ public interface IPlayersRepository
     Task<List<PlayerHistoryStats>> GetPlayersModeStatsRange(byte mode, int count, int skip = 0, bool reset = false);
     Task UpdatePlayerStats(Player player, GameMode mode);
     Task UpdatePlayerStats(StatsDto stats, ApiScore score);
+    Task IncreasePlayerPlayTime(int playerId, int mode, int timeElapsed);
     Task ResetPlayersStats(byte mode);
     Task IncreasePlayerReplaysViewed(int playerId, byte mode, long scoreId);
     

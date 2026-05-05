@@ -1,6 +1,8 @@
 ﻿using System.Threading.Channels;
 using BanchoNET.Core.Abstractions.Repositories;
+using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Api;
+using BanchoNET.Core.Utils.Extensions;
 using BanchoNET.Core.Utils.Replays;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -76,22 +78,33 @@ public sealed partial class ScoreSubmissionQueue
             return;
         }
 
-        var scoreId = scoreRequest.Score.Id;
-        if (!scoreRequest.Score.Passed)
+        using var scope = scopeFactory.CreateScope();
+        var players = scope.ServiceProvider.GetRequiredService<IPlayersRepository>();
+        
+        var score = scoreRequest.Score;
+        var beatmap = scoreRequest.Beatmap!;
+        score.User = spectatorState.Score.User;
+        
+        var scoreTime = spectatorState.Frames[^1].Time / 1000d;
+        score.TimeElapsed = (int)Math.Round((scoreTime - (beatmap.TotalLength - beatmap.HitLength)) / score.ClockRate);
+        
+        await UpdateBeatmapStats(scope, score, beatmap, userId);
+        await players.IncreasePlayerPlayTime(userId, score.RulesetId, score.TimeElapsed);
+        
+        if (!score.Passed)
             return;
-
-        scoreRequest.Score.User = spectatorState.Score.User;
+        
+        var scoreId = score.Id;
         
         //TODO validate
         
         try
         {
-            var scope = scopeFactory.CreateScope();
             var scores = scope.ServiceProvider.GetRequiredService<ILazerScoresRepository>();
             
             logger.LogInfo($"Writing replay for score {scoreId}");
             
-            ReplaySerializer.Serialize(scoreRequest.Score, spectatorState.Frames, scoreRequest.Beatmap!);
+            ReplaySerializer.Serialize(score, spectatorState.Frames, beatmap);
             await scores.ToggleScoreReplayAvailability(scoreId);
             await spectatorHub.Clients.User(userId.ToString()).UserScoreProcessed(userId, scoreId);
         }
