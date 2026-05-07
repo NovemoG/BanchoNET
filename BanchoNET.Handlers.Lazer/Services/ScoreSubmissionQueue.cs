@@ -8,7 +8,6 @@ using BanchoNET.Core.Models.Api.Player;
 using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Dtos;
-using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Scores;
 using BanchoNET.Core.Utils.Extensions;
 using BanchoNET.Handlers.Lazer.Hubs;
@@ -184,9 +183,12 @@ public sealed partial class ScoreSubmissionQueue(
             beatmap.Passes += 1;
         
         await beatmapsRepository.UpdateBeatmapPlayCount(beatmap, playerId);
-        await beatmapsRepository.UpdateBeatmapMaxStatistics(beatmap, score.MaximumStatistics);
 
-        if (score.Passed) return;
+        if (score.Passed)
+        {
+            await beatmapsRepository.UpdateBeatmapMaxStatistics(beatmap, score.MaximumStatistics);
+            return;
+        }
         
         var lazerPlayer = lazerPlayers.GetPlayer(playerId);
         if (lazerPlayer != null)
