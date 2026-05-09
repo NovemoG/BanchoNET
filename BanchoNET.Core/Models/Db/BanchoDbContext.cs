@@ -47,6 +47,8 @@ public sealed class BanchoDbContext(DbContextOptions<BanchoDbContext> options) :
 		{
 			entity.HasKey(x => new { x.PlayerId, x.ChannelId });
 
+			entity.HasIndex(x => x.LastReadMessageId);
+
 			entity.HasOne(x => x.Player)
 				.WithMany(p => p.PlayerChannels)
 				.HasForeignKey(x => x.PlayerId)
@@ -77,6 +79,8 @@ public sealed class BanchoDbContext(DbContextOptions<BanchoDbContext> options) :
 		{
 			entity.HasKey(x => new { x.PlayerId, x.BeatmapId });
 
+			entity.HasIndex(x => x.Plays);
+
 			entity.HasOne(x => x.Player)
 				.WithMany(p => p.PlayedBeatmaps)
 				.HasForeignKey(x => x.PlayerId)
@@ -92,6 +96,8 @@ public sealed class BanchoDbContext(DbContextOptions<BanchoDbContext> options) :
 		{
 			entity.HasKey(x => new { x.PlayerId, x.BeatmapsetId });
 
+			entity.HasIndex(x => x.FavoriteAt);
+			
 			entity.Property(x => x.FavoriteAt)
 				.HasDefaultValueSql("CURRENT_TIMESTAMP");
 
@@ -109,6 +115,8 @@ public sealed class BanchoDbContext(DbContextOptions<BanchoDbContext> options) :
 		modelBuilder.Entity<ReplayWatches>(entity =>
 		{
 			entity.HasKey(x => new { x.PlayerId, x.ScoreId });
+
+			entity.HasIndex(x => x.Count);
 
 			entity.HasOne(x => x.Player)
 				.WithMany(p => p.WatchedReplays)

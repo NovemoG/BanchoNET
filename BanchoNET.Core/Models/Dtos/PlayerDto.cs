@@ -16,7 +16,7 @@ public class PlayerDto
 	public int Privileges { get; set; }
 	public bool PmFriendsOnly { get; set; }
 	public bool HideOnlineActivity { get; set; }
-	public string Title { get; set; } = null!;
+	public string? Title { get; set; }
 	
 	public bool Inactive { get; set; }
 	public bool Deleted { get; set; } //TODO

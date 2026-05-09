@@ -177,12 +177,12 @@ public static partial class PpMethods
         var acc = ScoreExtensions.CalculateAccuracy(
             (GameMode)score.Mode,
             (LegacyMods)score.Mods,
-            score.Count300 + score.Misses,
-            score.Count100,
-            score.Count50,
+            score.GetCount300() + score.GetCountMiss(),
+            score.GetCount100(),
+            score.GetCount50(),
             0,
-            score.Gekis,
-            score.Katus
+            score.GetCountGeki(),
+            score.GetCountKatu()
         );
             
         return (float)ComputePp(

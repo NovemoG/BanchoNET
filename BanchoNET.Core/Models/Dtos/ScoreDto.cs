@@ -32,16 +32,6 @@ public class ScoreDto
 	/// </summary>
 	public string? LazerMods { get; set; }
 	
-	//TODO temporary
-	public int Count300 { get; set; }
-	public int Count100 { get; set; }
-	public int Count50 { get; set; }
-	public int Misses { get; set; }
-	public int Gekis { get; set; }
-	public int Katus { get; set; }
-	public int IgnoreHit { get; set; }
-	public int IgnoreMiss { get; set; }
-	
 	/// <summary>
 	/// JSON value of Statistics
 	/// </summary>

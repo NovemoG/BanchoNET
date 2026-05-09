@@ -17,6 +17,7 @@ public class ScoreConfiguration : IEntityTypeConfiguration<ScoreDto>
         builder.HasIndex(s => s.PP);
         builder.HasIndex(s => s.LegacyTotalScore);
         builder.HasIndex(s => s.Mods);
+        builder.HasIndex(s => s.ModKeys);
         builder.HasIndex(s => s.BeatmapMD5);
         builder.HasIndex(s => s.MapId);
         builder.HasIndex(s => s.OnlineChecksum);
