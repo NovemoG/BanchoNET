@@ -283,7 +283,9 @@ public class BeatmapsRepository(
 			var dbBeatmap = beatmaps.FirstOrDefault(b => b.Id == beatmap.Id);
 			if (dbBeatmap != null)
 			{
-				await scores.ToggleBeatmapScoresVisibility(dbBeatmap.MD5, false);
+				if (!dbBeatmap.MD5.Equals(beatmap.Checksum))
+					await scores.ToggleBeatmapScoresVisibility(dbBeatmap.MD5, false);
+				
 				dbContext.Update(dbBeatmap.UpdateWith(beatmap, beatmapset.IsRankedOfficially));
 			}
 			else

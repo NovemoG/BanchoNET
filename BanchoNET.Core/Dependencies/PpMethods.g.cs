@@ -206,10 +206,10 @@ public static partial class PpMethods
     }
     
     public static string CalculateGraphJson(
-        string path,
+        int beatmapId,
         uint mods = 0
     ) {
-        var result = CalculateFromPathNative(path, mods);
+        var result = CalculateFromPathNative(Storage.GetBeatmapPath(beatmapId), mods);
 
         try
         {
