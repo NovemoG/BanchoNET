@@ -8,7 +8,6 @@ public interface ILegacyScoresRepository : IScoresRepository
 {
     Task<Score> InsertScore(
         Score score,
-        bool isPlayerRestricted,
         string md5,
         int mapId
     );

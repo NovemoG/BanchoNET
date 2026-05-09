@@ -3,7 +3,6 @@ using System.Text.Json;
 using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Models.Mods;
-using BanchoNET.Core.Models.Scores;
 
 namespace BanchoNET.Core.Utils.Extensions;
 
@@ -99,18 +98,6 @@ public static class ModsExtensions
             result &= ~LegacyMods.InvalidMods;
 
         return result;
-    }
-    
-    extension(
-        Score score
-    ) {
-        public string ModsToString() {
-            return score.Mods.ToLazerMods().Aggregate(string.Empty, (current, mod) => current + mod);
-        }
-
-        public string ModsToKeysString() {
-            return score.Mods.ToKeysString();
-        }
     }
 
     extension(

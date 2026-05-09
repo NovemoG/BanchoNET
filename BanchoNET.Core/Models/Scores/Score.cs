@@ -96,7 +96,7 @@ public class Score
 		);
 		
 		ClientFlags = (ClientFlags)int.Parse(scoreData[15]);
-		Ranked = beatmap.Status is BeatmapStatus.Ranked or BeatmapStatus.Approved;
+		Ranked = !player.IsRestricted && beatmap.Status is BeatmapStatus.Ranked or BeatmapStatus.Approved;
 		Processed = true; //always processed instantly on score submission
 	}
 	
@@ -122,6 +122,7 @@ public class Score
 		Passed = Status != SubmissionStatus.Failed;
 		Preserve = scoreDto.Preserve;
 		Processed = scoreDto.Processed;
+		Ranked = scoreDto.Ranked;
 		Grade = scoreDto.Grade;
 		Mods = scoreDto.Mods;
 		ModKeys = scoreDto.ModKeys ?? "";

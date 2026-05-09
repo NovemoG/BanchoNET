@@ -58,9 +58,6 @@ public class ScoreDto
 	public bool IsPerfectCombo { get; set; }
 	
 	public string? OnlineChecksum { get; set; }
-
-	//TODO
-	public bool IsRestricted { get; set; }
 	
 	public PlayerDto Player { get; set; } = null!;
 	public int PlayerId { get; set; }

@@ -15,7 +15,6 @@ public class LazerScoresRepository(BanchoDbContext dbContext) : ScoresRepository
 {
     public async Task<ApiScore> InsertScore(
         ApiScore score,
-        bool isPlayerRestricted,
         string md5,
         int mapId
     ) {
@@ -44,7 +43,6 @@ public class LazerScoresRepository(BanchoDbContext dbContext) : ScoresRepository
                 PlayTime = score.EndedAt,
                 PlayerId = score.UserId,
                 LegacyPerfect = score.LegacyPerfect,
-                IsRestricted = isPlayerRestricted
             });
         await DbContext.SaveChangesAsync();
 
@@ -70,10 +68,10 @@ public class LazerScoresRepository(BanchoDbContext dbContext) : ScoresRepository
             .Include(s => s.Player)
             .FirstOrDefaultAsync(s =>
                 s.MapId == beatmap.Id
-                && !s.IsRestricted
                 && s.PlayerId == playerId
                 && s.Mode == mode
-                && s.Status == SubmissionStatus.Best);
+                && s.Status == SubmissionStatus.Best
+                && s.Ranked);
 
         return score == null ? null : new ApiScore(score, score.Player, beatmap);
     }
@@ -89,11 +87,11 @@ public class LazerScoresRepository(BanchoDbContext dbContext) : ScoresRepository
             .Include(scoreDto => scoreDto.Player)
             .FirstOrDefaultAsync(s =>
                 s.MapId == beatmap.Id
-                && !s.IsRestricted
                 && s.PlayerId == playerId
                 && s.Mode == mode
                 && s.ModKeys == mods
-                && s.Status >= SubmissionStatus.BestWithMods);
+                && s.Status >= SubmissionStatus.BestWithMods
+                && s.Ranked);
         
         return score == null ? null : new ApiScore(score, score.Player, beatmap);
     }
@@ -113,8 +111,7 @@ public class LazerScoresRepository(BanchoDbContext dbContext) : ScoresRepository
                     ? s.Status >= SubmissionStatus.BestWithMods
                     : s.Status == SubmissionStatus.Best)
                 && (!withMods || s.ModKeys == mods)
-                && (s.Player.Privileges & 1) == 1
-                && !s.IsRestricted
+                && s.Ranked
                 && (OrderByPp((GameMode)score.RulesetId)
                     ? s.PP > Math.Round(score.Pp, 3, MidpointRounding.AwayFromZero)
                     : score.TotalScore < s.LegacyTotalScore))

@@ -26,6 +26,11 @@ public sealed class BanchoDbContext(DbContextOptions<BanchoDbContext> options) :
 	public DbSet<MessageDto> Messages { get; init; } = null!;
 	public DbSet<ChannelDto> Channels { get; init; } = null!;
 	public DbSet<ChannelPlayer> ChannelPlayers { get; init; } = null!;
+	
+	public DbSet<ThreadDto> Threads { get; init; } = null!;
+	public DbSet<CommentDto> Comments { get; init; } = null!;
+	public DbSet<ThreadFollows> ThreadFollows { get; init; } = null!;
+	public DbSet<CommentVote> CommentVotes { get; init; } = null!;
 
 	public DbSet<ReleaseDto> Releases { get; init; } = null!;
 	public DbSet<RefreshToken> RefreshTokens { get; init; } = null!;
@@ -41,7 +46,8 @@ public sealed class BanchoDbContext(DbContextOptions<BanchoDbContext> options) :
 			.ApplyConfiguration(new BeatmapsetConfiguration())
 			.ApplyConfiguration(new MessageConfiguration())
 			.ApplyConfiguration(new ScoreConfiguration())
-			.ApplyConfiguration(new SkillsConfiguration());
+			.ApplyConfiguration(new SkillsConfiguration())
+			.ApplyConfiguration(new CommentConfiguration());
 		
 		modelBuilder.Entity<ChannelPlayer>(entity =>
 		{
@@ -126,6 +132,36 @@ public sealed class BanchoDbContext(DbContextOptions<BanchoDbContext> options) :
 			entity.HasOne(x => x.Score)
 				.WithMany(c => c.ReplayWatches)
 				.HasForeignKey(x => x.ScoreId)
+				.OnDelete(DeleteBehavior.Cascade);
+		});
+		
+		modelBuilder.Entity<CommentVote>(entity =>
+		{
+			entity.HasKey(x => new { x.PlayerId, x.CommentId });
+
+			entity.HasOne(x => x.Player)
+				.WithMany(p => p.CommentVotes)
+				.HasForeignKey(x => x.PlayerId)
+				.OnDelete(DeleteBehavior.Cascade);
+			
+			entity.HasOne(x => x.Comment)
+				.WithMany()
+				.HasForeignKey(x => x.CommentId)
+				.OnDelete(DeleteBehavior.Cascade);
+		});
+		
+		modelBuilder.Entity<ThreadFollows>(entity =>
+		{
+			entity.HasKey(x => new { x.PlayerId, x.ThreadId });
+
+			entity.HasOne(x => x.Player)
+				.WithMany(p => p.ThreadFollows)
+				.HasForeignKey(x => x.PlayerId)
+				.OnDelete(DeleteBehavior.Cascade);
+			
+			entity.HasOne(x => x.Thread)
+				.WithMany(x => x.Follows)
+				.HasForeignKey(x => x.ThreadId)
 				.OnDelete(DeleteBehavior.Cascade);
 		});
 		

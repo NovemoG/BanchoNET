@@ -9,7 +9,6 @@ public interface ILazerScoresRepository : IScoresRepository
 {
     Task<ApiScore> InsertScore(
         ApiScore score,
-        bool isPlayerRestricted,
         string md5,
         int mapId
     );

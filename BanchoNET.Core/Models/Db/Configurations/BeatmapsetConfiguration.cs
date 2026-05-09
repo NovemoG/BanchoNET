@@ -64,5 +64,11 @@ public class BeatmapsetConfiguration : IEntityTypeConfiguration<BeatmapsetDto>
             .WithMany(p => p.Beatmapsets)
             .HasForeignKey(bs => bs.CreatorId)
             .OnDelete(DeleteBehavior.Restrict);
+        
+        builder
+            .HasOne(t => t.Thread)
+            .WithOne(bs => bs.Beatmapset)
+            .HasForeignKey<ThreadDto>(t => t.BeatmapsetId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

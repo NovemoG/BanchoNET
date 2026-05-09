@@ -184,7 +184,7 @@ public partial class OsuController
         }
         
         score.Player = player;
-        player.RecentScore = await scores.InsertScore(score, player.IsRestricted, beatmap.Checksum, beatmapId);
+        player.RecentScore = await scores.InsertScore(score, beatmap.Checksum, beatmapId);
         
         if (score.Passed)
         {

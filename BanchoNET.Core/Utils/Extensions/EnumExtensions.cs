@@ -149,6 +149,12 @@ public static class EnumExtensions
 		foreach (var (mod, code) in ModMap)
 			if (legacyMods.HasMod(mod))
 				mods.Add(new Mod{ Acronym = code });
+		
+		if (mods.Any(m => m.Acronym == "NC"))
+			mods.RemoveAll(m => m.Acronym == "DT");
+
+		if (mods.Any(m => m.Acronym == "PF"))
+			mods.RemoveAll(m => m.Acronym == "SD");
 
 		return mods.ToArray();
 	}

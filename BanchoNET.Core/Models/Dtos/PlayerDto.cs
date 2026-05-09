@@ -54,6 +54,10 @@ public class PlayerDto
 	public ICollection<BeatmapOwner> OwnedBeatmaps { get; set; } = [];
 	public ICollection<BeatmapsetDto> Beatmapsets { get; set; } = [];
 	
+	public ICollection<CommentDto> Comments { get; set; } = [];
+	public ICollection<ThreadFollows> ThreadFollows { get; set; } = [];
+	public ICollection<CommentVote> CommentVotes { get; set; } = [];
+	
 	public long SkillsId { get; set; }
 	public SkillsDto Skills { get; set; } = new();
 	

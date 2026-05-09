@@ -210,6 +210,7 @@ public class Program
 		builder.Services.AddScoped<ILegacyScoresRepository, LegacyScoresRepository>();
 		builder.Services.AddScoped<ILazerScoresRepository, LazerScoresRepository>();
 		builder.Services.AddScoped<IReleasesRepository, ReleasesRepository>();
+		builder.Services.AddScoped<ICommentsRepository, CommentsRepository>();
 		builder.Services.AddScoped<IBeatmapHandler, BeatmapHandler>();
 			
 		builder.Services

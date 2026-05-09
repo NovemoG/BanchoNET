@@ -24,7 +24,7 @@ public class ScoreConfiguration : IEntityTypeConfiguration<ScoreDto>
         builder.HasIndex(s => s.Mode);
         builder.HasIndex(s => s.Status);
         builder.HasIndex(s => s.PlayTime);
-        builder.HasIndex(s => s.IsRestricted);
+        builder.HasIndex(s => s.Ranked);
 
         builder.Property(s => s.BeatmapMD5)
             .IsRequired()

@@ -678,10 +678,9 @@ public class PlayersRepository : IPlayersRepository
 	) {
 		var bestScores = await _dbContext.Scores
 			.Where(s => s.PlayerId == player.Id
-			            && !s.IsRestricted
-			            && s.Ranked
 			            && s.Status == SubmissionStatus.Best
-			            && s.Mode == mode)
+			            && s.Mode == mode
+			            && s.Ranked)
 			.OrderByDescending(s => s.PP)
 			.Take(200)
 			.ToListAsync();
@@ -716,10 +715,9 @@ public class PlayersRepository : IPlayersRepository
 	) {
 		var bestScores = await _dbContext.Scores
 			.Where(s => s.PlayerId == playerId
-			            && !s.IsRestricted
-			            && s.Ranked
 			            && s.Status == SubmissionStatus.Best
-			            && s.Mode == mode)
+			            && s.Mode == mode
+			            && s.Ranked)
 			.OrderByDescending(s => s.PP)
 			.Take(200)
 			.ToListAsync();
@@ -821,7 +819,7 @@ public class PlayersRepository : IPlayersRepository
 			.AsNoTracking()
 			.Include(s => s.Player)
 			.Where(s => s.Mode == mode
-			            && (s.Player.Privileges & 1) == 1
+			            && s.IsRanked
 			            && (string.IsNullOrEmpty(country) || s.Player.Country == country)
 			)
 			.OrderByDescending(s => filterByScore ? s.TotalScore : s.PP)
@@ -1007,6 +1005,12 @@ public class PlayersRepository : IPlayersRepository
 
 			await RemovePlayerGlobalRank(mode, player.Geoloc.Country.Acronym, player.Id);
 		}
+		
+		await _dbContext.Scores.Where(s => s.PlayerId == player.Id)
+			.ExecuteUpdateAsync(p => p.SetProperty(s => s.Ranked, false));
+		
+		await _dbContext.Stats.Where(s => s.PlayerId == player.Id)
+			.ExecuteUpdateAsync(p => p.SetProperty(s => s.IsRanked, false));
 
 		_playerCoordinator.LogoutPlayer(player);
 
@@ -1026,6 +1030,12 @@ public class PlayersRepository : IPlayersRepository
 
 		foreach (var stats in player.Stats)
 			await InsertPlayerGlobalRank((byte)stats.Key, player.Geoloc.Country.Acronym, player.Id, stats.Value.PP);
+		
+		await _dbContext.Scores.Where(s => s.PlayerId == player.Id)
+			.ExecuteUpdateAsync(p => p.SetProperty(s => s.Ranked, true));
+		
+		await _dbContext.Stats.Where(s => s.PlayerId == player.Id)
+			.ExecuteUpdateAsync(p => p.SetProperty(s => s.IsRanked, true));
 		
 		_playerCoordinator.LogoutPlayer(player);
 

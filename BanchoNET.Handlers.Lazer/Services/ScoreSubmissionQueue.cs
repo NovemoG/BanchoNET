@@ -77,7 +77,7 @@ public sealed partial class ScoreSubmissionQueue(
         
         using var scope = scopeFactory.CreateScope();
 
-        var player = lazerPlayers.GetPlayer(userId);
+        var player = lazerPlayers.GetPlayer(userId)?.Player;
         if (player == null) return null;
         
         var beatmaps = scope.ServiceProvider.GetRequiredService<IBeatmapHandler>();
@@ -106,7 +106,7 @@ public sealed partial class ScoreSubmissionQueue(
             ClassicTotalScore = 0, //TODO calculate
             Preserve = false,
             Processed = true,
-            Ranked = beatmap.Status is BeatmapStatus.Ranked or BeatmapStatus.Approved,
+            Ranked = !player.IsRestricted && beatmap.Status is BeatmapStatus.Ranked or BeatmapStatus.Approved,
             BeatmapId = beatmapId,
             BestId = null, //TODO
             UserId = userId,
@@ -156,13 +156,13 @@ public sealed partial class ScoreSubmissionQueue(
             apiScore.Status = apiScore.Passed ? SubmissionStatus.Submitted : SubmissionStatus.Failed;
         }
         
-        soloRequest.Score = await scores.InsertScore(apiScore, false, beatmap.Checksum, beatmapId);
+        soloRequest.Score = await scores.InsertScore(apiScore, beatmap.Checksum, beatmapId);
         soloRequest.Beatmap = beatmap;
         
         var players = scope.ServiceProvider.GetRequiredService<IPlayersRepository>();
         var stats = (await players.GetPlayerModeStats(userId, (byte)mode))!;
 
-        await RecalculatePlayerStats(players, beatmap, player.Player, stats, mode, apiScore, prevBest, bestWithMods);
+        await RecalculatePlayerStats(players, beatmap, player, stats, mode, apiScore, prevBest, bestWithMods);
         await players.UpdatePlayerStats(stats, apiScore);
         await players.UpdateLatestActivity(userId);
 

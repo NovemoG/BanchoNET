@@ -272,7 +272,7 @@ public class BeatmapsRepository(
 		foreach (var oldBeatmap in beatmapset.Beatmaps.ToList()
 			         .Where(oldBeatmap => !incomingBeatmapIds.Contains(oldBeatmap.Id)))
 		{
-			await scores.ToggleBeatmapScoresVisibility(oldBeatmap.MD5, false);
+			//await scores.ToggleBeatmapScoresVisibility(oldBeatmap.MD5, false);
 			dbContext.Beatmaps.Remove(oldBeatmap);
 		}
 		

@@ -97,14 +97,14 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
     {
         await DbContext.Scores
             .Where(s => s.MapId == mapId)
-            .ExecuteUpdateAsync(p => p.SetProperty(s => s.IsRestricted, visible));
+            .ExecuteUpdateAsync(p => p.SetProperty(s => s.Ranked, visible));
     }
 
     public async Task ToggleBeatmapScoresVisibility(string md5, bool visible)
     {
         await DbContext.Scores
             .Where(s => s.BeatmapMD5 == md5)
-            .ExecuteUpdateAsync(p => p.SetProperty(s => s.IsRestricted, visible));
+            .ExecuteUpdateAsync(p => p.SetProperty(s => s.Ranked, visible));
     }
 
     public async Task ToggleScoreReplayAvailability(
@@ -225,8 +225,7 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
             .Where(s => s.MapId == mapId
                         && s.Mode == mode
                         && s.Status == SubmissionStatus.Best
-                        && (s.Player.Privileges & 1) == 1
-                        && !s.IsRestricted)
+                        && s.Ranked)
             .OrderByDescending(s => OrderByPp(mode) ? s.PP : s.LegacyTotalScore)
             .FirstOrDefaultAsync();
     }
@@ -241,8 +240,7 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
             .Where(s => s.BeatmapMD5 == md5
                         && s.Mode == mode
                         && s.Status == SubmissionStatus.Best
-                        && (s.Player.Privileges & 1) == 1
-                        && !s.IsRestricted)
+                        && s.Ranked)
             .OrderByDescending(s => OrderByPp(mode) ? s.PP : s.LegacyTotalScore)
             .FirstOrDefaultAsync();
     }
@@ -291,10 +289,8 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
         else
             throw new ArgumentException("Either mapId or md5 must be provided.");
         
-        //TODO start using only s.IsRestricted instead of privileges
         query = query.Where(s => s.Mode == mode
-                         && (s.Player.Privileges & 1) == 1
-                         && !s.IsRestricted);
+                                 && s.Ranked);
         
         query = withMods
             ? query.Where(s => s.Status >= SubmissionStatus.BestWithMods
@@ -331,10 +327,9 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
             .Include(s => s.Beatmap)
                 .ThenInclude(b => b.Beatmapset)
             .Where(s => s.PlayerId == playerId
-                        && !s.IsRestricted
-                        && s.Ranked
                         && s.Status == SubmissionStatus.Best
-                        && s.Mode == mode)
+                        && s.Mode == mode
+                        && s.Ranked)
             .OrderByDescending(s => s.PP)
             .Skip(offset)
             .Take(limit)
@@ -351,10 +346,8 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
             .Include(s => s.Player)
             .Include(s => s.Beatmap)
             .Where(s => s.Mode == mode
-                        && s.Ranked
-                        && !s.IsRestricted
                         && s.Status == SubmissionStatus.Best
-            )
+                        && s.Ranked)
             .OrderByDescending(s => OrderByPp(mode) ? s.PP : s.LegacyTotalScore)
             .Skip(skip)
             .Take(count)
@@ -372,9 +365,7 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
             .Include(s => s.Beatmap)
                 .ThenInclude(s => s.Beatmapset)
             .Where(s => s.Mode == mode
-                        && s.Ranked
-                        && !s.IsRestricted
-            )
+                        && s.Ranked)
             .OrderByDescending(s => s.PlayTime)
             .Skip(skip)
             .Take(count)

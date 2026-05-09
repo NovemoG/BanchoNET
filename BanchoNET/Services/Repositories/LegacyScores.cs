@@ -13,7 +13,6 @@ public class LegacyScoresRepository(BanchoDbContext dbContext) : ScoresRepositor
 {
     public async Task<Score> InsertScore(
         Score score,
-        bool isPlayerRestricted,
         string md5,
         int mapId
     ) {
@@ -32,7 +31,7 @@ public class LegacyScoresRepository(BanchoDbContext dbContext) : ScoresRepositor
                 MaxCombo = score.MaxCombo,
                 Mods = score.Mods,
                 ModKeys = score.ModKeys,
-                LazerMods = score.ModsToString(),
+                LazerMods = null,
                 Statistics = score.GetStatistics(),
                 Grade = score.Grade,
                 Status = score.Status,
@@ -44,7 +43,6 @@ public class LegacyScoresRepository(BanchoDbContext dbContext) : ScoresRepositor
                 LegacyPerfect = score.Perfect,
                 IsPerfectCombo = score.Perfect,
                 OnlineChecksum = score.ClientChecksum,
-                IsRestricted = isPlayerRestricted
             });
         await DbContext.SaveChangesAsync();
 
@@ -92,10 +90,10 @@ public class LegacyScoresRepository(BanchoDbContext dbContext) : ScoresRepositor
             .FirstOrDefaultAsync(s => (mapId.HasValue
                                           ? s.MapId == mapId
                                           : s.BeatmapMD5 == md5)
-                                      && !s.IsRestricted
                                       && s.PlayerId == playerId
                                       && s.Mode == mode
-                                      && s.Status == SubmissionStatus.Best);
+                                      && s.Status == SubmissionStatus.Best
+                                      && s.Ranked);
         
         return score == null ? null : new Score(score);
     }
@@ -126,11 +124,11 @@ public class LegacyScoresRepository(BanchoDbContext dbContext) : ScoresRepositor
             .FirstOrDefaultAsync(s => (mapId.HasValue
                                           ? s.MapId == mapId
                                           : s.BeatmapMD5 == md5)
-                                      && !s.IsRestricted
                                       && s.PlayerId == playerId
                                       && s.Mode == mode
                                       && s.ModKeys == mods
-                                      && s.Status >= SubmissionStatus.BestWithMods);
+                                      && s.Status >= SubmissionStatus.BestWithMods
+                                      && s.Ranked);
         
         return score == null ? null : new Score(score);
     }
@@ -166,8 +164,7 @@ public class LegacyScoresRepository(BanchoDbContext dbContext) : ScoresRepositor
                             ? s.Status >= SubmissionStatus.BestWithMods
                             : s.Status == SubmissionStatus.Best)
                         && (!withMods || s.ModKeys == mods) 
-                        && (s.Player.Privileges & 1) == 1 
-                        && !s.IsRestricted
+                        && s.Ranked
                         && (OrderByPp(score.Mode)
                             ? score.PP < s.PP
                             : score.TotalScore < s.LegacyTotalScore))

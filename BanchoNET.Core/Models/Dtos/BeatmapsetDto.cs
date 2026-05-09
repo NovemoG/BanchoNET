@@ -39,6 +39,9 @@ public class BeatmapsetDto
     public int CreatorId { get; set; }
     public PlayerDto Creator { get; set; } = null!;
     
+    public int ThreadId { get; set; }
+    public ThreadDto Thread { get; set; } = null!;
+    
     public ICollection<BeatmapDto> Beatmaps { get; init; } = null!;
     public ICollection<BeatmapsetFavorite> BeatmapsetFavorites { get; set; } = [];
 }
