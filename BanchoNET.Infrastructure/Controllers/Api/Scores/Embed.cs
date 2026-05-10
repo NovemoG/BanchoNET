@@ -33,7 +33,7 @@ public partial class ScoresController
             ? string.Empty
             : AppendModsString(score.LazerMods.ToMods());
 
-        description += $" » BPM: {beatmap.Bpm}\n{AppendStatistics(score.Statistics, score.LazerMods?.ToMods(), beatmap.HitLength, beatmap.Cs, beatmap.Ar, beatmap.Od, beatmap.Hp)}";
+        description += AppendStatistics(score.Statistics, score.LazerMods?.ToMods(), beatmap.HitLength, beatmap.Bpm, beatmap.Cs, beatmap.Ar, beatmap.Od, beatmap.Hp);
         
         var imageUrl = $"https://assets.ppy.sh/beatmaps/{beatmap.Set.Id}/covers/list.jpg";
         var canonicalUrl = $"https://osu.{AppSettings.Domain}/scores/{score.Id}";
@@ -72,7 +72,7 @@ public partial class ScoresController
     private static string AppendModsString(
         Mod[] mods
     ) {
-        var sb = new StringBuilder(" • +");
+        var sb = new StringBuilder(" » +");
 
         foreach (var mod in mods)
         {
@@ -89,6 +89,7 @@ public partial class ScoresController
         Dictionary<HitResult, int> stats,
         Mod[]? mods,
         int hitLength,
+        float bpm,
         float cs,
         float ar,
         float od,
@@ -101,9 +102,9 @@ public partial class ScoresController
 
         if (mods != null)
         {
-            if (mods.Any(m => m.Acronym == "DT"))
+            var dt = mods.FirstOrDefault(m => m.Acronym is "DT" or "NC" or "HT" or "DC");
+            if (dt != null)
             {
-                var dt = mods.First(m => m.Acronym == "DT");
                 clockRate = dt.Settings.TryGetValue("speed_change", out var speed)
                     ? float.Parse((string)speed)
                     : 1.5f;
@@ -134,9 +135,10 @@ public partial class ScoresController
             ar = ApplyClockRateToAr(ar, clockRate);
             od = ApplyClockRateToOd(od, clockRate);
             hitLength = (int)MathF.Round(hitLength / clockRate);
+            bpm *= clockRate;
         }
         
-        var sb = new StringBuilder($"{hitLength / 60}:{hitLength % 60:D2} » ");
+        var sb = new StringBuilder($" » BPM: {bpm}\n{hitLength / 60}:{hitLength % 60:D2} » ");
 
         sb.Append(stats.TryGetValue(HitResult.Great, out var count300) ? $"{count300} / " : "0 / ");
         sb.Append(stats.TryGetValue(HitResult.Ok, out var count100) ? $"{count100} / " : "0 / ");
