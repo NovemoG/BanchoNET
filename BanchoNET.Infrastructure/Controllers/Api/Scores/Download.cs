@@ -10,13 +10,14 @@ public partial class ScoresController
     public async Task<IActionResult> DownloadScore(
         long id
     ) {
-        if (!User.TryGetUserId(out _)) return Unauthorized();
+        if (!User.TryGetUserId(out var uid)) return Unauthorized();
 
         var score = await scores.GetScore(id);
         if (score is not { HasReplay: true })
             return NotFound();
-
-        await Players.IncreasePlayerReplaysViewed(score.PlayerId, (byte)score.Mode, score.Id);
+        
+        if (score.PlayerId != uid)
+            await Players.IncreasePlayerReplaysViewed(score.PlayerId, (byte)score.Mode, score.Id);
         
         return new PhysicalFileResult(Storage.GetReplayPath(id), "application/x-osu-replay");
     }

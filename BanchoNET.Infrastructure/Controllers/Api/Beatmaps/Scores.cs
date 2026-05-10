@@ -51,11 +51,15 @@ public partial class BeatmapsController
             player = await Players.GetPlayerOrOffline(uid);
             if (player == null) return NotFound();
         }
+
+        var modsString = string.Empty;
+        if (withMods && mods[0] != "NM")
+            modsString = mods.Aggregate(string.Empty, (current, mod) => $"{current}{mod};").ToUpper();
         
         var (leaderboardScores, scoreCount, playerBest) = await scores.GetLeaderboardScores(
             leaderboardType,
             gameMode,
-            mods.Aggregate(string.Empty, (current, mod) => $"{current}{mod};").ToUpper(),
+            modsString,
             uid,
             player?.CountryCode.ToString().ToLower() ?? "",
             player?.Friends.ToHashSet() ?? [],

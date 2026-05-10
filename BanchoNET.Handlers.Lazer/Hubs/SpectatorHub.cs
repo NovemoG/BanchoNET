@@ -91,6 +91,12 @@ public class SpectatorHub(
     ) {
         if (!TryGetUserId(out var userId)) return;
         
+        if (state.State == SpectatedUserState.Playing)
+            state.State = SpectatedUserState.Quit;
+        
+        await Clients.Group(SpectatorGroup(userId))
+            .UserFinishedPlaying(userId, state);
+        
         ClientStates.TryRemove(userId, out var clientState);
         
         if (clientState?.State == null || clientState.Score == null || clientState.ScoreToken == null)
@@ -106,12 +112,6 @@ public class SpectatorHub(
         clientState.SubmitTime = DateTime.UtcNow;
 
         await scoreQueue.EnqueueSpectatorScore(clientState);
-        
-        if (state.State == SpectatedUserState.Playing)
-            state.State = SpectatedUserState.Quit;
-        
-        await Clients.Group(SpectatorGroup(userId))
-            .UserFinishedPlaying(userId, state);
     }
 
     public async Task StartWatchingUser(
