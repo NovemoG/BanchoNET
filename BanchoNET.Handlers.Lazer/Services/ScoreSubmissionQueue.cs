@@ -223,10 +223,12 @@ public sealed partial class ScoreSubmissionQueue(
     private static void SetClockRate(
         ApiScore score
     ) {
-        var dt = score.Mods.FirstOrDefault(m => m.Acronym is "DT" or "NC" or "HT" or "DC");
+        var dt = score.Mods.FirstOrDefault(m => m.Acronym is "DT" or "NC");
+        var ht = score.Mods.FirstOrDefault(m => m.Acronym is "HT" or "DC");
         
-        score.ClockRate = dt != null ? 1.5d : 1d;
-        if (dt != null && dt.Settings.TryGetValue("speed_change", out var rateChange))
+        score.ClockRate = dt != null ? 1.5d : ht != null ? 0.75d : 1d;
+        if (dt != null && dt.Settings.TryGetValue("speed_change", out var rateChange)
+            || ht != null && ht.Settings.TryGetValue("speed_change", out rateChange))
             score.ClockRate = rateChange.GetDouble();
     }
     

@@ -102,12 +102,21 @@ public partial class ScoresController
 
         if (mods != null)
         {
-            var dt = mods.FirstOrDefault(m => m.Acronym is "DT" or "NC" or "HT" or "DC");
+            var dt = mods.FirstOrDefault(m => m.Acronym is "DT" or "NC");
+            var ht = mods.FirstOrDefault(m => m.Acronym is "HT" or "DC");
             if (dt != null)
             {
                 clockRate = dt.Settings.TryGetValue("speed_change", out var speed)
                     ? float.Parse((string)speed)
                     : 1.5f;
+
+                hasDt = true;
+            }
+            else if (ht != null)
+            {
+                clockRate = ht.Settings.TryGetValue("speed_change", out var speed)
+                    ? float.Parse((string)speed)
+                    : 0.75f;
 
                 hasDt = true;
             }

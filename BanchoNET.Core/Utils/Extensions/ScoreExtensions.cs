@@ -222,7 +222,8 @@ public static class ScoreExtensions
 
         var lazer = mods.FirstOrDefault(m => m.Acronym == "CL") == null;
         var da = mods.FirstOrDefault(m => m.Acronym == "DA"); // Difficulty Adjust
-        var dt = mods.FirstOrDefault(m => m.Acronym is "DT" or "NC" or "HT" or "DC");
+        var dt = mods.FirstOrDefault(m => m.Acronym is "DT" or "NC");
+        var ht = mods.FirstOrDefault(m => m.Acronym is "HT" or "DC");
 
         var cs = beatmap.Cs;
         var ar = beatmap.Ar;
@@ -239,9 +240,12 @@ public static class ScoreExtensions
                 od = Convert.ToSingle(overallDifficulty);
         }
         
-        var clockRate = dt != null ? 1.5d : 1d;
-        if (dt != null && dt.Settings.TryGetValue("speed_change", out var rateChange))
+        var clockRate = dt != null ? 1.5d : ht != null ? 0.75d : 1d;
+        if (dt != null && dt.Settings.TryGetValue("speed_change", out var rateChange)
+            || ht != null && ht.Settings.TryGetValue("speed_change", out rateChange))
+        {
             clockRate = Convert.ToDouble(rateChange);
+        }
 
         var pp = PpMethods.ComputeScorePp(beatmap.Id, score, clockRate, lazer, cs, ar, od);
 
