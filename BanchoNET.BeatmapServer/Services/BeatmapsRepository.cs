@@ -16,7 +16,7 @@ public class BeatmapsRepository(
 	public async Task<List<BeatmapsetDto>> GetRandomBeatmaps() {
 		var count = await dbContext.Beatmapsets.CountAsync();
 		
-		var randomIndex = new Random().Next(0, Math.Max(0, count - 11));
+		var randomIndex = new Random().Next(0, Math.Max(0, count - 51));
 
 		return await dbContext.Beatmapsets
 			.AsNoTracking()
@@ -29,7 +29,7 @@ public class BeatmapsRepository(
 			.Include(bs => bs.Creator)
 			.OrderBy(bs => bs.Id)
 			.Skip(randomIndex)
-			.Take(10)
+			.Take(50)
 			.ToListAsync();
 	}
 	

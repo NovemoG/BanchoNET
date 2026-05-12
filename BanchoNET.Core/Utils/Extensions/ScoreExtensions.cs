@@ -218,7 +218,7 @@ public static class ScoreExtensions
         this ScoreDto score,
         BeatmapDto beatmap
     ) {
-        var mods = score.LazerMods?.ToMods() ?? [];
+        var mods = score.LazerMods?.ToMods() ?? score.ModKeys.ToMods();
 
         var lazer = mods.FirstOrDefault(m => m.Acronym == "CL") == null;
         var da = mods.FirstOrDefault(m => m.Acronym == "DA"); // Difficulty Adjust

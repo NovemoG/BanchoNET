@@ -92,8 +92,7 @@ public class LegacyScoresRepository(BanchoDbContext dbContext) : ScoresRepositor
                                           : s.BeatmapMD5 == md5)
                                       && s.PlayerId == playerId
                                       && s.Mode == mode
-                                      && s.Status == SubmissionStatus.Best
-                                      && s.Ranked);
+                                      && s.Status == SubmissionStatus.Best);
         
         return score == null ? null : new Score(score);
     }
@@ -127,8 +126,7 @@ public class LegacyScoresRepository(BanchoDbContext dbContext) : ScoresRepositor
                                       && s.PlayerId == playerId
                                       && s.Mode == mode
                                       && s.ModKeys == mods
-                                      && s.Status >= SubmissionStatus.BestWithMods
-                                      && s.Ranked);
+                                      && s.Status >= SubmissionStatus.BestWithMods);
         
         return score == null ? null : new Score(score);
     }
@@ -163,8 +161,7 @@ public class LegacyScoresRepository(BanchoDbContext dbContext) : ScoresRepositor
                         && (withMods
                             ? s.Status >= SubmissionStatus.BestWithMods
                             : s.Status == SubmissionStatus.Best)
-                        && (!withMods || s.ModKeys == mods) 
-                        && s.Ranked
+                        && (!withMods || s.ModKeys == mods)
                         && (OrderByPp(score.Mode)
                             ? score.PP < s.PP
                             : score.TotalScore < s.LegacyTotalScore))

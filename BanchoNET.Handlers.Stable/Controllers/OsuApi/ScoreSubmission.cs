@@ -137,7 +137,7 @@ public partial class OsuController
                 await scores.UpdateScoreStatus(prevBest);
                 await scores.UpdateScoreStatus(bestWithMods);
                 
-                if (beatmap.Status != BeatmapStatus.LatestPending)
+                if (beatmap.Status >= BeatmapStatus.Ranked)
                     await scores.SetScoreLeaderboardPosition(score, withMods: false, beatmapId);
             }
             else score.Status = SubmissionStatus.Failed;
@@ -213,7 +213,8 @@ public partial class OsuController
         stats.UpdateHits(score);
         
         var previousBest = score.PreviousBest;
-        if (previousBest != null) await scores.SetScoreLeaderboardPosition(previousBest, withMods: false, beatmapId);
+        if (previousBest != null && beatmap.Status >= BeatmapStatus.Ranked)
+            await scores.SetScoreLeaderboardPosition(previousBest, withMods: false, beatmapId);
         
         await RecalculatePlayerStats(beatmap, stats, player, score, previousBest, bestWithMods);
         await players.UpdatePlayerStats(player, score.Mode);

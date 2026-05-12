@@ -145,7 +145,7 @@ public sealed partial class ScoreSubmissionQueue(
                 await scores.UpdateScoreStatus(prevBest);
                 await scores.UpdateScoreStatus(bestWithMods);
                 
-                if (beatmap.Status != BeatmapStatus.LatestPending)
+                if (beatmap.Status >= BeatmapStatus.Ranked)
                     await scores.SetScoreLeaderboardPosition(apiScore, withMods: false, beatmap);
             }
             else apiScore.Status = SubmissionStatus.Failed;
@@ -229,7 +229,9 @@ public sealed partial class ScoreSubmissionQueue(
         score.ClockRate = dt != null ? 1.5d : ht != null ? 0.75d : 1d;
         if (dt != null && dt.Settings.TryGetValue("speed_change", out var rateChange)
             || ht != null && ht.Settings.TryGetValue("speed_change", out rateChange))
+        {
             score.ClockRate = rateChange.GetDouble();
+        }
     }
     
     private static void ComputeSubmissionStatus(

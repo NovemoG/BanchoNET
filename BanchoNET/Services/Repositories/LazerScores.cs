@@ -70,8 +70,7 @@ public class LazerScoresRepository(BanchoDbContext dbContext) : ScoresRepository
                 s.MapId == beatmap.Id
                 && s.PlayerId == playerId
                 && s.Mode == mode
-                && s.Status == SubmissionStatus.Best
-                && s.Ranked);
+                && s.Status == SubmissionStatus.Best);
 
         return score == null ? null : new ApiScore(score, score.Player, beatmap);
     }
@@ -90,8 +89,7 @@ public class LazerScoresRepository(BanchoDbContext dbContext) : ScoresRepository
                 && s.PlayerId == playerId
                 && s.Mode == mode
                 && s.ModKeys == mods
-                && s.Status >= SubmissionStatus.BestWithMods
-                && s.Ranked);
+                && s.Status >= SubmissionStatus.BestWithMods);
         
         return score == null ? null : new ApiScore(score, score.Player, beatmap);
     }
@@ -111,7 +109,6 @@ public class LazerScoresRepository(BanchoDbContext dbContext) : ScoresRepository
                     ? s.Status >= SubmissionStatus.BestWithMods
                     : s.Status == SubmissionStatus.Best)
                 && (!withMods || s.ModKeys == mods)
-                && s.Ranked
                 && (OrderByPp((GameMode)score.RulesetId)
                     ? s.PP > Math.Round(score.Pp, 3, MidpointRounding.AwayFromZero)
                     : score.TotalScore < s.LegacyTotalScore))

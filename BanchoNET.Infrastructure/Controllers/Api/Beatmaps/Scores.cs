@@ -1,5 +1,6 @@
 ﻿using BanchoNET.Core.Models.Api.Beatmaps;
 using BanchoNET.Core.Models.Api.Scores;
+using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Scores;
@@ -25,7 +26,7 @@ public partial class BeatmapsController
             return BadRequest();
 
         var beatmap = await Beatmaps.GetBeatmap(beatmapId);
-        if (beatmap == null) return NotFound();
+        if (beatmap == null || beatmap.Status < BeatmapStatus.Ranked) return NotFound();
 
         var withMods = mods.Length > 0;
         var leaderboardType = type switch
