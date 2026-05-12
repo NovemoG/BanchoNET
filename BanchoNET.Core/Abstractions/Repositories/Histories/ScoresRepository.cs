@@ -41,8 +41,7 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
         long id
     ) {
         var score = await DbContext.Scores
-            .AsNoTracking()
-            .Include(scoreDto => scoreDto.Beatmap)
+            .Include(s => s.Beatmap)
             .FirstOrDefaultAsync(s => s.Id == id);
         
         if (score == null) return false;
@@ -55,7 +54,6 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
 
     public async Task RecalculateAllScores() {
         var validScores = await DbContext.Scores
-            .AsNoTracking()
             .Include(s => s.Beatmap)
             .Where(s => s.Status >= SubmissionStatus.BestWithMods)
             .ToListAsync();

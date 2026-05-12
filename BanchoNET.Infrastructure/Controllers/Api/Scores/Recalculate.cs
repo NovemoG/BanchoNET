@@ -20,8 +20,7 @@ public partial class ScoresController
 
     [HttpPost("{scoreId:long}/recalculate")]
     public async Task<ActionResult> RecalculateScore(
-        long scoreId,
-        [FromQuery] int beatmapId
+        long scoreId
     ) {
         if (!User.TryGetUserId(out var uid)) return Unauthorized();
 
