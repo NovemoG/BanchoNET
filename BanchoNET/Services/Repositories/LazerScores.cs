@@ -104,6 +104,7 @@ public class LazerScoresRepository(BanchoDbContext dbContext) : ScoresRepository
             .Include(s => s.Player)
             .Where(s =>
                 s.MapId == beatmap.Id
+                && (s.Player.Privileges & 1) == 1
                 && s.Mode == (GameMode)score.RulesetId
                 && (withMods
                     ? s.Status >= SubmissionStatus.BestWithMods

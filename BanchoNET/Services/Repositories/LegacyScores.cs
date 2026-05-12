@@ -157,6 +157,7 @@ public class LegacyScoresRepository(BanchoDbContext dbContext) : ScoresRepositor
             .Where(s => (mapId.HasValue
                             ? s.MapId == mapId
                             : s.BeatmapMD5 == md5)
+                        && (s.Player.Privileges & 1) == 1
                         && s.Mode == score.Mode
                         && (withMods
                             ? s.Status >= SubmissionStatus.BestWithMods

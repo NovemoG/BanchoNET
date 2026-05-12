@@ -1006,9 +1006,6 @@ public class PlayersRepository : IPlayersRepository
 			await RemovePlayerGlobalRank(mode, player.Geoloc.Country.Acronym, player.Id);
 		}
 		
-		await _dbContext.Scores.Where(s => s.PlayerId == player.Id)
-			.ExecuteUpdateAsync(p => p.SetProperty(s => s.Ranked, false));
-		
 		await _dbContext.Stats.Where(s => s.PlayerId == player.Id)
 			.ExecuteUpdateAsync(p => p.SetProperty(s => s.IsRanked, false));
 
@@ -1030,9 +1027,6 @@ public class PlayersRepository : IPlayersRepository
 
 		foreach (var stats in player.Stats)
 			await InsertPlayerGlobalRank((byte)stats.Key, player.Geoloc.Country.Acronym, player.Id, stats.Value.PP);
-		
-		await _dbContext.Scores.Where(s => s.PlayerId == player.Id)
-			.ExecuteUpdateAsync(p => p.SetProperty(s => s.Ranked, true));
 		
 		await _dbContext.Stats.Where(s => s.PlayerId == player.Id)
 			.ExecuteUpdateAsync(p => p.SetProperty(s => s.IsRanked, true));

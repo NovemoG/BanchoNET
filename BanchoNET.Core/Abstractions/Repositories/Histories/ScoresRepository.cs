@@ -334,7 +334,7 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
             .Include(s => s.Beatmap)
                 .ThenInclude(b => b.Beatmapset)
             .Where(s => s.PlayerId == playerId
-                        && s.Beatmap.Status >= BeatmapStatus.Ranked
+                        && (s.Beatmap.Status == BeatmapStatus.Ranked || s.Beatmap.Status == BeatmapStatus.Approved)
                         && s.Status == SubmissionStatus.Best
                         && s.Mode == mode)
             .OrderByDescending(s => s.PP)
@@ -353,7 +353,8 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
             .Include(s => s.Player)
             .Include(s => s.Beatmap)
             .Where(s => s.Mode == mode
-                        && s.Beatmap.Status >= BeatmapStatus.Ranked
+                        && (s.Player.Privileges & 1) == 1
+                        && (s.Beatmap.Status == BeatmapStatus.Ranked || s.Beatmap.Status == BeatmapStatus.Approved)
                         && s.Status == SubmissionStatus.Best)
             .OrderByDescending(s => OrderByPp(mode) ? s.PP : s.LegacyTotalScore)
             .Skip(skip)
@@ -372,6 +373,7 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
             .Include(s => s.Beatmap)
                 .ThenInclude(s => s.Beatmapset)
             .Where(s => s.Mode == mode
+                        && (s.Player.Privileges & 1) == 1
                         && s.Beatmap.Status >= BeatmapStatus.Ranked)
             .OrderByDescending(s => s.PlayTime)
             .Skip(skip)
