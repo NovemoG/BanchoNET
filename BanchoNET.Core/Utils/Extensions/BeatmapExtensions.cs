@@ -286,7 +286,6 @@ public static class BeatmapExtensions
 		currentBeatmap.MaxCombo = newBeatmap.MaxCombo;
 		currentBeatmap.TotalLength = newBeatmap.TotalLength;
 		currentBeatmap.HitLength = newBeatmap.HitLength;
-		currentBeatmap.IsScoreable = newBeatmap.IsScoreable;
 		currentBeatmap.LastUpdated = newBeatmap.LastUpdated;
 		
 		newBeatmap.Status = currentBeatmap.Status;
@@ -294,6 +293,7 @@ public static class BeatmapExtensions
 		newBeatmap.Passes = currentBeatmap.Passes;
 		newBeatmap.Fails = currentBeatmap.Fails;
 		newBeatmap.Exits = currentBeatmap.Exits;
+		newBeatmap.IsScoreable = currentBeatmap.IsScoreable;
 
 		currentBeatmap.MaximumStatistics = new Dictionary<HitResult, int>();
 		newBeatmap.MaxStatistics = new Dictionary<HitResult, int>();
@@ -322,7 +322,6 @@ public static class BeatmapExtensions
 		currentBeatmapset.Video = newBeatmapset.Video;
 		currentBeatmapset.Storyboard = newBeatmapset.Storyboard;
 		currentBeatmapset.Bpm = newBeatmapset.Bpm;
-		currentBeatmapset.IsScoreable = newBeatmapset.IsScoreable;
 		currentBeatmapset.Tags = newBeatmapset.Tags;
 		currentBeatmapset.Description = newBeatmapset.Description;
 		currentBeatmapset.SubmittedDate = newBeatmapset.SubmitDate;
@@ -337,6 +336,7 @@ public static class BeatmapExtensions
 		newBeatmapset.PlayCount = currentBeatmapset.PlayCount;
 		newBeatmapset.Ratings = currentBeatmapset.Ratings;
 		newBeatmapset.Rating = (float)currentBeatmapset.Ratings.Average();
+		newBeatmapset.IsScoreable = currentBeatmapset.IsScoreable;
 		
 		return currentBeatmapset;
 	}
