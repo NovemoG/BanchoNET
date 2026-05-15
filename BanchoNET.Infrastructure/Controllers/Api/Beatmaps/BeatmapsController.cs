@@ -15,6 +15,7 @@ public partial class BeatmapsController(
     IBeatmapHandler beatmaps,
     IBeatmapsRepository beatmapsRepository,
     IBeatmapDownloader beatmapDownloader,
+    IBeatmapSearchService beatmapSearch,
     IScoreSubmissionQueue scoresQueue,
     ILazerScoresRepository scores
 ) : ApiController(auth, players, playerService, beatmaps)

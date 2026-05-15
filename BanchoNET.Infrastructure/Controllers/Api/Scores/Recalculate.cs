@@ -28,8 +28,8 @@ public partial class ScoresController
         if (player == null || !((PlayerPrivileges)player.Privileges).HasPrivilege(PlayerPrivileges.Staff))
             return Unauthorized();
 
-        return (await scores.RecalculateScore(scoreId))
-            ? NotFound()
-            : Ok();
+        return await scores.RecalculateScore(scoreId)
+            ? Ok()
+            : NotFound();
     }
 }

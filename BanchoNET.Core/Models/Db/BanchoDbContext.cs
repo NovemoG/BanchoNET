@@ -1,13 +1,29 @@
-﻿using BanchoNET.Core.Models.Auth;
+﻿using BanchoNET.Core.Abstractions.Services;
+using BanchoNET.Core.Models.Auth;
 using BanchoNET.Core.Models.Db.Configurations;
 using BanchoNET.Core.Models.Dtos;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace BanchoNET.Core.Models.Db;
 
-public sealed class BanchoDbContext(DbContextOptions<BanchoDbContext> options) : DbContext(options)
+public sealed class BanchoDbContext : DbContext
 {
+	private readonly ISearchProjectionSyncService _projectionSync = null!;
+
+	public BanchoDbContext(
+		DbContextOptions<BanchoDbContext> options,
+		ISearchProjectionSyncService projectionSync
+	) : base(options) {
+		_projectionSync = projectionSync;
+	}
+
+	internal BanchoDbContext(
+		DbContextOptions<BanchoDbContext> options
+	) : base(options) {
+	}
+	
 	public DbSet<PlayerDto> Players { get; init; } = null!;
 	public DbSet<StatsDto> Stats { get; init; } = null!;
 	public DbSet<RelationshipDto> Relationships { get; init; } = null!;
@@ -31,6 +47,8 @@ public sealed class BanchoDbContext(DbContextOptions<BanchoDbContext> options) :
 	public DbSet<CommentDto> Comments { get; init; } = null!;
 	public DbSet<ThreadFollows> ThreadFollows { get; init; } = null!;
 	public DbSet<CommentVote> CommentVotes { get; init; } = null!;
+
+	public DbSet<BeatmapSearchRow> BeatmapSearch { get; init; } = null!;
 
 	public DbSet<ReleaseDto> Releases { get; init; } = null!;
 	public DbSet<RefreshToken> RefreshTokens { get; init; } = null!;
@@ -165,7 +183,77 @@ public sealed class BanchoDbContext(DbContextOptions<BanchoDbContext> options) :
 				.OnDelete(DeleteBehavior.Cascade);
 		});
 		
+		modelBuilder.Entity<BeatmapSearchRow>(b =>
+		{
+			b.ToTable("BeatmapSearch");
+			b.HasKey(x => x.Id);
+
+			b.HasGeneratedTsVectorColumn(
+				x => x.SearchVector,
+				"simple",
+				x => new {
+					x.Title,
+					x.TitleUnicode,
+					x.Artist,
+					x.ArtistUnicode,
+					x.Version,
+					x.Source,
+					x.Tags,
+					x.CreatorName
+				})
+				.HasIndex(x => x.SearchVector)
+				.HasMethod("GIN");
+			
+			b.HasIndex(x => new {
+					x.Title,
+					x.TitleUnicode,
+					x.Artist,
+					x.ArtistUnicode,
+					x.Version,
+					x.Source,
+					x.Tags,
+					x.CreatorName
+				})
+				.HasMethod("GIN")
+				.HasOperators(
+					"gin_trgm_ops", // for Title
+					"gin_trgm_ops", // for TitleUnicode
+					"gin_trgm_ops", // for Artist
+					"gin_trgm_ops", // for ArtistUnicode
+					"gin_trgm_ops", // for Version
+					"gin_trgm_ops", // for Source
+					"gin_trgm_ops", // for Tags
+					"gin_trgm_ops"  // for CreatorName
+				);
+			
+			b.HasIndex(x => new { x.Mode, x.Status, x.GenreId, x.LanguageId, x.Nsfw });
+			b.HasIndex(x => new { x.Bpm, x.Cs, x.Ar, x.Od, x.Hp, x.StarRating, x.Plays, x.Favorites, x.Rating });
+		});
+		
+		modelBuilder.HasPostgresExtension("pg_trgm");
+		
 		base.OnModelCreating(modelBuilder);
+	}
+
+	public override async Task<int> SaveChangesAsync(
+		CancellationToken cancellationToken = default
+	) {
+		var affectedBeatmapIds = ChangeTracker.Entries<BeatmapDto>()
+			.Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
+			.Select(e => e.Entity.Id)
+			.ToArray();
+
+		var affectedSetIds = ChangeTracker.Entries<BeatmapsetDto>()
+			.Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
+			.Select(e => e.Entity.Id)
+			.ToArray();
+		
+		var result = await base.SaveChangesAsync(cancellationToken);
+		
+		if (affectedBeatmapIds.Length > 0 || affectedSetIds.Length > 0)
+			await _projectionSync.RefreshAsync(affectedBeatmapIds, affectedSetIds, cancellationToken);
+
+		return result;
 	}
 }
 

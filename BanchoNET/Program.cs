@@ -194,12 +194,16 @@ public class Program
 
 		var mongoSettings = MongoClientSettings.FromConnectionString(mongoConnectionString);
 
+		void ConfigureBancho(DbContextOptionsBuilder options)
+		{
+			options.UseNpgsql(mySqlConnectionString);
+		}
+		
 		builder.Services
 			.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConnectionString))
 			.AddSingleton(new MongoClient(mongoSettings))
-			.AddDbContext<BanchoDbContext>(options => {
-				options.UseNpgsql(mySqlConnectionString);
-			})
+			.AddDbContext<BanchoDbContext>(ConfigureBancho)
+			.AddDbContextFactory<BanchoDbContext>(ConfigureBancho)
 			.AddSingleton<IHistoriesRepository, HistoriesRepository>();
 		
 		//TODO
@@ -212,6 +216,8 @@ public class Program
 		builder.Services.AddScoped<IReleasesRepository, ReleasesRepository>();
 		builder.Services.AddScoped<ICommentsRepository, CommentsRepository>();
 		builder.Services.AddScoped<IBeatmapHandler, BeatmapHandler>();
+		builder.Services.AddScoped<ISearchProjectionSyncService, SearchProjectionSyncService>();
+		builder.Services.AddScoped<IBeatmapSearchService, BeatmapSearchService>();
 			
 		builder.Services
 			.AddSingleton<ScoreSubmissionQueue>()
