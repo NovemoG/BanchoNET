@@ -1,4 +1,5 @@
-﻿using BanchoNET.Core.Abstractions.Services;
+﻿using System.Globalization;
+using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Models.Api.Beatmaps;
 using BanchoNET.Core.Models.Db;
 using Microsoft.EntityFrameworkCore;
@@ -8,7 +9,7 @@ namespace BanchoNET.BeatmapServer.Services;
 
 public class BeatmapSearchService(IDbContextFactory<BanchoDbContext> dbFactory) : IBeatmapSearchService
 {
-    public async Task<List<ApiBeatmapsetFull>> SearchAsync(
+    public async Task<(List<ApiBeatmapsetFull>, long)> SearchAsync(
         string? q,
         string? mode,
         string? category,
@@ -20,32 +21,39 @@ public class BeatmapSearchService(IDbContextFactory<BanchoDbContext> dbFactory) 
         string? sort,
         string? played,
         bool? nsfw,
+        Dictionary<string, string>? cursor,
         CancellationToken ct = default
     ) {
         await using var db = await dbFactory.CreateDbContextAsync(ct);
-        
-        var orderByClause = sort?.ToLower() switch
+
+        var (sortColumn, isDesc) = sort?.ToLower() switch
         {
-            "favourites_desc" => "\"Favorites\" DESC",
-            "favourites_asc"  => "\"Favorites\" ASC",
-            "plays_desc"      => "\"Plays\" DESC",
-            "plays_asc"       => "\"Plays\" ASC",
-            "rating_desc"     => "\"Rating\" DESC",
-            "rating_asc"      => "\"Rating\" ASC",
-            "ranked_desc"     => "\"RankedDate\" DESC",
-            "ranked_asc"      => "\"RankedDate\" ASC",
-            "updated_desc"    => "\"LastUpdated\" DESC",
-            "updated_asc"     => "\"LastUpdated\" ASC",
-            "difficulty_desc" => "\"StarRating\" DESC",
-            "difficulty_asc"  => "\"StarRating\" ASC",
-            "artist_desc"     => "\"Artist\" DESC",
-            "artist_asc"      => "\"Artist\" ASC",
-            "title_desc"      => "\"Title\" DESC",
-            "title_asc"       => "\"Title\" ASC",
-            "relevance_asc"   => "rank ASC",
-            //"relevance_desc"  => "rank DESC",
-            _                 => "rank DESC"
+            "favourites_desc" => ("\"Favorites\"", true),
+            "favourites_asc" => ("\"Favorites\"", false),
+            "plays_desc" => ("\"Plays\"", true),
+            "plays_asc" => ("\"Plays\"", false),
+            "rating_desc" => ("\"Rating\"", true),
+            "rating_asc" => ("\"Rating\"", false),
+            "ranked_desc" => ("\"RankedDate\"", true),
+            "ranked_asc" => ("\"RankedDate\"", false),
+            "updated_desc" => ("\"LastUpdated\"", true),
+            "updated_asc" => ("\"LastUpdated\"", false),
+            "difficulty_desc" => ("\"StarRating\"", true),
+            "difficulty_asc" => ("\"StarRating\"", false),
+            "artist_desc" => ("\"Artist\"", true),
+            "artist_asc" => ("\"Artist\"", false),
+            "title_desc" => ("\"Title\"", true),
+            "title_asc" => ("\"Title\"", false),
+            "relevance_asc" => ("rank", false),
+            _ => ("rank", true)
         };
+        
+        var sortDir = isDesc ? "DESC" : "ASC";
+        var operatorSign = isDesc ? "<" : ">";
+        var orderByClause = $"{sortColumn} {sortDir}, \"SetId\" {sortDir}";
+        var cursorClause = cursor != null
+            ? $"WHERE ({sortColumn}, \"SetId\") {operatorSign} (@cursorValue, @cursorId)"
+            : "";
 
         var setIdsSql = $"""
                          WITH matched AS (
@@ -74,7 +82,7 @@ public class BeatmapSearchService(IDbContextFactory<BanchoDbContext> dbFactory) 
                              WHERE (
                                  @q = '' 
                                  OR "SearchVector" @@ websearch_to_tsquery('simple', @q)
-                                 OR CONCAT_WS(' ', "Title", "TitleUnicode", "Artist", "ArtistUnicode", "Version", "Source", "Tags", "CreatorName") ILIKE '%' || @q || '%'
+                                 OR CONCAT_WS(' ', "Title", "TitleUnicode", "Artist", "ArtistUnicode", "Version", "CreatorName", "Source", "Tags") ILIKE '%' || @q || '%'
                              )
                              AND (@mode IS NULL OR "Mode" = @mode)
                              AND (
@@ -97,28 +105,35 @@ public class BeatmapSearchService(IDbContextFactory<BanchoDbContext> dbFactory) 
                              AND (@nsfw::bool IS NULL OR "Nsfw" = @nsfw::bool)
                              AND (@played IS NULL OR "Plays" >= @played)
                          ),
-                         best_per_set AS (
-                             SELECT DISTINCT ON ("SetId")
+                         per_set AS (
+                             SELECT
                                  "SetId",
-                                 "Favorites",
-                                 "Plays",
-                                 "Rating",
-                                 "RankedDate",
-                                 "LastUpdated",
-                                 "StarRating",
-                                 "Title",
-                                 "Artist",
-                                 rank
+                                 MAX(rank) AS rank,
+                                 MAX("Favorites") AS "Favorites",
+                                 MAX("Plays") AS "Plays",
+                                 MAX("Rating") AS "Rating",
+                                 MAX("RankedDate") AS "RankedDate",
+                                 MAX("LastUpdated") AS "LastUpdated",
+                                 MAX("StarRating") AS "StarRating",
+                                 MAX("Title") AS "Title",
+                                 MAX("Artist") AS "Artist"
                              FROM matched
-                             ORDER BY "SetId", rank DESC, "Plays" DESC, "StarRating" DESC
+                             GROUP BY "SetId"
+                         ),
+                         counted AS (
+                             SELECT *, count(*) OVER() AS "TotalCount"
+                             FROM per_set
                          )
-                         SELECT "SetId"
-                         FROM best_per_set
+                         SELECT "SetId", "TotalCount"
+                         FROM counted
+                         {cursorClause}
                          ORDER BY {orderByClause}
                          LIMIT 50;
                          """;
 
+        var parsedCursor = ParseCursor(cursor, sort);
         var setIds = new List<int>();
+        var totalCount = 0L;
 
         await using (var cmd = db.Database.GetDbConnection().CreateCommand())
         {
@@ -163,17 +178,35 @@ public class BeatmapSearchService(IDbContextFactory<BanchoDbContext> dbFactory) 
                     _ => DBNull.Value
                 }
             });
+
+            if (parsedCursor != null)
+            {
+                cmd.Parameters.Add(new NpgsqlParameter("cursorId", NpgsqlTypes.NpgsqlDbType.Integer)
+                {
+                    Value = parsedCursor.Id
+                });
+        
+                cmd.Parameters.Add(new NpgsqlParameter("cursorValue", parsedCursor.DbType)
+                {
+                    Value = parsedCursor.Value
+                });
+            }
             
             if (cmd.Connection != null && cmd.Connection.State != System.Data.ConnectionState.Open)
                 await cmd.Connection.OpenAsync(ct);
 
             await using var reader = await cmd.ExecuteReaderAsync(ct);
             while (await reader.ReadAsync(ct))
+            {
                 setIds.Add(reader.GetInt32(0));
+
+                if (totalCount == 0)
+                    totalCount = reader.GetInt64(1);
+            }
         }
         
         if (setIds.Count == 0)
-            return [];
+            return ([], 0);
         
         var beatmapsets = await db.Beatmapsets
             .AsNoTracking()
@@ -187,6 +220,54 @@ public class BeatmapSearchService(IDbContextFactory<BanchoDbContext> dbFactory) 
             .Where(bs => setIds.Contains(bs.Id))
             .ToListAsync(cancellationToken: ct);
         
-        return beatmapsets.Select(bs => new ApiBeatmapsetFull(bs)).ToList();
+        var orderedBeatmapsets = setIds
+            .Join(beatmapsets, id => id, bs => bs.Id, (_, bs) => bs)
+            .Select(bs => new ApiBeatmapsetFull(bs))
+            .ToList();
+
+        return (orderedBeatmapsets, totalCount);
+    }
+
+    private static PaginationCursor? ParseCursor(
+        Dictionary<string, string>? cursor,
+        string? sort
+    ) {
+        if (cursor == null || !cursor.TryGetValue("id", out var idStr) || !int.TryParse(idStr, out var id))
+            return null;
+        
+        var valueString = cursor.FirstOrDefault(k => k.Key.ToLower() != "id").Value;
+        if (string.IsNullOrEmpty(valueString)) return null;
+
+        return sort?.ToLower() switch
+        {
+            "difficulty_desc" or "difficulty_asc" or "rating_desc" or "rating_asc" or "relevance_desc" or "relevance_asc" => 
+                double.TryParse(valueString, CultureInfo.InvariantCulture, out var d) 
+                    ? new PaginationCursor { Id = id, Value = d, DbType = NpgsqlTypes.NpgsqlDbType.Real } 
+                    : null,
+            
+            "plays_desc" or "plays_asc" => 
+                long.TryParse(valueString, out var l) 
+                    ? new PaginationCursor { Id = id, Value = l, DbType = NpgsqlTypes.NpgsqlDbType.Bigint } 
+                    : null,
+            
+            "favourites_desc" or "favourites_asc" => 
+                int.TryParse(valueString, out var i) 
+                    ? new PaginationCursor { Id = id, Value = i, DbType = NpgsqlTypes.NpgsqlDbType.Integer } 
+                    : null,
+            
+            "ranked_desc" or "ranked_asc" or "updated_desc" or "updated_asc" => 
+                long.TryParse(valueString, CultureInfo.InvariantCulture, out var dt) 
+                    ? new PaginationCursor { Id = id, Value = DateTimeOffset.FromUnixTimeMilliseconds(dt), DbType = NpgsqlTypes.NpgsqlDbType.TimestampTz }
+                    : null,
+            
+            _ => new PaginationCursor { Id = id, Value = valueString, DbType = NpgsqlTypes.NpgsqlDbType.Text }
+        };
+    }
+
+    private class PaginationCursor
+    {
+        public int Id { get; set; }
+        public object Value { get; set; } = null!;
+        public NpgsqlTypes.NpgsqlDbType DbType { get; set; }
     }
 }

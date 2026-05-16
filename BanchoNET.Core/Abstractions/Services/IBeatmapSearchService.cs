@@ -4,7 +4,7 @@ namespace BanchoNET.Core.Abstractions.Services;
 
 public interface IBeatmapSearchService
 {
-    Task<List<ApiBeatmapsetFull>> SearchAsync(
+    Task<(List<ApiBeatmapsetFull>, long)> SearchAsync(
         string? q,
         string? mode,
         string? category,
@@ -16,6 +16,7 @@ public interface IBeatmapSearchService
         string? sort,
         string? played,
         bool? nsfw,
+        Dictionary<string, string>? cursor,
         CancellationToken ct = default
     );
 }
