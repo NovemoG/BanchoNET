@@ -289,6 +289,7 @@ public class PlayersRepository : IPlayersRepository
 			PmFriendsOnly = userInfo.PmFriendsOnly,
 			Username = userInfo.Username,
 			HasSupported = userInfo.HasSupported,
+			Title = userInfo.Title,
 			JoinDate = userInfo.CreationTime,
 			Playmode = EnumExtensions.FromModeMap[userInfo.PreferredMode],
 			Country = country,
