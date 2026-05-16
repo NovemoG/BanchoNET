@@ -103,7 +103,7 @@ public partial class BeatmapsController
                 cursor["rating"] = last?.Rating.ToString(CultureInfo.InvariantCulture) ?? "0";
                 break;
 
-            default:
+            default: //TODO
                 cursor["_score"] = last?.Rating.ToString(CultureInfo.InvariantCulture) ?? "0";
                 break;
         }

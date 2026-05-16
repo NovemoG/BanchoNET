@@ -197,7 +197,7 @@ public class BeatmapsRepository(
 		await dbContext.Beatmaps
 			.Where(b => b.Id == beatmap.Id)
 			.ExecuteUpdateAsync(p =>
-				p.SetProperty(b => b.MaximumStatistics, beatmap.MaxStatistics)
+				p.SetProperty(b => b.MaximumStatistics, statistics)
 			);
 	}
 
@@ -283,10 +283,10 @@ public class BeatmapsRepository(
 			var dbBeatmap = beatmaps.FirstOrDefault(b => b.Id == beatmap.Id);
 			if (dbBeatmap != null)
 			{
-				if (!dbBeatmap.MD5.Equals(beatmap.Checksum))
-					await scores.ToggleBeatmapScoresVisibility(dbBeatmap.MD5, false);
+				if (dbBeatmap.MD5.Equals(beatmap.Checksum)) continue;
 				
 				dbContext.Update(dbBeatmap.UpdateWith(beatmap, beatmapset.IsRankedOfficially));
+				await scores.ToggleBeatmapScoresVisibility(dbBeatmap.MD5, false);
 			}
 			else
 			{
