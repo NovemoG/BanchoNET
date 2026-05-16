@@ -294,9 +294,7 @@ public static class BeatmapExtensions
 		newBeatmap.Fails = currentBeatmap.Fails;
 		newBeatmap.Exits = currentBeatmap.Exits;
 		newBeatmap.IsScoreable = currentBeatmap.IsScoreable;
-
-		currentBeatmap.MaximumStatistics = new Dictionary<HitResult, int>();
-		newBeatmap.MaxStatistics = new Dictionary<HitResult, int>();
+		newBeatmap.MaxStatistics = currentBeatmap.MaximumStatistics;
 		
 		return currentBeatmap;
 	}
