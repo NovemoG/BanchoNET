@@ -34,8 +34,8 @@ public class BeatmapSearchService(IDbContextFactory<BanchoDbContext> dbFactory) 
             "plays_asc" => ("\"Plays\"", false),
             "rating_desc" => ("\"Rating\"", true),
             "rating_asc" => ("\"Rating\"", false),
-            "ranked_desc" => ("\"RankedDate\"", true),
-            "ranked_asc" => ("\"RankedDate\"", false),
+            "ranked_desc" => ("COALESCE(\"RankedDate\", \"LastUpdated\")", true),
+            "ranked_asc" => ("COALESCE(\"RankedDate\", \"LastUpdated\")", false),
             "updated_desc" => ("\"LastUpdated\"", true),
             "updated_asc" => ("\"LastUpdated\"", false),
             "difficulty_desc" => ("\"StarRating\"", true),
@@ -48,6 +48,8 @@ public class BeatmapSearchService(IDbContextFactory<BanchoDbContext> dbFactory) 
             _ => ("rank", true)
         };
         
+        string GetAgg(string column) => sortColumn.Contains(column) ? (isDesc ? "MAX" : "MIN") : "MAX";
+        
         var sortDir = isDesc ? "DESC" : "ASC";
         var operatorSign = isDesc ? "<" : ">";
         var orderByClause = $"{sortColumn} {sortDir}, \"SetId\" {sortDir}";
@@ -56,80 +58,80 @@ public class BeatmapSearchService(IDbContextFactory<BanchoDbContext> dbFactory) 
             : "";
 
         var setIdsSql = $"""
-                         WITH matched AS (
-                             SELECT
-                                 "Id",
-                                 "SetId",
-                                 "Artist",
-                                 "Title",
-                                 "CreatorName",
-                                 "GenreId",
-                                 "LanguageId",
-                                 "Status",
-                                 "Mode",
-                                 "Bpm",
-                                 "StarRating",
-                                 "Plays",
-                                 "Favorites",
-                                 "Version",
-                                 "MaxCombo",
-                                 "TotalLength",
-                                 "Rating",
-                                 "RankedDate",
-                                 "LastUpdated",
-                                 COALESCE(NULLIF(ts_rank_cd("SearchVector", websearch_to_tsquery('simple', @q)), 0), 0.1) AS rank
-                                FROM "BeatmapSearch"
-                             WHERE (
-                                 @q = '' 
-                                 OR "SearchVector" @@ websearch_to_tsquery('simple', @q)
-                                 OR CONCAT_WS(' ', "Title", "TitleUnicode", "Artist", "ArtistUnicode", "Version", "CreatorName", "Source", "Tags") ILIKE '%' || @q || '%'
-                             )
-                             AND (@mode IS NULL OR "Mode" = @mode)
-                             AND (
-                                 @status IS NULL OR
-                                     "Status" = ANY (
-                                         CASE @status
-                                             WHEN 'graveyard' THEN ARRAY[-2]::smallint[]
-                                             WHEN 'wip' THEN ARRAY[-1]::smallint[]
-                                             WHEN 'pending' THEN ARRAY[0]::smallint[]
-                                             WHEN 'ranked' THEN ARRAY[1, 2]::smallint[]
-                                             WHEN 'qualified' THEN ARRAY[3]::smallint[]
-                                             WHEN 'loved' THEN ARRAY[4]::smallint[]
-                                             WHEN 'leaderboard' THEN ARRAY[1, 2, 3, 4]::smallint[]
-                                             ELSE ARRAY["Status"]::smallint[]
-                                         END
-                                     )
-                             )
-                             AND (@genre IS NULL OR "GenreId" = @genre)
-                             AND (@language IS NULL OR "LanguageId" = @language)
-                             AND (@nsfw::bool IS NULL OR "Nsfw" = @nsfw::bool)
-                             AND (@played IS NULL OR "Plays" >= @played)
-                         ),
-                         per_set AS (
-                             SELECT
-                                 "SetId",
-                                 MAX(rank) AS rank,
-                                 MAX("Favorites") AS "Favorites",
-                                 MAX("Plays") AS "Plays",
-                                 MAX("Rating") AS "Rating",
-                                 MAX("RankedDate") AS "RankedDate",
-                                 MAX("LastUpdated") AS "LastUpdated",
-                                 MAX("StarRating") AS "StarRating",
-                                 MAX("Title") AS "Title",
-                                 MAX("Artist") AS "Artist"
-                             FROM matched
-                             GROUP BY "SetId"
-                         ),
-                         counted AS (
-                             SELECT *, count(*) OVER() AS "TotalCount"
-                             FROM per_set
-                         )
-                         SELECT "SetId", "TotalCount"
-                         FROM counted
-                         {cursorClause}
-                         ORDER BY {orderByClause}
-                         LIMIT 50;
-                         """;
+                          WITH matched AS (
+                              SELECT
+                                  "Id",
+                                  "SetId",
+                                  "Artist",
+                                  "Title",
+                                  "CreatorName",
+                                  "GenreId",
+                                  "LanguageId",
+                                  "Status",
+                                  "Mode",
+                                  "Bpm",
+                                  "StarRating",
+                                  "Plays",
+                                  "Favorites",
+                                  "Version",
+                                  "MaxCombo",
+                                  "TotalLength",
+                                  "Rating",
+                                  "RankedDate",
+                                  "LastUpdated",
+                                  COALESCE(NULLIF(ts_rank_cd("SearchVector", websearch_to_tsquery('simple', @q)), 0), 0.1) AS rank
+                                 FROM "BeatmapSearch"
+                              WHERE (
+                                  @q = '' 
+                                  OR "SearchVector" @@ websearch_to_tsquery('simple', @q)
+                                  OR CONCAT_WS(' ', "Title", "TitleUnicode", "Artist", "ArtistUnicode", "Version", "CreatorName", "Source", "Tags") ILIKE '%' || @q || '%'
+                              )
+                              AND (@mode IS NULL OR "Mode" = @mode)
+                              AND (
+                                  @status IS NULL OR
+                                      "Status" = ANY (
+                                          CASE @status
+                                              WHEN 'graveyard' THEN ARRAY[-2]::smallint[]
+                                              WHEN 'wip' THEN ARRAY[-1]::smallint[]
+                                              WHEN 'pending' THEN ARRAY[0]::smallint[]
+                                              WHEN 'ranked' THEN ARRAY[1, 2]::smallint[]
+                                              WHEN 'qualified' THEN ARRAY[3]::smallint[]
+                                              WHEN 'loved' THEN ARRAY[4]::smallint[]
+                                              WHEN 'leaderboard' THEN ARRAY[1, 2, 3, 4]::smallint[]
+                                              ELSE ARRAY["Status"]::smallint[]
+                                          END
+                                      )
+                              )
+                              AND (@genre IS NULL OR "GenreId" = @genre)
+                              AND (@language IS NULL OR "LanguageId" = @language)
+                              AND (@nsfw IS NULL OR "Nsfw" = @nsfw)
+                              AND (@played IS NULL OR "Plays" >= @played)
+                          ),
+                          per_set AS (
+                              SELECT
+                                  "SetId",
+                                  MAX(rank) AS rank,
+                                  {GetAgg("\"Favorites\"")}("Favorites") AS "Favorites",
+                                  {GetAgg("\"Plays\"")}("Plays") AS "Plays",
+                                  {GetAgg("\"Rating\"")}("Rating") AS "Rating",
+                                  {GetAgg("\"RankedDate\"")}("RankedDate") AS "RankedDate",
+                                  {GetAgg("\"LastUpdated\"")}("LastUpdated") AS "LastUpdated",
+                                  {GetAgg("\"StarRating\"")}("StarRating") AS "StarRating",
+                                  {GetAgg("\"Title\"")}("Title") AS "Title",
+                                  {GetAgg("\"Artist\"")}("Artist") AS "Artist"
+                              FROM matched
+                              GROUP BY "SetId"
+                          ),
+                          counted AS (
+                              SELECT *, count(*) OVER() AS "TotalCount"
+                              FROM per_set
+                          )
+                          SELECT "SetId", "TotalCount"
+                          FROM counted
+                          {cursorClause}
+                          ORDER BY {orderByClause}
+                          LIMIT 50;
+                          """;
 
         var parsedCursor = ParseCursor(cursor, sort);
         var setIds = new List<int>();

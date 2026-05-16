@@ -89,7 +89,8 @@ public partial class BeatmapsController
 
             case "ranked_desc":
             case "ranked_asc":
-                cursor["approved_date"] = last?.RankedDate?.ToUnixTimeMilliseconds().ToString() ?? "0";
+                cursor["approved_date"] = last?.RankedDate?.ToUnixTimeMilliseconds().ToString()
+                                          ?? last?.LastUpdated.ToUnixTimeMilliseconds().ToString()!;
                 break;
 
             case "updated_desc":
