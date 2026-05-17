@@ -336,6 +336,13 @@ public static class BeatmapExtensions
 		newBeatmapset.Rating = (float)currentBeatmapset.Ratings.Average();
 		newBeatmapset.IsScoreable = currentBeatmapset.IsScoreable;
 		
+		if (currentBeatmapset.Status is BeatmapStatus.Ranked or BeatmapStatus.Approved
+		    && newBeatmapset.RankedDate == null)
+		{
+			newBeatmapset.RankedDate = newBeatmapset.LastUpdate;
+			currentBeatmapset.RankedDate = newBeatmapset.LastUpdate;
+		}
+		
 		return currentBeatmapset;
 	}
 }
