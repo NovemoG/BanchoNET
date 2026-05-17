@@ -5,8 +5,7 @@ using BanchoNET.Core.Models.Beatmaps;
 namespace BanchoNET.Infrastructure.Bancho.Services;
 
 public class BeatmapService(
-    ILogger logger,
-    IBeatmapDownloader beatmapDownloader
+    ILogger logger
 ) : BeatmapStateService(logger), IBeatmapService
 {
     public void InsertBeatmapset(
@@ -17,19 +16,8 @@ public class BeatmapService(
         
         BeatmapSets.AddOrUpdate(set.Id, set, (prevKey, prevSet) =>
         {
-            var previousChecksums = prevSet.Beatmaps
-                .Select(b => b.Checksum)
-                .ToHashSet(StringComparer.Ordinal);
-
-            var newChecksums = set.Beatmaps
-                .Select(b => b.Checksum)
-                .ToHashSet(StringComparer.Ordinal);
-
-            if (!previousChecksums.SetEquals(newChecksums))
-                beatmapDownloader.AddBeatmapsetForUpdate(set.Id);
-            
-            foreach (var checksum in previousChecksums)
-                BeatmapsByMD5.TryRemove(checksum, out _);
+            foreach (var beatmap in prevSet.Beatmaps)
+                BeatmapsByMD5.TryRemove(beatmap.Checksum, out _);
             
             return set;
         });
