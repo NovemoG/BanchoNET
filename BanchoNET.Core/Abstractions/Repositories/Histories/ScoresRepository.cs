@@ -94,18 +94,18 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
         return scoreIds;
     }
     
-    public async Task ToggleBeatmapScoresVisibility(int mapId, bool visible)
+    public async Task ToggleBeatmapScoresVisibility(int mapId)
     {
         await DbContext.Scores
-            .Where(s => s.MapId == mapId)
-            .ExecuteUpdateAsync(p => p.SetProperty(s => s.Ranked, visible));
+            .Where(s => s.MapId == mapId) // changed to submitted so that the replay is also removed
+            .ExecuteUpdateAsync(p => p.SetProperty(s => s.Status, SubmissionStatus.Submitted));
     }
 
-    public async Task ToggleBeatmapScoresVisibility(string md5, bool visible)
+    public async Task ToggleBeatmapScoresVisibility(string md5)
     {
         await DbContext.Scores
-            .Where(s => s.BeatmapMD5 == md5)
-            .ExecuteUpdateAsync(p => p.SetProperty(s => s.Ranked, visible));
+            .Where(s => s.BeatmapMD5 == md5) // changed to submitted so that the replay is also removed
+            .ExecuteUpdateAsync(p => p.SetProperty(s => s.Status, SubmissionStatus.Submitted));
     }
 
     public async Task ToggleScoreReplayAvailability(
@@ -334,7 +334,8 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
             .Where(s => s.PlayerId == playerId
                         && (s.Beatmap.Status == BeatmapStatus.Ranked || s.Beatmap.Status == BeatmapStatus.Approved)
                         && s.Status == SubmissionStatus.Best
-                        && s.Mode == mode)
+                        && s.Mode == mode
+                        && s.Ranked)
             .OrderByDescending(s => s.PP)
             .Skip(offset)
             .Take(limit)
@@ -353,7 +354,8 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
             .Where(s => s.Mode == mode
                         && (s.Player.Privileges & 1) == 1
                         && (s.Beatmap.Status == BeatmapStatus.Ranked || s.Beatmap.Status == BeatmapStatus.Approved)
-                        && s.Status == SubmissionStatus.Best)
+                        && s.Status == SubmissionStatus.Best
+                        && s.Ranked)
             .OrderByDescending(s => OrderByPp(mode) ? s.PP : s.LegacyTotalScore)
             .Skip(skip)
             .Take(count)

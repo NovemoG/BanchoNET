@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using System.Text.RegularExpressions;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Models.Api.Beatmaps;
 using BanchoNET.Core.Models.Db;
@@ -7,9 +8,29 @@ using Npgsql;
 
 namespace BanchoNET.BeatmapServer.Services;
 
-public class BeatmapSearchService(IDbContextFactory<BanchoDbContext> dbFactory) : IBeatmapSearchService
+public partial class BeatmapSearchService(IDbContextFactory<BanchoDbContext> dbFactory) : IBeatmapSearchService
 {
-    public async Task<(List<ApiBeatmapsetFull>, long)> SearchAsync(
+    private static readonly Dictionary<string, (string Column, NpgsqlTypes.NpgsqlDbType Type)> ColumnMap = new(StringComparer.OrdinalIgnoreCase)
+    {
+        { "bpm", ("\"Bpm\"", NpgsqlTypes.NpgsqlDbType.Real) },
+        { "star", ("\"StarRating\"", NpgsqlTypes.NpgsqlDbType.Real) },
+        { "stars", ("\"StarRating\"", NpgsqlTypes.NpgsqlDbType.Real) },
+        { "difficulty", ("\"StarRating\"", NpgsqlTypes.NpgsqlDbType.Real) },
+        { "plays", ("\"Plays\"", NpgsqlTypes.NpgsqlDbType.Bigint) },
+        { "favorites", ("\"Favorites\"", NpgsqlTypes.NpgsqlDbType.Integer) },
+        { "favourites", ("\"Favorites\"", NpgsqlTypes.NpgsqlDbType.Integer) },
+        { "rating", ("\"Rating\"", NpgsqlTypes.NpgsqlDbType.Real) },
+    
+        { "title", ("\"Title\"", NpgsqlTypes.NpgsqlDbType.Text) },
+        { "version", ("\"Version\"", NpgsqlTypes.NpgsqlDbType.Text) },
+        { "diff", ("\"Version\"", NpgsqlTypes.NpgsqlDbType.Text) },
+        { "artist", ("\"Artist\"", NpgsqlTypes.NpgsqlDbType.Text) },
+        { "source", ("\"Source\"", NpgsqlTypes.NpgsqlDbType.Text) },
+        { "creator", ("\"CreatorName\"", NpgsqlTypes.NpgsqlDbType.Text) },
+        { "mapper", ("\"CreatorName\"", NpgsqlTypes.NpgsqlDbType.Text) }
+    };
+    
+    public async Task<(List<ApiBeatmapsetFull>, long, Dictionary<string, string>)> SearchAsync(
         string? q,
         string? mode,
         string? category,
@@ -47,9 +68,59 @@ public class BeatmapSearchService(IDbContextFactory<BanchoDbContext> dbFactory) 
             "relevance_asc" => ("rank", false),
             _ => ("rank", true)
         };
+
+        var cleanQuery = q ?? "";
+        var matches = AttributeRegex().Matches(cleanQuery);
+
+        foreach (Match match in matches)
+        {
+            cleanQuery = cleanQuery.Replace(match.Value, "");
+        }
+        cleanQuery = cleanQuery.Trim();
         
-        string GetAgg(string column) => sortColumn.Contains(column) ? (isDesc ? "MAX" : "MIN") : "MAX";
+        var extraWhereClauses = new List<string>();
+        var extraParameters = new List<NpgsqlParameter>();
+        var paramCounter = 0;
         
+        foreach (Match match in matches)
+        {
+            var key = match.Groups[1].Value;
+            var op = match.Groups[2].Value;
+            var val = !string.IsNullOrEmpty(match.Groups[3].Value) ? match.Groups[3].Value :
+                !string.IsNullOrEmpty(match.Groups[4].Value) ? match.Groups[4].Value :
+                match.Groups[5].Value;
+
+            if (ColumnMap.TryGetValue(key, out var target))
+            {
+                paramCounter++;
+                var paramName = $"custom_filter_{paramCounter}";
+
+                if (target.Type == NpgsqlTypes.NpgsqlDbType.Text)
+                {
+                    extraWhereClauses.Add($"AND {target.Column} ILIKE @{paramName}");
+                    extraParameters.Add(new NpgsqlParameter(paramName, target.Type) { Value = $"%{val}%" });
+                }
+                else
+                {
+                    if (double.TryParse(val, NumberStyles.Any, CultureInfo.InvariantCulture, out var numericVal))
+                    {
+                        extraWhereClauses.Add($"AND {target.Column} {op} @{paramName}");
+
+                        object castedValue = target.Type switch
+                        {
+                            NpgsqlTypes.NpgsqlDbType.Bigint => (long)numericVal,
+                            NpgsqlTypes.NpgsqlDbType.Integer => (int)numericVal,
+                            _ => (float)numericVal
+                        };
+                        extraParameters.Add(new NpgsqlParameter(paramName, target.Type) { Value = castedValue });
+                    }
+                }
+            }
+        }
+        
+        int? numericId = int.TryParse(cleanQuery, out var parsedId) ? parsedId : null;
+        var dynamicFiltersSql = extraWhereClauses.Count > 0 ? string.Join("\n", extraWhereClauses) : "";
+
         var sortDir = isDesc ? "DESC" : "ASC";
         var operatorSign = isDesc ? "<" : ">";
         var orderByClause = $"{sortColumn} {sortDir}, \"SetId\" {sortDir}";
@@ -79,13 +150,19 @@ public class BeatmapSearchService(IDbContextFactory<BanchoDbContext> dbFactory) 
                                   "Rating",
                                   "RankedDate",
                                   "LastUpdated",
-                                  COALESCE(NULLIF(ts_rank_cd("SearchVector", websearch_to_tsquery('simple', @q)), 0), 0.1) AS rank
-                                 FROM "BeatmapSearch"
+                                  CASE 
+                                      WHEN @numericId IS NOT NULL AND "Id" = @numericId THEN 1000.0
+                                      WHEN @numericId IS NOT NULL AND "SetId" = @numericId THEN 750.0
+                                      ELSE COALESCE(NULLIF(ts_rank_cd("SearchVector", websearch_to_tsquery('simple', @q)), 0), 0.1)
+                                  END AS rank
+                                  FROM "BeatmapSearch"
                               WHERE (
-                                  @q = '' 
+                                  @q = ''
+                                  OR (@numericId IS NOT NULL AND ("Id" = @numericId OR "SetId" = @numericId))
                                   OR "SearchVector" @@ websearch_to_tsquery('simple', @q)
-                                  OR CONCAT_WS(' ', "Title", "TitleUnicode", "Artist", "ArtistUnicode", "Version", "CreatorName", "Source", "Tags") ILIKE '%' || @q || '%'
+                                  OR CONCAT_WS(' ', "Title", "TitleUnicode", "Artist", "ArtistUnicode", "CreatorName", "Version", "Source", "Tags") ILIKE '%' || @q || '%'
                               )
+                              {dynamicFiltersSql}
                               AND (@mode IS NULL OR "Mode" = @mode)
                               AND (
                                   @status IS NULL OR
@@ -126,7 +203,7 @@ public class BeatmapSearchService(IDbContextFactory<BanchoDbContext> dbFactory) 
                               SELECT *, count(*) OVER() AS "TotalCount"
                               FROM per_set
                           )
-                          SELECT "SetId", "TotalCount"
+                          SELECT "SetId", "TotalCount", rank
                           FROM counted
                           {cursorClause}
                           ORDER BY {orderByClause}
@@ -135,7 +212,9 @@ public class BeatmapSearchService(IDbContextFactory<BanchoDbContext> dbFactory) 
 
         var parsedCursor = ParseCursor(cursor, sort);
         var setIds = new List<int>();
+
         var totalCount = 0L;
+        float? lastRank = null;
 
         await using (var cmd = db.Database.GetDbConnection().CreateCommand())
         {
@@ -143,8 +222,18 @@ public class BeatmapSearchService(IDbContextFactory<BanchoDbContext> dbFactory) 
             
             cmd.Parameters.Add(new NpgsqlParameter("q", NpgsqlTypes.NpgsqlDbType.Text)
             {
-                Value = q ?? ""
+                Value = cleanQuery
             });
+            
+            cmd.Parameters.Add(new NpgsqlParameter("numericId", NpgsqlTypes.NpgsqlDbType.Integer)
+            {
+                Value = (object?)numericId ?? DBNull.Value
+            });
+            
+            foreach (var extraParam in extraParameters)
+            {
+                cmd.Parameters.Add(extraParam);
+            }
 
             cmd.Parameters.Add(new NpgsqlParameter("mode", NpgsqlTypes.NpgsqlDbType.Smallint)
             {
@@ -204,11 +293,14 @@ public class BeatmapSearchService(IDbContextFactory<BanchoDbContext> dbFactory) 
 
                 if (totalCount == 0)
                     totalCount = reader.GetInt64(1);
+                
+                if (!reader.IsDBNull(2))
+                    lastRank = reader.GetFloat(2);
             }
         }
         
         if (setIds.Count == 0)
-            return ([], 0);
+            return ([], 0, BuildCursor(last: null, sort, lastRank: null));
         
         var beatmapsets = await db.Beatmapsets
             .AsNoTracking()
@@ -227,7 +319,78 @@ public class BeatmapSearchService(IDbContextFactory<BanchoDbContext> dbFactory) 
             .Select(bs => new ApiBeatmapsetFull(bs))
             .ToList();
 
-        return (orderedBeatmapsets, totalCount);
+        return (orderedBeatmapsets, totalCount, BuildCursor(orderedBeatmapsets.LastOrDefault(), sort, lastRank));
+
+        string GetAgg(string column) => sortColumn.Contains(column) ? (isDesc ? "MAX" : "MIN") : "MAX";
+    }
+    
+    private static Dictionary<string, string> BuildCursor(
+        ApiBeatmapsetFull? last,
+        string? sort,
+        float? lastRank
+    ) {
+        var cursor = new Dictionary<string, string>
+        {
+            ["id"] = (last?.Id ?? 0).ToString(CultureInfo.InvariantCulture)
+        };
+
+        switch (sort?.ToLowerInvariant())
+        {
+            case "artist_desc":
+            case "artist_asc":
+                cursor["artist.raw"] = last?.Artist ?? "";
+                break;
+
+            case "title_desc":
+            case "title_asc":
+                cursor["title.raw"] = last?.Title ?? "";
+                break;
+
+            case "difficulty_desc":
+                cursor["beatmaps.difficultyrating"] = last?.Beatmaps
+                    .OrderByDescending(b => b.DifficultyRating)
+                    .First().DifficultyRating.ToString("0.####", CultureInfo.InvariantCulture)
+                    ?? "0";
+                break;
+            case "difficulty_asc":
+                cursor["beatmaps.difficultyrating"] = last?.Beatmaps
+                    .OrderBy(b => b.DifficultyRating)
+                    .First().DifficultyRating.ToString("0.####", CultureInfo.InvariantCulture)
+                    ?? "0";
+                break;
+
+            case "plays_desc":
+            case "plays_asc":
+                cursor["play_count"] = last?.PlayCount.ToString(CultureInfo.InvariantCulture) ?? "0";
+                break;
+
+            case "favourites_desc":
+            case "favourites_asc":
+                cursor["favourite_count"] = last?.FavouriteCount.ToString(CultureInfo.InvariantCulture) ?? "0";
+                break;
+
+            case "ranked_desc":
+            case "ranked_asc":
+                cursor["approved_date"] = last?.RankedDate?.ToUnixTimeMilliseconds().ToString()
+                                          ?? last?.LastUpdated.ToUnixTimeMilliseconds().ToString()!;
+                break;
+
+            case "updated_desc":
+            case "updated_asc":
+                cursor["approved_date"] = last?.LastUpdated.ToUnixTimeMilliseconds().ToString() ?? "0";
+                break;
+
+            case "rating_desc":
+            case "rating_asc":
+                cursor["rating"] = last?.Rating.ToString(CultureInfo.InvariantCulture) ?? "0";
+                break;
+
+            default:
+                cursor["_score"] = lastRank?.ToString(CultureInfo.InvariantCulture) ?? "0";
+                break;
+        }
+
+        return cursor;
     }
 
     private static PaginationCursor? ParseCursor(
@@ -272,4 +435,7 @@ public class BeatmapSearchService(IDbContextFactory<BanchoDbContext> dbFactory) 
         public object Value { get; set; } = null!;
         public NpgsqlTypes.NpgsqlDbType DbType { get; set; }
     }
+
+    [GeneratedRegex("""(\w+)\s*(=|<=|>=|<|>)\s*(?:"([^"]*)"|'([^']*)'|(\S+))""", RegexOptions.Compiled)]
+    private static partial Regex AttributeRegex();
 }

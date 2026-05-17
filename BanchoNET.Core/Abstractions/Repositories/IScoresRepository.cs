@@ -13,8 +13,8 @@ public interface IScoresRepository
     Task RecalculateAllScores();
     Task<List<long>> DeleteOldScores(short differenceInHours = 48);
     
-    Task ToggleBeatmapScoresVisibility(int mapId, bool visible);
-    Task ToggleBeatmapScoresVisibility(string md5, bool visible);
+    Task ToggleBeatmapScoresVisibility(int mapId);
+    Task ToggleBeatmapScoresVisibility(string md5);
     Task ToggleScoreReplayAvailability(long scoreId);
 
     Task<List<ScoreDto>> GetPlayerRecentScores(

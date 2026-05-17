@@ -287,7 +287,7 @@ public class BeatmapsRepository(
 				
 				if (!dbBeatmap.MD5.Equals(beatmap.Checksum))
 				{
-					await scores.ToggleBeatmapScoresVisibility(dbBeatmap.MD5, false);
+					await scores.ToggleBeatmapScoresVisibility(dbBeatmap.MD5);
 					beatmap.MaxStatistics = new Dictionary<HitResult, int>();
 				}
 			}

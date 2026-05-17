@@ -270,9 +270,9 @@ namespace BanchoNET.Core.Migrations
                     b.Property<string>("Description")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(65536)
+                        .HasMaxLength(131072)
                         .IsUnicode(true)
-                        .HasColumnType("character varying(65536)")
+                        .HasColumnType("character varying(131072)")
                         .HasDefaultValue("");
 
                     b.Property<int>("FavoriteCount")

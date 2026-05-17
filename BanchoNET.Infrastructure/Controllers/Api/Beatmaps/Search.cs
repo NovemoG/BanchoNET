@@ -27,7 +27,7 @@ public partial class BeatmapsController
         
         cursor = cursor is { Count: 0 } ? null : cursor;
         
-        var (beatmapsets, total) = await beatmapSearch.SearchAsync(
+        var (beatmapsets, total, nextCursor) = await beatmapSearch.SearchAsync(
             query, mode, category, status, genre, language, extra, rankAchieved, sort, played, nsfw, cursor
         );
         
@@ -38,76 +38,8 @@ public partial class BeatmapsController
             {
                 Sort = sort ?? "relevance_desc",
             },
-            Cursor = BuildCursor(beatmapsets.LastOrDefault(), sort),
+            Cursor = nextCursor,
             Total = total
         });
-    }
-
-    private static Dictionary<string, string> BuildCursor(
-        ApiBeatmapsetFull? last,
-        string? sort
-    ) {
-        var cursor = new Dictionary<string, string>
-        {
-            ["id"] = (last?.Id ?? 0).ToString(CultureInfo.InvariantCulture)
-        };
-
-        switch (sort?.ToLowerInvariant())
-        {
-            case "artist_desc":
-            case "artist_asc":
-                cursor["artist.raw"] = last?.Artist ?? "";
-                break;
-
-            case "title_desc":
-            case "title_asc":
-                cursor["title.raw"] = last?.Title ?? "";
-                break;
-
-            case "difficulty_desc":
-                cursor["beatmaps.difficultyrating"] = last?.Beatmaps
-                    .OrderByDescending(b => b.DifficultyRating)
-                    .First().DifficultyRating.ToString("0.####", CultureInfo.InvariantCulture)
-                    ?? "0";
-                break;
-            case "difficulty_asc":
-                cursor["beatmaps.difficultyrating"] = last?.Beatmaps
-                    .OrderBy(b => b.DifficultyRating)
-                    .First().DifficultyRating.ToString("0.####", CultureInfo.InvariantCulture)
-                    ?? "0";
-                break;
-
-            case "plays_desc":
-            case "plays_asc":
-                cursor["play_count"] = last?.PlayCount.ToString(CultureInfo.InvariantCulture) ?? "0";
-                break;
-
-            case "favourites_desc":
-            case "favourites_asc":
-                cursor["favourite_count"] = last?.FavouriteCount.ToString(CultureInfo.InvariantCulture) ?? "0";
-                break;
-
-            case "ranked_desc":
-            case "ranked_asc":
-                cursor["approved_date"] = last?.RankedDate?.ToUnixTimeMilliseconds().ToString()
-                                          ?? last?.LastUpdated.ToUnixTimeMilliseconds().ToString()!;
-                break;
-
-            case "updated_desc":
-            case "updated_asc":
-                cursor["approved_date"] = last?.LastUpdated.ToUnixTimeMilliseconds().ToString() ?? "0";
-                break;
-
-            case "rating_desc":
-            case "rating_asc":
-                cursor["rating"] = last?.Rating.ToString(CultureInfo.InvariantCulture) ?? "0";
-                break;
-
-            default: //TODO
-                cursor["_score"] = last?.Rating.ToString(CultureInfo.InvariantCulture) ?? "0";
-                break;
-        }
-
-        return cursor;
     }
 }

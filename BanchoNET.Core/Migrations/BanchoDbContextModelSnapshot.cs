@@ -54,7 +54,7 @@ namespace BanchoNET.Core.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("RefreshTokens");
+                    b.ToTable("RefreshTokens", (string)null);
                 });
 
             modelBuilder.Entity("BanchoNET.Core.Models.Auth.SessionVerification", b =>
@@ -86,7 +86,7 @@ namespace BanchoNET.Core.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("SessionVerifications");
+                    b.ToTable("SessionVerifications", (string)null);
                 });
 
             modelBuilder.Entity("BanchoNET.Core.Models.Db.BeatmapSearchRow", b =>
@@ -354,7 +354,7 @@ namespace BanchoNET.Core.Migrations
 
                     b.HasIndex("BeatmapId");
 
-                    b.ToTable("BeatmapOwners");
+                    b.ToTable("BeatmapOwners", (string)null);
                 });
 
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.BeatmapPlays", b =>
@@ -374,7 +374,7 @@ namespace BanchoNET.Core.Migrations
 
                     b.HasIndex("Plays");
 
-                    b.ToTable("BeatmapPlays");
+                    b.ToTable("BeatmapPlays", (string)null);
                 });
 
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.BeatmapsetDto", b =>
@@ -527,7 +527,7 @@ namespace BanchoNET.Core.Migrations
 
                     b.HasIndex("FavoriteAt");
 
-                    b.ToTable("BeatmapsetFavorites");
+                    b.ToTable("BeatmapsetFavorites", (string)null);
                 });
 
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.ChannelDto", b =>
@@ -571,7 +571,7 @@ namespace BanchoNET.Core.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Channels");
+                    b.ToTable("Channels", (string)null);
                 });
 
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.ChannelPlayer", b =>
@@ -591,7 +591,7 @@ namespace BanchoNET.Core.Migrations
 
                     b.HasIndex("LastReadMessageId");
 
-                    b.ToTable("ChannelPlayers");
+                    b.ToTable("ChannelPlayers", (string)null);
                 });
 
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.ClientHashesDto", b =>
@@ -632,7 +632,7 @@ namespace BanchoNET.Core.Migrations
 
                     b.HasIndex("PlayerId");
 
-                    b.ToTable("ClientHashes");
+                    b.ToTable("ClientHashes", (string)null);
                 });
 
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.CommentDto", b =>
@@ -715,7 +715,7 @@ namespace BanchoNET.Core.Migrations
 
                     b.HasIndex("CommentId");
 
-                    b.ToTable("CommentVotes");
+                    b.ToTable("CommentVotes", (string)null);
                 });
 
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.LoginDto", b =>
@@ -751,7 +751,7 @@ namespace BanchoNET.Core.Migrations
 
                     b.HasIndex("PlayerId");
 
-                    b.ToTable("PlayerLogins");
+                    b.ToTable("PlayerLogins", (string)null);
                 });
 
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.MessageDto", b =>
@@ -997,7 +997,7 @@ namespace BanchoNET.Core.Migrations
 
                     b.HasIndex("Type");
 
-                    b.ToTable("Releases");
+                    b.ToTable("Releases", (string)null);
                 });
 
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.ReplayWatches", b =>
@@ -1017,7 +1017,7 @@ namespace BanchoNET.Core.Migrations
 
                     b.HasIndex("ScoreId");
 
-                    b.ToTable("ReplayWatches");
+                    b.ToTable("ReplayWatches", (string)null);
                 });
 
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.ScoreDto", b =>
@@ -1256,7 +1256,7 @@ namespace BanchoNET.Core.Migrations
 
                     b.HasKey("PlayerId", "Mode");
 
-                    b.ToTable("Stats");
+                    b.ToTable("Stats", (string)null);
                 });
 
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.ThreadDto", b =>
@@ -1275,7 +1275,7 @@ namespace BanchoNET.Core.Migrations
                     b.HasIndex("BeatmapsetId")
                         .IsUnique();
 
-                    b.ToTable("Threads");
+                    b.ToTable("Threads", (string)null);
                 });
 
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.ThreadFollows", b =>
@@ -1290,7 +1290,7 @@ namespace BanchoNET.Core.Migrations
 
                     b.HasIndex("ThreadId");
 
-                    b.ToTable("ThreadFollows");
+                    b.ToTable("ThreadFollows", (string)null);
                 });
 
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.BeatmapDto", b =>

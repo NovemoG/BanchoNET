@@ -102,8 +102,8 @@ public class SpectatorHub(
         if (clientState?.State == null || clientState.Score == null || clientState.ScoreToken == null)
             return;
         
-        if (clientState.BeatmapStatus is < BeatmapStatus.Ranked or > BeatmapStatus.Loved)
-            return;
+        /*if (clientState.BeatmapStatus is < BeatmapStatus.Ranked or > BeatmapStatus.Loved)
+            return;*/
         
         var score = clientState.Score!;
         if (!score.Statistics.Any(s => s.Key.IsHit() && s.Value > 0))
