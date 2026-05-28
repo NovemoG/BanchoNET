@@ -1,9 +1,10 @@
 <Solution>
   <Project Path="BanchoNET.BeatmapServer/BanchoNET.BeatmapServer.csproj" />
-  <Project Path="BanchoNET.Core\BanchoNET.Core.csproj" Type="C#" />
-  <Project Path="BanchoNET.Handlers.Lazer\BanchoNET.Handlers.Lazer.csproj" Type="C#" />
-  <Project Path="BanchoNET.Handlers.Stable\BanchoNET.Handlers.Stable.csproj" Type="C#" />
-  <Project Path="BanchoNET.Infrastructure\BanchoNET.Infrastructure.csproj" Type="C#" />
-  <Project Path="BanchoNET.Tests\BanchoNET.Tests.csproj" Type="C#" />
+  <Project Path="BanchoNET.Bot/BanchoNET.Bot.csproj" />
+  <Project Path="BanchoNET.Core\BanchoNET.Core.csproj" />
+  <Project Path="BanchoNET.Handlers.Lazer\BanchoNET.Handlers.Lazer.csproj" />
+  <Project Path="BanchoNET.Handlers.Stable\BanchoNET.Handlers.Stable.csproj" />
+  <Project Path="BanchoNET.Infrastructure\BanchoNET.Infrastructure.csproj" />
+  <Project Path="BanchoNET.Tests\BanchoNET.Tests.csproj" />
   <Project Path="BanchoNET/BanchoNET.csproj" />
 </Solution>
