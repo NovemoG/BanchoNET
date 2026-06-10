@@ -245,8 +245,11 @@ public class BeatmapsRepository(
 	) {
 		if (setId < 1) return 0;
 		
-		return await dbContext.Beatmaps.Where(b => b.SetId == setId)
+		await dbContext.Beatmaps.Where(b => b.SetId == setId)
 			.ExecuteUpdateAsync(p => p.SetProperty(b => b.Status, targetStatus));
+		
+		return await dbContext.Beatmapsets.Where(bs => bs.Id == setId)
+			.ExecuteUpdateAsync(p => p.SetProperty(bs => bs.Status, targetStatus));
 	}
 
 	public async Task InsertBeatmapset(
@@ -291,8 +294,13 @@ public class BeatmapsRepository(
 					beatmapDownloader.AddBeatmapsetForUpdate(set.Id);
 					dbBeatmap.MaximumStatistics = new Dictionary<HitResult, int>();
 				}
+				var previousStatus = dbBeatmap.Status;
 				
 				dbContext.Update(dbBeatmap.UpdateWith(beatmap, beatmapset.IsRankedOfficially));
+
+				// map becomes ranked, so we need to update scores' ranked status
+				if (previousStatus == BeatmapStatus.Qualified && dbBeatmap.Status == BeatmapStatus.Ranked)
+					await scores.SetBeatmapScoresRankedStatus(dbBeatmap.Id, ranked: true);
 			}
 			else
 			{

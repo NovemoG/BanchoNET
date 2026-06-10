@@ -16,6 +16,8 @@ public interface IScoresRepository
     Task ToggleBeatmapScoresVisibility(int mapId);
     Task ToggleBeatmapScoresVisibility(string md5);
     Task ToggleScoreReplayAvailability(long scoreId);
+    
+    Task SetBeatmapScoresRankedStatus(int mapId, bool ranked);
 
     Task<List<ScoreDto>> GetPlayerRecentScores(
         int playerId,

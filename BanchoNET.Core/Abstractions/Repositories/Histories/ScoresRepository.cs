@@ -116,6 +116,15 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
             .ExecuteUpdateAsync(s => s.SetProperty(p => p.HasReplay, true));
     }
 
+    public async Task SetBeatmapScoresRankedStatus(
+        int mapId,
+        bool ranked
+    ) {
+        await DbContext.Scores
+            .Where(s => s.MapId == mapId)
+            .ExecuteUpdateAsync(p => p.SetProperty(s => s.Ranked, ranked));
+    }
+
     public async Task<List<ScoreDto>> GetPlayerRecentScores(
         int playerId,
         GameMode mode,
