@@ -25,7 +25,7 @@ public sealed class BeatmapHandler(
 		string filename
 	) {
 		var response = await httpClient.GetAsync($"https://osu.ppy.sh/web/maps/{filename}");
-		return response.StatusCode == HttpStatusCode.OK && response.Content.Headers.ContentLength != 0;
+		return response is { StatusCode: HttpStatusCode.OK, Content.Headers.ContentLength: > 0 };
 	}
 
 	public async Task<bool> EnsureLocalBeatmapFile(
@@ -36,19 +36,27 @@ public sealed class BeatmapHandler(
 		if (!File.Exists(beatmapPath)
 		    || !beatmapPath.CheckLocalBeatmapMD5(beatmap.Checksum))
 		{
-			var response = await httpClient.GetAsync($"https://osu.ppy.sh/web/maps/{beatmap.FileName()}");
-			if (response.StatusCode != HttpStatusCode.OK || response.Content.Headers.ContentLength == 0)
-				return false;
-
-			logger.LogInfo($"Caching {beatmap.Id}.osu beatmap file");
+			try
+			{
+				var response = await httpClient.GetAsync($"https://osu.ppy.sh/web/maps/{beatmap.FileName()}");
+				
+				response.EnsureSuccessStatusCode();
+				
+				if (response.Content.Headers.ContentLength != 0)
+					throw new Exception("Beatmap file doesn't exist");
+				
+				logger.LogInfo($"Caching {beatmap.Id}.osu beatmap file");
 		
-			await using var fileStream = new FileStream(beatmapPath, FileMode.Create, FileAccess.ReadWrite);
-			await response.Content.CopyToAsync(fileStream);
+				await using var fileStream = new FileStream(beatmapPath, FileMode.Create, FileAccess.ReadWrite);
+				await response.Content.CopyToAsync(fileStream);
 
-			return true;
+				return true;
+			}
+			catch (Exception ex)
+			{
+				logger.LogWarning($"Failed to download beatmap file for {beatmap.Id}", ex);
+			}
 		}
-
-		logger.LogWarning($"Failed to download beatmap file for {beatmap.Id}");
 		
 		return false;
 	}
@@ -129,7 +137,7 @@ public sealed class BeatmapHandler(
 		var beatmapset = await GetBeatmapset(setId, mapId ?? 0, recheckApi: true);
 		
 		return beatmapset != null
-			? beatmapset.Beatmaps.FirstOrDefault(b => b.Checksum == beatmapMD5)
+			? beatmapset.Beatmaps.FirstOrDefault(b => b.Checksum.Equals(beatmapMD5, StringComparison.OrdinalIgnoreCase))
 			: beatmap;
 	}
 

@@ -150,9 +150,9 @@ public static class BeatmapExtensions
 		using var stream = File.OpenRead(beatmapFile);
 		
 		var hash = md5.ComputeHash(stream);
-		var md5String = Convert.ToHexString(hash).ToLower();
+		var md5String = Convert.ToHexString(hash);
 
-		return md5String == beatmapMD5;
+		return md5String.Equals(beatmapMD5, StringComparison.OrdinalIgnoreCase);
 	}
 
 	public static BeatmapStatus StatusFromApi(
