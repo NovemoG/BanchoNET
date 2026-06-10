@@ -42,7 +42,7 @@ public sealed class BeatmapHandler(
 				
 				response.EnsureSuccessStatusCode();
 				
-				if (response.Content.Headers.ContentLength != 0)
+				if (response.Content.Headers.ContentLength == 0)
 					throw new Exception("Beatmap file doesn't exist");
 				
 				logger.LogInfo($"Caching {beatmap.Id}.osu beatmap file");
