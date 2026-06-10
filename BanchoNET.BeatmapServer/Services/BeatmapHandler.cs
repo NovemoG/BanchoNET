@@ -55,10 +55,11 @@ public sealed class BeatmapHandler(
 			catch (Exception ex)
 			{
 				logger.LogWarning($"Failed to download beatmap file for {beatmap.Id}", ex);
+				return false;
 			}
 		}
-		
-		return false;
+
+		return true;
 	}
 
 	public async Task FetchPlayerPlaycount(
