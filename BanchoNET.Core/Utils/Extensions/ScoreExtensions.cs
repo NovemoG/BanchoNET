@@ -189,6 +189,12 @@ public static class ScoreExtensions
     ) {
         var mods = score.Mods;
 
+        if (mods.FirstOrDefault(m => m.Acronym == "RD") != null)
+        {
+            score.Pp = 0;
+            return;
+        }
+        
         var lazer = mods.FirstOrDefault(m => m.Acronym == "CL") == null;
         var da = mods.FirstOrDefault(m => m.Acronym == "DA"); // Difficulty Adjust
 
@@ -219,6 +225,12 @@ public static class ScoreExtensions
         BeatmapDto beatmap
     ) {
         var mods = score.LazerMods?.ToMods() ?? score.ModKeys.ToMods();
+        
+        if (mods.FirstOrDefault(m => m.Acronym == "RD") != null)
+        {
+            score.PP = 0;
+            return;
+        }
 
         var lazer = mods.FirstOrDefault(m => m.Acronym == "CL") == null;
         var da = mods.FirstOrDefault(m => m.Acronym == "DA"); // Difficulty Adjust

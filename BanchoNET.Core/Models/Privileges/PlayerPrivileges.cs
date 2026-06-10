@@ -18,5 +18,5 @@ public enum PlayerPrivileges : short
 	Administrator = 1 << 8,
 	Developer = 1 << 9,
 	
-	Staff = Moderator | Administrator | Developer,
+	Staff = Nominator | Moderator | Administrator | Developer,
 }

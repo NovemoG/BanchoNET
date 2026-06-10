@@ -194,7 +194,10 @@ public class MessagesRepository(BanchoDbContext dbContext) : IMessagesRepository
         int userId,
         long messageId
     ) {
-        await dbContext.ChannelPlayers.Where(c => c.ChannelId == channelId && c.PlayerId == userId)
+        await dbContext.ChannelPlayers
+            .Where(c => c.ChannelId == channelId
+                        && c.PlayerId == userId
+                        && c.LastReadMessageId < messageId)
             .ExecuteUpdateAsync(p => p.SetProperty(c => c.LastReadMessageId, messageId));
     }
     

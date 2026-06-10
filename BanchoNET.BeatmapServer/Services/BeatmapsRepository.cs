@@ -285,14 +285,14 @@ public class BeatmapsRepository(
 			var dbBeatmap = beatmaps.FirstOrDefault(b => b.Id == beatmap.Id);
 			if (dbBeatmap != null)
 			{
-				dbContext.Update(dbBeatmap.UpdateWith(beatmap, beatmapset.IsRankedOfficially));
-				
 				if (!dbBeatmap.MD5.Equals(beatmap.Checksum))
 				{
 					await scores.ToggleBeatmapScoresVisibility(dbBeatmap.MD5);
 					beatmapDownloader.AddBeatmapsetForUpdate(set.Id);
-					beatmap.MaxStatistics = new Dictionary<HitResult, int>();
+					dbBeatmap.MaximumStatistics = new Dictionary<HitResult, int>();
 				}
+				
+				dbContext.Update(dbBeatmap.UpdateWith(beatmap, beatmapset.IsRankedOfficially));
 			}
 			else
 			{

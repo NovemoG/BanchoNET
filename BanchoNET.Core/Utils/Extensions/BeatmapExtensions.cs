@@ -99,6 +99,10 @@ public static class BeatmapExtensions
 		public string FullName() {
 			return $"{beatmap.Set.Artist} - {beatmap.Set.Title} [{beatmap.Version}]";
 		}
+
+		public string FileName() {
+			return $"{beatmap.Set.Artist} - {beatmap.Set.Title} ({beatmap.Set.CreatorName}) [{beatmap.Version}].osu";
+		}
 		
 		public string DisplayTitle() {
 			return $"{beatmap.Set.ArtistUnicode} - {beatmap.Set.TitleUnicode} {beatmap.Set.CreatorName} {beatmap.Version}".Trim();

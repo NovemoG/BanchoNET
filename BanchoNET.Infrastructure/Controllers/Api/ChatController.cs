@@ -55,6 +55,9 @@ public class ChatController(
         var channelMessage = new ChannelMessage(message, request.uuid);
         await notify.BroadcastPmMessage(channelMessage, uid, targetId);
         
+        // also mark that message as read
+        await messages.MarkMessagesAsRead(channel.Id, uid, message.Id);
+        
         return JsonSnake(new ChatNewResponse
         {
             Channel = new ChatChannelExtended(channel, uid, message.Id),
@@ -171,6 +174,9 @@ public class ChatController(
             var channelMessage = new ChannelMessage(message, request.uuid);
             await notify.BroadcastToChannel(channelId, channelMessage);
             
+            // also mark channel as read
+            await messages.MarkMessagesAsRead(channelId, uid, message.Id);
+            
             return JsonSnake(channelMessage);
         }
         
@@ -187,6 +193,9 @@ public class ChatController(
         
             var channelMessage = new ChannelMessage(message, request.uuid);
             await notify.BroadcastPmMessage(channelMessage, uid, targetId.Value);
+            
+            // also mark messages as read
+            await messages.MarkMessagesAsRead(channelId, uid, message.Id);
         
             return JsonSnake(channelMessage);
         }

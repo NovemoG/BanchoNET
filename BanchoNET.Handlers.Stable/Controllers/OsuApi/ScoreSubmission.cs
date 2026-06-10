@@ -124,7 +124,7 @@ public partial class OsuController
             ? await scores.GetPlayerBestScoreWithModsOnMap(player.Id, score.Mode, score.ModKeys ?? "", beatmapId)
             : null;
         
-        if (await beatmapHandler.EnsureLocalBeatmapFile(beatmap.Id, beatmapMD5))
+        if (await beatmapHandler.EnsureLocalBeatmapFile(beatmap))
         {
             if (score.Passed)
             {

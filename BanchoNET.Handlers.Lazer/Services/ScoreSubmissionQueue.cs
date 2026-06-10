@@ -132,7 +132,7 @@ public sealed partial class ScoreSubmissionQueue(
             ? await scores.GetPlayerBestScoreWithModsOnMap(userId, mode, apiScore.ModKeys, beatmap)
             : null;
         
-        if (await beatmaps.EnsureLocalBeatmapFile(beatmap.Id, beatmap.Checksum))
+        if (await beatmaps.EnsureLocalBeatmapFile(beatmap))
         {
             if (apiScore.Passed)
             {

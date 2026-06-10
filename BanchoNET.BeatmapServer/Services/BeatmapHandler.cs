@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Net;
+using System.Text.Json;
 using BanchoNET.Core.Abstractions.Bancho.Services;
 using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Services;
@@ -20,37 +21,36 @@ public sealed class BeatmapHandler(
 {
 	private readonly HttpClient _bearerClient = httpClientFactory.CreateClient(nameof(BeatmapHandler));
 	
-	public async Task<List<ApiBeatmapsetFull>> GetRandomBeatmaps() {
-		return (await beatmaps.GetRandomBeatmaps()).Select(bs => new ApiBeatmapsetFull(bs)).ToList();
-	}
-	
 	public async Task<bool> CheckIfMapExistsOnBanchoByFilename(
 		string filename
 	) {
 		var response = await httpClient.GetAsync($"https://osu.ppy.sh/web/maps/{filename}");
-		return response.Content.Headers.ContentLength > 0;
+		return response.StatusCode == HttpStatusCode.OK && response.Content.Headers.ContentLength != 0;
 	}
 
 	public async Task<bool> EnsureLocalBeatmapFile(
-		int beatmapId,
-		string beatmapMD5
+		Beatmap beatmap
 	) {
-		var beatmapPath = Storage.GetBeatmapPath(beatmapId);
-
+		var beatmapPath = Storage.GetBeatmapPath(beatmap.Id);
+		
 		if (!File.Exists(beatmapPath)
-		    || !beatmapPath.CheckLocalBeatmapMD5(beatmapMD5))
+		    || !beatmapPath.CheckLocalBeatmapMD5(beatmap.Checksum))
 		{
-			var response = await httpClient.GetAsync($"https://old.ppy.sh/osu/{beatmapId}");
-			if (response.Content.Headers.ContentLength == 0)
+			var response = await httpClient.GetAsync($"https://osu.ppy.sh/web/maps/{beatmap.FileName()}");
+			if (response.StatusCode != HttpStatusCode.OK || response.Content.Headers.ContentLength == 0)
 				return false;
-			
-			logger.LogInfo($"Caching {beatmapId}.osu beatmap file");
-			
+
+			logger.LogInfo($"Caching {beatmap.Id}.osu beatmap file");
+		
 			await using var fileStream = new FileStream(beatmapPath, FileMode.Create, FileAccess.ReadWrite);
 			await response.Content.CopyToAsync(fileStream);
+
+			return true;
 		}
+
+		logger.LogWarning($"Failed to download beatmap file for {beatmap.Id}");
 		
-		return true;
+		return false;
 	}
 
 	public async Task FetchPlayerPlaycount(

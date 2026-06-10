@@ -5,14 +5,25 @@ namespace BanchoNET.Handlers.Stable.Controllers.OsuApi;
 
 public partial class OsuController
 {
-    [HttpGet("/d/{mapSetId}")]
-    public IActionResult GetOszFile(string mapSetId)
+    [HttpGet("/d/{beatmapsetArg}")]
+    public async Task<IActionResult> GetOszFile(string beatmapsetArg)
     {
-        var noVideo = mapSetId[^1] == 'n';
+        /*var noVideo = beatmapsetArg[^1] == 'n';
         if (noVideo)
-            mapSetId = mapSetId[..^1];
-
-        var redirectUrl = $"{AppSettings.OsuDirectDownloadEndpoint}{mapSetId}?n={(noVideo ? 0 : 1)}";
-        return RedirectPermanent(redirectUrl);
+            beatmapsetArg = beatmapsetArg[..^1];*/
+        
+        var beatmapsetId = int.Parse(beatmapsetArg[..^1]);
+        
+        var beatmapsetPath = Storage.GetBeatmapsetPath(beatmapsetId);
+        if (!System.IO.File.Exists(beatmapsetPath))
+        {
+            var downloaded = await beatmapDownloader.DownloadBeatmap(beatmapsetId);
+            if (!downloaded) return NotFound();
+        }
+        
+        return new PhysicalFileResult(beatmapsetPath, "application/zip");
+        
+        /*var redirectUrl = $"{AppSettings.OsuDirectDownloadEndpoint}{beatmapsetId}?n={(noVideo ? 0 : 1)}";
+        return RedirectPermanent(redirectUrl);*/
     }
 }
