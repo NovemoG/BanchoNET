@@ -7,10 +7,14 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="DSharpPlus" Version="5.0.0-nightly-02587" />
+      <PackageReference Include="DSharpPlus" Version="5.0.0-nightly-02590" />
       <PackageReference Include="DSharpPlus.Commands" Version="5.0.0-nightly-02587" />
       <PackageReference Include="DSharpPlus.Interactivity" Version="5.0.0-nightly-02587" />
       <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.8" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Commands\" />
     </ItemGroup>
 
 </Project>
