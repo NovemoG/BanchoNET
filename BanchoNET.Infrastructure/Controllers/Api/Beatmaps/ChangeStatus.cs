@@ -54,7 +54,7 @@ public partial class BeatmapsController
         return Ok();
     }
 
-    [HttpPost("rank-all-pending")]
+    [HttpPost("~/api/v2/beatmapsets/rank-all-pending")]
     public async Task<IActionResult> RankAllPending() {
         if (!User.TryGetUserId(out var uid)) return Unauthorized();
         
