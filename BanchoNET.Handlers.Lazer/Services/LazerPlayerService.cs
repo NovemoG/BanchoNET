@@ -12,7 +12,13 @@ public sealed class LazerPlayerService : ILazerPlayerService
     public bool AddPlayer(
         ApiPlayer player
     ) {
-        return Players.TryAdd(player.Id, new LazerPlayer { Player = player });
+        if (Players.TryAdd(player.Id, new LazerPlayer { Player = player }))
+        {
+            player.IsOnline = true;
+            return true;
+        }
+
+        return false;
     }
 
     public void AssignFriends(
@@ -33,5 +39,11 @@ public sealed class LazerPlayerService : ILazerPlayerService
         int userId
     ) {
         return Players.TryGetValue(userId, out var player) ? player : null;
+    }
+
+    public bool IsOnline(
+        int userId
+    ) {
+        return Players.ContainsKey(userId);
     }
 }

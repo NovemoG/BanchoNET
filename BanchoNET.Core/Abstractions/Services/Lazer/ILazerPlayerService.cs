@@ -9,4 +9,5 @@ public interface ILazerPlayerService
     void AssignFriends(int userId, int[] friends);
     bool RemovePlayer(int userId);
     LazerPlayer? GetPlayer(int userId);
+    bool IsOnline(int userId);
 }

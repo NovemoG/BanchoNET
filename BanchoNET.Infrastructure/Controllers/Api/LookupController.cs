@@ -61,6 +61,9 @@ public class LookupController(
         if (!User.TryGetUserId(out _)) return Unauthorized();
 
         var players = await Players.GetPlayers(playerIds);
+        
+        foreach (var player in players)
+            player.IsOnline = PlayerService.IsOnline(player.Id);
 
         return JsonSnake(new { users = players });
     }

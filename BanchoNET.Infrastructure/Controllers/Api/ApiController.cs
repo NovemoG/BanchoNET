@@ -28,7 +28,7 @@ public partial class ApiController(
     
     protected static JsonResult JsonSnake(object? value) => new(value, SnakeCaseNamingPolicy.Options);
 
-    private static List<Relationship> PopulateRelationships(
+    private List<Relationship> PopulateRelationships(
         List<RelationshipReadDto> relationships,
         string type
     ) {
@@ -48,7 +48,7 @@ public partial class ApiController(
                     IsActive = !target.Inactive,
                     IsBot = false,
                     IsDeleted = target.Deleted,
-                    IsOnline = false, //TODO
+                    IsOnline = PlayerService.IsOnline(target.Id),
                     IsSupporter = target.IsSupporter,
                     LastVisit = target.LastActivityTime,
                     PmFriendsOnly = target.PmFriendsOnly,

@@ -235,6 +235,9 @@ public class BeatmapsRepository(
 	) {
 		if (mapId < 1) return 0;
 		
+		await dbContext.BeatmapSearch.Where(b => b.Id == mapId)
+			.ExecuteUpdateAsync(p => p.SetProperty(b => b.Status, targetStatus));
+		
 		return await dbContext.Beatmaps.Where(b => b.Id == mapId)
 				.ExecuteUpdateAsync(p => p.SetProperty(b => b.Status, targetStatus));
 	}
@@ -248,8 +251,22 @@ public class BeatmapsRepository(
 		await dbContext.Beatmaps.Where(b => b.SetId == setId)
 			.ExecuteUpdateAsync(p => p.SetProperty(b => b.Status, targetStatus));
 		
+		await dbContext.BeatmapSearch.Where(b => b.SetId == setId)
+			.ExecuteUpdateAsync(p => p.SetProperty(b => b.Status, targetStatus));
+		
 		return await dbContext.Beatmapsets.Where(bs => bs.Id == setId)
 			.ExecuteUpdateAsync(p => p.SetProperty(bs => bs.Status, targetStatus));
+	}
+
+	public async Task RankAllPending() {
+		await dbContext.Beatmaps.Where(b => b.Status < BeatmapStatus.Ranked)
+			.ExecuteUpdateAsync(p => p.SetProperty(b => b.Status, BeatmapStatus.Ranked));
+		
+		await dbContext.BeatmapSearch.Where(b => b.Status < BeatmapStatus.Ranked)
+			.ExecuteUpdateAsync(p => p.SetProperty(b => b.Status, BeatmapStatus.Ranked));
+		
+		await dbContext.Beatmapsets.Where(bs => bs.Status < BeatmapStatus.Ranked)
+			.ExecuteUpdateAsync(p => p.SetProperty(bs => bs.Status, BeatmapStatus.Ranked));
 	}
 
 	public async Task InsertBeatmapset(

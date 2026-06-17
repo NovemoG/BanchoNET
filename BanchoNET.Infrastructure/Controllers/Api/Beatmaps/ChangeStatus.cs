@@ -23,7 +23,12 @@ public partial class BeatmapsController
         var beatmapset = await Beatmaps.GetBeatmapset(beatmapsetId);
         if (beatmapset == null) return NotFound();
 
-        await beatmapsRepository.UpdateBeatmapsetStatus(beatmapsetId, targetStatus);
+        if (await beatmapsRepository.UpdateBeatmapsetStatus(beatmapsetId, targetStatus) > 0)
+        {
+            beatmapset.Status = targetStatus;
+            beatmapset.Beatmaps.ForEach(beatmap => beatmap.Status = targetStatus);
+        }
+        
         return Ok();
     }
 
@@ -40,10 +45,27 @@ public partial class BeatmapsController
         if (!player.Privileges.HasPrivilege(PlayerPrivileges.Nominator))
             return Unauthorized();
 
-        var beatmapset = await Beatmaps.GetBeatmap(beatmapId);
-        if (beatmapset == null) return NotFound();
+        var beatmap = await Beatmaps.GetBeatmap(beatmapId);
+        if (beatmap == null) return NotFound();
 
-        await beatmapsRepository.UpdateBeatmapStatus(beatmapId, targetStatus);
+        if (await beatmapsRepository.UpdateBeatmapStatus(beatmapId, targetStatus) > 0)
+            beatmap.Status = targetStatus;
+        
+        return Ok();
+    }
+
+    [HttpPost("rank-all-pending")]
+    public async Task<IActionResult> RankAllPending() {
+        if (!User.TryGetUserId(out var uid)) return Unauthorized();
+        
+        var player = await Players.GetPlayerOrOffline(uid);
+        if (player == null) return NotFound();
+        
+        if (!player.Privileges.HasPrivilege(PlayerPrivileges.Nominator))
+            return Unauthorized();
+        
+        await beatmapsRepository.RankAllPending();
+        
         return Ok();
     }
 }
