@@ -12,6 +12,7 @@
     <ItemGroup>
         <PackageReference Include="BCrypt.Net-Next" Version="4.1.0" />
         <PackageReference Include="dotenv.net" Version="4.0.1" />
+        <PackageReference Include="DSharpPlus" Version="5.0.0-nightly-02590" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.3" />
         <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack" Version="10.0.3" />
         <PackageReference Include="MongoDB.Driver" Version="3.6.0" />
@@ -26,6 +27,9 @@
       <Content Include="..\.dockerignore">
         <Link>.dockerignore</Link>
       </Content>
+      <Content Include="..\.env.example">
+        <Link>.env.example</Link>
+      </Content>
       <Content Include="..\docker-compose.yml">
         <Link>docker-compose.yml</Link>
       </Content>
@@ -39,6 +43,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\BanchoNET.BeatmapServer\BanchoNET.BeatmapServer.csproj" />
+      <ProjectReference Include="..\BanchoNET.Bot\BanchoNET.Bot.csproj" />
       <ProjectReference Include="..\BanchoNET.Core\BanchoNET.Core.csproj" />
       <ProjectReference Include="..\BanchoNET.Handlers.Lazer\BanchoNET.Handlers.Lazer.csproj" />
       <ProjectReference Include="..\BanchoNET.Handlers.Stable\BanchoNET.Handlers.Stable.csproj" />

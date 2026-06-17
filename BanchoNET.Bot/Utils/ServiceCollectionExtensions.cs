@@ -13,8 +13,8 @@ public static class ServiceCollectionExtensions
     public static void AddDiscordBot(
         this IServiceCollection services,
         string token,
-        DiscordIntents intents,
-        ulong debugGuildId
+        ulong debugGuildId,
+        DiscordIntents intents
     ) {
         services.AddDiscordClient(token, intents);
         

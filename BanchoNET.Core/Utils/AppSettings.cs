@@ -163,6 +163,16 @@ public static class AppSettings
         BeatmapEvictDays = string.IsNullOrEmpty(evictDays)
             ? -1
             : int.Parse(evictDays);
+
+        var discordToken = Environment.GetEnvironmentVariable("DISCORD_TOKEN");
+        DiscordToken = string.IsNullOrEmpty(discordToken)
+            ? ""
+            : discordToken;
+
+        var debugGuildId = Environment.GetEnvironmentVariable("DISCORD_DEBUG_GUILD_ID");
+        DiscordDebugGuildId = string.IsNullOrEmpty(debugGuildId)
+            ? 0
+            : ulong.Parse(debugGuildId);
     }
 
     public static readonly string Domain;
@@ -189,8 +199,11 @@ public static class AppSettings
     public static readonly int DaysUntilPlayerIsMarkedInactive;
     public static readonly string CommandPrefix;
     public static readonly string? GithubToken;
-    public static readonly string OsuCookie;
     public static readonly string OsuClientId;
     public static readonly string OsuClientSecret;
     public static readonly int BeatmapEvictDays;
+    public static readonly string DiscordToken;
+    public static readonly ulong DiscordDebugGuildId;
+    
+    public static readonly string OsuCookie;
 }

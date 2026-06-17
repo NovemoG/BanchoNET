@@ -88,11 +88,10 @@ public partial class OsuController
 				player.Id,
 				player.Geoloc.Country.Acronym,
 				player.Friends.ToHashSet(),
-				beatmap.Checksum)
+				beatmap.Id)
 			: ([], null);
 		
-		//TODO fetch rating
-		var rating = 0.0f;
+		var rating = beatmap.Set.Rating;
 
 		string response;
 		var responseLines = new List<string>
@@ -120,13 +119,13 @@ public partial class OsuController
 	private static string FormatScore(ScoreDto dto, int position)
 	{
 		var scoreAsPp = dto.Mode >= GameMode.RelaxStd || AppSettings.SortLeaderboardByPP;
-		return $"{(int)dto.Id}|{dto.Player.Username}|{(int)(scoreAsPp ? MathF.Round(dto.PP) : dto.LegacyTotalScore)}|{dto.MaxCombo}|{dto.GetCount50()}|{dto.GetCount100()}|{dto.GetCount300()}|{dto.GetCountMiss()}|{dto.GetCountKatu()}|{dto.GetCountGeki()}|{dto.LegacyPerfect}|{dto.Mods}|{dto.PlayerId}|{position}|{dto.PlayTime.ToUnixTimeSeconds()}|1"; //TODO this '1' tells client whether score has a saved replay
+		return $"{(int)dto.Id}|{dto.Player.Username}|{(int)(scoreAsPp ? MathF.Round(dto.PP) : dto.LegacyTotalScore)}|{dto.MaxCombo}|{dto.GetCount50()}|{dto.GetCount100()}|{dto.GetCount300()}|{dto.GetCountMiss()}|{dto.GetCountKatu()}|{dto.GetCountGeki()}|{dto.LegacyPerfect}|{dto.Mods}|{dto.PlayerId}|{position}|{dto.PlayTime.ToUnixTimeSeconds()}|{dto.HasReplay}";
 	}
 
 	private static string FormatBestScore(Score score, Player player)
 	{
 		var scoreAsPp = score.Mode >= GameMode.RelaxStd || AppSettings.SortLeaderboardByPP;
-		return $"{(int)score.Id}|{player.Username}|{(int)(scoreAsPp ? MathF.Round(score.PP) : score.TotalScore)}|{score.MaxCombo}|{score.Count50}|{score.Count100}|{score.Count300}|{score.Misses}|{score.Katus}|{score.Gekis}|{score.Perfect}|{(int)score.Mods}|{player.Id}|{score.LeaderboardPosition}|{score.ClientTime.ToUnixTimeSeconds()}|1"; //TODO this '1' tells client whether score has a saved replay
+		return $"{(int)score.Id}|{player.Username}|{(int)(scoreAsPp ? MathF.Round(score.PP) : score.TotalScore)}|{score.MaxCombo}|{score.Count50}|{score.Count100}|{score.Count300}|{score.Misses}|{score.Katus}|{score.Gekis}|{score.Perfect}|{(int)score.Mods}|{player.Id}|{score.LeaderboardPosition}|{score.ClientTime.ToUnixTimeSeconds()}|{score.HasReplay}";
 	}
 
 	private static long DateTimeToUnix(DateTime dateTime)

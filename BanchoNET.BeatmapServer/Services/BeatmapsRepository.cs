@@ -48,7 +48,7 @@ public class BeatmapsRepository(
 	) {
 		return await dbContext.Beatmaps
 			.AsNoTracking()
-			.FirstOrDefaultAsync(b => b.MD5 == checksum);
+			.FirstOrDefaultAsync(b => b.MD5 == checksum.ToUpper());
 	}
 
 	public async Task<BeatmapsetDto?> GetBeatmapset(
@@ -305,9 +305,9 @@ public class BeatmapsRepository(
 			var dbBeatmap = beatmaps.FirstOrDefault(b => b.Id == beatmap.Id);
 			if (dbBeatmap != null)
 			{
-				if (!dbBeatmap.MD5.Equals(beatmap.Checksum))
+				if (!dbBeatmap.MD5.Equals(beatmap.Checksum, StringComparison.OrdinalIgnoreCase))
 				{
-					await scores.ToggleBeatmapScoresVisibility(dbBeatmap.MD5);
+					await scores.ToggleBeatmapScoresVisibility(dbBeatmap.MD5.ToUpper());
 					beatmapDownloader.AddBeatmapsetForUpdate(set.Id);
 					dbBeatmap.MaximumStatistics = new Dictionary<HitResult, int>();
 				}

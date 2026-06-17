@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using BanchoNET.BeatmapServer.Services;
+using BanchoNET.Bot.Utils;
 using BanchoNET.Core.Abstractions;
 using BanchoNET.Core.Abstractions.Bancho.Services;
 using BanchoNET.Core.Abstractions.Repositories;
@@ -38,6 +39,7 @@ using StackExchange.Redis;
 using BanchoNET.Infrastructure;
 using BanchoNET.Infrastructure.Bancho.Services;
 using BanchoNET.Infrastructure.Services;
+using DSharpPlus;
 using Microsoft.AspNetCore.SignalR;
 using LogLevel = Novelog.Types.LogLevel;
 // ReSharper disable ExplicitCallerInfoArgument
@@ -307,6 +309,12 @@ public class Program
 			.AddMessagePackProtocol(options => 
 				options.SerializerOptions = SignalRUnionWorkaroundResolver.Options
 			);
+
+		builder.Services.AddDiscordBot(
+			AppSettings.DiscordToken,
+			AppSettings.DiscordDebugGuildId,
+			DiscordIntents.AllUnprivileged
+		);
 		
 		var app = builder.Build();
 		
