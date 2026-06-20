@@ -1,15 +1,16 @@
-﻿using System.Text.Json;
-using System.Web;
+﻿using System.Globalization;
 using BanchoNET.Core.Models;
+using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BanchoNET.Handlers.Stable.Controllers.OsuApi;
 
 public partial class OsuController
 {
+    private const int PageSize = 100;
+    
     [HttpGet("osu-search.php")]
     public async Task<IActionResult> OsuSearch(
         [FromQuery(Name = "u")] string username,
@@ -22,65 +23,60 @@ public partial class OsuController
         if (await players.GetPlayerFromLogin(username, passwordMD5) == null)
             return Unauthorized("auth fail");
         
-        var parameters = HttpUtility.ParseQueryString(string.Empty); //TODO might change if direct suddenly stops working
-        parameters["amount"] = "100";
-        parameters["offset"] = (pageNumber * 100).ToString();
-
-        //TODO support for 'query'
+        var status = rankedStatus.ToApiFromDirect();
+        string? sort;
         
-        if (mode != -1)
-            parameters["mode"] = mode.ToString();
-
-        if (rankedStatus != 4)
-            parameters["status"] = rankedStatus.ToApiFromDirect().ToString();
-
-        var searchEndpoints = new List<string>{string.Empty}/*AppSettings.OsuDirectSearchEndpoints*/;
-        var uriParams = parameters.ToString();
-        string responseJson;
-        int statusCode;
-        
-        var i = 0;
-        do
+        switch (query)
         {
-            var uriBuilder = new UriBuilder(searchEndpoints[i])
-            {
-                Query = uriParams
-            };
-            
-            Console.WriteLine($"osu!direct request uri: {uriBuilder.Uri}");
-
-            var response = await httpClient.GetAsync(uriBuilder.Uri);
-
-            responseJson = await response.Content.ReadAsStringAsync();
-            statusCode = (int)response.StatusCode;
-            
-            i++;
-        } while (i < searchEndpoints.Count && statusCode != StatusCodes.Status200OK);
-
-        if (statusCode != StatusCodes.Status200OK)
-            return Responses.BytesContentResult("-1\nFailed to retrieve data from the beatmap mirror.");
+            case "Newest":
+                sort = status == 1 ? "ranked_desc" : "updated_desc";
+                query = "";
+                break;
+            case "Top Rated":
+                sort = "rating_desc";
+                query = "";
+                break;
+            case "Most Played":
+                sort = "plays_desc";
+                query = "";
+                break;
+            default:
+                sort = status == 1 ? "ranked_desc" : "updated_desc";
+                break;
+        }
         
-        var osuDirectResponse = JsonSerializer.Deserialize<List<DirectBeatmapSet>>(responseJson)!;
-
+        //TODO does not work
+        
+        var (beatmapsets, count, _) = await beatmapSearch.SearchAsync(
+            query,
+            mode == -1 ? null : EnumExtensions.FromModeMap[(GameMode)mode],
+            category: null,
+            status.ToString(),
+            genre: null,
+            language: null,
+            extra: null,
+            rankAchieved: null,
+            sort,
+            rankedStatus == 7 ? "played" : null,
+            nsfw: true,
+            cursor: null,
+            count: PageSize,
+            skip: pageNumber * PageSize
+        );
+        
         var returnResponse = new List<string>
         {
-            $"{(osuDirectResponse.Count == 100 ? 101 : osuDirectResponse.Count)}"
+            $"{(count == PageSize ? 101 : count)}"
         };
 
-        foreach (var mapset in osuDirectResponse)
+        foreach (var beatmapset in beatmapsets.Where(beatmapset => beatmapset.Beatmaps.Count != 0))
         {
-            if (mapset.Beatmaps == null || mapset.Beatmaps.Count == 0)
-                continue;
-            
-            var hasVideo = mapset.HasVideo is "true" or "1";
-            
-            mapset.Beatmaps.Sort((a, b) => a.DifficultyRating.CompareTo(b.DifficultyRating));
+            beatmapset.Beatmaps.Sort((a, b) => a.DifficultyRating.CompareTo(b.DifficultyRating));
 
-            var beatmapsString = mapset.Beatmaps.Aggregate("",
-                (current, map) => current + $"{map.DiffName.Replace('|', 'I')} [{map.DifficultyRating:F2}⭐]@{map.Mode},")[..^1];
+            var beatmapsString = beatmapset.Beatmaps.Aggregate("",
+                (current, map) => current + $"{map.Version.Replace('|', 'I')} [{map.DifficultyRating.ToString("0.##", CultureInfo.InvariantCulture)}⭐]@{map.Mode},")[..^1];
             
-            //TODO replace 10.0 with actual rating
-            returnResponse.Add($"{mapset.SetId}.osz|{mapset.Artist}|{mapset.Title}|{mapset.Creator}|{mapset.RankedStatus}|10.0|{mapset.LastUpdate}|{mapset.SetId}|0|{hasVideo}|0|0|0|{beatmapsString}");
+            returnResponse.Add($"{beatmapset.Id}.osz|{beatmapset.Artist}|{beatmapset.Title}|{beatmapset.Creator}|{((BeatmapStatus)beatmapset.Ranked).ToLegacyStatus()}|{beatmapset.Rating.ToString("0.###", CultureInfo.InvariantCulture)}|{beatmapset.LastUpdated}|{beatmapset.Id}|0|{beatmapset.Video}|0|0|0|{beatmapsString}");
         }
         
         return Responses.BytesContentResult(string.Join("\n", returnResponse));

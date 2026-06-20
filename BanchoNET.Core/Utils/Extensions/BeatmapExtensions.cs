@@ -189,6 +189,22 @@ public static class BeatmapExtensions
 		};
 	}
 
+	public static int ToLegacyStatus(
+		this BeatmapStatus status
+	) {
+		return status switch
+		{
+			BeatmapStatus.Graveyard => 0,
+			BeatmapStatus.WIP => 0,
+			BeatmapStatus.LatestPending => 0,
+			BeatmapStatus.Ranked => 2,
+			BeatmapStatus.Approved => 3,
+			BeatmapStatus.Qualified => 4,
+			BeatmapStatus.Loved => 5,
+			_ => -2
+		};
+	}
+
 	public static BeatmapsetDto ToDto(
 		this Beatmapset set
 	) {

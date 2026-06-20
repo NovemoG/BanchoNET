@@ -17,6 +17,8 @@ public interface IBeatmapSearchService
         string? played,
         bool? nsfw,
         Dictionary<string, string>? cursor,
+        int count = 50,
+        int? skip = null,
         CancellationToken ct = default
     );
 }

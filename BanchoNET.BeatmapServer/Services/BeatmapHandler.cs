@@ -19,7 +19,7 @@ public sealed class BeatmapHandler(
 	IHttpClientFactory httpClientFactory
 ) : IBeatmapHandler
 {
-	private readonly HttpClient _bearerClient = httpClientFactory.CreateClient(nameof(BeatmapHandler));
+	private readonly HttpClient _bearerClient = httpClientFactory.CreateClient(AppSettings.TokenClientName);
 	
 	public async Task<bool> CheckIfMapExistsOnBanchoByFilename(
 		string filename
@@ -38,7 +38,7 @@ public sealed class BeatmapHandler(
 		{
 			try
 			{
-				var response = await httpClient.GetAsync($"https://osu.ppy.sh/web/maps/{beatmap.FileName()}");
+				var response = await httpClient.GetAsync($"https://old.ppy.sh/osu/{beatmap.Id}");
 				
 				response.EnsureSuccessStatusCode();
 				

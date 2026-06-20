@@ -78,7 +78,7 @@ public partial class OsuController
 		}
 
 		if (beatmap.Status < BeatmapStatus.Ranked)
-			return Responses.BytesContentResult($"{(int)beatmap.Status}|false");
+			return Responses.BytesContentResult("0|false");
 		
 		(List<ScoreDto> Scores, Score? PlayerBest) leaderboard = !fromEditor
 			? await scores.GetLeaderboardScores(
@@ -96,7 +96,7 @@ public partial class OsuController
 		string response;
 		var responseLines = new List<string>
 		{
-			$"{(int)beatmap.Status}|false|{beatmap.Id}|{beatmap.BeatmapsetId}|{leaderboard.Scores.Count}|0|",
+			$"{beatmap.Status.ToLegacyStatus()}|false|{beatmap.Id}|{beatmap.BeatmapsetId}|{leaderboard.Scores.Count}|0|",
 			$"0\n{beatmap.FullName()}\n{rating}"
 		};
 

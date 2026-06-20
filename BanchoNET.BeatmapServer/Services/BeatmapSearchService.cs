@@ -43,6 +43,8 @@ public partial class BeatmapSearchService(IDbContextFactory<BanchoDbContext> dbF
         string? played,
         bool? nsfw,
         Dictionary<string, string>? cursor,
+        int count = 50,
+        int? skip = null,
         CancellationToken ct = default
     ) {
         await using var db = await dbFactory.CreateDbContextAsync(ct);
@@ -127,6 +129,7 @@ public partial class BeatmapSearchService(IDbContextFactory<BanchoDbContext> dbF
         var cursorClause = cursor != null
             ? $"WHERE ({sortColumn}, \"SetId\") {operatorSign} (@cursorValue, @cursorId)"
             : "";
+        var skipClause = skip != null ? $" OFFSET {skip} ROWS" : "";
 
         var setIdsSql = $"""
                           WITH matched AS (
@@ -207,7 +210,7 @@ public partial class BeatmapSearchService(IDbContextFactory<BanchoDbContext> dbF
                           FROM counted
                           {cursorClause}
                           ORDER BY {orderByClause}
-                          LIMIT 50;
+                          LIMIT {count}{skipClause};
                           """;
 
         var parsedCursor = ParseCursor(cursor, sort);

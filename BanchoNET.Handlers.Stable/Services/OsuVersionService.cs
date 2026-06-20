@@ -70,7 +70,7 @@ public class OsuVersionService(
         var stopwatch = new Stopwatch();
         stopwatch.Start();
         
-        var client = httpClientFactory.CreateClient(nameof(OsuVersionService));
+        var client = httpClientFactory.CreateClient(AppSettings.TokenClientName);
         
         foreach (var clientStream in _streams)
         {

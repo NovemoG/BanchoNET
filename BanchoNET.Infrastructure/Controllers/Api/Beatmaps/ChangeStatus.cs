@@ -64,7 +64,16 @@ public partial class BeatmapsController
         if (!player.Privileges.HasPrivilege(PlayerPrivileges.Nominator))
             return Unauthorized();
         
-        await beatmapsRepository.RankAllPending();
+        var affected = await beatmapsRepository.RankAllPending();
+
+        foreach (var setId in affected)
+        {
+            var beatmapset = await Beatmaps.GetBeatmapset(setId);
+            if (beatmapset == null) continue;
+            
+            beatmapset.Status = BeatmapStatus.Ranked;
+            beatmapset.Beatmaps.ForEach(beatmap => beatmap.Status = BeatmapStatus.Ranked);
+        }
         
         return Ok();
     }

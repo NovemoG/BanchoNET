@@ -78,7 +78,7 @@ public interface IBeatmapsRepository
         BeatmapStatus targetStatus
     );
 
-    Task RankAllPending();
+    Task<List<int>> RankAllPending();
 
     Task InsertBeatmapset(Beatmapset set);
 }

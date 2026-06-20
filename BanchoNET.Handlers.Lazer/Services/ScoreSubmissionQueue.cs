@@ -103,6 +103,7 @@ public sealed partial class ScoreSubmissionQueue(
             Statistics = request.Statistics,
             MaximumStatistics = request.MaximumStatistics,
             
+            Pp = 0,
             ClassicTotalScore = 0, //TODO calculate
             Preserve = false,
             Processed = true,
@@ -132,29 +133,22 @@ public sealed partial class ScoreSubmissionQueue(
             ? await scores.GetPlayerBestScoreWithModsOnMap(userId, mode, apiScore.ModKeys, beatmap)
             : null;
         
-        if (await beatmaps.EnsureLocalBeatmapFile(beatmap))
+        if (apiScore.Passed)
         {
-            if (apiScore.Passed)
-            {
+            if (await beatmaps.EnsureLocalBeatmapFile(beatmap))
                 apiScore.CalculatePerformance(beatmap);
-                
-                ComputeSubmissionStatus(apiScore, prevBest, bestWithMods, sameMods);
 
-                apiScore.Preserve = apiScore.Status > SubmissionStatus.Submitted;
+            ComputeSubmissionStatus(apiScore, prevBest, bestWithMods, sameMods);
+
+            apiScore.Preserve = apiScore.Status > SubmissionStatus.Submitted;
                 
-                await scores.UpdateScoreStatus(prevBest);
-                await scores.UpdateScoreStatus(bestWithMods);
+            await scores.UpdateScoreStatus(prevBest);
+            await scores.UpdateScoreStatus(bestWithMods);
                 
-                if (beatmap.Status >= BeatmapStatus.Ranked)
-                    await scores.SetScoreLeaderboardPosition(apiScore, withMods: false, beatmap);
-            }
-            else apiScore.Status = SubmissionStatus.Failed;
+            if (beatmap.Status >= BeatmapStatus.Ranked)
+                await scores.SetScoreLeaderboardPosition(apiScore, withMods: false, beatmap);
         }
-        else
-        {
-            apiScore.Pp = 0;
-            apiScore.Status = apiScore.Passed ? SubmissionStatus.Submitted : SubmissionStatus.Failed;
-        }
+        else apiScore.Status = SubmissionStatus.Failed;
         
         soloRequest.Score = await scores.InsertScore(apiScore, beatmap.Checksum, beatmapId);
         soloRequest.Beatmap = beatmap;

@@ -175,6 +175,8 @@ public static class AppSettings
             : ulong.Parse(debugGuildId);
     }
 
+    public const string TokenClientName = "V2Client";
+
     public static readonly string Domain;
     public static readonly bool Debug;
     public static readonly string LazerName;

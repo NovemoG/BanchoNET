@@ -257,7 +257,7 @@ public class Program
 		builder.Services
 			.AddSingleton<OsuTokenProvider>()
 			.AddTransient<OsuAuthHandler>()
-			.AddHttpClient(nameof(BeatmapHandler), client =>
+			.AddHttpClient(AppSettings.TokenClientName, client =>
 			{
 				client.BaseAddress = new Uri("https://osu.ppy.sh/api/v2");
 			})

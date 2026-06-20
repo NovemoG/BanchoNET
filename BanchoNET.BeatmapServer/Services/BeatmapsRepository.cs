@@ -258,15 +258,21 @@ public class BeatmapsRepository(
 			.ExecuteUpdateAsync(p => p.SetProperty(bs => bs.Status, targetStatus));
 	}
 
-	public async Task RankAllPending() {
+	public async Task<List<int>> RankAllPending() {
 		await dbContext.Beatmaps.Where(b => b.Status < BeatmapStatus.Ranked)
 			.ExecuteUpdateAsync(p => p.SetProperty(b => b.Status, BeatmapStatus.Ranked));
 		
 		await dbContext.BeatmapSearch.Where(b => b.Status < BeatmapStatus.Ranked)
 			.ExecuteUpdateAsync(p => p.SetProperty(b => b.Status, BeatmapStatus.Ranked));
+
+		var affected = await dbContext.Beatmapsets.Where(bs => bs.Status < BeatmapStatus.Ranked)
+			.Select(bs => bs.Id)
+			.ToListAsync();
 		
 		await dbContext.Beatmapsets.Where(bs => bs.Status < BeatmapStatus.Ranked)
 			.ExecuteUpdateAsync(p => p.SetProperty(bs => bs.Status, BeatmapStatus.Ranked));
+
+		return affected;
 	}
 
 	public async Task InsertBeatmapset(
