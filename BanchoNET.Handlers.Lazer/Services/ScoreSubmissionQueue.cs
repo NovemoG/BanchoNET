@@ -133,6 +133,9 @@ public sealed partial class ScoreSubmissionQueue(
             ? await scores.GetPlayerBestScoreWithModsOnMap(userId, mode, apiScore.ModKeys, beatmap)
             : null;
         
+        if (await beatmaps.EnsureLocalBeatmapFile(beatmap))
+                    apiScore.CalculatePerformance(beatmap);
+        
         if (apiScore.Passed)
         {
             ComputeSubmissionStatus(apiScore, prevBest, bestWithMods, sameMods);
@@ -146,9 +149,6 @@ public sealed partial class ScoreSubmissionQueue(
                 await scores.SetScoreLeaderboardPosition(apiScore, withMods: false, beatmap);
         }
         else apiScore.Status = SubmissionStatus.Failed;
-        
-        if (await beatmaps.EnsureLocalBeatmapFile(beatmap))
-            apiScore.CalculatePerformance(beatmap);
         
         soloRequest.Score = await scores.InsertScore(apiScore, beatmap.Checksum, beatmapId);
         soloRequest.Beatmap = beatmap;
