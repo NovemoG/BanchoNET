@@ -20,37 +20,33 @@
       postgres:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
       MongoDB:
-        condition: service_started
+        condition: service_healthy
 
   postgres:
-    image: postgres:latest
+    image: postgres:17
     hostname: banchonet-db
     container_name: banchonet-db
     environment:
-      POSTGRES_DB: ${MYSQL_DB}
-      POSTGRES_USER: ${MYSQL_USER}
-      POSTGRES_PASSWORD: ${MYSQL_PASS}
-    configs:
-      - source: init_db
-        target: /docker-entrypoint-initdb.d/second.sh
-        mode: 0755
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASS}
     volumes:
       - banchonet-db-data:/var/lib/postgresql/data
     ports:
-      - ${MYSQL_PORT}:5432
+      - ${POSTGRES_PORT}:5432
     restart: unless-stopped
     networks:
       - banchonet
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U \"$MYSQL_USER\" -d \"$MYSQL_DB\" -h localhost || exit 1"]
+      test: ["CMD-SHELL", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\" -h localhost || exit 1"]
       interval: 2s
       timeout: 20s
       retries: 10
 
   redis:
-    image: redis
+    image: redis:7
     hostname: banchonet-redis
     container_name: banchonet-redis
     environment:
@@ -58,11 +54,18 @@
       REDIS_PORT: ${REDIS_PORT}
       REDIS_PASSWORD: ${REDIS_PASS}
     restart: unless-stopped
+    ports:
+        - ${REDIS_PORT}:${REDIS_PORT}
     networks:
       - banchonet
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping || exit 1"]
+      interval: 2s
+      timeout: 10s
+      retries: 10
 
   MongoDB:
-    image: mongo
+    image: mongo:7
     hostname: banchonet-mongo
     container_name: banchonet-mongo
     environment:
@@ -76,6 +79,11 @@
     restart: unless-stopped
     networks:
       - banchonet
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --eval 'db.runCommand(\"ping\").ok' || exit 1"]
+      interval: 2s
+      timeout: 10s
+      retries: 10
 
 networks:
   banchonet:
@@ -88,15 +96,3 @@ volumes:
     driver: local
   banchonet-mongo-data:
     driver: local
-
-configs:
-  init_db:
-    content: |
-      #!/bin/bash
-      set -e
-      echo "Creating hangfire database and user (if not present)..."
-      psql -v ON_ERROR_STOP=1 --username "$MYSQL_USER" <<-EOSQL
-        CREATE DATABASE hangfire;
-        CREATE USER "${MYSQL_USER}" WITH PASSWORD '${MYSQL_PASS}';
-        GRANT ALL PRIVILEGES ON DATABASE hangfire TO "${MYSQL_USER}";
-      EOSQL

@@ -4,11 +4,11 @@ A dotnet implementation of [osu!](https://osu.ppy.sh)bancho server.
 
 ## Technologies
 
-- ASP.NET Core (.NET 8)
-- MYSQL (MariaDB)
+- ASP.NET Core (.NET 10)
+- PostgreSQL
 - MongoDB
 - Redis
-- Docker (soon™)
+- Docker
 
 ## Progress
 

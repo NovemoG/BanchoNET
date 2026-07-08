@@ -20,6 +20,7 @@ ARG BUILD_CONFIGURATION=Release
 RUN dotnet publish "./BanchoNET.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS tools
+# Install vpk version that matches the one used in the osu!lazer repository in case something breaks
 RUN dotnet tool install vpk --tool-path /opt/tools
 
 FROM base AS final
@@ -28,7 +29,7 @@ WORKDIR /app
 USER root
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl ca-certificates zstd \
+    && apt-get install -y --no-install-recommends curl ca-certificates zstd squashfs-tools \
     && rm -rf /var/lib/apt/lists/*
 RUN curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh \
     && chmod +x /tmp/dotnet-install.sh \

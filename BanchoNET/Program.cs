@@ -98,13 +98,19 @@ public class Program
 
 		#endregion
 
+		#region Legacy Lazer Layout Migration
+
+		MigrateLegacyLazerLayout();
+
+		#endregion
+
 		#region Environment Variables Initialization
 
 		var requiredEnvVars = new[]
 		{
-			"MYSQL_HOST",
-			"MYSQL_USER",
-			"MYSQL_DB",
+			"POSTGRES_HOST",
+			"POSTGRES_USER",
+			"POSTGRES_DB",
 			"REDIS_HOST",
 			"REDIS_PORT",
 			"MONGO_HOST",
@@ -125,11 +131,11 @@ public class Program
 
 		var dbConnections = new DbConnectionsModel
 		{
-			MysqlHost = Environment.GetEnvironmentVariable("MYSQL_HOST")!,
-			MysqlPort = Environment.GetEnvironmentVariable("MYSQL_PORT")!,
-			MysqlUser = Environment.GetEnvironmentVariable("MYSQL_USER")!,
-			MysqlPass = Environment.GetEnvironmentVariable("MYSQL_PASS")!,
-			MysqlDb = Environment.GetEnvironmentVariable("MYSQL_DB")!,
+			PostgresHost = Environment.GetEnvironmentVariable("POSTGRES_HOST")!,
+			PostgresPort = Environment.GetEnvironmentVariable("POSTGRES_PORT")!,
+			PostgresUser = Environment.GetEnvironmentVariable("POSTGRES_USER")!,
+			PostgresPass = Environment.GetEnvironmentVariable("POSTGRES_PASS")!,
+			PostgresDb = Environment.GetEnvironmentVariable("POSTGRES_DB")!,
 			RedisHost = Environment.GetEnvironmentVariable("REDIS_HOST")!,
 			RedisPort = Environment.GetEnvironmentVariable("REDIS_PORT")!,
 			RedisPass = Environment.GetEnvironmentVariable("REDIS_PASS")!,
@@ -139,15 +145,15 @@ public class Program
 			MongoPass = Environment.GetEnvironmentVariable("MONGO_PASS")!,
 		};
 		
-		var mySqlConnectionString = 
-			$"Host={dbConnections.MysqlHost};" +
+		var postgresConnectionString =
+			$"Host={dbConnections.PostgresHost};" +
 			$"Port=5432;" +
-			$"Username={dbConnections.MysqlUser};" +
-			$"Password={dbConnections.MysqlPass};" +
-			$"Database={dbConnections.MysqlDb};";
+			$"Username={dbConnections.PostgresUser};" +
+			$"Password={dbConnections.PostgresPass};" +
+			$"Database={dbConnections.PostgresDb};";
 
 		if (AppSettings.Debug)
-			mySqlConnectionString += "Include Error Detail=True;";
+			postgresConnectionString += "Include Error Detail=True;";
 
 		var redisConnectionString = 
 			$"{dbConnections.RedisHost}:{dbConnections.RedisPort}," +
@@ -198,7 +204,7 @@ public class Program
 
 		void ConfigureBancho(DbContextOptionsBuilder options)
 		{
-			options.UseNpgsql(mySqlConnectionString);
+			options.UseNpgsql(postgresConnectionString);
 		}
 		
 		builder.Services
@@ -220,7 +226,7 @@ public class Program
 		builder.Services.AddScoped<IBeatmapHandler, BeatmapHandler>();
 		builder.Services.AddScoped<ISearchProjectionSyncService, SearchProjectionSyncService>();
 		builder.Services.AddScoped<IBeatmapSearchService, BeatmapSearchService>();
-			
+		
 		builder.Services
 			.AddSingleton<ScoreSubmissionQueue>()
 			.AddSingleton<IScoreSubmissionQueue>(sp => sp.GetRequiredService<ScoreSubmissionQueue>())
@@ -484,5 +490,47 @@ public class Program
 			Uri.EscapeDataString(input),
 			@"[$:/?$[\]@]",
 			m => Uri.HexEscape(Convert.ToChar(m.Value[0].ToString())));
+	}
+
+	private static void MigrateLegacyLazerLayout()
+	{
+		var legacyMarker = Path.Combine(LazerStorage.ReleasesPath, "RELEASES");
+		if (!File.Exists(legacyMarker))
+			return;
+
+		Logger.Shared.LogInfo("Detected legacy lazer release layout, migrating to multi-platform naming...", caller: "Init");
+
+		foreach (var tachyon in new[] { false, true })
+		{
+			var track = tachyon ? "tachyon" : "lazer";
+			var oldZip = Path.Combine(LazerStorage.ReleasesPath, $"{AppSettings.LazerName}-{track}-Portable.zip");
+			if (File.Exists(oldZip))
+				File.Move(oldZip, LazerStorage.GetLazerPortablePath(tachyon), overwrite: true);
+		}
+
+		foreach (var oldFeed in Directory.GetFiles(LazerStorage.ReleasesPath, "releases.*.json"))
+		{
+			var fileName = Path.GetFileName(oldFeed);
+			if (fileName.EndsWith(".win.json", StringComparison.OrdinalIgnoreCase) ||
+			    fileName.EndsWith(".linux.json", StringComparison.OrdinalIgnoreCase))
+				continue;
+
+			var tagName = fileName["releases.".Length..^".json".Length];
+			File.Move(oldFeed, LazerStorage.GetReleasesPath(tagName), overwrite: true);
+		}
+
+		var winPackReleasesDir = Path.Combine(LazerStorage.GetPackPath(LazerPlatform.Win), "Releases");
+		Directory.CreateDirectory(winPackReleasesDir);
+
+		foreach (var nupkg in Directory.GetFiles(LazerStorage.ReleasesPath, "*.nupkg"))
+			FileLinking.LinkOrCopy(nupkg, Path.Combine(winPackReleasesDir, Path.GetFileName(nupkg)));
+
+		var assetsFile = Path.Combine(LazerStorage.ReleasesPath, "assets.win.json");
+		if (File.Exists(assetsFile))
+			File.Move(assetsFile, Path.Combine(winPackReleasesDir, "assets.win.json"), overwrite: true);
+
+		File.Move(legacyMarker, Path.Combine(winPackReleasesDir, "RELEASES"), overwrite: true);
+
+		Logger.Shared.LogInfo("Finished migrating legacy lazer release layout", caller: "Init");
 	}
 }

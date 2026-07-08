@@ -23,17 +23,27 @@ public class UpdaterController(IReleasesRepository releases) : ControllerBase
         for (var i = 0; i < dbReleases.Count; i++)
         {
             var full = dbReleases[i];
+            var baseUrl = $"https://api.{AppSettings.Domain}/api/v3/repos";
+
             var feed = new GithubFeed
             {
                 TagName = full.Version, Name = full.Version, Prerelease = full.Prerelease,
                 PublishedAt = full.PublishedAt,
-                Assets = [
+                Assets =
+                [
                     new GithubRelease
                     {
-                        Url = $"https://api.{AppSettings.Domain}/api/v3/repos",
+                        Url = baseUrl,
                         Name = "releases.win.json",
                         ContentType = "application/json",
-                        BrowserDownloadUrl = $"https://api.{AppSettings.Domain}/api/v3/repos/{full.Version}/releases"
+                        BrowserDownloadUrl = $"{baseUrl}/{full.Version}/releases"
+                    },
+                    new GithubRelease
+                    {
+                        Url = baseUrl,
+                        Name = "releases.linux.json",
+                        ContentType = "application/json",
+                        BrowserDownloadUrl = $"{baseUrl}/{full.Version}/releases?platform=linux"
                     }
                 ]
             };
@@ -43,21 +53,38 @@ public class UpdaterController(IReleasesRepository releases) : ControllerBase
             if (dbReleases.Count - 1 != i)
             {
                 var delta = dbReleases[++i];
+                
                 feed.Assets.Add(new GithubRelease
                 {
-                    Url = $"https://api.{AppSettings.Domain}/api/v3/repos",
+                    Url = baseUrl,
                     Name = $"{AppSettings.LazerName}-{delta.Version}-delta.nupkg",
                     ContentType = "application/octet-stream",
-                    BrowserDownloadUrl = $"https://api.{AppSettings.Domain}/api/v3/repos/{delta.Version}/file/delta",
+                    BrowserDownloadUrl = $"{baseUrl}/{delta.Version}/file/delta",
+                });
+                
+                feed.Assets.Add(new GithubRelease
+                {
+                    Url = baseUrl,
+                    Name = $"{AppSettings.LazerName}-{delta.Version}-linux-delta.nupkg",
+                    ContentType = "application/octet-stream",
+                    BrowserDownloadUrl = $"{baseUrl}/{delta.Version}/file/delta?platform=linux",
                 });
             }
             
             feed.Assets.Add(new GithubRelease
             {
-                Url = $"https://api.{AppSettings.Domain}/api/v3/repos",
+                Url = baseUrl,
                 Name = $"{AppSettings.LazerName}-{full.Version}-full.nupkg",
                 ContentType = "application/octet-stream",
-                BrowserDownloadUrl = $"https://api.{AppSettings.Domain}/api/v3/repos/{full.Version}/file/full",
+                BrowserDownloadUrl = $"{baseUrl}/{full.Version}/file/full",
+            });
+            
+            feed.Assets.Add(new GithubRelease
+            {
+                Url = baseUrl,
+                Name = $"{AppSettings.LazerName}-{full.Version}-linux-full.nupkg",
+                ContentType = "application/octet-stream",
+                BrowserDownloadUrl = $"{baseUrl}/{full.Version}/file/full?platform=linux",
             });
         }
         
@@ -68,11 +95,12 @@ public class UpdaterController(IReleasesRepository releases) : ControllerBase
     public async Task<IActionResult> GetReleaseFile(
         string tagName,
         string type,
-        string? package = null
+        string? package = null,
+        [FromQuery] LazerPlatform platform = LazerPlatform.Win
     ) {
         if (type.Equals("releases", StringComparison.OrdinalIgnoreCase))
         {
-            var filePath = LazerStorage.GetReleasesPath(tagName);
+            var filePath = LazerStorage.GetReleasesPath(tagName, platform);
             if (!System.IO.File.Exists(filePath))
                 return NotFound();
             
@@ -85,7 +113,7 @@ public class UpdaterController(IReleasesRepository releases) : ControllerBase
             if (string.IsNullOrWhiteSpace(package))
                 return BadRequest();
 
-            var filePath = LazerStorage.GetReleaseFilePath(tagName, package);
+            var filePath = LazerStorage.GetReleaseFilePath(tagName, package, platform);
             if (!System.IO.File.Exists(filePath))
                 return NotFound();
             
@@ -102,9 +130,10 @@ public class UpdaterController(IReleasesRepository releases) : ControllerBase
 
     [HttpGet("download")]
     public IActionResult Download(
-        bool tachyon = false
+        bool tachyon = false,
+        [FromQuery] LazerPlatform platform = LazerPlatform.Win
     ) {
-        var filePath = LazerStorage.GetLazerPortablePath(tachyon);
+        var filePath = LazerStorage.GetLazerPortablePath(tachyon, platform);
         if (!System.IO.File.Exists(filePath))
             return NotFound();
         

@@ -2,11 +2,11 @@
 
 public class DbConnectionsModel
 {
-    public string MysqlHost { get; set; } = null!;
-    public string MysqlPort { get; set; } = null!;
-    public string MysqlUser { get; set; } = null!;
-    public string MysqlPass { get; set; } = null!;
-    public string MysqlDb { get; set; } = null!;
+    public string PostgresHost { get; set; } = null!;
+    public string PostgresPort { get; set; } = null!;
+    public string PostgresUser { get; set; } = null!;
+    public string PostgresPass { get; set; } = null!;
+    public string PostgresDb { get; set; } = null!;
     
     public string RedisHost { get; set; } = null!;
     public string RedisPort { get; set; } = null!;

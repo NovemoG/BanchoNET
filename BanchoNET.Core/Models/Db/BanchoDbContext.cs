@@ -263,7 +263,7 @@ public class BanchoDbContextFactory : IDesignTimeDbContextFactory<BanchoDbContex
 		string[] args
 	) {
 		var optionsBuilder = new DbContextOptionsBuilder<BanchoDbContext>();
-		const string mySqlConnectionString =
+		const string postgresConnectionString =
 			$"Host=127.0.0.1;" +
 			$"Port=5432;" +
 			$"Username=banchonet;" +
@@ -271,7 +271,7 @@ public class BanchoDbContextFactory : IDesignTimeDbContextFactory<BanchoDbContex
 			$"Database=utopia;" +
 			$"Include Error Detail=True;";
 		
-		optionsBuilder.UseNpgsql(mySqlConnectionString);
+		optionsBuilder.UseNpgsql(postgresConnectionString);
 		
 		return new BanchoDbContext(optionsBuilder.Options);
 	}

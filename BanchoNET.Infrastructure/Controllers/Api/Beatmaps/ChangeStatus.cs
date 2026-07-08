@@ -26,7 +26,11 @@ public partial class BeatmapsController
         if (await beatmapsRepository.UpdateBeatmapsetStatus(beatmapsetId, targetStatus) > 0)
         {
             beatmapset.Status = targetStatus;
-            beatmapset.Beatmaps.ForEach(beatmap => beatmap.Status = targetStatus);
+            foreach (var beatmap in beatmapset.Beatmaps)
+            {
+                beatmap.Status = targetStatus;
+                await scores.SetBeatmapScoresRankedStatus(beatmap.Id, ranked: true);
+            }
         }
         
         return Ok();
@@ -49,7 +53,10 @@ public partial class BeatmapsController
         if (beatmap == null) return NotFound();
 
         if (await beatmapsRepository.UpdateBeatmapStatus(beatmapId, targetStatus) > 0)
+        {
             beatmap.Status = targetStatus;
+            await scores.SetBeatmapScoresRankedStatus(beatmap.Id, ranked: true);
+        }
         
         return Ok();
     }
@@ -72,7 +79,11 @@ public partial class BeatmapsController
             if (beatmapset == null) continue;
             
             beatmapset.Status = BeatmapStatus.Ranked;
-            beatmapset.Beatmaps.ForEach(beatmap => beatmap.Status = BeatmapStatus.Ranked);
+            foreach (var beatmap in beatmapset.Beatmaps)
+            {
+                beatmap.Status = BeatmapStatus.Ranked;
+                await scores.SetBeatmapScoresRankedStatus(beatmap.Id, ranked: true);
+            }
         }
         
         return Ok();
