@@ -46,7 +46,7 @@
       retries: 10
 
   redis:
-    image: redis:7
+    image: redis:8
     hostname: banchonet-redis
     container_name: banchonet-redis
     environment:
@@ -65,7 +65,7 @@
       retries: 10
 
   MongoDB:
-    image: mongo:7
+    image: mongo:8
     hostname: banchonet-mongo
     container_name: banchonet-mongo
     environment:
