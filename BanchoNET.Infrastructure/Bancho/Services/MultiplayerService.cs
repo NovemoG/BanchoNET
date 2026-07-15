@@ -3,21 +3,27 @@ using BanchoNET.Core.Models.Stable.Multiplayer;
 
 namespace BanchoNET.Infrastructure.Bancho.Services;
 
-public sealed class MultiplayerService(ILogger logger) : StatefulService<int, MultiplayerMatch>(logger), IMultiplayerService
+public sealed class MultiplayerService(ILogger logger) : StatefulService<long, MultiplayerMatch>(logger), IMultiplayerService
 {
     private uint _nextMatchId;
-    public ushort GetFreeMatchId => (ushort)Interlocked.Increment(ref _nextMatchId);
+    
     public IEnumerable<MultiplayerMatch> Matches => Items.Values;
     
-    public bool InsertLobby(
+    public ushort InsertLobby(
         MultiplayerMatch match
     ) {
-        var added = Items.TryAdd(match.Id, match);
-        
-        if (!added)
-            Logger.LogWarning($"Failed to insert match with ids {match.Id}, {match.LobbyId}");
+        while (true)
+        {
+            var id = (ushort)Interlocked.Increment(ref _nextMatchId);
 
-        return added;
+            if (Items.TryAdd(id, match))
+            {
+                match.Id = id;
+                return id;
+            }
+            
+            Logger.LogWarning($"Failed to insert match with ids {id}, {match.LobbyId}");
+        }
     }
     
     public bool RemoveLobby(MultiplayerMatch match)

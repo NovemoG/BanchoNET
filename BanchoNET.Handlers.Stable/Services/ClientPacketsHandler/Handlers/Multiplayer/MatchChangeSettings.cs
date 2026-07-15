@@ -49,7 +49,7 @@ public partial class ClientPacketsHandler
 		if (matchData.BeatmapId == -1)
 		{
 			match.UnreadyPlayers();
-			match.PreviousBeatmapId = matchData.LobbyId;
+			match.PreviousBeatmapId = matchData.BeatmapId;
 
 			match.BeatmapId = -1;
 			match.BeatmapName = "";

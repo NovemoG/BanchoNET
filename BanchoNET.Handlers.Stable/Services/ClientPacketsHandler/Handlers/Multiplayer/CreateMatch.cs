@@ -1,8 +1,6 @@
-﻿using BanchoNET.Core.Models.Mongo;
-using BanchoNET.Core.Models.Players;
+﻿using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils.Extensions;
-using Action = BanchoNET.Core.Models.Mongo.Action;
 
 namespace BanchoNET.Handlers.Stable.Services.ClientPacketsHandler;
 
@@ -33,22 +31,5 @@ public partial class ClientPacketsHandler
 
 		await multiplayerCoordinator.CreateMatchAsync(matchData, player);
 		player.LastActivityTime = DateTime.UtcNow;
-
-		await histories.InsertMatchHistory(new MultiplayerMatch
-		{
-			MatchId = matchData.LobbyId,
-			Name = matchData.Name,
-			Actions = [],
-			Scores = [],
-		});
-
-		await histories.AddMatchAction(
-			matchData.LobbyId,
-			new ActionEntry
-			{
-				Action = Action.MatchCreated,
-				PlayerId = player.Id,
-				Date = DateTime.UtcNow
-			});
 	}
 }

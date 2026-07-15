@@ -40,7 +40,7 @@ public class HistoriesRepository : IHistoriesRepository
 
     #region Filters
 
-    private static FilterDefinition<MultiplayerMatch>? MatchFilter(int matchId) =>
+    private static FilterDefinition<MultiplayerMatch>? MatchFilter(long matchId) =>
         Builders<MultiplayerMatch>.Filter.Eq("MatchId", matchId);
 
     private static FilterDefinition<RankHistoryEntry> RankFilter(int playerId, byte mode) =>
@@ -56,6 +56,8 @@ public class HistoriesRepository : IHistoriesRepository
         & Builders<PlayCountHistory>.Filter.Eq("Mode", mode);
 
     #endregion
+
+    private readonly object _idLock = new();
 
     private static readonly ScoreEntry DummyScore = new() {
         Accuracy = 0.0f,
@@ -74,22 +76,18 @@ public class HistoriesRepository : IHistoriesRepository
         Failed = false
     };
 
-    public async Task InsertMatchHistory(MultiplayerMatch history)
+    public async Task<long> InsertMatchHistory(MultiplayerMatch history)
     {
         await _multiplayerMatches.InsertOneAsync(history);
-    }
-    
-    public async Task<int> GetMatchId()
-    {
-        return (int)await _multiplayerMatches.CountDocumentsAsync(new BsonDocument()) + 1;
+        return history.MatchId;
     }
 
-    public async Task<MultiplayerMatch> GetMultiplayerMatch(int matchId)
+    public async Task<MultiplayerMatch> GetMultiplayerMatch(long matchId)
     {
         return await _multiplayerMatches.Find(MatchFilter(matchId)).SingleAsync();
     }
 
-    public async Task AddMatchAction(int matchId, ActionEntry entry)
+    public async Task AddMatchAction(long matchId, ActionEntry entry)
     {
         var builder = Builders<MultiplayerMatch>.Update.Push("Actions", entry);
         
@@ -99,7 +97,7 @@ public class HistoriesRepository : IHistoriesRepository
             Console.WriteLine("[Histories] Couldn't insert action, match not found in multiplayer history");
     }
 
-    public async Task AddMatchActions(int matchId, IEnumerable<ActionEntry> entries)
+    public async Task AddMatchActions(long matchId, IEnumerable<ActionEntry> entries)
     {
         var builder = Builders<MultiplayerMatch>.Update.PushEach("Actions", entries);
         
@@ -109,7 +107,7 @@ public class HistoriesRepository : IHistoriesRepository
             Console.WriteLine("[Histories] Couldn't insert action, match not found in multiplayer history");
     }
 
-    public async Task MapStarted(int matchId, ScoresEntry entry)
+    public async Task MapStarted(long matchId, ScoresEntry entry)
     {
         var update = Builders<MultiplayerMatch>.Update.Push("Scores", entry);
         
@@ -119,7 +117,7 @@ public class HistoriesRepository : IHistoriesRepository
             Console.WriteLine("[Histories] Couldn't insert map, match not found in multiplayer history");
     }
 
-    public async Task MapAborted(int matchId)
+    public async Task MapAborted(long matchId)
     {
         var filter = MatchFilter(matchId)
                      & Builders<MultiplayerMatch>.Filter.ElemMatch(e => e.Scores,
@@ -132,7 +130,7 @@ public class HistoriesRepository : IHistoriesRepository
             Console.WriteLine("[Histories] Couldn't delete, match not found in multiplayer history");
     }
     
-    public async Task MapCompleted(int matchId, List<ScoreEntry> scores)
+    public async Task MapCompleted(long matchId, List<ScoreEntry> scores)
     {
         // idk if there is a chance that a match is completed without any scores, but this is a safety system
         // to prevent any possible errors

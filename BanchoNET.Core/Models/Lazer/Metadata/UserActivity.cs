@@ -233,7 +233,7 @@ public abstract class UserActivity
         public InLobby(
             Room room
         ) {
-            RoomID = room.RoomId;
+            RoomID = room.RoomId ?? -1;
             RoomName = room.Name;
         }
 
@@ -253,8 +253,8 @@ public abstract class UserActivity
                     break;
                 
                 default:
-                    RoomID = room.RoomId;
-                    RoomName = room.Name;
+                    RoomID = room.RoomID;
+                    RoomName = room.Settings.Name;
                     break;
             }
         }

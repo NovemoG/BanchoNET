@@ -2,12 +2,15 @@
 using BanchoNET.Core.Abstractions.Bancho.Services;
 using BanchoNET.Core.Abstractions.Repositories.Histories;
 using BanchoNET.Core.Models.Channels;
+using BanchoNET.Core.Models.Mongo;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
 using BanchoNET.Core.Models.Stable.Multiplayer;
 using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
+using Action = System.Action;
+using MultiplayerMatch = BanchoNET.Core.Models.Stable.Multiplayer.MultiplayerMatch;
 
 namespace BanchoNET.Infrastructure.Bancho.Coordinators;
 
@@ -21,12 +24,13 @@ public class MultiplayerCoordinator(
 {
     public async Task CreateMatchAsync(
         MultiplayerMatch matchData,
-        Player player
+        Player player,
+        long? channelId = null
     ) {
-        matchData.Id = matches.GetFreeMatchId;
-        matchData.LobbyId = await histories.GetMatchId();
+        // Assigns in-game id for the match
+        matches.InsertLobby(matchData);
         
-        var matchChannel = new Channel($"#multi_{matchData.Id}", id: 0, ChannelType.Multiplayer) //TODO
+        var matchChannel = new Channel($"#multi_{matchData.Id}", id: channelId ?? 0, ChannelType.Multiplayer) //TODO
         {
             Description = "This multiplayer's channel.",
             AutoJoin = false,
@@ -36,10 +40,26 @@ public class MultiplayerCoordinator(
         matchData.Chat = matchChannel;
         matchData.Refs.Add(player.Id);
         
-        matches.InsertLobby(matchData);
         channels.InsertChannel(matchChannel);
 
         JoinPlayer(matchData.Id, matchData.Password, player);
+        
+        matchData.LobbyId = await histories.InsertMatchHistory(new Core.Models.Mongo.MultiplayerMatch
+        {
+            Name = matchData.Name,
+            Actions = [],
+            Scores = [],
+        });
+
+        await histories.AddMatchAction(
+            matchData.LobbyId,
+            new ActionEntry
+            {
+                Action = BanchoNET.Core.Models.Mongo.Action.MatchCreated,
+                PlayerId = player.Id,
+                Date = DateTime.UtcNow
+            });
+        
         logger.LogDebug($"{player.Username} created a match with ID {matchData.LobbyId}, in-game ID: {matchData.Id}.");
     }
     

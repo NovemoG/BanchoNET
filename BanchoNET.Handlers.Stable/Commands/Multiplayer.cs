@@ -123,23 +123,6 @@ public partial class CommandProcessor
 
         await multiplayer.CreateMatchAsync(lobby, _playerCtx);
         
-        await histories.InsertMatchHistory(new Core.Models.Mongo.MultiplayerMatch
-        {
-            MatchId = lobby.LobbyId,
-            Name = lobby.Name,
-            Actions = [],
-            Scores = [],
-        });
-        
-        await histories.AddMatchAction(
-            lobby.LobbyId,
-            new ActionEntry
-            {
-                Action = Action.MatchCreated,
-                PlayerId = _playerCtx.Id,
-                Date = DateTime.UtcNow
-            });
-        
         return "";
     }
     

@@ -4,12 +4,11 @@ namespace BanchoNET.Core.Abstractions.Repositories.Histories;
 
 public interface IMultiplayerRepository
 {
-    Task InsertMatchHistory(MultiplayerMatch history);
-    Task<int> GetMatchId();
-    Task<MultiplayerMatch> GetMultiplayerMatch(int matchId);
-    Task AddMatchAction(int matchId, ActionEntry action);
-    Task AddMatchActions(int matchId, IEnumerable<ActionEntry> actions);
-    Task MapStarted(int matchId, ScoresEntry entry);
-    Task MapAborted(int matchId);
-    Task MapCompleted(int matchId, List<ScoreEntry> scores);
+    Task<long> InsertMatchHistory(MultiplayerMatch history);
+    Task<MultiplayerMatch> GetMultiplayerMatch(long matchId);
+    Task AddMatchAction(long matchId, ActionEntry action);
+    Task AddMatchActions(long matchId, IEnumerable<ActionEntry> actions);
+    Task MapStarted(long matchId, ScoresEntry entry);
+    Task MapAborted(long matchId);
+    Task MapCompleted(long matchId, List<ScoreEntry> scores);
 }

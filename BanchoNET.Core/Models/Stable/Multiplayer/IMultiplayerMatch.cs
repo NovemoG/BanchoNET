@@ -2,7 +2,7 @@
 
 namespace BanchoNET.Core.Models.Stable.Multiplayer;
 
-public interface IMultiplayerMatch : IHasOnlineId<int>,
+public interface IMultiplayerMatch : IHasOnlineId<long>,
     IEquatable<IMultiplayerMatch>
 {
     ushort Id { get; set; }

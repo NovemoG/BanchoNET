@@ -1,4 +1,5 @@
-﻿using BanchoNET.Core.Abstractions.HubClients;
+﻿using BanchoNET.Core.Abstractions.Bancho.Coordinators;
+using BanchoNET.Core.Abstractions.HubClients;
 using BanchoNET.Core.Models.Lazer.Multiplayer;
 using BanchoNET.Core.Models.Lazer.Multiplayer.Match;
 using BanchoNET.Core.Models.Lazer.Multiplayer.Matchmaking;
@@ -75,22 +76,25 @@ public class MultiplayerHub(ILogger logger) : BaseHub<IMultiplayerClient>(logger
     #region Lounge
 
     public async Task<MultiplayerRoom> CreateRoom(
-        MultiplayerRoom room
+        MultiplayerRoom room,
+        IMultiplayerCoordinator multiplayer
     ) {
+        
+        
         return room;
     }
 
     public async Task<MultiplayerRoom> JoinRoom(
         long roomId
     ) {
-        return new MultiplayerRoom();
+        return new MultiplayerRoom(roomId);
     }
 
     public async Task<MultiplayerRoom> JoinRoomWithPassword(
         long roomId,
         string password
     ) {
-        return new MultiplayerRoom();
+        return new MultiplayerRoom(roomId);
     }
 
     #endregion

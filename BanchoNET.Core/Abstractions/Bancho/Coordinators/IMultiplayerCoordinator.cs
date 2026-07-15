@@ -5,7 +5,7 @@ namespace BanchoNET.Core.Abstractions.Bancho.Coordinators;
 
 public interface IMultiplayerCoordinator : ICoordinator
 {
-    Task CreateMatchAsync(MultiplayerMatch matchData, Player player);
+    Task CreateMatchAsync(MultiplayerMatch matchData, Player player, long? channelId = null);
     bool JoinPlayer(ushort id, string password, Player player);
     bool LeavePlayer(Player player);
     

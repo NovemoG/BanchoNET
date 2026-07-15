@@ -23,8 +23,8 @@ public sealed class MultiplayerMatch : IMultiplayerMatch, IDisposable,
 	/// <summary>
 	/// Used by database for identification
 	/// </summary>
-	public int LobbyId { get; set; }
-	public int OnlineId => LobbyId;
+	public long LobbyId { get; set; }
+	public long OnlineId => LobbyId;
 	
 	public required string Name { get; set; }
 	public required string Password { get; set; }
