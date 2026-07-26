@@ -25,6 +25,15 @@ public static class StringExtensions
 		
 		return num.Length % 4 == 0 ? num[1..] : num;
 	}
+	
+	public static string SplitNumber(this long number)
+	{
+		if (number < 1000) return number.ToString();
+
+		var num = Regexes.NumSeparator.Replace(number.ToString(), ",$0");
+		
+		return num.Length % 4 == 0 ? num[1..] : num;
+	}
 
 	public static IEnumerable<string> SplitToParts(this string input, int spacing = 1)
 	{

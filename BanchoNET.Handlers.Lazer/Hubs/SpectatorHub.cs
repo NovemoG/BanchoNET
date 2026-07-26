@@ -5,7 +5,6 @@ using BanchoNET.Core.Abstractions.Services.Lazer;
 using BanchoNET.Core.Models.Api;
 using BanchoNET.Core.Models.Api.Player;
 using BanchoNET.Core.Models.Api.Scores;
-using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Lazer.Spectator;
 using BanchoNET.Core.Models.Lazer.Spectator.Frames;
 using BanchoNET.Core.Utils.Extensions;
@@ -20,7 +19,9 @@ public class SpectatorHub(
 {
     private static string SpectatorGroup(int userId) => $"spectator:{userId}";
     private static readonly ConcurrentDictionary<int, ClientSpectatorState> ClientStates = new();
-    
+
+    #region V1
+
     public async Task BeginPlaySession(
         long? scoreToken,
         SpectatorState state,
@@ -103,7 +104,7 @@ public class SpectatorHub(
             return;
         
         /*if (clientState.BeatmapStatus is < BeatmapStatus.Ranked or > BeatmapStatus.Loved)
-            return;*/
+            return;
         
         var score = clientState.Score!;
         if (!score.Statistics.Any(s => s.Key.IsHit() && s.Value > 0))
@@ -111,9 +112,83 @@ public class SpectatorHub(
 
         clientState.SubmitTime = DateTime.UtcNow;
 
-        await scoreQueue.EnqueueSpectatorScore(clientState);
+        await scoreQueue.EnqueueSpectatorScore(clientState);*/
+
+        await ProcessScore(clientState);
     }
 
+    #endregion
+
+    #region V2
+
+    public async Task BeginPlaySessionV2(
+        long? scoreToken,
+        SpectatorState state,
+        IBeatmapHandler beatmaps
+    ) => await BeginPlaySession(scoreToken, state, beatmaps);
+
+    public async Task SendFrameDataV2(
+        long? scoreToken,
+        FrameDataBundle data
+    ) {
+        if (!TryGetUserId(out var userId)) return;
+        if (!ClientStates.TryGetValue(userId, out var state)) return;
+        
+        if (scoreToken == null || scoreToken != state.ScoreToken)
+        {
+            Logger.LogWarning($"{userId} sent frame data with invalid score token. Expected: {state.ScoreToken}, Received: {scoreToken}");
+            return;
+        }
+
+        var score = state.Score!;
+        
+        score.Accuracy = data.Header.Accuracy;
+        score.Statistics = data.Header.Statistics;
+        score.MaxCombo = data.Header.MaxCombo;
+        score.Combo = data.Header.Combo;
+        score.TotalScore = (int)data.Header.TotalScore;
+        score.Mods = data.Header.Mods!;
+        score.TotalScoreWithoutMods = data.Header.TotalScoreWithoutMods;
+        score.Pauses = data.Header.Pauses;
+        
+        state.Frames.AddRange(data.Frames);
+        
+        await Clients.Group(SpectatorGroup(userId))
+            .UserSentFrames(userId, data);
+    }
+
+    public async Task EndPlaySessionV2(
+        long? scoreToken,
+        SpectatedUserState finalState
+    ) {
+        if (!TryGetUserId(out var userId)) return;
+        
+        ClientStates.TryRemove(userId, out var clientState);
+
+        if (clientState?.State == null) return;
+
+        if (scoreToken != null)
+        {
+            if (clientState.ScoreToken != scoreToken)
+            {
+                Logger.LogWarning($"{userId} ended play session with invalid score token. Expected: {clientState.ScoreToken}, Received: {scoreToken}");
+                return;
+            }
+
+            await ProcessScore(clientState);
+        }
+        
+        if (finalState == SpectatedUserState.Playing)
+            finalState = SpectatedUserState.Quit;
+        
+        clientState.State.State = finalState;
+        
+        await Clients.Group(SpectatorGroup(userId))
+            .UserFinishedPlaying(userId, clientState.State);
+    }
+
+    #endregion
+    
     public async Task StartWatchingUser(
         int userId //target
     ) {
@@ -146,5 +221,22 @@ public class SpectatorHub(
         
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, spectatorGroup);
         await Clients.User(userId.ToString()).UserEndedWatching(spectatorId);
+    }
+
+    private async Task ProcessScore(
+        ClientSpectatorState state
+    ) {
+        var score = state.Score;
+        if (score == null) return;
+            
+        /*if (clientState.BeatmapStatus is < BeatmapStatus.Ranked or > BeatmapStatus.Loved)
+            return;*/
+            
+        if (!score.Statistics.Any(s => s.Key.IsHit() && s.Value > 0))
+            return;
+            
+        state.SubmitTime = DateTime.UtcNow;
+            
+        await scoreQueue.EnqueueSpectatorScore(state);
     }
 }

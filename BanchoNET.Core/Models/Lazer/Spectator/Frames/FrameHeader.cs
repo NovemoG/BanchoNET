@@ -16,7 +16,10 @@ public class FrameHeader(
     int maxCombo,
     Dictionary<HitResult, int> statistics,
     ScoreProcessorStatistics scoreProcessorStatistics,
-    DateTimeOffset receivedTime
+    DateTimeOffset receivedTime,
+    Mod[] mods,
+    long totalScoreWithoutMods,
+    int[] pauses
 ) {
     [Key(0)]
     public long TotalScore { get; set; } = totalScore;
@@ -40,5 +43,11 @@ public class FrameHeader(
     public DateTimeOffset ReceivedTime { get; set; } = receivedTime;
 
     [Key(7)]
-    public Mod[]? Mods { get; set; }
+    public Mod[]? Mods { get; set; } = mods;
+    
+    [Key(8)]
+    public long TotalScoreWithoutMods { get; set; } = totalScoreWithoutMods;
+    
+    [Key(9)]
+    public int[] Pauses { get; set; } = pauses;
 }

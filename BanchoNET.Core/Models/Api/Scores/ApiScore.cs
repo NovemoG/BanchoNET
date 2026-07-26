@@ -54,7 +54,7 @@ public class ApiScore
     [JsonIgnore] public int TimeElapsed { get; set; }
     [JsonIgnore] public double ClockRate { get; set; }
     [JsonIgnore] public ApiScore? PreviousBest { get; set; }
-    [JsonIgnore] public int[] Pauses { get; init; } = [];
+    [JsonIgnore] public int[] Pauses { get; set; } = [];
     
     [JsonConstructor]
     public ApiScore() { }

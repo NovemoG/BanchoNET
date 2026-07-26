@@ -21,7 +21,7 @@ public class BeatmapsetConfiguration : IEntityTypeConfiguration<BeatmapsetDto>
         builder.HasIndex(b => b.RankedDate);
 
         builder.Property(b => b.CreatorName)
-            .HasMaxLength(16)
+            .HasMaxLength(32)
             .IsUnicode(false);
 
         builder.Property(b => b.Tags)
