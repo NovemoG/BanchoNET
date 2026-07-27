@@ -6,6 +6,8 @@
     build:
       context: .
       dockerfile: BanchoNET/Dockerfile
+      args:
+        PP_PROVIDER: ${PP_PROVIDER:-rosu}
     ports:
       - ${SERVER_PORT}:5000
     env_file:

@@ -4,6 +4,7 @@ WORKDIR /app
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
+ARG PP_PROVIDER=rosu
 WORKDIR /src
 COPY ["BanchoNET/BanchoNET.csproj", "BanchoNET/"]
 COPY ["BanchoNET.Core/BanchoNET.Core.csproj", "BanchoNET.Core/"]
@@ -13,11 +14,12 @@ COPY ["BanchoNET.Handlers.Stable/BanchoNET.Handlers.Stable.csproj", "BanchoNET.H
 RUN dotnet restore "BanchoNET/BanchoNET.csproj"
 COPY . .
 WORKDIR "/src/BanchoNET"
-RUN dotnet build "./BanchoNET.csproj" -c $BUILD_CONFIGURATION -o /app/build
+RUN dotnet build "./BanchoNET.csproj" -c $BUILD_CONFIGURATION -o /app/build /p:PpProvider=$PP_PROVIDER
 
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./BanchoNET.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+ARG PP_PROVIDER=rosu
+RUN dotnet publish "./BanchoNET.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false /p:PpProvider=$PP_PROVIDER
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS tools
 # Install vpk version that matches the one used in the osu!lazer repository in case something breaks

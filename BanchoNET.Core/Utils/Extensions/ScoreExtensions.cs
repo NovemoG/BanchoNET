@@ -5,7 +5,9 @@ using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Scores;
+using osu.Game.Scoring;
 using Pp;
+using Score = BanchoNET.Core.Models.Scores.Score;
 
 namespace BanchoNET.Core.Utils.Extensions;
 
@@ -195,6 +197,9 @@ public static class ScoreExtensions
             return;
         }
         
+#if OFFICIAL_PP
+        var pp = PpMethods.ComputeScorePp(beatmap.Id, score);
+#else
         var lazer = mods.FirstOrDefault(m => m.Acronym == "CL") == null;
         var da = mods.FirstOrDefault(m => m.Acronym == "DA"); // Difficulty Adjust
 
@@ -205,15 +210,16 @@ public static class ScoreExtensions
         {
             if (da.Settings.TryGetValue("circle_size", out var circleSize))
                 cs = circleSize.GetFloat();
-            
+
             if (da.Settings.TryGetValue("approach_rate", out var approachRate))
                 ar = approachRate.GetFloat();
-            
+
             if (da.Settings.TryGetValue("overall_difficulty", out var overallDifficulty))
                 od = overallDifficulty.GetFloat();
         }
 
         var pp = PpMethods.ComputeScorePp(beatmap.Id, score, score.ClockRate, lazer, cs, ar, od);
+#endif
 
         score.Pp = double.IsInfinity(pp) || double.IsNaN(pp) ? 0.0f : MathF.Round(pp, 5);
 
@@ -232,6 +238,9 @@ public static class ScoreExtensions
             return;
         }
 
+#if OFFICIAL_PP
+        var pp = PpMethods.ComputeScorePp(beatmap.Id, score, mods);
+#else
         var lazer = mods.FirstOrDefault(m => m.Acronym == "CL") == null;
         var da = mods.FirstOrDefault(m => m.Acronym == "DA"); // Difficulty Adjust
         var dt = mods.FirstOrDefault(m => m.Acronym is "DT" or "NC");
@@ -244,14 +253,14 @@ public static class ScoreExtensions
         {
             if (da.Settings.TryGetValue("circle_size", out var circleSize))
                 cs = Convert.ToSingle(circleSize);
-            
+
             if (da.Settings.TryGetValue("approach_rate", out var approachRate))
                 ar = Convert.ToSingle(approachRate);
-            
+
             if (da.Settings.TryGetValue("overall_difficulty", out var overallDifficulty))
                 od = Convert.ToSingle(overallDifficulty);
         }
-        
+
         var clockRate = dt != null ? 1.5d : ht != null ? 0.75d : 1d;
         if (dt != null && dt.Settings.TryGetValue("speed_change", out var rateChange)
             || ht != null && ht.Settings.TryGetValue("speed_change", out rateChange))
@@ -260,6 +269,7 @@ public static class ScoreExtensions
         }
 
         var pp = PpMethods.ComputeScorePp(beatmap.Id, score, clockRate, lazer, cs, ar, od);
+#endif
 
         Logger.Shared.LogInfo($"Recalculated score {score.Id}: {score.PP} -> {pp}", nameof(ScoreExtensions));
         

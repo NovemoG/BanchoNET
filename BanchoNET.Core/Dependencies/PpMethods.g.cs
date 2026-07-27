@@ -1,3 +1,4 @@
+#if !OFFICIAL_PP
 #pragma warning disable CS8500
 #pragma warning disable CS8981
 using System;
@@ -262,3 +263,4 @@ public static partial class PpMethods
         }
     }
 }
+#endif

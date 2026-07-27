@@ -339,6 +339,10 @@ public class Program
 		app.MapControllers();
 
 		#region Initialization
+
+		var ppProvider = Environment.GetEnvironmentVariable("PP_PROVIDER");
+		if (!string.IsNullOrWhiteSpace(ppProvider))
+			Logger.Shared.LogDebug($"Using {ppProvider} pp provider");
 		
 		EnsureDatabaseExists(app.Services.CreateScope());
 		

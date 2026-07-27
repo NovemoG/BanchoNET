@@ -7,6 +7,12 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
+    <PropertyGroup>
+        <PpProvider Condition="'$(PpProvider)' == '' And '$(PP_PROVIDER)' != ''">$(PP_PROVIDER)</PpProvider>
+        <PpProvider Condition="'$(PpProvider)' == ''">rosu</PpProvider>
+        <DefineConstants Condition="'$(PpProvider)' == 'official'">$(DefineConstants);OFFICIAL_PP</DefineConstants>
+    </PropertyGroup>
+
     <ItemGroup>
       <PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />
       <PackageReference Include="Enums.NET" Version="5.0.0" />
@@ -25,6 +31,10 @@
       <PackageReference Include="MongoDB.Bson" Version="3.10.0" />
       <PackageReference Include="Novelog" Version="0.2.3" />
       <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+      <PackageReference Include="ppy.osu.Game.Rulesets.Catch" Version="2026.702.1" />
+      <PackageReference Include="ppy.osu.Game.Rulesets.Mania" Version="2026.702.1" />
+      <PackageReference Include="ppy.osu.Game.Rulesets.Osu" Version="2026.702.1" />
+      <PackageReference Include="ppy.osu.Game.Rulesets.Taiko" Version="2026.702.1" />
       <PackageReference Include="SevenZip" Version="19.0.0" />
       <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.21.0" />
     </ItemGroup>
