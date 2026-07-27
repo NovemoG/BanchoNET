@@ -105,6 +105,9 @@ internal static class OfficialCalculator
                 continue;
             }
 
+            if (result is ModTimeRamp ramp)
+                ramp.InitialRate.Value = Math.Min(ramp.InitialRate.Value, ramp.FinalRate.Value);
+
             converted.Add(result);
         }
 
