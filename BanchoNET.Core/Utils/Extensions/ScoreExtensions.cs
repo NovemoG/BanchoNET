@@ -189,6 +189,9 @@ public static class ScoreExtensions
         this ApiScore score,
         Beatmap beatmap
     ) {
+#if OFFICIAL_PP
+        var pp = PpMethods.ComputeScorePp(beatmap.Id, score);
+#else
         var mods = score.Mods;
 
         if (mods.FirstOrDefault(m => m.Acronym == "RD") != null)
@@ -197,9 +200,6 @@ public static class ScoreExtensions
             return;
         }
         
-#if OFFICIAL_PP
-        var pp = PpMethods.ComputeScorePp(beatmap.Id, score);
-#else
         var lazer = mods.FirstOrDefault(m => m.Acronym == "CL") == null;
         var da = mods.FirstOrDefault(m => m.Acronym == "DA"); // Difficulty Adjust
 
@@ -232,15 +232,15 @@ public static class ScoreExtensions
     ) {
         var mods = score.LazerMods?.ToMods() ?? score.ModKeys.ToMods();
         
+#if OFFICIAL_PP
+        var pp = PpMethods.ComputeScorePp(beatmap.Id, score, mods);
+#else
         if (mods.FirstOrDefault(m => m.Acronym == "RD") != null)
         {
             score.PP = 0;
             return;
         }
 
-#if OFFICIAL_PP
-        var pp = PpMethods.ComputeScorePp(beatmap.Id, score, mods);
-#else
         var lazer = mods.FirstOrDefault(m => m.Acronym == "CL") == null;
         var da = mods.FirstOrDefault(m => m.Acronym == "DA"); // Difficulty Adjust
         var dt = mods.FirstOrDefault(m => m.Acronym is "DT" or "NC");
