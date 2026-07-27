@@ -30,7 +30,7 @@ public class Score
 	public int Katus { get; set; }
 	public int IgnoreHit { get; set; }
 	public int IgnoreMiss { get; set; }
-	public int TotalScore { get; set; }
+	public long TotalScore { get; set; }
 	public int MaxCombo { get; set; }
 	public bool Perfect { get; set; }
 	public bool Passed { get; set; }

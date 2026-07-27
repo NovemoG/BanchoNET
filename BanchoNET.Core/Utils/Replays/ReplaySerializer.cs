@@ -14,7 +14,7 @@ namespace BanchoNET.Core.Utils.Replays;
 public static class ReplaySerializer
 {
 	public const int EARLY_VERSION_TIMING_OFFSET = 24;
-	public const int LATEST_VERSION = 30000016;
+	public const int LATEST_VERSION = 30000018;
 
 	public static void Serialize(
 		ApiScore score,
@@ -41,7 +41,7 @@ public static class ReplaySerializer
 		bw.Write((ushort)score.GetCountGeki());
 		bw.Write((ushort)score.GetCountKatu());
 		bw.Write((ushort)score.GetCountMiss());
-		bw.Write(score.TotalScore);
+		bw.Write((int)score.TotalScore);
 		bw.Write((ushort)score.MaxCombo);
 		bw.Write(score.IsPerfectCombo);
 		bw.Write((int)score.Mods.ToLegacyMods());

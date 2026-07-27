@@ -37,10 +37,11 @@ public class ScoreDto
 	/// </summary>
 	public Dictionary<HitResult, int> Statistics { get; set; } = new();
 	
-	public int TotalScore { get; set; }
-	public int ClassicScore { get; set; }
-	public int TotalScoreWithoutMods { get; set; }
-	public int LegacyTotalScore { get; set; }
+	public long TotalScore { get; set; }
+	public long TotalScoreWithoutMods { get; set; }
+	
+	//TODO this should stay int and TotalScore should be used instead 
+	public long LegacyTotalScore { get; set; }
 	
 	public Grade Grade { get; set; }
 	public SubmissionStatus Status { get; set; }

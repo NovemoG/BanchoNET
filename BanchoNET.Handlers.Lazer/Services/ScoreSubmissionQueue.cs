@@ -304,7 +304,7 @@ public sealed partial class ScoreSubmissionQueue(
         
         if (score.Status == SubmissionStatus.Best)
         {
-            var oldBestScore = 0;
+            long oldBestScore = 0;
             
             if (prevBest != null)
             {

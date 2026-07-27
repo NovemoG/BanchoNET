@@ -362,7 +362,7 @@ public partial class OsuController
         
         if (score.Status == SubmissionStatus.Best)
         {
-            var oldBestScore = 0;
+            long oldBestScore = 0;
             
             if (prevBest != null)
             {

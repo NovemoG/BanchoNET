@@ -18,7 +18,7 @@ public class ApiScore
     public Dictionary<HitResult, int> MaximumStatistics { get; set; } = new();
     public Dictionary<HitResult, int> Statistics { get; set; } = new();
     public Mod[] Mods { get; set; } = [];
-    public int TotalScoreWithoutMods { get; set; }
+    public long TotalScoreWithoutMods { get; set; }
     public int BeatmapId { get; set; }
     public long? BestId { get; set; }
     public long Id { get; set; }
@@ -39,7 +39,7 @@ public class ApiScore
     public double Pp { get; set; }
     public int RulesetId { get; set; }
     public DateTimeOffset? StartedAt { get; set; }
-    public int TotalScore { get; set; }
+    public long TotalScore { get; set; }
     public bool Replay { get; set; }
     public Attributes CurrentUserAttributes { get; set; } = new();
     
@@ -64,7 +64,7 @@ public class ApiScore
         PlayerDto player
     ) {
         //TODO (for players that have Classic score enabled)
-        ClassicTotalScore = AppSettings.SortLeaderboardByPP ? (int)MathF.Round(score.PP) : score.LegacyTotalScore;
+        ClassicTotalScore = (int)(AppSettings.SortLeaderboardByPP ? MathF.Round(score.PP) : score.LegacyTotalScore);
         Preserve = score.Preserve;
         Processed = score.Processed;
         Ranked = score.Ranked;
