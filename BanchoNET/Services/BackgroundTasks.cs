@@ -27,6 +27,7 @@ public class BackgroundTasks(
         { "MarkInactivePlayers", "0 0 * * *" },         // every day at midnight
         { "DeleteUnnecessaryScores", "0 0 */2 * *" },   // every 2 days at midnight
         { "AppendMonthlyHistory", "0 0 1 * *" },        // every 1st day of the month at midnight
+        { "CleanupRefreshTokens", "0 0 * * *" },        // every day at midnight
     };
 
     protected override async Task ExecuteAsync(
@@ -116,6 +117,9 @@ public class BackgroundTasks(
 
             case "AppendMonthlyHistory":
                 return AppendPlayerMonthlyHistory(ct);
+
+            case "CleanupRefreshTokens":
+                return CleanupRefreshTokens(ct);
 
             default:
                 logger.LogWarning($"Unknown cron job name: {jobName}");
@@ -242,6 +246,22 @@ public class BackgroundTasks(
 
     #endregion
     
+    public async Task CleanupRefreshTokens(CancellationToken ct)
+    {
+        logger.LogInfo("Cleaning up refresh tokens...", caller: nameof(BackgroundTasks));
+
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<BanchoDbContext>();
+
+        var now = DateTime.UtcNow;
+        
+        var deleted = await db.RefreshTokens
+            .Where(t => t.ExpiresAt < now)
+            .ExecuteDeleteAsync(ct);
+
+        logger.LogInfo($"Deleted {deleted} expired refresh tokens.", caller: nameof(BackgroundTasks));
+    }
+
     public async Task MarkInactivePlayers(CancellationToken ct)
     {
         logger.LogInfo("Marking inactive players...", caller: nameof(BackgroundTasks));

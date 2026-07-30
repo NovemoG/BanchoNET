@@ -1,4 +1,4 @@
-﻿using BanchoNET.Core.Models.Auth;
+using BanchoNET.Core.Models.Auth;
 using BanchoNET.Core.Models.Players;
 
 namespace BanchoNET.Core.Abstractions.Services;
@@ -10,13 +10,30 @@ public interface IAuthService
         string password
     );
 
+    Task<OAuthClient?> ValidateClient(
+        string? clientId,
+        string? clientSecret
+    );
+
     Task<TokenResponseDto> CreateTokensForUser(
         Player player,
-        string scope = "*"
+        OAuthClient client,
+        string scope
+    );
+    
+    TokenResponseDto CreateTokensForClient(
+        OAuthClient client,
+        string scope
     );
 
     Task<TokenResponseDto?> Refresh(
-        string refreshTokenPlain
+        string refreshTokenPlain,
+        OAuthClient client
+    );
+    
+    Task RevokeToken(
+        string jti,
+        DateTimeOffset accessTokenExpiresAt
     );
 
     Task<SessionVerification> CreateSessionVerificationForUser(

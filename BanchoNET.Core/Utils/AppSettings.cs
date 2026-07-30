@@ -1,4 +1,5 @@
-﻿using BanchoNET.Core.Models.Players;
+﻿using System.Text;
+using BanchoNET.Core.Models.Players;
 
 namespace BanchoNET.Core.Utils;
 
@@ -173,9 +174,28 @@ public static class AppSettings
         DiscordDebugGuildId = string.IsNullOrEmpty(debugGuildId)
             ? 0
             : ulong.Parse(debugGuildId);
+        
+        var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET");
+        if (string.IsNullOrEmpty(jwtSecret) || jwtSecret.Length < 32)
+        {
+            Logger.Shared.LogWarning(
+                string.IsNullOrEmpty(jwtSecret)
+                    ? "No JWT_SECRET provided, falling back to lazer's public client secret as the token signing key. Anyone who has read lazer's source can forge access tokens for this server. Set JWT_SECRET to a random value of at least 32 characters."
+                    : "JWT_SECRET is shorter than 32 characters, falling back to lazer's public client secret as the token signing key. Anyone who has read lazer's source can forge access tokens for this server. Set JWT_SECRET to a random value of at least 32 characters.",
+                caller: "Init");
+
+            jwtSecret = LazerClientSecret;
+        }
+
+        JwtSecret = Encoding.UTF8.GetBytes(jwtSecret);
     }
 
     public const string TokenClientName = "V2Client";
+    
+    public const string LazerClientId = "5";
+    public const string LazerClientSecret = "FGc9GAtyHzeQDshWP5Ah7dega8hJACAJpQtw6OXk";
+
+    public static readonly byte[] JwtSecret;
 
     public static readonly string Domain;
     public static readonly bool Debug;

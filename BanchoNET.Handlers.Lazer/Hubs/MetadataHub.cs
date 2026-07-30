@@ -89,10 +89,10 @@ public class MetadataHub(
     public async Task RefreshFriends() {
         if (!TryGetUserId(out var userId)) return;
 
-        var friendIds = playerService.GetPlayer(userId)?.Friends ?? [];
+        var friendIds = (await playerService.GetPlayer(userId))?.Friends ?? [];
         foreach (var friendId in friendIds)
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, UserPresenceGroup(friendId));
-        
+
         friendIds = (await players.GetPlayerFriends(userId))
             .Select(f => f.TargetId)
             .ToArray();
@@ -105,7 +105,7 @@ public class MetadataHub(
                 await Clients.Caller.FriendPresenceUpdated(friendId, presence);
         }
         
-        playerService.AssignFriends(userId, friendIds);
+        await playerService.AssignFriends(userId, friendIds);
     }
 
     public override async Task OnConnectedAsync() {
@@ -114,11 +114,11 @@ public class MetadataHub(
             ConnectedUsers.TryAdd(userId, new UserPresence());
 
             // if server has restarted but player is still logged in
-            if (playerService.GetPlayer(userId) == null)
+            if (await playerService.GetPlayer(userId) == null)
             {
                 var apiPlayer = await players.GetFullPlayerInfo(userId);
                 if (apiPlayer != null)
-                    playerService.AddPlayer(apiPlayer);
+                    await playerService.AddPlayer(apiPlayer);
             }
             
             await RefreshFriends();
@@ -133,7 +133,7 @@ public class MetadataHub(
         if (TryGetUserId(out var userId))
         {
             ConnectedUsers.TryRemove(userId, out var presence);
-            playerService.RemovePlayer(userId);
+            await playerService.RemovePlayer(userId);
             
             if (presence.Status != UserStatus.Offline)
                 await BroadcastUserPresenceUpdate(userId, null);

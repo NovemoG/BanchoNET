@@ -2,6 +2,7 @@
 using BanchoNET.Core.Abstractions.Bancho.Services;
 using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Repositories.Histories;
+using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Api.Player;
 using BanchoNET.Core.Models.Api.Scores;
@@ -27,6 +28,7 @@ public class PlayersRepository : IPlayersRepository
 	private readonly IMultiplayerCoordinator _multiplayer;
 	private readonly IDatabase _redis;
 	private readonly IHistoriesRepository _histories;
+	private readonly IPasswordService _passwords;
 
 	public PlayersRepository(
 		BanchoDbContext dbContext,
@@ -34,7 +36,8 @@ public class PlayersRepository : IPlayersRepository
 		IPlayerCoordinator playerCoordinator,
 		IMultiplayerCoordinator multiplayer,
 		IConnectionMultiplexer redis,
-		IHistoriesRepository histories
+		IHistoriesRepository histories,
+		IPasswordService passwords
 	) {
 		_players = players;
 		_playerCoordinator = playerCoordinator;
@@ -42,6 +45,7 @@ public class PlayersRepository : IPlayersRepository
 		_dbContext = dbContext;
 		_redis = redis.GetDatabase();
 		_histories = histories;
+		_passwords = passwords;
 	}
 	
 	public async Task<bool> EmailTaken(string email)
@@ -191,7 +195,7 @@ public class PlayersRepository : IPlayersRepository
 		var player = await GetPlayerOrOffline(username);
 		if (player == null) return null;
 
-		return passwordMD5.VerifyPassword(player.PasswordHash) ? player : null;
+		return _passwords.Verify(passwordMD5, player.PasswordHash) ? player : null;
 	}
 	
 	public async Task<Player?> GetPlayerOrOffline(string username)
@@ -941,6 +945,7 @@ public class PlayersRepository : IPlayersRepository
 			player.LoginName = player.SafeName;
 
 			player.Email = "email";
+			_passwords.Invalidate(player.PasswordHash);
 			player.PasswordHash = "1";
 			player.AwayMessage = "";
 			player.UserPageContent = "";

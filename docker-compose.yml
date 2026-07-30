@@ -51,6 +51,7 @@
     image: redis:8
     hostname: banchonet-redis
     container_name: banchonet-redis
+    command: ["redis-server", "--appendonly", "yes"]
     environment:
       REDIS_HOST: ${REDIS_HOST}
       REDIS_PORT: ${REDIS_PORT}
@@ -58,6 +59,8 @@
     restart: unless-stopped
     ports:
         - ${REDIS_PORT}:${REDIS_PORT}
+    volumes:
+      - banchonet-redis-data:/data
     networks:
       - banchonet
     healthcheck:
@@ -83,9 +86,11 @@
       - banchonet
     healthcheck:
       test: ["CMD-SHELL", "mongosh --quiet --eval 'db.runCommand(\"ping\").ok' || exit 1"]
-      interval: 2s
+      interval: 30s
+      start_period: 40s
+      start_interval: 2s
       timeout: 10s
-      retries: 10
+      retries: 5
 
 networks:
   banchonet:
@@ -95,6 +100,8 @@ volumes:
   banchonet-lazer-data:
     driver: local
   banchonet-db-data:
+    driver: local
+  banchonet-redis-data:
     driver: local
   banchonet-mongo-data:
     driver: local

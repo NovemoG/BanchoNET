@@ -21,6 +21,7 @@ public partial class ChoController(
 	IClientsRepository clients,
 	IClientPacketsHandler clientPackets,
 	IMessagesRepository messages,
+	IPasswordService passwords,
 	ILogger logger
 ) : ControllerBase
 {

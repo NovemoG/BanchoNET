@@ -1,4 +1,3 @@
-using BanchoNET.Core.Models.Api;
 using BanchoNET.Core.Models.Api.Beatmaps;
 using BanchoNET.Core.Models.Api.Scores;
 
@@ -20,7 +19,7 @@ public interface IScoreSubmissionQueue
     );
 
     Task EnqueueSpectatorScore(
-        ClientSpectatorState spectatorState,
+        long scoreToken,
         CancellationToken ct = default
     );
 }

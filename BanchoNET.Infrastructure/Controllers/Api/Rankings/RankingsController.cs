@@ -1,6 +1,7 @@
 ﻿using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Abstractions.Services.Lazer;
+using BanchoNET.Core.Attributes;
 using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Api;
 using BanchoNET.Core.Models.Api.Player;
@@ -11,14 +12,14 @@ namespace BanchoNET.Infrastructure.Controllers.Api.Rankings;
 
 [Route("api/v2/rankings")]
 public partial class RankingsController(
-    IAuthService auth,
     IPlayersRepository players,
     ILazerPlayerService playerService,
     IBeatmapHandler beatmaps,
     ILazerScoresRepository scores
-) : ApiController(auth, players, playerService, beatmaps)
+) : ApiControllerBase(players, playerService, beatmaps)
 {
     [HttpGet("{mode}/{type}")]
+    [AllowClientCredentials]
     public async Task<ActionResult<RankingsResponse>> GetRankings(
         string mode,
         string type,
@@ -27,7 +28,6 @@ public partial class RankingsController(
         [FromQuery] int? spotlight,
         [FromQuery] int? filter
     ) {
-        if (!User.TryGetUserId(out _)) return Unauthorized();
         if (page < 1) return BadRequest();
         if (!EnumExtensions.ToModeMap.TryGetValue(mode, out var gameMode))
             return BadRequest();

@@ -1,11 +1,13 @@
-﻿using BanchoNET.Core.Models.Api.Player;
+﻿using BanchoNET.Core.Attributes;
+using BanchoNET.Core.Models.Api.Player;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BanchoNET.Infrastructure.Controllers.Api.Users;
 
 public partial class UsersController
 {
-    [HttpGet("recent_activity")]
+    [HttpGet("{userId:int}/recent_activity")]
+    [AllowClientCredentials]
     public async Task<ActionResult<Activity[]>> GetRecentActivity(
         int userId,
         [FromQuery] int offset,

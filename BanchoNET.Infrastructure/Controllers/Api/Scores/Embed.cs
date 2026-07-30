@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Text;
+using BanchoNET.Core.Attributes;
 using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Models.Scores;
 using BanchoNET.Core.Utils;
@@ -13,6 +14,9 @@ public partial class ScoresController
 {
     [HttpGet("{id:long}")]
     [AllowAnonymous]
+    // Anonymous requests never reach RequireUser, but a request that does carry a client
+    // credentials token still would, and this page is public either way.
+    [AllowClientCredentials]
     public async Task<IActionResult> GetEmbed(
         long id
     ) {

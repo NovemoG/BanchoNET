@@ -7,7 +7,7 @@ namespace BanchoNET.Infrastructure.Controllers.Api.Beatmaps;
 
 public partial class BeatmapsController
 {
-    [HttpPost("solo/scores")]
+    [HttpPost("{beatmapId:int}/solo/scores")]
     public async Task<ActionResult<ScoreResponseDto?>> PostScore(
         int beatmapId,
         [FromForm] ScoreRequestDto dto
@@ -19,7 +19,7 @@ public partial class BeatmapsController
         return JsonSnake(response);
     }
     
-    [HttpPut("solo/scores/{scoreId:int}")]
+    [HttpPut("{beatmapId:int}/solo/scores/{scoreId:long}")]
     public async Task<ActionResult<ApiScore?>> PutScore(
         int beatmapId,
         long scoreId,

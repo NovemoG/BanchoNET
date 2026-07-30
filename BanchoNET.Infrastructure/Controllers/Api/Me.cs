@@ -1,4 +1,6 @@
-﻿using BanchoNET.Core.Models.Api.Player;
+﻿using BanchoNET.Core.Attributes;
+using BanchoNET.Core.Models.Auth;
+using BanchoNET.Core.Models.Api.Player;
 using BanchoNET.Core.Utils.Extensions;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,6 +9,7 @@ namespace BanchoNET.Infrastructure.Controllers.Api;
 public partial class ApiController
 {
     [HttpGet("me")]
+    [RequireScope(OAuthScopes.Identify)]
     public async Task<ActionResult<MeResponse?>> GetMe() {
         if (!User.TryGetUserId(out var uid)) return Unauthorized();
 

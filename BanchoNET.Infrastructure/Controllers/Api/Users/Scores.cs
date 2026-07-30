@@ -1,4 +1,5 @@
-﻿using BanchoNET.Core.Models.Api.Scores;
+﻿using BanchoNET.Core.Attributes;
+using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Utils.Extensions;
 using Microsoft.AspNetCore.Mvc;
@@ -7,15 +8,14 @@ namespace BanchoNET.Infrastructure.Controllers.Api.Users;
 
 public partial class UsersController
 {
-    [HttpGet("scores/best")]
+    [HttpGet("{userId:int}/scores/best")]
+    [AllowClientCredentials]
     public async Task<ActionResult<List<ApiScoreBest>>> GetBestScores(
         int userId,
         [FromQuery] int offset,
         [FromQuery] int limit,
         [FromQuery] string mode
     ) {
-        if (!User.TryGetUserId(out _)) return Unauthorized();
-
         var player = await Players.GetPlayerInfo(userId);
         if (player == null) return NotFound();
         
@@ -27,7 +27,8 @@ public partial class UsersController
         return JsonSnake(bestScores.Select((s, i) => new ApiScoreBest(s, player, s.Beatmap, s.Beatmap.Beatmapset, i)));
     }
     
-    [HttpGet("scores/{type}")]
+    [HttpGet("{userId:int}/scores/{type}")]
+    [AllowClientCredentials]
     public async Task<ActionResult<List<ApiScoreExtended>>> GetScores(
         int userId,
         string type,
@@ -35,7 +36,6 @@ public partial class UsersController
         [FromQuery] int limit,
         [FromQuery] string mode
     ) {
-        if (!User.TryGetUserId(out _)) return Unauthorized();
         if (!EnumExtensions.ToModeMap.TryGetValue(mode, out var gameMode)) return BadRequest();
 
         List<ScoreDto> tempScores;

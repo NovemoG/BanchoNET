@@ -1,5 +1,7 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Models.Auth;
@@ -14,11 +16,15 @@ namespace BanchoNET.Infrastructure.Services;
 
 public class AuthService(
     BanchoDbContext db,
-    IPlayersRepository players
+    IPlayersRepository players,
+    IPasswordService passwords,
+    IAccessTokenDenylist denylist
 ) : IAuthService
 {
     private static readonly string Issuer = $"https://osu.{AppSettings.Domain}";
-    
+    private static readonly TimeSpan AccessTokenLifetime = TimeSpan.FromDays(1);
+    private static readonly TimeSpan RefreshTokenLifetime = TimeSpan.FromDays(30);
+
     public async Task<Player?> ValidateUserCredentials(
         string username,
         string password
@@ -27,114 +33,169 @@ public class AuthService(
         var userInfo = await players.GetPlayerInfoFromLogin(username);
         if (userInfo == null) return null;
 
-        return md5.VerifyPassword(userInfo.PasswordHash)
+        return passwords.Verify(md5, userInfo.PasswordHash)
             ? new Player(userInfo)
             : null;
     }
 
+    public async Task<OAuthClient?> ValidateClient(
+        string? clientId,
+        string? clientSecret
+    ) {
+        if (!int.TryParse(clientId, out var id)) return null;
+        if (string.IsNullOrEmpty(clientSecret)) return null;
+
+        var client = await db.OAuthClients.FirstOrDefaultAsync(c => c.Id == id);
+        if (client == null || client.Revoked) return null;
+
+        var presented = Encoding.UTF8.GetBytes(clientSecret.HashStringSHA256());
+        var stored = Encoding.UTF8.GetBytes(client.SecretHash);
+
+        return CryptographicOperations.FixedTimeEquals(presented, stored) ? client : null;
+    }
+
     public async Task<TokenResponseDto> CreateTokensForUser(
         Player player,
-        string scope = "*"
+        OAuthClient client,
+        string scope
     ) {
-        var key = "FGc9GAtyHzeQDshWP5Ah7dega8hJACAJpQtw6OXk"u8.ToArray();
-        var creds = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256);
+        return await IssueTokens(player.Id, client.Id, scope, Guid.NewGuid());
+    }
+
+    public TokenResponseDto CreateTokensForClient(
+        OAuthClient client,
+        string scope
+    ) {
+        var now = DateTime.UtcNow;
+        var expires = now.Add(AccessTokenLifetime);
+
+        return new TokenResponseDto
+        {
+            access_token = CreateAccessToken(0, client.Id, scope, Guid.NewGuid().ToString(), now, expires),
+            expires_in = (int)(expires - now).TotalSeconds,
+            refresh_token = null
+        };
+    }
+
+    public async Task<TokenResponseDto?> Refresh(
+        string refreshTokenPlain,
+        OAuthClient client
+    ) {
+        var hash = refreshTokenPlain.HashStringSHA256();
+        var dbToken = await db.RefreshTokens.FirstOrDefaultAsync(t => t.TokenHash == hash);
+        if (dbToken == null) return null;
+        
+        if (dbToken.Revoked)
+        {
+            await db.RefreshTokens
+                .Where(t => t.FamilyId == dbToken.FamilyId && !t.Revoked)
+                .ExecuteUpdateAsync(s => s.SetProperty(t => t.Revoked, true));
+
+            return null;
+        }
+
+        if (dbToken.ExpiresAt < DateTime.UtcNow) return null;
+        if (dbToken.ClientId != client.Id) return null;
+
+        var exists = await players.PlayerExists(dbToken.UserId);
+        if (!exists) return null;
+
+        return await IssueTokens(
+            dbToken.UserId,
+            dbToken.ClientId,
+            dbToken.Scope,
+            dbToken.FamilyId,
+            replaced: dbToken
+        );
+    }
+
+    public async Task RevokeToken(
+        string jti,
+        DateTimeOffset accessTokenExpiresAt
+    ) {
+        var dbToken = await db.RefreshTokens.FirstOrDefaultAsync(t => t.Jti == jti);
+
+        // Client credentials tokens have no refresh chain, only the denylist applies
+        if (dbToken != null)
+        {
+            await db.RefreshTokens
+                .Where(t => t.FamilyId == dbToken.FamilyId && !t.Revoked)
+                .ExecuteUpdateAsync(s => s.SetProperty(t => t.Revoked, true));
+        }
+
+        await denylist.Revoke(jti, accessTokenExpiresAt);
+    }
+
+    private async Task<TokenResponseDto> IssueTokens(
+        int userId,
+        int clientId,
+        string scope,
+        Guid familyId,
+        RefreshToken? replaced = null
+    ) {
         var jti = Guid.NewGuid().ToString();
         var now = DateTime.UtcNow;
-        var expires = now.AddDays(1);
-        
-        var claims = new[] {
-            new Claim(JwtRegisteredClaimNames.Sub, player.Id.ToString()),
-            new Claim(JwtRegisteredClaimNames.Aud, "5"),
-            new Claim(JwtRegisteredClaimNames.Jti, jti),
-            new Claim("scopes", scope),
-        };
-
-        var token = new JwtSecurityToken(
-            issuer: Issuer,
-            audience: "5",
-            claims: claims,
-            notBefore: now,
-            expires: expires,
-            signingCredentials: creds
-        );
-        var accessToken = new JwtSecurityTokenHandler().WriteToken(token);
+        var expires = now.Add(AccessTokenLifetime);
 
         var refreshPlain = StringExtensions.RandomBase64Url(64);
         var refreshHash = refreshPlain.HashStringSHA256();
-        var refreshDb = new RefreshToken
+
+        if (replaced != null)
+        {
+            replaced.Revoked = true;
+            replaced.ReplacedByToken = refreshHash;
+        }
+
+        db.RefreshTokens.Add(new RefreshToken
         {
             TokenHash = refreshHash,
-            UserId = player.Id,
-            ExpiresAt = DateTime.UtcNow.AddDays(30),
+            UserId = userId,
+            ClientId = clientId,
+            FamilyId = familyId,
+            Scope = scope,
+            ExpiresAt = now.Add(RefreshTokenLifetime),
             Revoked = false,
             Jti = jti
-        };
-        db.RefreshTokens.Add(refreshDb);
+        });
         await db.SaveChangesAsync();
 
         return new TokenResponseDto
         {
-            access_token = accessToken,
+            access_token = CreateAccessToken(userId, clientId, scope, jti, now, expires),
             expires_in = (int)(expires - now).TotalSeconds,
             refresh_token = refreshPlain
         };
     }
 
-    public async Task<TokenResponseDto?> Refresh(
-        string refreshTokenPlain
+    private static string CreateAccessToken(
+        int userId,
+        int clientId,
+        string scope,
+        string jti,
+        DateTime notBefore,
+        DateTime expires
     ) {
-        var hash = refreshTokenPlain.HashStringSHA256();
-        var dbToken = db.RefreshTokens.SingleOrDefault(t => t.TokenHash == hash);
-        if (dbToken == null || dbToken.Revoked || dbToken.ExpiresAt < DateTime.UtcNow)
-            return null;
-        
-        var exists = await players.PlayerExists(dbToken.UserId);
-        if (!exists) return null;
+        var key = new SymmetricSecurityKey(AppSettings.JwtSecret);
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-        dbToken.Revoked = true;
-        var newPlain = StringExtensions.RandomBase64Url(64);
-        var newHash = newPlain.HashStringSHA256();
-        var newDb = new RefreshToken
-        {
-            TokenHash = newHash,
-            UserId = dbToken.UserId,
-            ExpiresAt = DateTime.UtcNow.AddDays(30),
-            Revoked = false,
-            Jti = Guid.NewGuid().ToString()
-        };
-        dbToken.ReplacedByToken = newPlain;
-        db.RefreshTokens.Add(newDb);
-        await db.SaveChangesAsync();
+        List<Claim> claims = [
+            new(JwtRegisteredClaimNames.Jti, jti),
+            new("scopes", scope),
+        ];
         
-        var key = "FGc9GAtyHzeQDshWP5Ah7dega8hJACAJpQtw6OXk"u8.ToArray();
-        var creds = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256);
-        var jti = Guid.NewGuid().ToString();
-        var now = DateTime.UtcNow;
-        var expires = now.AddDays(1);
-        
-        var claims = new[] {
-            new Claim(JwtRegisteredClaimNames.Sub, dbToken.UserId.ToString()),
-            new Claim(JwtRegisteredClaimNames.Aud, "5"),
-            new Claim(JwtRegisteredClaimNames.Jti, jti),
-            new Claim("scopes", "*"),
-        };
+        if (userId > 0)
+            claims.Add(new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()));
 
         var token = new JwtSecurityToken(
             issuer: Issuer,
-            audience: "5",
+            audience: clientId.ToString(),
             claims: claims,
-            notBefore: now,
+            notBefore: notBefore,
             expires: expires,
             signingCredentials: creds
         );
-        var accessToken = new JwtSecurityTokenHandler().WriteToken(token);
 
-        return new TokenResponseDto
-        {
-            access_token = accessToken,
-            expires_in = (int)(expires - now).TotalSeconds,
-            refresh_token = newPlain
-        };
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
     public async Task<SessionVerification> CreateSessionVerificationForUser(
@@ -167,13 +228,13 @@ public class AuthService(
             .Where(s => s.UserId == userId && !s.Used && s.ExpiresAt >= DateTime.UtcNow)
             .OrderByDescending(s => s.Id)
             .FirstOrDefaultAsync();
-        
+
         if (session == null) return false;
         if (session.CodeHash != hash) return false;
-        
+
         session.Used = true;
         session.VerifiedAt = DateTime.UtcNow;
-        
+
         await db.SaveChangesAsync();
         return true;
     }

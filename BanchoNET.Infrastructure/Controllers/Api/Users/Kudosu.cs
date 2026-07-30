@@ -1,10 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using BanchoNET.Core.Attributes;
+using Microsoft.AspNetCore.Mvc;
 
 namespace BanchoNET.Infrastructure.Controllers.Api.Users;
 
 public partial class UsersController
 {
-    [HttpGet("kudosu")]
+    [HttpGet("{userId:int}/kudosu")]
+    [AllowClientCredentials]
     public async Task<ActionResult<int[]>> GetKudosu(
         int userId,
         [FromQuery] int offset,

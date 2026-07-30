@@ -13,6 +13,7 @@ using BanchoNET.Core.Abstractions.Repositories.Histories;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Abstractions.Services.Lazer;
 using BanchoNET.Core.Models;
+using BanchoNET.Core.Models.Auth;
 using BanchoNET.Core.Models.Channels;
 using BanchoNET.Core.Models.Db;
 using BanchoNET.Core.Models.Dtos;
@@ -235,16 +236,21 @@ public class Program
 			.AddHostedService<LobbyQueueHostedService>();
 
 		builder.Services
+			.AddSingleton<IPasswordService, PasswordService>()
+			.AddSingleton<IAccessTokenDenylist, AccessTokenDenylist>()
 			.AddScoped<IGeolocService, GeolocService>()
 			.AddScoped<IClientPacketsHandler, ClientPacketsHandler>()
 			.AddScoped<ICommandProcessor, CommandProcessor>();
 		
 		builder.Services
+			.AddSingleton<IScoreTokenStore, ScoreTokenStore>()
+			.AddSingleton<ISpectatorStateStore, SpectatorStateStore>()
 			.AddSingleton<ILazerPlayerService, LazerPlayerService>()
 			.AddSingleton<INotifySocketManager, NotifySocketManager>()
 			.AddSingleton<OsuVersionService>()
 			.AddSingleton<IOsuVersionService>(sp => sp.GetRequiredService<OsuVersionService>())
 			.AddHostedService(sp => sp.GetRequiredService<OsuVersionService>())
+			.AddHostedService<HubShutdownNotifier>()
 			.AddHostedService<BackgroundTasks>();
 
 		builder.Services
@@ -348,6 +354,7 @@ public class Program
 		
 		InitBanchoBot(app.Services.CreateScope());
 		InitChannels(app.Services.CreateScope());
+		InitOAuthClients(app.Services.CreateScope());
 		
 		// Even if redis creates snapshots of rankings it isn't
 		// always 100% accurate with database so we need to update
@@ -455,6 +462,47 @@ public class Program
 		}
 	}
 
+	private static void InitOAuthClients(IServiceScope scope)
+	{
+		var db = scope.ServiceProvider.GetRequiredService<BanchoDbContext>();
+
+		var lazerClientId = int.Parse(AppSettings.LazerClientId);
+		var secretHash = AppSettings.LazerClientSecret.HashStringSHA256();
+		var client = db.OAuthClients.FirstOrDefault(c => c.Id == lazerClientId);
+
+		if (client == null)
+		{
+			Logger.Shared.LogInfo("Seeding the osu!lazer oauth client.", "Init");
+
+			db.OAuthClients.Add(new OAuthClient
+			{
+				Id = lazerClientId,
+				Name = "osu!lazer",
+				SecretHash = secretHash,
+				AllowedScopes = OAuthScopes.All,
+				// lazer is the only client allowed to use the password grant
+				Trusted = true,
+				CreatedAt = DateTime.UtcNow
+			});
+
+			db.SaveChanges();
+			return;
+		}
+
+		// Reconciled on every boot rather than seeded once, so a row that drifted from the
+		// code (revoked by hand, or predating a change to the constants above) repairs
+		// itself instead of failing every login with invalid_client and no visible cause.
+		if (client.SecretHash == secretHash && !client.Revoked && client.Trusted) return;
+
+		Logger.Shared.LogInfo("Updating the osu!lazer oauth client to match configuration.", "Init");
+
+		client.SecretHash = secretHash;
+		client.Revoked = false;
+		client.Trusted = true;
+
+		db.SaveChanges();
+	}
+
 	private static void InitRedis(IServiceScope scope, string redisHost, string redisPort)
 	{
 		var db = scope.ServiceProvider.GetRequiredService<BanchoDbContext>();
@@ -463,8 +511,13 @@ public class Program
 		
 		var stopwatch = new Stopwatch();
 		stopwatch.Start();
-		
-		redis.GetServer($"{redisHost}:{redisPort}").FlushDatabase();
+
+		// Only the leaderboards are rebuilt below. Flushing the whole database would also
+		// wipe live session state, pending score tokens and in-flight replay frames.
+		var server = redis.GetServer($"{redisHost}:{redisPort}");
+		var staleLeaderboards = server.Keys(pattern: "bancho:leaderboard:*").ToArray();
+		if (staleLeaderboards.Length > 0)
+			redisDb.KeyDelete(staleLeaderboards);
 
 		for (byte i = 0; i <= (byte)GameMode.AutopilotStd; i++)
 		{

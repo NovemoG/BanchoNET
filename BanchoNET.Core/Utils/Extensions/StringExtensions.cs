@@ -82,13 +82,6 @@ public static class StringExtensions
 		return Convert.ToHexString(hash).ToLower();
 	}
 
-	public static bool VerifyPassword(
-		this string md5,
-		string hash
-	) {
-		return BCrypt.Net.BCrypt.Verify(md5, hash);
-	}
-	
 	public static Country ParseCountry(this string input)
 	{
 		if (Enum.TryParse<CountryCode>(input.ToUpper(), out var country))

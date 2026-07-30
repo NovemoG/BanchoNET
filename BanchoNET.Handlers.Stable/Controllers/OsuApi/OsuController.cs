@@ -20,8 +20,8 @@ public partial class OsuController(
     ILegacyScoresRepository scores,
     IBeatmapHandler beatmapHandler,
     IGeolocService geoloc,
-    ILogger logger,
-    HttpClient httpClient
+    IPasswordService passwords,
+    ILogger logger
 ) : ControllerBase
 {
     [HttpGet("bancho_connect.php")]

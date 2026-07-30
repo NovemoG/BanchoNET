@@ -1,4 +1,5 @@
-﻿using BanchoNET.Core.Models.Api.Scores;
+﻿using BanchoNET.Core.Attributes;
+using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Utils.Extensions;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,11 +8,11 @@ namespace BanchoNET.Infrastructure.Controllers.Api.Rankings;
 public partial class RankingsController
 {
     [HttpGet("top-plays/{mode}")]
+    [AllowClientCredentials]
     public async Task<ActionResult<List<ApiScoreExtended>>> GetTopScores(
         string mode,
         [FromQuery] int page
     ) {
-        if (!User.TryGetUserId(out _)) return Unauthorized();
         if (page < 1) return BadRequest();
         if (!EnumExtensions.ToModeMap.TryGetValue(mode, out var gameMode))
             return BadRequest();

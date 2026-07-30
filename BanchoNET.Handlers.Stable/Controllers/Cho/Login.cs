@@ -125,7 +125,7 @@ public partial class ChoController
 				.FinalizeAndGetContentResult();
 		}
 		
-		if (!loginData.PasswordMD5.VerifyPassword(userInfo.PasswordHash))
+		if (!passwords.Verify(loginData.PasswordMD5, userInfo.PasswordHash))
 		{
 			Response.Headers["cho-token"] = "incorrect-password";
 

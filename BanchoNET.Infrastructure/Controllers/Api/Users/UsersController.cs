@@ -1,6 +1,7 @@
-using BanchoNET.Core.Abstractions.Repositories;
+﻿using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Abstractions.Services.Lazer;
+using BanchoNET.Core.Attributes;
 using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Api.Player;
 using BanchoNET.Core.Utils.Extensions;
@@ -9,24 +10,22 @@ using Microsoft.AspNetCore.Mvc;
 namespace BanchoNET.Infrastructure.Controllers.Api.Users;
 
 //TODO route can also look like this: api/v2/users/username/?key=username
-[Route("api/v2/users/{userId:int}")]
+[Route("api/v2/users")]
 public partial class UsersController(
-    IAuthService auth,
     IPlayersRepository players,
     ILazerPlayerService playerService,
     IBeatmapHandler beatmaps,
     IBeatmapsRepository beatmapsRepository,
     ILazerScoresRepository scores
-) : ApiController(auth, players, playerService, beatmaps)
+) : ApiControllerBase(players, playerService, beatmaps)
 {
-    [HttpGet("{forMode?}")]
+    [HttpGet("{userId:int}/{forMode?}")]
+    [AllowClientCredentials]
     public async Task<ActionResult<ApiPlayer?>> GetUsers(
         int userId,
         string? forMode = null,
         [FromQuery] string key = "id"
     ) {
-        if (!User.TryGetUserId(out _)) return Unauthorized();
-        
         GameMode? requestedMode = null;
         
         if (!string.IsNullOrWhiteSpace(forMode))
@@ -44,7 +43,7 @@ public partial class UsersController(
         
         apiPlayer.ScoresFirstCount = await scores.PlayerFirstPlaceScoresCount(userId, mode);
         apiPlayer.ScoresRecentCount = await scores.PlayerRecentScoresCount(userId, mode);
-        apiPlayer.IsOnline = playerService.IsOnline(userId);
+        apiPlayer.IsOnline = await PlayerService.IsOnline(userId);
         
         return JsonSnake(apiPlayer);
     }

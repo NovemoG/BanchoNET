@@ -5,7 +5,7 @@ using BanchoNET.Core.Models.Mods;
 
 namespace BanchoNET.Core.Abstractions.HubClients;
 
-public interface IMultiplayerClient : IMatchmakingClient, IRankedPlayClient
+public interface IMultiplayerClient : IMatchmakingClient, IRankedPlayClient, IStatefulUserHubClient
 {
     Task RoomStateChanged(
         MultiplayerRoomState state

@@ -53,6 +53,7 @@ public sealed class BanchoDbContext : DbContext
 	public DbSet<ReleaseDto> Releases { get; init; } = null!;
 	public DbSet<RefreshToken> RefreshTokens { get; init; } = null!;
 	public DbSet<SessionVerification> SessionVerifications { get; init; } = null!;
+	public DbSet<OAuthClient> OAuthClients { get; init; } = null!;
 
 	protected override void OnModelCreating(
 		ModelBuilder modelBuilder
@@ -67,6 +68,20 @@ public sealed class BanchoDbContext : DbContext
 			.ApplyConfiguration(new SkillsConfiguration())
 			.ApplyConfiguration(new CommentConfiguration());
 		
+		modelBuilder.Entity<RefreshToken>(entity =>
+		{
+			entity.HasIndex(x => x.TokenHash).IsUnique();
+			entity.HasIndex(x => x.UserId);
+			entity.HasIndex(x => x.FamilyId);
+			entity.HasIndex(x => x.ExpiresAt);
+		});
+
+		modelBuilder.Entity<OAuthClient>(entity =>
+		{
+			// Id is the client_id, so it must never be generated for us
+			entity.Property(x => x.Id).ValueGeneratedNever();
+		});
+
 		modelBuilder.Entity<ChannelPlayer>(entity =>
 		{
 			entity.HasKey(x => new { x.PlayerId, x.ChannelId });

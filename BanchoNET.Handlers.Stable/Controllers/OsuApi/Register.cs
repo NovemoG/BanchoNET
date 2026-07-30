@@ -77,7 +77,7 @@ public partial class OsuController
 		if (check != 0) return Ok("ok"); //if there are no errors but it is a check request
 		
 		var passwordMD5 = password.CreateMD5();
-		var passwordBcrypt = BCrypt.Net.BCrypt.HashPassword(passwordMD5);
+		var passwordBcrypt = passwords.Hash(passwordMD5);
 		
 		var playerGeoloc = await geoloc.GetGeoloc(Request.Headers);
 		await players.CreatePlayer(

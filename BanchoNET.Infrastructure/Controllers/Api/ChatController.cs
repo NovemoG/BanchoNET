@@ -1,8 +1,10 @@
-using BanchoNET.Core.Abstractions.Bancho.Services;
+﻿using BanchoNET.Core.Abstractions.Bancho.Services;
 using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Abstractions.Services.Lazer;
+using BanchoNET.Core.Attributes;
 using BanchoNET.Core.Models.Api.Chat;
+using BanchoNET.Core.Models.Auth;
 using BanchoNET.Core.Models.Api.Player;
 using BanchoNET.Core.Models.Channels;
 using BanchoNET.Core.Utils.Extensions;
@@ -11,15 +13,15 @@ using Microsoft.AspNetCore.Mvc;
 namespace BanchoNET.Infrastructure.Controllers.Api;
 
 [Route("api/v2/chat")]
+[RequireScope(OAuthScopes.ChatRead)]
 public class ChatController(
-    IAuthService auth,
     IPlayersRepository players,
     ILazerPlayerService playerService,
     IBeatmapHandler beatmaps,
     IChannelService channels,
     IMessagesRepository messages,
     INotifySocketManager notify
-) : ApiController(auth, players, playerService, beatmaps)
+) : ApiControllerBase(players, playerService, beatmaps)
 {
     [HttpPost("ack")]
     public ActionResult<ChatAckResponse> ChatAck(
@@ -33,6 +35,7 @@ public class ChatController(
     }
 
     [HttpPost("new")]
+    [RequireScope(OAuthScopes.ChatWrite)]
     public async Task<ActionResult<ChatNewResponse>> ChatNew(
         [FromForm] ChatNewRequest request
     ) {
@@ -82,8 +85,6 @@ public class ChatController(
 
     [HttpGet("channels")]
     public ActionResult<List<ChatChannel>> ChatChannels() {
-        if (!User.TryGetUserId(out _)) return Unauthorized();
-        
         var channelList = channels.Channels
             .Where(c => c.Type is ChannelType.Public or ChannelType.Announce)
             .Select(c => new ChatChannel(c))
@@ -93,6 +94,7 @@ public class ChatController(
     }
 
     [HttpPost("channels")]
+    [RequireScope(OAuthScopes.ChatWrite)]
     public async Task<ActionResult<ChatPostResponse>> ChatChannelsPost(
         [FromForm] ChatPostRequest request
     ) {
@@ -145,8 +147,6 @@ public class ChatController(
     public async Task<ActionResult<List<ChannelMessage>>> ChatMessages(
         long channelId
     ) {
-        if (!User.TryGetUserId(out _)) return Unauthorized();
-        
         var messagesList = await messages.GetChannelMessages(channelId);
         var returnMessages = messagesList.Select(m => new ChannelMessage(m));
         
@@ -154,6 +154,7 @@ public class ChatController(
     }
     
     [HttpPost("channels/{channelId:long}/messages")]
+    [RequireScope(OAuthScopes.ChatWrite)]
     public async Task<ActionResult<ChannelMessage>> ChatMessages(
         long channelId,
         [FromForm] ChatMessageRequest request
@@ -204,6 +205,7 @@ public class ChatController(
     }
 
     [HttpPut("channels/{channelId:long}/users/{userId:int}")]
+    [RequireScope(OAuthScopes.ChatWrite)]
     public ActionResult<ChatChannel> PutUserToChannel(
         long channelId,
         int userId
@@ -237,6 +239,7 @@ public class ChatController(
     }
 
     [HttpDelete("channels/{channelId:long}/users/{userId:int}")]
+    [RequireScope(OAuthScopes.ChatWrite)]
     public void DeleteUserFromChannel(
         long channelId,
         int userId

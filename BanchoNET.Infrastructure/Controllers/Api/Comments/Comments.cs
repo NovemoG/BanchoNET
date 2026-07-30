@@ -9,12 +9,11 @@ namespace BanchoNET.Infrastructure.Controllers.Api.Comments;
 
 [Route("api/v2/comments")]
 public partial class CommentsController(
-    IAuthService auth,
     IPlayersRepository players,
     ILazerPlayerService playerService,
     IBeatmapHandler beatmaps,
     ICommentsRepository comments
-) : ApiController(auth, players, playerService, beatmaps)
+) : ApiControllerBase(players, playerService, beatmaps)
 {
     [HttpGet]
     public async Task<ActionResult<CommentsResponse>> GetComments(

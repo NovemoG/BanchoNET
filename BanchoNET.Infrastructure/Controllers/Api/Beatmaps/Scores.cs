@@ -11,7 +11,7 @@ namespace BanchoNET.Infrastructure.Controllers.Api.Beatmaps;
 
 public partial class BeatmapsController
 {
-    [HttpGet("scores")]
+    [HttpGet("{beatmapId:int}/scores")]
     public async Task<ActionResult<BeatmapScoresResponseDto>> GetScores(
         int beatmapId,
         [FromQuery] string type,

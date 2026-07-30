@@ -313,7 +313,7 @@ public class BeatmapsRepository(
 			{
 				if (!dbBeatmap.MD5.Equals(beatmap.Checksum, StringComparison.OrdinalIgnoreCase))
 				{
-					await scores.ToggleBeatmapScoresVisibility(dbBeatmap.MD5.ToUpper());
+					await scores.ToggleBeatmapScoresVisibility(dbBeatmap.MD5.ToLower());
 					beatmapDownloader.AddBeatmapsetForUpdate(set.Id);
 					dbBeatmap.MaximumStatistics = new Dictionary<HitResult, int>();
 				}

@@ -1,4 +1,5 @@
-﻿using BanchoNET.Core.Models.Api.Beatmaps;
+﻿using BanchoNET.Core.Attributes;
+using BanchoNET.Core.Models.Api.Beatmaps;
 using BanchoNET.Core.Utils.Extensions;
 using Microsoft.AspNetCore.Mvc;
 
@@ -6,15 +7,14 @@ namespace BanchoNET.Infrastructure.Controllers.Api.Users;
 
 public partial class UsersController
 {
-    [HttpGet("beatmapsets/{type}")]
+    [HttpGet("{userId:int}/beatmapsets/{type}")]
+    [AllowClientCredentials]
     public async Task<ActionResult> GetBeatmapsets(
         int userId,
         string type,
         [FromQuery] int offset,
         [FromQuery] int limit
     ) {
-        if (!User.TryGetUserId(out _)) return Unauthorized();
-
         switch (type)
         {
             case "most_played":

@@ -14,6 +14,8 @@
     <ItemGroup>
       <PackageReference Include="Cronos" Version="0.13.0" />
       <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.10" />
+      <!-- matches what NRedisStack resolves to in the host project -->
+      <PackageReference Include="StackExchange.Redis" Version="3.0.0" />
     </ItemGroup>
 
     <ItemGroup>

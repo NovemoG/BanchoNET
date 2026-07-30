@@ -23,6 +23,10 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\BanchoNET.Core\BanchoNET.Core.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
         <Using Include="NUnit.Framework"/>
     </ItemGroup>
 

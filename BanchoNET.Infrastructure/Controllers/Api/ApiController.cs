@@ -1,37 +1,29 @@
-﻿using BanchoNET.Core.Abstractions.Repositories;
+using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Abstractions.Services.Lazer;
-using BanchoNET.Core.Attributes;
 using BanchoNET.Core.Models.Api.Relationships;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Utils.Extensions;
-using BanchoNET.Core.Utils.Json;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BanchoNET.Infrastructure.Controllers.Api;
 
-[ApiController]
 [Route("api/v2")]
-[Authorize]
-[SubdomainAuthorize("osu")]
 public partial class ApiController(
     IAuthService auth,
     IPlayersRepository players,
     ILazerPlayerService playerService,
     IBeatmapHandler beatmaps
-) : ControllerBase
+) : ApiControllerBase(players, playerService, beatmaps)
 {
-    protected readonly ILazerPlayerService PlayerService = playerService;
-    protected readonly IPlayersRepository Players = players;
-    protected readonly IBeatmapHandler Beatmaps = beatmaps;
-    
-    protected static JsonResult JsonSnake(object? value) => new(value, SnakeCaseNamingPolicy.Options);
-
-    private List<Relationship> PopulateRelationships(
+    private async Task<List<Relationship>> PopulateRelationships(
         List<RelationshipReadDto> relationships,
         string type
     ) {
+        var online = await PlayerService.FilterOnline(
+            relationships.Select(r => r.TargetId).ToArray()
+        );
+
         List<Relationship> relationshipList = [];
         relationshipList.AddRange(
             from relationship in relationships
@@ -42,13 +34,13 @@ public partial class ApiController(
                 RelationType = type,
                 TargetId = relationship.TargetId,
                 Target = new TargetPlayer
-                {   
+                {
                     CountryCode = target.Country.ToUpper(),
                     Id = target.Id,
                     IsActive = !target.Inactive,
                     IsBot = false,
                     IsDeleted = target.Deleted,
-                    IsOnline = PlayerService.IsOnline(target.Id),
+                    IsOnline = online.Contains(target.Id),
                     IsSupporter = target.IsSupporter,
                     LastVisit = target.LastActivityTime,
                     PmFriendsOnly = target.PmFriendsOnly,

@@ -3,7 +3,7 @@ using BanchoNET.Core.Models.Lazer.Spectator.Frames;
 
 namespace BanchoNET.Core.Abstractions.HubClients;
 
-public interface ISpectatorClient
+public interface ISpectatorClient : IStatefulUserHubClient
 {
     Task UserBeganPlaying(
         int userId,

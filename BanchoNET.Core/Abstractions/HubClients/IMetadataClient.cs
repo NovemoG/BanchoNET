@@ -3,7 +3,7 @@ using BanchoNET.Core.Models.Players;
 
 namespace BanchoNET.Core.Abstractions.HubClients;
 
-public interface IMetadataClient
+public interface IMetadataClient : IStatefulUserHubClient
 {
     Task BeatmapSetsUpdated(
         BeatmapUpdates updates

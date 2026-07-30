@@ -3,6 +3,7 @@ using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Abstractions.Services.Lazer;
 using BanchoNET.Core.Models;
+using BanchoNET.Core.Models.Api;
 using BanchoNET.Core.Models.Api.Beatmaps;
 using BanchoNET.Core.Models.Api.Player;
 using BanchoNET.Core.Models.Api.Scores;
@@ -21,44 +22,33 @@ public sealed partial class ScoreSubmissionQueue(
     ILogger logger,
     IServiceScopeFactory scopeFactory,
     ILazerPlayerService lazerPlayers,
-    IMemoryCache cache,
+    IScoreTokenStore tokens,
+    ISpectatorStateStore states,
     IHubContext<SpectatorHub, ISpectatorClient> spectatorHub
 ) : ConcurrentBackgroundQueue, IScoreSubmissionQueue
 {
-    private static long _nextScoreId;
-    private static long GetNextScoreId => Interlocked.Increment(ref _nextScoreId);
-    
-    private static readonly MemoryCacheEntryOptions ScoreCacheOptions = new()
-    {
-        AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(24)
-    };
-
-    private bool TryGetScore(long id, out ScoreResponseDto? score)
-        => cache.TryGetValue(id, out score);
-    
     public async Task<ScoreResponseDto?> EnqueueScore(
         ScoreRequestDto request,
         int userId,
         int beatmapId
     ) {
-        //TODO store scores in db and retrieve them after restart
-
         using var scope = scopeFactory.CreateScope();
         var beatmaps = scope.ServiceProvider.GetRequiredService<IBeatmapHandler>();
 
         var beatmap = await beatmaps.GetBeatmap(request.beatmap_hash);
         if (beatmap == null)
             return null;
-        
+
         var response = new ScoreResponseDto
         {
             BeatmapId = beatmapId,
             CreatedAt = DateTimeOffset.UtcNow,
-            Id = GetNextScoreId,
+            Id = await tokens.NextTokenId(),
             UserId = userId
         };
 
-        cache.Set(response.Id, response, ScoreCacheOptions);
+        await tokens.Store(new PendingScore { Response = response });
+
         return response;
     }
 
@@ -68,18 +58,30 @@ public sealed partial class ScoreSubmissionQueue(
         int userId,
         int beatmapId
     ) {
-        if (!TryGetScore(queueId, out var soloRequest)
-            || soloRequest!.UserId != userId
-            || soloRequest.BeatmapId != beatmapId)
+        var pending = await tokens.Get(queueId);
+        if (pending == null
+            || pending.Response.UserId != userId
+            || pending.Response.BeatmapId != beatmapId)
         {
             return null;
         }
-        
+
+        var soloRequest = pending.Response;
+
         using var scope = scopeFactory.CreateScope();
 
-        var player = lazerPlayers.GetPlayer(userId)?.Player;
-        if (player == null) return null;
-        
+        // The session may predate a restart, so rehydrate rather than dropping the score
+        var player = (await lazerPlayers.GetPlayer(userId))?.Player;
+        if (player == null)
+        {
+            var playersRepository = scope.ServiceProvider.GetRequiredService<IPlayersRepository>();
+
+            player = await playersRepository.GetFullPlayerInfo(userId);
+            if (player == null) return null;
+
+            await lazerPlayers.AddPlayer(player);
+        }
+
         var beatmaps = scope.ServiceProvider.GetRequiredService<IBeatmapHandler>();
         
         var beatmap = await beatmaps.GetBeatmap(beatmapId);
@@ -150,8 +152,10 @@ public sealed partial class ScoreSubmissionQueue(
         }
         else apiScore.Status = SubmissionStatus.Failed;
         
-        soloRequest.Score = await scores.InsertScore(apiScore, beatmap.Checksum, beatmapId);
-        soloRequest.Beatmap = beatmap;
+        pending.Score = await scores.InsertScore(apiScore, beatmap.Checksum, beatmapId);
+        pending.CaptureInternalState();
+        
+        await tokens.Store(pending);
         
         var players = scope.ServiceProvider.GetRequiredService<IPlayersRepository>();
         var stats = (await players.GetPlayerModeStats(userId, (byte)mode))!;
@@ -184,33 +188,35 @@ public sealed partial class ScoreSubmissionQueue(
             return;
         }
         
-        var lazerPlayer = lazerPlayers.GetPlayer(playerId);
+        var lazerPlayer = await lazerPlayers.GetPlayer(playerId);
         if (lazerPlayer != null)
         {
             var index = (int)Math.Round(Math.Min(99, Math.Max(0, (float)score.TimeElapsed / beatmap.HitLength * 100)));
 
-            if (lazerPlayer.LastPlayedBeatmap != null)
+            if (lazerPlayer.LastPlayedBeatmapId != null)
             {
-                if (lazerPlayer.LastPlayedBeatmap.Id == beatmap.Id)
+                if (lazerPlayer.LastPlayedBeatmapId == beatmap.Id)
                 {
                     beatmap.Fails[index] += 1;
-                    
+
                     await beatmapsRepository.UpdateBeatmapFailTimes(beatmap.Id, index, isFail: true);
                 }
                 else
                 {
-                    lazerPlayer.LastPlayedBeatmap.Exits[lazerPlayer.LastPlayedBeatmapExitIndex] += 1;
+                    var lastBeatmap = await beatmapsRepository.GetBeatmap(lazerPlayer.LastPlayedBeatmapId.Value);
+                    
+                    lastBeatmap?.Exits[lazerPlayer.LastPlayedBeatmapExitIndex] += 1;
                     
                     await beatmapsRepository.UpdateBeatmapFailTimes(
-                        lazerPlayer.LastPlayedBeatmap.Id,
+                        lazerPlayer.LastPlayedBeatmapId.Value,
                         lazerPlayer.LastPlayedBeatmapExitIndex,
                         isFail: false
                     );
                 }
             }
-            
-            lazerPlayer.LastPlayedBeatmap = beatmap;
-            lazerPlayer.LastPlayedBeatmapExitIndex = index;
+
+            // Explicit write: the player is a copy out of the store, not a shared object
+            await lazerPlayers.SetLastPlayed(playerId, beatmap.Id, index);
         }
     }
 

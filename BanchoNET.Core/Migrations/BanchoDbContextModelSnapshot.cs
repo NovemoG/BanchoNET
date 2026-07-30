@@ -24,6 +24,40 @@ namespace BanchoNET.Core.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "pg_trgm");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("BanchoNET.Core.Models.Auth.OAuthClient", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("AllowedScopes")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("RedirectUri")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("Revoked")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("SecretHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("Trusted")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("OAuthClients");
+                });
+
             modelBuilder.Entity("BanchoNET.Core.Models.Auth.RefreshToken", b =>
                 {
                     b.Property<int>("Id")
@@ -32,8 +66,14 @@ namespace BanchoNET.Core.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("ClientId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("ExpiresAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("FamilyId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Jti")
                         .IsRequired()
@@ -45,6 +85,10 @@ namespace BanchoNET.Core.Migrations
                     b.Property<bool>("Revoked")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("Scope")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("TokenHash")
                         .IsRequired()
                         .HasColumnType("text");
@@ -53,6 +97,15 @@ namespace BanchoNET.Core.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ExpiresAt");
+
+                    b.HasIndex("FamilyId");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("RefreshTokens");
                 });
