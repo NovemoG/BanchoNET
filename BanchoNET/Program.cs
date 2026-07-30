@@ -376,7 +376,18 @@ public class Program
 
 		Logger.Shared.LogInfo("Applying database migrations.", "Init");
 		
-		db.Database.Migrate();
+		// Applied for really long queries like recomputing vectors on BeatmapSearch
+		var previousTimeout = db.Database.GetCommandTimeout();
+		db.Database.SetCommandTimeout((int)TimeSpan.FromHours(1).TotalSeconds);
+
+		try
+		{
+			db.Database.Migrate();
+		}
+		finally
+		{
+			db.Database.SetCommandTimeout(previousTimeout);
+		}
 		
 		Logger.Shared.LogInfo("Database is ready.", "Init");
 	}
