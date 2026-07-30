@@ -72,10 +72,14 @@ public class BackgroundTasks(
                     logger.LogWarning($"No next occurence for {jobName} (cron: {cronExpression})");
                     return;
                 }
+                
+                while (true)
+                {
+                    var remaining = next.Value - DateTime.UtcNow;
+                    if (remaining <= TimeSpan.Zero) break;
 
-                var delay = next.Value - now;
-                if (delay > TimeSpan.Zero)
-                    await Task.Delay(delay, stoppingToken);
+                    await Task.Delay(remaining, stoppingToken);
+                }
 
                 await ExecuteNamedJob(jobName, stoppingToken);
             }

@@ -11,11 +11,6 @@ namespace BanchoNET.Core.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // Tokens issued before this migration have no client bound to them, so they can
-            // never satisfy the new client check and are already dead. Dropping them makes
-            // that explicit, keeps every pre-existing row out of a single shared FamilyId,
-            // and guarantees the unique index below applies to a clean table.
-            // Effect for users: one extra sign in.
             migrationBuilder.Sql("DELETE FROM \"RefreshTokens\";");
 
             migrationBuilder.AddColumn<int>(

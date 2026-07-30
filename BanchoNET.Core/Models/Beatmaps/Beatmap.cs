@@ -40,6 +40,11 @@ public class Beatmap : IBeatmap,
 	
 	public int[] Fails { get; set; } = new int[100];
 	public int[] Exits { get; set; } = new int[100];
+	
+	public int OwnerId { get; set; }
+	public string OwnerName { get; set; }
+	
+	public List<Owner> Collaborators { get; set; }
 
 	#region Constructors
 
@@ -70,6 +75,14 @@ public class Beatmap : IBeatmap,
 		CirclesCount = beatmap.CountCircles;
 		SlidersCount = beatmap.CountSliders;
 		SpinnersCount = beatmap.CountSpinners;
+		
+		var owners = beatmap.Owners ?? [];
+		var owner = owners.FirstOrDefault();
+
+		OwnerId = owner?.Id ?? beatmap.UserId;
+		OwnerName = owner?.Username ?? set.CreatorName;
+
+		Collaborators = owners.Skip(1).ToList();
 	}
 
 	public Beatmap(
@@ -104,6 +117,11 @@ public class Beatmap : IBeatmap,
 		Passes = beatmap.Passes;
 		Fails = beatmap.Fails;
 		Exits = beatmap.Exits;
+		OwnerId = beatmap.OwnerId;
+		OwnerName = beatmap.OwnerName;
+		Collaborators = beatmap.Collaborators
+			.Select(c => new Owner { Id = c.OwnerId, Username = c.OwnerName })
+			.ToList();
 	}
 
 	#endregion

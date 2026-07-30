@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Utils;
@@ -25,7 +25,7 @@ public class ApiBeatmapset : BasicApiBeatmapset
     public string Tags { get; set; }
     public Availability Availability { get; set; }
     public bool HasFavourited { get; set; }
-    public int[] Ratings { get; set; } = new int[10];
+    public int[] Ratings { get; set; } = new int[BeatmapExtensions.RatingBuckets + 1];
     
     [JsonConstructor]
     public ApiBeatmapset() { }
@@ -55,7 +55,7 @@ public class ApiBeatmapset : BasicApiBeatmapset
         };
         Ranked = (int)beatmapset.Status;
         RankedDate = beatmapset.RankedDate;
-        Rating = beatmapset.Ratings.Average();
+        Rating = beatmapset.Rating;
         Storyboard = beatmapset.Storyboard;
         SubmittedDate = beatmapset.SubmittedDate;
         Tags = beatmapset.Tags;
@@ -65,7 +65,7 @@ public class ApiBeatmapset : BasicApiBeatmapset
             MoreInformation = null
         };
         HasFavourited = false; //TODO
-        Ratings = beatmapset.Ratings;
+        Ratings = beatmapset.Ratings.ToApiRatings();
     }
     
     public ApiBeatmapset(
@@ -103,6 +103,6 @@ public class ApiBeatmapset : BasicApiBeatmapset
             MoreInformation = null
         };
         HasFavourited = false; //TODO
-        Ratings = beatmapset.Ratings;
+        Ratings = beatmapset.Ratings.ToApiRatings();
     }
 }

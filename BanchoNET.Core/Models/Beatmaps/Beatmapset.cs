@@ -13,6 +13,7 @@ public class Beatmapset : IBeatmapSet,
 	
 	public bool IsPrivateUpload { get; set; }
 	public bool IsRankedOfficially { get; set; }
+	public bool Nsfw { get; set; }
 	
 	public string Artist { get; set; }
 	public string ArtistUnicode { get; set; }
@@ -60,6 +61,7 @@ public class Beatmapset : IBeatmapSet,
 
 		IsPrivateUpload = false;
 		IsRankedOfficially = (BeatmapStatus)beatmapset.Ranked == BeatmapStatus.Ranked;
+		Nsfw = beatmapset.Nsfw;
 		Artist = beatmapset.Artist;
 		ArtistUnicode = beatmapset.ArtistUnicode;
 		Title = beatmapset.Title;
@@ -89,6 +91,7 @@ public class Beatmapset : IBeatmapSet,
 		
 		IsPrivateUpload = beatmapset.IsPrivateUpload;
 		IsRankedOfficially = beatmapset.IsRankedOfficially;
+		Nsfw = beatmapset.Nsfw;
 		Artist = beatmapset.Artist;
 		ArtistUnicode = beatmapset.ArtistUnicode;
 		Title = beatmapset.Title;
@@ -111,7 +114,7 @@ public class Beatmapset : IBeatmapSet,
 		FavoriteCount = beatmapset.FavoriteCount;
 		PlayCount = beatmapset.PlayCount;
 		Ratings = beatmapset.Ratings;
-		Rating = (float)Ratings.Average();
+		Rating = beatmapset.Rating;
 	}
 
 	#endregion

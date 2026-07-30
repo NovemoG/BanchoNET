@@ -24,8 +24,7 @@ public class BeatmapsRepository(
 			.AsNoTracking()
 			.AsSplitQuery()
 			.Include(bs => bs.Beatmaps)
-				.ThenInclude(b => b.Owners)
-					.ThenInclude(bo => bo.Player)
+				.ThenInclude(b => b.Collaborators)
 			.Include(bs => bs.BeatmapsetFavorites)
 				.ThenInclude(bf => bf.Player)
 			.Include(bs => bs.Creator)
@@ -56,7 +55,9 @@ public class BeatmapsRepository(
 	) {
 		return await dbContext.Beatmapsets
 			.AsNoTracking()
+			.AsSplitQuery()
 			.Include(bs => bs.Beatmaps)
+				.ThenInclude(b => b.Collaborators)
 			.FirstOrDefaultAsync(b => b.Id == setId);
 	}
 
@@ -67,8 +68,7 @@ public class BeatmapsRepository(
 			.AsNoTracking()
 			.AsSplitQuery()
 			.Include(bs => bs.Beatmaps)
-				.ThenInclude(b => b.Owners)
-					.ThenInclude(bo => bo.Player)
+				.ThenInclude(b => b.Collaborators)
 			.Include(bs => bs.BeatmapsetFavorites)
 				.ThenInclude(bf => bf.Player)
 			.Include(bs => bs.Creator)
@@ -279,7 +279,9 @@ public class BeatmapsRepository(
 		Beatmapset set
 	) {
 		var beatmapset = await dbContext.Beatmapsets
+			.AsSplitQuery()
 			.Include(bs => bs.Beatmaps)
+				.ThenInclude(b => b.Collaborators)
 			.FirstOrDefaultAsync(bs => bs.Id == set.Id);
 		
 		if (beatmapset == null)

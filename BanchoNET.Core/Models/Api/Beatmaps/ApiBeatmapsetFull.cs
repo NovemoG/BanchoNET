@@ -63,7 +63,6 @@ public class ApiBeatmapsetFull : ApiBeatmapset
         
         User = new BasicApiPlayer(beatmapset.Creator);
         RelatedUsers.Add(User);
-        RelatedUsers.AddRange(beatmapset.Beatmaps.SelectMany(b => b.Owners.Select(bo => new BasicApiPlayer(bo.Player))));
     }
 
     public ApiBeatmapsetFull(

@@ -310,7 +310,7 @@ public sealed class BeatmapHandler(
 		beatmapset.Ranked = (int)cache.Status;
 		beatmapset.FavouriteCount = cache.FavoriteCount;
 		beatmapset.PlayCount = cache.PlayCount;
-		beatmapset.Ratings = cache.Ratings;
+		beatmapset.Ratings = cache.Ratings.ToApiRatings();
 		beatmapset.Rating = cache.Rating;
 		
 		foreach (var beatmap in beatmapset.Beatmaps)

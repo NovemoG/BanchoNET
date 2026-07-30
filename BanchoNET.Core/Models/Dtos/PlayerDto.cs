@@ -51,7 +51,6 @@ public class PlayerDto
 
 	public ICollection<BeatmapPlays> PlayedBeatmaps { get; set; } = [];
 	public ICollection<BeatmapsetFavorite> FavoriteBeatmapsets { get; set; } = [];
-	public ICollection<BeatmapOwner> OwnedBeatmaps { get; set; } = [];
 	public ICollection<BeatmapsetDto> Beatmapsets { get; set; } = [];
 	
 	public ICollection<CommentDto> Comments { get; set; } = [];

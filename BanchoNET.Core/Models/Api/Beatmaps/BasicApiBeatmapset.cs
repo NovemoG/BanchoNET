@@ -47,7 +47,7 @@ public class BasicApiBeatmapset
         Hype = null;
         Id = beatmapset.Id;
         LanguageId = beatmapset.LanguageId;
-        Nsfw = false;
+        Nsfw = beatmapset.Nsfw;
         Offset = 0; //TODO
         PlayCount = beatmapset.PlayCount;
         PreviewUrl = $"//b.{AppSettings.Domain}/preview/{beatmapset.Id}.mp3";
@@ -74,7 +74,7 @@ public class BasicApiBeatmapset
         Hype = null;
         Id = beatmapset.Id;
         LanguageId = beatmapset.LanguageId;
-        Nsfw = false;
+        Nsfw = beatmapset.Nsfw;
         Offset = 0; //TODO
         PlayCount = beatmapset.PlayCount;
         PreviewUrl = $"//b.{AppSettings.Domain}/preview/{beatmapset.Id}.mp3";

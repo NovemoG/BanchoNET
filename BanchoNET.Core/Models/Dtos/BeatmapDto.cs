@@ -28,6 +28,9 @@ public class BeatmapDto
 	public DateTimeOffset LastUpdated { get; set; }
 	public long Plays { get; set; }
 	public long Passes { get; set; }
+	
+	public int OwnerId { get; set; }
+	public string OwnerName { get; set; } = "";
 
 	/// <summary>
 	/// JSON value of MaximumStatistics
@@ -38,7 +41,7 @@ public class BeatmapDto
 	public int[] Fails { get; set; } = new int[100];
 	public int[] Exits { get; set; } = new int[100];
 	
-	public ICollection<BeatmapOwner> Owners { get; set; } = [];
+	public ICollection<BeatmapCollaborator> Collaborators { get; set; } = [];
 	public ICollection<BeatmapPlays> PlaysData { get; set; } = [];
 	public ICollection<ScoreDto> Scores { get; set; } = [];
 	public BeatmapsetDto Beatmapset { get; set; } = null!;

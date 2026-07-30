@@ -2,14 +2,13 @@
 
 namespace BanchoNET.Core.Models.Dtos;
 
-public class BeatmapOwner
+public class BeatmapCollaborator
 {
-    public int PlayerId { get; set; }
-    public PlayerDto Player { get; set; } = null!;
-    
     public int BeatmapId { get; set; }
     public BeatmapDto Beatmap { get; set; } = null!;
     
-    [MaxLength(16)]
-    public string Username { get; set; } = null!;
+    public int OwnerId { get; set; }
+
+    [MaxLength(32)]
+    public string OwnerName { get; set; } = "";
 }

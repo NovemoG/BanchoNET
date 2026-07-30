@@ -27,6 +27,8 @@ public class BeatmapSearchRow
     public int TotalLength { get; set; }
     public int HitLength { get; set; }
     public long Plays { get; set; }
+    public long SetPlays { get; set; }
+    
     public int Favorites { get; set; }
     public float Rating { get; set; }
 
@@ -39,6 +41,10 @@ public class BeatmapSearchRow
     public string Tags { get; set; } = "";
     public string Description { get; set; } = "";
     public string CreatorName { get; set; } = "";
+    public int CreatorId { get; set; }
+    
+    public int[] OwnerIds { get; set; } = [];
+    public string OwnerNames { get; set; } = "";
 
     public DateTimeOffset LastUpdated { get; set; }
     public DateTimeOffset SubmittedDate { get; set; }

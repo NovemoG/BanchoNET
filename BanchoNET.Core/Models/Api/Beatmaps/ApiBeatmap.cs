@@ -29,13 +29,11 @@ public class ApiBeatmap : BasicApiBeatmap
             Exit = beatmap.Exits
         };
         MaxCombo = beatmap.MaxCombo;
-        Owners = beatmap.Owners
-            .Select(o => new Owner
-            {
-                Id = o.PlayerId,
-                Username = o.Username
-            }).ToList();
-        UserId = Owners.FirstOrDefault()?.Id ?? 1;
+        Owners =
+        [
+            new Owner { Id = beatmap.OwnerId, Username = beatmap.OwnerName },
+            .. beatmap.Collaborators.Select(c => new Owner { Id = c.OwnerId, Username = c.OwnerName })
+        ];
         
         Beatmapset = beatmapset;
     }
@@ -50,7 +48,11 @@ public class ApiBeatmap : BasicApiBeatmap
             Exit = beatmap.Exits
         };
         MaxCombo = beatmap.MaxCombo;
-        Owners = [];
+        Owners =
+        [
+            new Owner { Id = beatmap.OwnerId, Username = beatmap.OwnerName },
+            .. beatmap.Collaborators.Select(c => new Owner { Id = c.Id, Username = c.Username })
+        ];
         
         Beatmapset = beatmapset;
     }

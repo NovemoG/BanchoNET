@@ -14,6 +14,7 @@ public class BeatmapsetDto
     
     public bool IsRankedOfficially { get; set; }
     public bool IsPrivateUpload { get; set; }
+    public bool Nsfw { get; set; }
     
     public BeatmapStatus Status { get; set; }
     public int FavoriteCount { get; set; }
@@ -34,6 +35,7 @@ public class BeatmapsetDto
     public DateTimeOffset? RankedDate { get; set; }
     
     public int[] Ratings { get; set; } = new int[10];
+    public float Rating { get; private set; }
 
     public string CreatorName { get; set; }
     public int CreatorId { get; set; }

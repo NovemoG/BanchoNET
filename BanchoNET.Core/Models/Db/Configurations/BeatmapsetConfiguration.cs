@@ -6,12 +6,27 @@ namespace BanchoNET.Core.Models.Db.Configurations;
 
 public class BeatmapsetConfiguration : IEntityTypeConfiguration<BeatmapsetDto>
 {
+    private const string RatingSql =
+        """
+        COALESCE((
+            "Ratings"[1] * 1 + "Ratings"[2] * 2 + "Ratings"[3] * 3 + "Ratings"[4] * 4 +
+            "Ratings"[5] * 5 + "Ratings"[6] * 6 + "Ratings"[7] * 7 + "Ratings"[8] * 8 +
+            "Ratings"[9] * 9 + "Ratings"[10] * 10
+        )::real / NULLIF(
+            "Ratings"[1] + "Ratings"[2] + "Ratings"[3] + "Ratings"[4] + "Ratings"[5] +
+            "Ratings"[6] + "Ratings"[7] + "Ratings"[8] + "Ratings"[9] + "Ratings"[10]
+        , 0), 0)
+        """;
+    
     public void Configure(
         EntityTypeBuilder<BeatmapsetDto> builder
     ) {
         builder.ToTable("Beatmapsets");
 
         builder.HasKey(bs => bs.Id);
+
+        builder.Property(b => b.Rating)
+            .HasComputedColumnSql(RatingSql, stored: true);
         
         builder.HasIndex(b => b.Id);
         builder.HasIndex(b => b.Status);

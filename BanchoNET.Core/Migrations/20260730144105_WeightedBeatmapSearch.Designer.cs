@@ -3,6 +3,7 @@ using System;
 using BanchoNET.Core.Models.Db;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using NpgsqlTypes;
@@ -12,9 +13,11 @@ using NpgsqlTypes;
 namespace BanchoNET.Core.Migrations
 {
     [DbContext(typeof(BanchoDbContext))]
-    partial class BanchoDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260730144105_WeightedBeatmapSearch")]
+    partial class WeightedBeatmapSearch
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -211,10 +214,6 @@ namespace BanchoNET.Core.Migrations
                     b.Property<float>("Od")
                         .HasColumnType("real");
 
-                    b.PrimitiveCollection<int[]>("OwnerIds")
-                        .IsRequired()
-                        .HasColumnType("integer[]");
-
                     b.Property<string>("OwnerNames")
                         .IsRequired()
                         .HasColumnType("text");
@@ -232,13 +231,10 @@ namespace BanchoNET.Core.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("tsvector")
-                        .HasComputedColumnSql("setweight(to_tsvector('simple', coalesce(\"Title\", '') || ' ' || coalesce(\"TitleUnicode\", '')), 'A') ||\nsetweight(to_tsvector('simple', coalesce(\"Artist\", '') || ' ' || coalesce(\"ArtistUnicode\", '')), 'B') ||\nsetweight(to_tsvector('simple', coalesce(\"CreatorName\", '')), 'C') ||\nsetweight(to_tsvector('simple', coalesce(\"OwnerNames\", '') || ' ' || coalesce(\"Version\", '') || ' ' || coalesce(\"Source\", '') || ' ' || coalesce(\"Tags\", '')), 'D')", true);
+                        .HasComputedColumnSql("setweight(to_tsvector('simple', coalesce(\"Title\", '') || ' ' || coalesce(\"TitleUnicode\", '')), 'A') ||\nsetweight(to_tsvector('simple', coalesce(\"Artist\", '') || ' ' || coalesce(\"ArtistUnicode\", '')), 'B') ||\nsetweight(to_tsvector('simple', coalesce(\"CreatorName\", '') || ' ' || coalesce(\"OwnerNames\", '')), 'C') ||\nsetweight(to_tsvector('simple', coalesce(\"Version\", '') || ' ' || coalesce(\"Source\", '') || ' ' || coalesce(\"Tags\", '')), 'D')", true);
 
                     b.Property<int>("SetId")
                         .HasColumnType("integer");
-
-                    b.Property<long>("SetPlays")
-                        .HasColumnType("bigint");
 
                     b.Property<int>("SlidersCount")
                         .HasColumnType("integer");
@@ -282,10 +278,6 @@ namespace BanchoNET.Core.Migrations
 
                     b.HasIndex("CreatorId");
 
-                    b.HasIndex("OwnerIds");
-
-                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("OwnerIds"), "GIN");
-
                     b.HasIndex("SearchVector");
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SearchVector"), "GIN");
@@ -302,27 +294,6 @@ namespace BanchoNET.Core.Migrations
                     NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("Title", "TitleUnicode", "Artist", "ArtistUnicode", "Version", "Source", "Tags", "CreatorName", "OwnerNames"), new[] { "gin_trgm_ops", "gin_trgm_ops", "gin_trgm_ops", "gin_trgm_ops", "gin_trgm_ops", "gin_trgm_ops", "gin_trgm_ops", "gin_trgm_ops", "gin_trgm_ops" });
 
                     b.ToTable("BeatmapSearch", (string)null);
-                });
-
-            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.BeatmapCollaborator", b =>
-                {
-                    b.Property<int>("BeatmapId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("OwnerId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("OwnerName")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .IsUnicode(false)
-                        .HasColumnType("character varying(32)");
-
-                    b.HasKey("BeatmapId", "OwnerId");
-
-                    b.HasIndex("OwnerId");
-
-                    b.ToTable("BeatmapCollaborators");
                 });
 
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.BeatmapDto", b =>
@@ -383,15 +354,6 @@ namespace BanchoNET.Core.Migrations
                     b.Property<float>("Od")
                         .HasColumnType("numeric(4,2)");
 
-                    b.Property<int>("OwnerId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("OwnerName")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .IsUnicode(false)
-                        .HasColumnType("character varying(32)");
-
                     b.Property<long>("Passes")
                         .HasColumnType("bigint");
 
@@ -432,8 +394,6 @@ namespace BanchoNET.Core.Migrations
 
                     b.HasIndex("Mode");
 
-                    b.HasIndex("OwnerId");
-
                     b.HasIndex("Plays");
 
                     b.HasIndex("SetId");
@@ -441,6 +401,26 @@ namespace BanchoNET.Core.Migrations
                     b.HasIndex("Status");
 
                     b.ToTable("Beatmaps", (string)null);
+                });
+
+            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.BeatmapOwner", b =>
+                {
+                    b.Property<int>("PlayerId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("BeatmapId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.HasKey("PlayerId", "BeatmapId");
+
+                    b.HasIndex("BeatmapId");
+
+                    b.ToTable("BeatmapOwners");
                 });
 
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.BeatmapPlays", b =>
@@ -532,11 +512,6 @@ namespace BanchoNET.Core.Migrations
 
                     b.Property<DateTimeOffset?>("RankedDate")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<float>("Rating")
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("real")
-                        .HasComputedColumnSql("COALESCE((\n    \"Ratings\"[1] * 1 + \"Ratings\"[2] * 2 + \"Ratings\"[3] * 3 + \"Ratings\"[4] * 4 +\n    \"Ratings\"[5] * 5 + \"Ratings\"[6] * 6 + \"Ratings\"[7] * 7 + \"Ratings\"[8] * 8 +\n    \"Ratings\"[9] * 9 + \"Ratings\"[10] * 10\n)::real / NULLIF(\n    \"Ratings\"[1] + \"Ratings\"[2] + \"Ratings\"[3] + \"Ratings\"[4] + \"Ratings\"[5] +\n    \"Ratings\"[6] + \"Ratings\"[7] + \"Ratings\"[8] + \"Ratings\"[9] + \"Ratings\"[10]\n, 0), 0)", true);
 
                     b.PrimitiveCollection<int[]>("Ratings")
                         .IsRequired()
@@ -1384,17 +1359,6 @@ namespace BanchoNET.Core.Migrations
                     b.ToTable("ThreadFollows");
                 });
 
-            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.BeatmapCollaborator", b =>
-                {
-                    b.HasOne("BanchoNET.Core.Models.Dtos.BeatmapDto", "Beatmap")
-                        .WithMany("Collaborators")
-                        .HasForeignKey("BeatmapId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Beatmap");
-                });
-
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.BeatmapDto", b =>
                 {
                     b.HasOne("BanchoNET.Core.Models.Dtos.BeatmapsetDto", "Beatmapset")
@@ -1404,6 +1368,25 @@ namespace BanchoNET.Core.Migrations
                         .IsRequired();
 
                     b.Navigation("Beatmapset");
+                });
+
+            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.BeatmapOwner", b =>
+                {
+                    b.HasOne("BanchoNET.Core.Models.Dtos.BeatmapDto", "Beatmap")
+                        .WithMany("Owners")
+                        .HasForeignKey("BeatmapId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BanchoNET.Core.Models.Dtos.PlayerDto", "Player")
+                        .WithMany("OwnedBeatmaps")
+                        .HasForeignKey("PlayerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Beatmap");
+
+                    b.Navigation("Player");
                 });
 
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.BeatmapPlays", b =>
@@ -1684,7 +1667,7 @@ namespace BanchoNET.Core.Migrations
 
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.BeatmapDto", b =>
                 {
-                    b.Navigation("Collaborators");
+                    b.Navigation("Owners");
 
                     b.Navigation("PlaysData");
 
@@ -1731,6 +1714,8 @@ namespace BanchoNET.Core.Migrations
                     b.Navigation("IncomingRelationships");
 
                     b.Navigation("LoginsData");
+
+                    b.Navigation("OwnedBeatmaps");
 
                     b.Navigation("PlayedBeatmaps");
 

@@ -19,6 +19,11 @@ public class BeatmapConfiguration : IEntityTypeConfiguration<BeatmapDto>
         builder.HasIndex(b => b.Mode);
         builder.HasIndex(b => b.Status);
         builder.HasIndex(b => b.Plays);
+        builder.HasIndex(b => b.OwnerId);
+
+        builder.Property(b => b.OwnerName)
+            .HasMaxLength(32)
+            .IsUnicode(false);
 
         builder.Property(b => b.MD5)
             .IsRequired()

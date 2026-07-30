@@ -48,7 +48,7 @@ public class BasicApiBeatmap
         Mode = EnumExtensions.FromModeMap[beatmap.Mode];
         Status = beatmap.Status.ToApiBeatmapStatus();
         TotalLength = beatmap.TotalLength;
-        UserId = 1;
+        UserId = beatmap.OwnerId;
         Version = beatmap.Version;
         Accuracy = beatmap.Od;
         Ar = beatmap.Ar;
@@ -80,7 +80,7 @@ public class BasicApiBeatmap
         Mode = EnumExtensions.FromModeMap[beatmap.Mode];
         Status = beatmap.Status.ToApiBeatmapStatus();
         TotalLength = beatmap.TotalLength;
-        UserId = 1;
+        UserId = beatmap.OwnerId;
         Version = beatmap.Version;
         Accuracy = beatmap.Od;
         Ar = beatmap.Ar;

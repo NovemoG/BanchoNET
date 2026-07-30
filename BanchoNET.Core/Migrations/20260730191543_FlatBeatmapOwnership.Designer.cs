@@ -3,6 +3,7 @@ using System;
 using BanchoNET.Core.Models.Db;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using NpgsqlTypes;
@@ -12,9 +13,11 @@ using NpgsqlTypes;
 namespace BanchoNET.Core.Migrations
 {
     [DbContext(typeof(BanchoDbContext))]
-    partial class BanchoDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260730191543_FlatBeatmapOwnership")]
+    partial class FlatBeatmapOwnership
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -211,10 +214,6 @@ namespace BanchoNET.Core.Migrations
                     b.Property<float>("Od")
                         .HasColumnType("real");
 
-                    b.PrimitiveCollection<int[]>("OwnerIds")
-                        .IsRequired()
-                        .HasColumnType("integer[]");
-
                     b.Property<string>("OwnerNames")
                         .IsRequired()
                         .HasColumnType("text");
@@ -282,10 +281,6 @@ namespace BanchoNET.Core.Migrations
 
                     b.HasIndex("CreatorId");
 
-                    b.HasIndex("OwnerIds");
-
-                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("OwnerIds"), "GIN");
-
                     b.HasIndex("SearchVector");
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SearchVector"), "GIN");
@@ -302,27 +297,6 @@ namespace BanchoNET.Core.Migrations
                     NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("Title", "TitleUnicode", "Artist", "ArtistUnicode", "Version", "Source", "Tags", "CreatorName", "OwnerNames"), new[] { "gin_trgm_ops", "gin_trgm_ops", "gin_trgm_ops", "gin_trgm_ops", "gin_trgm_ops", "gin_trgm_ops", "gin_trgm_ops", "gin_trgm_ops", "gin_trgm_ops" });
 
                     b.ToTable("BeatmapSearch", (string)null);
-                });
-
-            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.BeatmapCollaborator", b =>
-                {
-                    b.Property<int>("BeatmapId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("OwnerId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("OwnerName")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .IsUnicode(false)
-                        .HasColumnType("character varying(32)");
-
-                    b.HasKey("BeatmapId", "OwnerId");
-
-                    b.HasIndex("OwnerId");
-
-                    b.ToTable("BeatmapCollaborators");
                 });
 
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.BeatmapDto", b =>
@@ -1384,17 +1358,6 @@ namespace BanchoNET.Core.Migrations
                     b.ToTable("ThreadFollows");
                 });
 
-            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.BeatmapCollaborator", b =>
-                {
-                    b.HasOne("BanchoNET.Core.Models.Dtos.BeatmapDto", "Beatmap")
-                        .WithMany("Collaborators")
-                        .HasForeignKey("BeatmapId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Beatmap");
-                });
-
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.BeatmapDto", b =>
                 {
                     b.HasOne("BanchoNET.Core.Models.Dtos.BeatmapsetDto", "Beatmapset")
@@ -1684,8 +1647,6 @@ namespace BanchoNET.Core.Migrations
 
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.BeatmapDto", b =>
                 {
-                    b.Navigation("Collaborators");
-
                     b.Navigation("PlaysData");
 
                     b.Navigation("Scores");

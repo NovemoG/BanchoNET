@@ -1,5 +1,4 @@
-﻿using BanchoNET.Core.Attributes;
-using BanchoNET.Core.Models.Api;
+﻿using BanchoNET.Core.Models.Api;
 using BanchoNET.Core.Utils.Extensions;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,7 +7,6 @@ namespace BanchoNET.Infrastructure.Controllers.Api.Beatmapsets;
 public partial class BeatmapsetsController
 {
     [HttpGet("search")]
-    [AllowClientCredentials]
     public async Task<ActionResult<BeatmapsetSearchResponse>> SearchBeatmapsets(
         [FromQuery(Name = "q")] string? query,
         [FromQuery(Name = "m")] string? mode,
@@ -25,8 +23,10 @@ public partial class BeatmapsetsController
     ) {
         cursor = cursor is { Count: 0 } ? null : cursor;
         
+        int? playerId = User.TryGetUserId(out var uid) ? uid : null;
+        
         var (beatmapsets, total, nextCursor) = await beatmapSearch.SearchAsync(
-            query, mode, category, status, genre, language, extra, rankAchieved, sort, played, nsfw, cursor
+            query, mode, category, status, genre, language, extra, rankAchieved, sort, played, nsfw, cursor, playerId
         );
         
         return JsonSnake(new BeatmapsetSearchResponse

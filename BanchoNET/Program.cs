@@ -272,6 +272,7 @@ public class Program
 			.AddHttpClient(AppSettings.TokenClientName, client =>
 			{
 				client.BaseAddress = new Uri("https://osu.ppy.sh/api/v2");
+				client.DefaultRequestHeaders.TryAddWithoutValidation("x-api-version", AppSettings.OsuApiVersion);
 			})
 			.AddHttpMessageHandler<OsuAuthHandler>();
 		

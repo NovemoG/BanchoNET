@@ -1,12 +1,13 @@
 ﻿using System.Security.Cryptography;
 using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Dtos;
-using BanchoNET.Core.Models.Scores;
 
 namespace BanchoNET.Core.Utils.Extensions;
 
 public static class BeatmapExtensions
 {
+	public const int RatingBuckets = 10;
+
 	private static readonly TimeSpan[] ApiCheckIntervals = [
 		TimeSpan.FromDays(3),
 		TimeSpan.FromDays(5),
@@ -81,6 +82,16 @@ public static class BeatmapExtensions
 			set.NextApiCheck = DateTime.UtcNow.Add(ApiCheckIntervals[set.ApiChecks]);
 			if (set.ApiChecks < ApiCheckIntervals.Length - 1) set.ApiChecks++;
 		}
+	}
+	
+	public static int[] ToApiRatings(
+		this int[] ratings
+	) {
+		var apiRatings = new int[RatingBuckets + 1];
+
+		Array.Copy(ratings, 0, apiRatings, 1, Math.Min(ratings.Length, RatingBuckets));
+
+		return apiRatings;
 	}
 
 	public static bool HasNominations(
@@ -217,6 +228,7 @@ public static class BeatmapExtensions
 			TitleUnicode = set.TitleUnicode,
 			IsRankedOfficially = set.IsRankedOfficially,
 			IsPrivateUpload = set.IsPrivateUpload,
+			Nsfw = set.Nsfw,
 			Status = set.Status,
 			FavoriteCount = set.FavoriteCount,
 			PlayCount = set.PlayCount,
@@ -235,7 +247,7 @@ public static class BeatmapExtensions
 			Ratings = set.Ratings,
 
 			CreatorName = set.CreatorName,
-			CreatorId = 1, //TODO for now it's bancho bot
+			CreatorId = set.IsPrivateUpload ? set.CreatorId : 1,
 
 			Beatmaps = set.Beatmaps.Select(b => b.ToDto()).ToList(),
 		};
@@ -269,15 +281,44 @@ public static class BeatmapExtensions
 			Passes = beatmap.Passes,
 			Fails = beatmap.Fails,
 			Exits = beatmap.Exits,
-			Owners = [
-				new BeatmapOwner
-				{
-					BeatmapId = beatmap.Id,
-					PlayerId = 1,
-					Username = "Bancho Bot"
-				}
-			]
+			OwnerId = beatmap.OwnerId,
+			OwnerName = beatmap.OwnerName,
+			Collaborators = beatmap.CollaboratorsFrom()
 		};
+	}
+	
+	private static void ReconcileCollaborators(
+		this BeatmapDto currentBeatmap,
+		Beatmap newBeatmap
+	) {
+		var incoming = newBeatmap.CollaboratorsFrom();
+		var stale = currentBeatmap.Collaborators.ToDictionary(c => c.OwnerId);
+
+		foreach (var collaborator in incoming)
+		{
+			if (stale.Remove(collaborator.OwnerId, out var existing))
+				existing.OwnerName = collaborator.OwnerName;
+			else
+				currentBeatmap.Collaborators.Add(collaborator);
+		}
+
+		foreach (var removed in stale.Values)
+			currentBeatmap.Collaborators.Remove(removed);
+	}
+
+	private static List<BeatmapCollaborator> CollaboratorsFrom(
+		this Beatmap beatmap
+	) {
+		return beatmap.Collaborators
+			.Where(o => o.Id != 0)
+			.DistinctBy(o => o.Id)
+			.Select(o => new BeatmapCollaborator
+			{
+				BeatmapId = beatmap.Id,
+				OwnerId = o.Id,
+				OwnerName = o.Username
+			})
+			.ToList();
 	}
 
 	public static BeatmapDto UpdateWith(
@@ -307,6 +348,10 @@ public static class BeatmapExtensions
 		currentBeatmap.TotalLength = newBeatmap.TotalLength;
 		currentBeatmap.HitLength = newBeatmap.HitLength;
 		currentBeatmap.LastUpdated = newBeatmap.LastUpdated;
+		currentBeatmap.OwnerId = newBeatmap.OwnerId;
+		currentBeatmap.OwnerName = newBeatmap.OwnerName;
+
+		currentBeatmap.ReconcileCollaborators(newBeatmap);
 		
 		newBeatmap.Status = currentBeatmap.Status;
 		newBeatmap.Plays = currentBeatmap.Plays;
@@ -327,13 +372,16 @@ public static class BeatmapExtensions
 			? newBeatmapset.Status
 			: currentBeatmapset.Status;
 		
+		var wasPlayerSubmitted = currentBeatmapset.IsPrivateUpload;
+
 		currentBeatmapset.Id = newBeatmapset.Id;
 		currentBeatmapset.Artist = newBeatmapset.Artist;
 		currentBeatmapset.ArtistUnicode = newBeatmapset.ArtistUnicode;
 		currentBeatmapset.Title = newBeatmapset.Title;
 		currentBeatmapset.TitleUnicode = newBeatmapset.TitleUnicode;
 		currentBeatmapset.IsRankedOfficially = newBeatmapset.IsRankedOfficially;
-		currentBeatmapset.IsPrivateUpload = newBeatmapset.IsPrivateUpload;
+		currentBeatmapset.IsPrivateUpload = wasPlayerSubmitted || newBeatmapset.IsPrivateUpload;
+		currentBeatmapset.Nsfw = newBeatmapset.Nsfw;
 		currentBeatmapset.Source = newBeatmapset.Source;
 		currentBeatmapset.GenreId = newBeatmapset.GenreId;
 		currentBeatmapset.LanguageId = newBeatmapset.LanguageId;
@@ -345,15 +393,18 @@ public static class BeatmapExtensions
 		currentBeatmapset.SubmittedDate = newBeatmapset.SubmitDate;
 		currentBeatmapset.LastUpdated = newBeatmapset.LastUpdate;
 		currentBeatmapset.RankedDate = newBeatmapset.RankedDate;
-		currentBeatmapset.Ratings = newBeatmapset.Ratings;
-		currentBeatmapset.CreatorName = newBeatmapset.CreatorName;
-		currentBeatmapset.CreatorId = newBeatmapset.CreatorId;
+		
+		if (!wasPlayerSubmitted)
+		{
+			currentBeatmapset.CreatorName = newBeatmapset.CreatorName;
+			currentBeatmapset.CreatorId = newBeatmapset.CreatorId;
+		}
 
 		newBeatmapset.Status = currentBeatmapset.Status;
 		newBeatmapset.FavoriteCount = currentBeatmapset.FavoriteCount;
 		newBeatmapset.PlayCount = currentBeatmapset.PlayCount;
 		newBeatmapset.Ratings = currentBeatmapset.Ratings;
-		newBeatmapset.Rating = (float)currentBeatmapset.Ratings.Average();
+		newBeatmapset.Rating = currentBeatmapset.Rating;
 		newBeatmapset.IsScoreable = currentBeatmapset.IsScoreable;
 		
 		if (currentBeatmapset.Status is BeatmapStatus.Ranked or BeatmapStatus.Approved

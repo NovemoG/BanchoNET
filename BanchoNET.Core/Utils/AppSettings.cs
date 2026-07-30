@@ -191,6 +191,7 @@ public static class AppSettings
     }
 
     public const string TokenClientName = "V2Client";
+    public const string OsuApiVersion = "20260726";
     
     public const string LazerClientId = "5";
     public const string LazerClientSecret = "FGc9GAtyHzeQDshWP5Ah7dega8hJACAJpQtw6OXk";

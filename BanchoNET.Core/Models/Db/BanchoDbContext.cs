@@ -4,12 +4,19 @@ using BanchoNET.Core.Models.Db.Configurations;
 using BanchoNET.Core.Models.Dtos;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
-using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace BanchoNET.Core.Models.Db;
 
 public sealed class BanchoDbContext : DbContext
 {
+	private const string SearchVectorSql =
+		"""
+		setweight(to_tsvector('simple', coalesce("Title", '') || ' ' || coalesce("TitleUnicode", '')), 'A') ||
+		setweight(to_tsvector('simple', coalesce("Artist", '') || ' ' || coalesce("ArtistUnicode", '')), 'B') ||
+		setweight(to_tsvector('simple', coalesce("CreatorName", '')), 'C') ||
+		setweight(to_tsvector('simple', coalesce("OwnerNames", '') || ' ' || coalesce("Version", '') || ' ' || coalesce("Source", '') || ' ' || coalesce("Tags", '')), 'D')
+		""";
+	
 	private readonly ISearchProjectionSyncService _projectionSync = null!;
 
 	public BanchoDbContext(
@@ -35,7 +42,7 @@ public sealed class BanchoDbContext : DbContext
 	
 	public DbSet<BeatmapDto> Beatmaps { get; init; } = null!;
 	public DbSet<BeatmapsetDto> Beatmapsets { get; init; } = null!;
-	public DbSet<BeatmapOwner> BeatmapOwners { get; init; } = null!;
+	public DbSet<BeatmapCollaborator> BeatmapCollaborators { get; init; } = null!;
 	public DbSet<BeatmapsetFavorite> BeatmapsetFavorites { get; init; } = null!;
 	public DbSet<BeatmapPlays> BeatmapPlays { get; init; } = null!;
 	
@@ -99,17 +106,18 @@ public sealed class BanchoDbContext : DbContext
 				.OnDelete(DeleteBehavior.Cascade);
 		});
 		
-		modelBuilder.Entity<BeatmapOwner>(entity =>
+		modelBuilder.Entity<BeatmapCollaborator>(entity =>
 		{
-			entity.HasKey(x => new { x.PlayerId, x.BeatmapId });
+			entity.HasKey(x => new { x.BeatmapId, x.OwnerId });
 
-			entity.HasOne(x => x.Player)
-				.WithMany(p => p.OwnedBeatmaps)
-				.HasForeignKey(x => x.PlayerId)
-				.OnDelete(DeleteBehavior.Cascade);
+			entity.HasIndex(x => x.OwnerId);
+
+			entity.Property(x => x.OwnerName)
+				.HasMaxLength(32)
+				.IsUnicode(false);
 			
 			entity.HasOne(x => x.Beatmap)
-				.WithMany(c => c.Owners)
+				.WithMany(b => b.Collaborators)
 				.HasForeignKey(x => x.BeatmapId)
 				.OnDelete(DeleteBehavior.Cascade);
 		});
@@ -203,20 +211,10 @@ public sealed class BanchoDbContext : DbContext
 			b.ToTable("BeatmapSearch");
 			b.HasKey(x => x.Id);
 
-			b.HasGeneratedTsVectorColumn(
-				x => x.SearchVector,
-				"simple",
-				x => new {
-					x.Title,
-					x.TitleUnicode,
-					x.Artist,
-					x.ArtistUnicode,
-					x.Version,
-					x.Source,
-					x.Tags,
-					x.CreatorName
-				})
-				.HasIndex(x => x.SearchVector)
+			b.Property(x => x.SearchVector)
+				.HasComputedColumnSql(SearchVectorSql, stored: true);
+
+			b.HasIndex(x => x.SearchVector)
 				.HasMethod("GIN");
 			
 			b.HasIndex(x => new {
@@ -227,7 +225,8 @@ public sealed class BanchoDbContext : DbContext
 					x.Version,
 					x.Source,
 					x.Tags,
-					x.CreatorName
+					x.CreatorName,
+					x.OwnerNames
 				})
 				.HasMethod("GIN")
 				.HasOperators(
@@ -238,10 +237,14 @@ public sealed class BanchoDbContext : DbContext
 					"gin_trgm_ops", // for Version
 					"gin_trgm_ops", // for Source
 					"gin_trgm_ops", // for Tags
-					"gin_trgm_ops"  // for CreatorName
+					"gin_trgm_ops", // for CreatorName
+					"gin_trgm_ops"  // for OwnerNames
 				);
 			
 			b.HasIndex(x => new { x.Mode, x.Status, x.GenreId, x.LanguageId, x.Nsfw });
+			b.HasIndex(x => x.CreatorId);
+			b.HasIndex(x => x.OwnerIds).HasMethod("GIN");
+			b.HasIndex(x => x.SetId);
 			b.HasIndex(x => new { x.Bpm, x.Cs, x.Ar, x.Od, x.Hp, x.StarRating, x.Plays, x.Favorites, x.Rating });
 		});
 		
@@ -266,7 +269,7 @@ public sealed class BanchoDbContext : DbContext
 		var result = await base.SaveChangesAsync(cancellationToken);
 		
 		if (affectedBeatmapIds.Length > 0 || affectedSetIds.Length > 0)
-			await _projectionSync.RefreshAsync(affectedBeatmapIds, affectedSetIds, cancellationToken);
+			await _projectionSync.RefreshAsync(this, affectedBeatmapIds, affectedSetIds, cancellationToken);
 
 		return result;
 	}

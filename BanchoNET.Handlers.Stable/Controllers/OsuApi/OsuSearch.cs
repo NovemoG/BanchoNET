@@ -1,5 +1,4 @@
 ﻿using System.Globalization;
-using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
@@ -20,7 +19,8 @@ public partial class OsuController
         [FromQuery(Name = "m")] int mode,
         [FromQuery(Name = "p")] int pageNumber
     ) {
-        if (await players.GetPlayerFromLogin(username, passwordMD5) == null)
+        var player = await players.GetPlayerFromLogin(username, passwordMD5);
+        if (player == null)
             return Unauthorized("auth fail");
         
         var status = rankedStatus.ToApiFromDirect();
@@ -45,11 +45,9 @@ public partial class OsuController
                 break;
         }
         
-        //TODO does not work
-        
-        var (beatmapsets, count, _) = await beatmapSearch.SearchAsync(
+        var (beatmapsets, _, _) = await beatmapSearch.SearchAsync(
             query,
-            mode == -1 ? null : EnumExtensions.FromModeMap[(GameMode)mode],
+            mode == -1 ? null : mode.ToString(),
             category: null,
             status.ToString(),
             genre: null,
@@ -60,13 +58,14 @@ public partial class OsuController
             rankedStatus == 7 ? "played" : null,
             nsfw: true,
             cursor: null,
+            playerId: player.Id,
             count: PageSize,
             skip: pageNumber * PageSize
         );
         
         var returnResponse = new List<string>
         {
-            $"{(count == PageSize ? 101 : count)}"
+            $"{(beatmapsets.Count == PageSize ? 101 : beatmapsets.Count)}"
         };
 
         foreach (var beatmapset in beatmapsets.Where(beatmapset => beatmapset.Beatmaps.Count != 0))
