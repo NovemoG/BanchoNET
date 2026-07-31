@@ -2,11 +2,10 @@
 
 namespace BanchoNET.Core.Abstractions.Repositories.Histories;
 
+/// <summary>
+/// Read-only access to the legacy Mongo rank history.
+/// </summary>
 public interface IRankRepository
 {
-    Task InsertRankHistory(RankHistoryEntry history);
-    Task<PeakRank?> GetPeakRank(int playerId, byte mode);
-    Task<List<int>> GetRankHistory(int playerId, byte mode);
-    Task AddRankHistory(int playerId, byte mode, int entry);
-    Task UpdatePeakRank(int playerId, byte mode, PeakRank peakRank);
+    Task<List<RankHistoryEntry>> GetRankHistories(byte mode);
 }

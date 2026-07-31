@@ -22,6 +22,8 @@ public class StatsDto
 	public float Accuracy { get; set; }
 	
 	public int PeakRank { get; set; }
+	public DateTime? PeakRankDate { get; set; }
+
 	public int PlayCount { get; set; }
 	public int PlayTime { get; set; }
 	public int MaxCombo { get; set; }

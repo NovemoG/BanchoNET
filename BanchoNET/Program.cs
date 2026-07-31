@@ -220,11 +220,13 @@ public class Program
 		builder.Services.AddScoped<IClientsRepository, ClientsRepository>();
 		builder.Services.AddScoped<IMessagesRepository, MessagesRepository>();
 		builder.Services.AddScoped<IPlayersRepository, PlayersRepository>();
+		builder.Services.AddScoped<IPlayerHistoryRepository, PlayerHistoryRepository>();
 		builder.Services.AddScoped<ILegacyScoresRepository, LegacyScoresRepository>();
 		builder.Services.AddScoped<ILazerScoresRepository, LazerScoresRepository>();
 		builder.Services.AddScoped<IReleasesRepository, ReleasesRepository>();
 		builder.Services.AddScoped<ICommentsRepository, CommentsRepository>();
 		builder.Services.AddScoped<IBeatmapHandler, BeatmapHandler>();
+		builder.Services.AddScoped<IHistoryMaintenanceService, HistoryMaintenanceService>();
 		builder.Services.AddScoped<ISearchProjectionSyncService, SearchProjectionSyncService>();
 		builder.Services.AddScoped<IBeatmapSearchService, BeatmapSearchService>();
 		
@@ -352,7 +354,9 @@ public class Program
 			Logger.Shared.LogDebug($"Using {ppProvider} pp provider");
 		
 		EnsureDatabaseExists(app.Services.CreateScope());
-		
+
+		InitHistoryMaintenance(app.Services.CreateScope());
+
 		InitBanchoBot(app.Services.CreateScope());
 		InitChannels(app.Services.CreateScope());
 		InitOAuthClients(app.Services.CreateScope());
@@ -392,6 +396,54 @@ public class Program
 		Logger.Shared.LogInfo("Database is ready.", "Init");
 	}
 	
+	private static void InitHistoryMaintenance(IServiceScope scope)
+	{
+		var maintenance = scope.ServiceProvider.GetRequiredService<IHistoryMaintenanceService>();
+		
+		RunHistoryPass("lifetime counter backfill", async () =>
+		{
+			var report = await maintenance.BackfillLifetimeCounters(dryRun: false);
+
+			return report.AlreadyApplied
+				? null
+				: $"{report.StatsRowsAffected} rows, +{report.PlayCountRecovered} play count, " +
+				  $"+{report.ReplayViewsRecovered} replay views";
+		});
+
+		RunHistoryPass("mongo history import", async () =>
+		{
+			var report = await maintenance.ImportMongoHistories(dryRun: false);
+
+			return report.AlreadyImported
+				? null
+				: $"{report.DocumentsRead} documents, {report.SamplesInserted} samples";
+		});
+
+		RunHistoryPass("peak rank recompute", async () =>
+		{
+			var report = await maintenance.RecomputePeakRanks(dryRun: false);
+
+			return report.AlreadyApplied
+				? null
+				: $"{report.RowsAffected} recomputed, {report.RowsCleared} cleared";
+		});
+	}
+	
+	private static void RunHistoryPass(string name, Func<Task<string?>> pass)
+	{
+		try
+		{
+			var summary = pass().GetAwaiter().GetResult();
+
+			if (summary != null)
+				Logger.Shared.LogInfo($"Applied {name}: {summary}", "Init");
+		}
+		catch (Exception ex)
+		{
+			Logger.Shared.LogError($"History maintenance pass '{name}' failed", ex);
+		}
+	}
+
 	private static void InitBanchoBot(IServiceScope scope)
 	{
 		var db = scope.ServiceProvider.GetRequiredService<BanchoDbContext>();

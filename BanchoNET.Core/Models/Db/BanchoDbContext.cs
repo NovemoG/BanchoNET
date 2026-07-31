@@ -57,6 +57,9 @@ public sealed class BanchoDbContext : DbContext
 
 	public DbSet<BeatmapSearchRow> BeatmapSearch { get; init; } = null!;
 
+	public DbSet<PlayerHistoryDto> PlayerHistories { get; init; } = null!;
+	public DbSet<MaintenanceStateDto> MaintenanceState { get; init; } = null!;
+
 	public DbSet<ReleaseDto> Releases { get; init; } = null!;
 	public DbSet<RefreshToken> RefreshTokens { get; init; } = null!;
 	public DbSet<SessionVerification> SessionVerifications { get; init; } = null!;
@@ -73,7 +76,8 @@ public sealed class BanchoDbContext : DbContext
 			.ApplyConfiguration(new MessageConfiguration())
 			.ApplyConfiguration(new ScoreConfiguration())
 			.ApplyConfiguration(new SkillsConfiguration())
-			.ApplyConfiguration(new CommentConfiguration());
+			.ApplyConfiguration(new CommentConfiguration())
+			.ApplyConfiguration(new PlayerHistoryConfiguration());
 		
 		modelBuilder.Entity<RefreshToken>(entity =>
 		{

@@ -148,98 +148,27 @@ public class HistoriesRepository : IHistoriesRepository
             Console.WriteLine("[Histories] Couldn't update scores, match not found in multiplayer history");
     }
     
-    public async Task InsertRankHistory(RankHistoryEntry history)
+    public async Task<List<RankHistoryEntry>> GetRankHistories(byte mode)
     {
-        await _rankHistories.InsertOneAsync(history);
-    }
+        var filter = Builders<RankHistoryEntry>.Filter.Eq("Mode", mode);
 
-    public async Task<PeakRank?> GetPeakRank(int playerId, byte mode)
+        return await _rankHistories.Find(filter).ToListAsync();
+    }
+    
+    public async Task<List<ReplayViewsHistory>> GetReplaysHistories(byte mode)
     {
-        var result = await _rankHistories.Find(RankFilter(playerId, mode)).FirstOrDefaultAsync();
+        var filter = Builders<ReplayViewsHistory>.Filter.Eq("Mode", mode);
 
-        return result?.PeakRank;
+        return await _replayViewsHistories.Find(filter).ToListAsync();
     }
+    
+    public async Task<List<PlayCountHistory>> GetPlayCountHistories(byte mode)
+    {
+        var filter = Builders<PlayCountHistory>.Filter.Eq("Mode", mode);
 
-    public async Task<List<int>> GetRankHistory(int playerId, byte mode)
-    {
-        var result = await _rankHistories.Find(RankFilter(playerId, mode)).SingleAsync();
-        
-        return result.Entries;
+        return await _playCountHistories.Find(filter).ToListAsync();
     }
     
-    public async Task AddRankHistory(int playerId, byte mode, int entry)
-    {
-        var filter = RankFilter(playerId, mode);
-        var update = Builders<RankHistoryEntry>.Update.Push("Entries", entry);
-        
-        var history = await _rankHistories.Find(filter).SingleAsync();
-        if (history.Entries.Count == 90)
-        {
-            var pop = Builders<RankHistoryEntry>.Update.PopFirst("Entries");
-            
-            await _rankHistories.UpdateOneAsync(filter, pop);
-        }
-        
-        var result = await _rankHistories.UpdateOneAsync(filter, update);
-        
-        if (result.ModifiedCount == 0)
-            Console.WriteLine("[Histories] Couldn't insert rank, player not found in rank history");
-    }
-    
-    public async Task UpdatePeakRank(int playerId, byte mode, PeakRank peakRank)
-    {
-        var update = Builders<RankHistoryEntry>.Update.Set("PeakRank", peakRank);
-        
-        var result = await _rankHistories.UpdateOneAsync(RankFilter(playerId, mode), update);
-        
-        if (result.ModifiedCount == 0)
-            Console.WriteLine("[Histories] Couldn't update peak rank, player not found in rank history");
-    }
-    
-    public async Task InsertReplaysHistory(ReplayViewsHistory history)
-    {
-        await _replayViewsHistories.InsertOneAsync(history);
-    }
-    
-    public async Task<List<int>> GetReplaysHistory(int playerId, byte mode)
-    {
-        var result = await _replayViewsHistories.Find(ReplayFilter(playerId, mode)).SingleAsync();
-        
-        return result.Entries;
-    }
-    
-    public async Task AddReplaysHistory(int playerId, byte mode, int entry)
-    {
-        var update = Builders<ReplayViewsHistory>.Update.Push("Entries", entry);
-        
-        var result = await _replayViewsHistories.UpdateOneAsync(ReplayFilter(playerId, mode), update);
-        
-        if (result.ModifiedCount == 0)
-            Console.WriteLine("[Histories] Couldn't insert replays history, player not found in views history");
-    }
-    
-    public async Task InsertPlayCountHistory(PlayCountHistory history)
-    {
-        await _playCountHistories.InsertOneAsync(history);
-    }
-    
-    public async Task<List<int>> GetPlayCountHistory(int playerId, byte mode)
-    {
-        var result = await _playCountHistories.Find(PlayCountFilter(playerId, mode)).SingleAsync();
-        
-        return result.Entries;
-    }
-    
-    public async Task AddPlayCountHistory(int playerId, byte mode, int entry)
-    {
-        var update = Builders<PlayCountHistory>.Update.Push("Entries", entry);
-        
-        var result = await _playCountHistories.UpdateOneAsync(PlayCountFilter(playerId, mode), update);
-        
-        if (result.ModifiedCount == 0)
-            Console.WriteLine("[Histories] Couldn't insert play count history, player not found in play count history");
-    }
-
     public async Task DeletePlayerData(int playerId)
     {
         var rankFilter = Builders<RankHistoryEntry>.Filter.Eq("PlayerId", playerId);

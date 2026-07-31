@@ -2,9 +2,10 @@
 
 namespace BanchoNET.Core.Abstractions.Repositories.Histories;
 
+/// <summary>
+/// Read-only access to the legacy Mongo play count history.
+/// </summary>
 public interface IPlayCountRepository
 {
-    Task InsertPlayCountHistory(PlayCountHistory history);
-    Task<List<int>> GetPlayCountHistory(int playerId, byte mode);
-    Task AddPlayCountHistory(int playerId, byte mode, int entry);
+    Task<List<PlayCountHistory>> GetPlayCountHistories(byte mode);
 }

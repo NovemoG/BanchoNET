@@ -2,9 +2,10 @@
 
 namespace BanchoNET.Core.Abstractions.Repositories.Histories;
 
+/// <summary>
+/// Read-only access to the legacy Mongo replay views history.
+/// </summary>
 public interface IReplaysRepository
 {
-    Task InsertReplaysHistory(ReplayViewsHistory history);
-    Task<List<int>> GetReplaysHistory(int playerId, byte mode);
-    Task AddReplaysHistory(int playerId, byte mode, int entry);
+    Task<List<ReplayViewsHistory>> GetReplaysHistories(byte mode);
 }

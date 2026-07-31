@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Channels;
+using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Scores;
 using BanchoNET.Core.Packets;
@@ -204,20 +205,22 @@ public partial class OsuController
             }
         }
         
-        var stats = player.Stats[score.Mode];
-        var prevStats = stats.Copy();
+        var prevStats = player.Stats[score.Mode].Copy();
+        var stats = (await players.GetPlayerModeStats(player.Id, (byte)score.Mode))!;
 
         stats.IncreasePlaytime(score.Mods, score.TimeElapsed);
-        stats.PlayCount += 1; 
+        stats.PlayCount += 1;
         stats.TotalScore += score.TotalScore;
         stats.UpdateHits(score);
-        
+
         var previousBest = score.PreviousBest;
         if (previousBest != null && beatmap.Status >= BeatmapStatus.Ranked)
             await scores.SetScoreLeaderboardPosition(previousBest, withMods: false, beatmapId);
-        
+
         await RecalculatePlayerStats(beatmap, stats, player, score, previousBest, bestWithMods);
-        await players.UpdatePlayerStats(player, score.Mode);
+        await players.UpdatePlayerStats(player, score.Mode, stats);
+        
+        var newStats = player.Stats[score.Mode];
 
         if (!player.IsRestricted)
         {
@@ -262,14 +265,14 @@ public partial class OsuController
                 "chartId:overall",
                 $"chartUrl:https://{AppSettings.Domain}/u/{player.Id}",
                 "chartName:Overall Ranking",
-                ChartEntry("rank", prevStats.Rank, stats.Rank),
-                ChartEntry("rankedScore", prevStats.RankedScore, stats.RankedScore),
-                ChartEntry("totalScore", prevStats.TotalScore, stats.TotalScore),
-                ChartEntry("maxCombo", prevStats.MaxCombo, stats.MaxCombo),
+                ChartEntry("rank", prevStats.Rank, newStats.Rank),
+                ChartEntry("rankedScore", prevStats.RankedScore, newStats.RankedScore),
+                ChartEntry("totalScore", prevStats.TotalScore, newStats.TotalScore),
+                ChartEntry("maxCombo", prevStats.MaxCombo, newStats.MaxCombo),
                 ChartEntry("accuracy",
                     MathF.Round(prevStats.Accuracy, 2),
-                    MathF.Round(stats.Accuracy, 2)),
-                ChartEntry("pp", prevStats.PP, stats.PP),
+                    MathF.Round(newStats.Accuracy, 2)),
+                ChartEntry("pp", prevStats.PP, newStats.PP),
                 $"achievements-new:{achievements}",
             ];
 
@@ -348,7 +351,7 @@ public partial class OsuController
 
     private async Task RecalculatePlayerStats(
         Beatmap beatmap,
-        ModeStats stats,
+        StatsDto stats,
         Player player,
         Score score,
         Score? prevBest,
@@ -371,9 +374,9 @@ public partial class OsuController
                 // leaderboard; then if current score beat both prevBest and bestWithMods
                 // but prevBest is BestWithMods we subtract bestWithMods
                 if (prevBest is { Status: SubmissionStatus.Submitted, Grade: >= Grade.A })
-                    stats.Grades[prevBest.Grade] -= 1;
+                    stats.DecreaseGrade(prevBest.Grade);
                 else if (bestWithMods != null)
-                    stats.Grades[bestWithMods.Grade] -= 1;
+                    stats.DecreaseGrade(bestWithMods.Grade);
                 
                 oldBestScore = prevBest.TotalScore;
             }
@@ -381,20 +384,26 @@ public partial class OsuController
             stats.RankedScore += score.TotalScore - oldBestScore;
             
             if (score.Grade >= Grade.A)
-                stats.Grades[score.Grade] += 1;
-            
+                stats.IncreaseGrade(score.Grade);
+
             //TODO maybe recalculate top scores only when score is at least in top100?
-            await players.RecalculatePlayerTopScores(player, score.Mode);
-            await players.UpdatePlayerRank(player, score.Mode);
+            await players.RecalculatePlayerTopScores(player.Id, stats, score.Mode);
+            await players.UpdatePlayerRank(
+                player.Id,
+                player.IsRestricted,
+                player.Geoloc.Country.Acronym,
+                stats,
+                score.Mode
+            );
         }
         else if (score.Status == SubmissionStatus.BestWithMods)
         {
             // if our score didnt beat prevBest but beat bestWithMods subtract
             if (bestWithMods is { Grade: >= Grade.A })
-                stats.Grades[bestWithMods.Grade] -= 1;
-            
+                stats.DecreaseGrade(bestWithMods.Grade);
+
             if (score.Grade >= Grade.A)
-                stats.Grades[score.Grade] += 1;
+                stats.IncreaseGrade(score.Grade);
         }
     }
 

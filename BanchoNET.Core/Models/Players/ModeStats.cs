@@ -12,7 +12,9 @@ public class ModeStats
 	public int PlayTime { get; set; }
 	public int MaxCombo { get; set; }
 	public int Rank { get; set; }
+	
 	public int PeakRank { get; set; }
+	public DateTime? PeakRankDate { get; set; }
 	public int ReplayViews { get; set; }
 	public Dictionary<Grade, int> Grades { get; set; } = [];
 	

@@ -8,7 +8,7 @@ using BanchoNET.Core.Models.Api.Player;
 using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Models.Db;
 using BanchoNET.Core.Models.Dtos;
-using BanchoNET.Core.Models.Mongo;
+using BanchoNET.Core.Models.History;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
 using BanchoNET.Core.Models.Scores;
@@ -28,6 +28,7 @@ public class PlayersRepository : IPlayersRepository
 	private readonly IMultiplayerCoordinator _multiplayer;
 	private readonly IDatabase _redis;
 	private readonly IHistoriesRepository _histories;
+	private readonly IPlayerHistoryRepository _playerHistories;
 	private readonly IPasswordService _passwords;
 
 	public PlayersRepository(
@@ -37,6 +38,7 @@ public class PlayersRepository : IPlayersRepository
 		IMultiplayerCoordinator multiplayer,
 		IConnectionMultiplexer redis,
 		IHistoriesRepository histories,
+		IPlayerHistoryRepository playerHistories,
 		IPasswordService passwords
 	) {
 		_players = players;
@@ -45,6 +47,7 @@ public class PlayersRepository : IPlayersRepository
 		_dbContext = dbContext;
 		_redis = redis.GetDatabase();
 		_histories = histories;
+		_playerHistories = playerHistories;
 		_passwords = passwords;
 	}
 	
@@ -272,12 +275,40 @@ public class PlayersRepository : IPlayersRepository
 		var playerMode = mode ?? userInfo.PreferredMode;
 		var country = userInfo.Country.ParseCountry();
 		
-		var peakRank = await _histories.GetPeakRank(playerId, (byte)playerMode) ?? new PeakRank();
-		var playcountHistory = await _histories.GetPlayCountHistory(playerId, (byte)playerMode);
-		var replaysHistory = await _histories.GetReplaysHistory(playerId, (byte)playerMode);
-		var rankHistory = await _histories.GetRankHistory(playerId, (byte)playerMode);
-		
+		var modeStats = await GetPlayerModeStats(playerId, (byte)playerMode);
 		var stats = await FetchModeStatistics(playerId, playerMode, userInfo.Country);
+
+		var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+		var rankSamples = await _playerHistories.GetSeries(
+			playerId,
+			(byte)playerMode,
+			[HistoryMetric.GlobalRank],
+			HistoryGranularity.Daily,
+			today.AddDays(-(RankHistoryDays - 1))
+		);
+
+		var monthlySamples = await _playerHistories.GetSeries(
+			playerId,
+			(byte)playerMode,
+			[HistoryMetric.PlayCount, HistoryMetric.ReplayViews],
+			HistoryGranularity.Monthly
+		);
+
+		var playCountSeries = PlayerHistorySeries.ToMonthlySeries(
+			monthlySamples.Where(s => s.Metric == HistoryMetric.PlayCount).ToList(),
+			DateOnly.FromDateTime(userInfo.CreationTime),
+			today,
+			modeStats?.PlayCount ?? 0
+		);
+		
+		var replayViewsSeries = PlayerHistorySeries.ToMonthlySeries(
+			monthlySamples.Where(s => s.Metric == HistoryMetric.ReplayViews).ToList(),
+			DateOnly.FromDateTime(userInfo.CreationTime),
+			today,
+			modeStats?.ReplayViews ?? 0,
+			trimLeadingEmptyMonths: true
+		);
 
 		var player = new T
 		{
@@ -299,12 +330,29 @@ public class PlayersRepository : IPlayersRepository
 			Country = country,
 			IsRestricted = (userInfo.Privileges & 1) == 0,
 			FollowerCount = await GetFriendsCount(playerId),
-			MonthlyPlaycounts = new MonthlyPlaycounts[playcountHistory.Count],
-			ReplaysWatchedCounts = new ReplaysWatchedCounts[replaysHistory.Count],
-			RankHighest = new RankHighest {
-				Rank = peakRank.Value,
-				UpdatedAt = peakRank.Date
-			},
+			
+			MonthlyPlaycounts = playCountSeries
+				.Select(m => new MonthlyPlaycounts
+				{
+					StartDate = m.Month.ToDateTime(TimeOnly.MinValue),
+					Count = (int)m.Count
+				}).ToArray(),
+			
+			ReplaysWatchedCounts = replayViewsSeries
+				.Select(m => new ReplaysWatchedCounts
+				{
+					StartDate = m.Month.ToDateTime(TimeOnly.MinValue),
+					Count = (int)m.Count
+				}).ToArray(),
+				
+			RankHighest = modeStats is { PeakRank: > 0, PeakRankDate: not null }
+				? new RankHighest
+				{
+					Rank = modeStats.PeakRank,
+					UpdatedAt = modeStats.PeakRankDate.Value
+				}
+				: null,
+			
 			ScoresBestCount = userInfo.TopPlaysCount,
 			ScoresPinnedCount = 0, //TODO
 			Statistics = stats,
@@ -318,33 +366,14 @@ public class PlayersRepository : IPlayersRepository
 		//TODO
 		player.MatchmakingStats[0].UserId = playerId;
 		player.MatchmakingStats[0].Rank = stats.GlobalRank ?? 0;  //TODO
-        
-		for (var i = playcountHistory.Count - 1; i >= 0; i--)
-		{
-			player.MonthlyPlaycounts[i] = new MonthlyPlaycounts
-			{
-				StartDate = userInfo.CreationTime.AddMonths(-(i - playcountHistory.Count + 1)),
-				Count = playcountHistory[i]
-			};
-		}
-
-		for (var i = replaysHistory.Count - 1; i >= 0; i--)
-		{
-			player.ReplaysWatchedCounts[i] = new ReplaysWatchedCounts
-			{
-				StartDate = userInfo.CreationTime.AddMonths(-(i - replaysHistory.Count + 1)),
-				Count = replaysHistory[i]
-			};
-		}
-
-		player.RankHistory.Data = new int[90];
-		for (var i = rankHistory.Count - 1; i >= 0; i--)
-		{
-			player.RankHistory.Data[90 - rankHistory.Count + i] = rankHistory[i];
-		}
+		
+		player.RankHistory.Data = PlayerHistorySeries.ToDailyWindow(rankSamples, today, RankHistoryDays);
+		player.RankHistory.Mode = EnumExtensions.FromModeMap[playerMode.AsVanilla()];
 
 		return player;
 	}
+	
+	private const int RankHistoryDays = 90;
 
 	public async Task<List<BasicApiPlayer>> GetPlayersFromQuery(
 		string query
@@ -469,30 +498,7 @@ public class PlayersRepository : IPlayersRepository
 		{
 			var mode = (GameMode)stat.Mode;
 			
-			player.Stats[mode] = new ModeStats
-			{
-				TotalScore = stat.TotalScore,
-				RankedScore = stat.RankedScore,
-				PP = stat.PP,
-				Accuracy = stat.Accuracy,
-				PlayCount = stat.PlayCount,
-				PlayTime = stat.PlayTime,
-				MaxCombo = stat.MaxCombo,
-				ReplayViews = stat.ReplayViews,
-				Rank = await GetPlayerGlobalRank(mode, player.Id),
-				Grades = {
-					{ Grade.XH, stat.XHCount },
-					{ Grade.X, stat.XCount },
-					{ Grade.SH, stat.SHCount },
-					{ Grade.S, stat.SCount },
-					{ Grade.A, stat.ACount }
-				},
-				TotalGekis = stat.TotalGekis,
-				TotalKatus = stat.TotalKatus,
-				Total300s = stat.Total300s,
-				Total100s = stat.Total100s,
-				Total50s = stat.Total50s,
-			};
+			player.Stats[mode] = stat.ToModeStats(await GetPlayerGlobalRank(mode, player.Id));
 		}
 	}
 	
@@ -501,36 +507,14 @@ public class PlayersRepository : IPlayersRepository
 		return await _dbContext.Stats.FirstOrDefaultAsync(s => s.PlayerId == playerId && s.Mode == mode);
 	}
 
-	public async Task UpdatePlayerStats(Player player, GameMode mode)
-	{
-		var stats = player.Stats[mode];
-		
-		var dbStats = new StatsDto
-		{
-			PlayerId = player.Id,
-			Mode = (byte)mode,
-			TotalScore = stats.TotalScore,
-			RankedScore = stats.RankedScore,
-			PP = stats.PP,
-			Accuracy = stats.Accuracy,
-			PeakRank = stats.PeakRank,
-			PlayCount = stats.PlayCount,
-			PlayTime = stats.PlayTime,
-			MaxCombo = stats.MaxCombo,
-			ReplayViews = stats.ReplayViews,
-			XHCount = stats.Grades[Grade.XH],
-			XCount = stats.Grades[Grade.X],
-			SHCount = stats.Grades[Grade.SH],
-			SCount = stats.Grades[Grade.S],
-			ACount = stats.Grades[Grade.A],
-			TotalGekis = stats.TotalGekis,
-			TotalKatus = stats.TotalKatus,
-			Total300s = stats.Total300s,
-			Total100s = stats.Total100s,
-			Total50s = stats.Total50s,
-		};
-		_dbContext.Update(dbStats);
+	public async Task UpdatePlayerStats(
+		Player player,
+		GameMode mode,
+		StatsDto stats
+	) {
 		await _dbContext.SaveChangesAsync();
+
+		player.Stats[mode] = stats.ToModeStats(await GetPlayerGlobalRank(mode, player.Id));
 	}
 
 	public async Task UpdatePlayerStats(
@@ -678,42 +662,6 @@ public class PlayersRepository : IPlayersRepository
 	
 	//TODO
 	public async Task RecalculatePlayerTopScores(
-		Player player,
-		GameMode mode
-	) {
-		var bestScores = await _dbContext.Scores
-			.Where(s => s.PlayerId == player.Id
-			            && s.Status == SubmissionStatus.Best
-			            && s.Mode == mode
-			            && s.Ranked)
-			.OrderByDescending(s => s.PP)
-			.Take(200)
-			.ToListAsync();
-
-		var weightedAcc = 0.0f;
-		var weightedPp = 0.0f;
-
-		for (var i = 0; i < bestScores.Count; i++)
-		{
-			var score = bestScores[i];
-			var weight = MathF.Pow(0.95f, i);
-
-			weightedAcc += score.Acc * weight;
-			weightedPp += score.PP * weight;
-		}
-
-		var accWeight = 100f / (20 * (1 - MathF.Pow(0.95f, bestScores.Count)));
-		var bonusPp = (417 - (float)1/3) * (1 - MathF.Pow(0.995f, MathF.Min(1000, bestScores.Count)));
-
-		var stats = player.Stats[mode];
-		stats.Accuracy = weightedAcc * accWeight / 100;
-		stats.PP = (ushort)MathF.Round(weightedPp + bonusPp);
-		
-		await _dbContext.Players.Where(p => p.Id == player.Id)
-			.ExecuteUpdateAsync(s => s.SetProperty(p => p.TopPlaysCount, Math.Min(bestScores.Count, 200)));
-	}
-
-	public async Task RecalculatePlayerTopScores(
 		int playerId,
 		StatsDto stats,
 		GameMode mode
@@ -751,38 +699,6 @@ public class PlayersRepository : IPlayersRepository
 	}
 
 	public async Task UpdatePlayerRank(
-		Player player,
-		GameMode mode
-	) {
-		var country = player.Geoloc.Country.Acronym;
-		var stats = player.Stats[mode];
-		
-		switch (player.IsRestricted)
-		{
-			case false:
-				await InsertPlayerGlobalRank((byte)mode, country, player.Id, stats.PP);
-				break;
-			case true:
-				//TODO stats.Rank = 0;
-				return;
-		}
-
-		stats.Rank = await GetPlayerGlobalRank(mode, player.Id);
-		if (stats.Rank < stats.PeakRank)
-		{
-			stats.PeakRank = stats.Rank;
-			await _histories.UpdatePeakRank(
-				player.Id,
-				(byte)mode,
-				new PeakRank
-				{
-					Value = stats.PeakRank,
-					Date = DateTime.UtcNow
-				});
-		}
-	}
-
-	public async Task UpdatePlayerRank(
 		int playerId,
 		bool isRestricted,
 		string country,
@@ -800,18 +716,14 @@ public class PlayersRepository : IPlayersRepository
 		}
 
 		var rank = await GetPlayerGlobalRank(mode, playerId);
-		if (rank < stats.PeakRank)
-		{
-			stats.PeakRank = rank;
-			await _histories.UpdatePeakRank(
-				playerId,
-				(byte)mode,
-				new PeakRank
-				{
-					Value = stats.PeakRank,
-					Date = DateTime.UtcNow
-				});
-		}
+
+		// 0 means never ranked
+		if (stats.PeakRank != 0 && rank >= stats.PeakRank) return;
+
+		stats.PeakRank = rank;
+		stats.PeakRankDate = DateTime.UtcNow;
+		
+		await _dbContext.SaveChangesAsync();
 	}
 
 	public async Task<List<PlayerRankingDto>> GetRanking(
@@ -820,7 +732,7 @@ public class PlayersRepository : IPlayersRepository
 		string country = "",
 		bool filterByScore = false
 	) {
-		return await _dbContext.Stats
+		var ranking = await _dbContext.Stats
 			.AsNoTracking()
 			.Include(s => s.Player)
 			.Where(s => s.Mode == mode
@@ -833,10 +745,43 @@ public class PlayersRepository : IPlayersRepository
 			.Select(s => new PlayerRankingDto
 			{
 				Stats = s,
-				Player = s.Player,
-				//TODO RankChangeSince30Days
+				Player = s.Player
 			})
 			.ToListAsync();
+
+		await AssignRankChange(ranking, mode, page);
+
+		return ranking;
+	}
+	
+	private async Task AssignRankChange(
+		List<PlayerRankingDto> ranking,
+		byte mode,
+		int page
+	) {
+		if (ranking.Count == 0) return;
+
+		var playerIds = ranking.Select(r => r.Stats.PlayerId).ToList();
+
+		var previous = await _playerHistories.GetSamplesAsOf(
+			playerIds,
+			mode,
+			HistoryMetric.GlobalRank,
+			HistoryGranularity.Daily,
+			DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-30)
+		);
+
+		if (previous.Count == 0) return;
+		
+		var firstRank = (page - 1) * 50 + 1;
+
+		for (var i = 0; i < ranking.Count; i++)
+		{
+			if (!previous.TryGetValue(ranking[i].Stats.PlayerId, out var previousRank) || previousRank <= 0)
+				continue;
+
+			ranking[i].RankChangeSince30Days = (int)previousRank - (firstRank + i);
+		}
 	}
 
 	public async Task CreatePlayer(string username, string email, string passwordHash, string country)
@@ -859,10 +804,12 @@ public class PlayersRepository : IPlayersRepository
 
 		var playerId = player.Entity.Id;
 		
-		var scoreDtos = new StatsDto[8];
-		for (byte i = 0; i < scoreDtos.Length; i++)
+		var trackedModes = ModeExtensions.TrackedModes;
+		var scoreDtos = new StatsDto[trackedModes.Length];
+
+		for (var i = 0; i < trackedModes.Length; i++)
 		{
-			var mode = i == 7 ? (byte)(i + 1) : i;
+			var mode = trackedModes[i];
 			
 			scoreDtos[i] = new StatsDto
 			{
@@ -871,33 +818,6 @@ public class PlayersRepository : IPlayersRepository
 			};
 			
 			await _redis.SortedSetAddAsync($"bancho:leaderboard:{mode}", playerId, 0);
-
-			var rank = await GetPlayerGlobalRank((GameMode)mode, playerId);
-
-			await Task.WhenAll(
-				_histories.InsertRankHistory(new RankHistoryEntry
-				{
-					PlayerId = playerId,
-					Mode = mode,
-					PeakRank = new PeakRank
-					{
-						Value = rank,
-						Date = DateTime.UtcNow
-					},
-					Entries = [rank]
-				}),
-				_histories.InsertReplaysHistory(new ReplayViewsHistory
-				{
-					PlayerId = playerId,
-					Mode = mode,
-					Entries = [0]
-				}),
-				_histories.InsertPlayCountHistory(new PlayCountHistory
-				{
-					PlayerId = playerId,
-					Mode = mode,
-					Entries = [0]
-				}));
 		}
 
 		await _dbContext.Stats.AddRangeAsync(scoreDtos);
@@ -1042,35 +962,6 @@ public class PlayersRepository : IPlayersRepository
 		return true;
 	}
 	
-	/// <summary>
-	/// Returns a list of objects that contains: player id, play count and replay views of players in a given mode.
-	/// </summary>
-	public async Task<List<PlayerHistoryStats>> GetPlayersModeStatsRange(
-		byte mode,
-		int count,
-		int skip = 0,
-		bool reset = false)
-	{
-		if (count % 8 != 0 || skip % 8 != 0)
-			Console.WriteLine($"[Players] Taking/Skip count should be a multiple of 8, count: {count}, skip: {skip}");
-		
-		return await _dbContext.Stats
-			.Include(s => s.Player)
-			.Where(s => s.Mode == mode && !s.Player.Inactive && (s.Player.Privileges & 1) == 1)
-			.OrderBy(s => s.PlayerId)
-			.Skip(skip)
-			.Take(count)
-			.Select(s => new PlayerHistoryStats(s.PlayerId, s.PlayCount, s.ReplayViews))
-			.ToListAsync();
-	}
-
-	public async Task ResetPlayersStats(byte mode)
-	{
-		await _dbContext.Stats.Where(s => s.Mode == mode)
-			.ExecuteUpdateAsync(st => st.SetProperty(s => s.PlayCount, 0)
-				.SetProperty(s => s.ReplayViews, 0));
-	}
-
 	/// <summary>
 	/// Returns the total count of players (by default without restricted).
 	/// </summary>

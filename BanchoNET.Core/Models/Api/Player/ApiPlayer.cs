@@ -53,7 +53,7 @@ public class ApiPlayer : BasicApiPlayer
     public Page Page { get; set; } = new();
     public int PendingBeatmapsetCount { get; set; }
     public string[] PreviousUsernames { get; set; } = [];
-    public RankHighest RankHighest { get; set; } = new();
+    public RankHighest? RankHighest { get; set; }
     public int RankedBeatmapsetCount { get; set; }
     public ReplaysWatchedCounts[] ReplaysWatchedCounts { get; set; } = [];
     public int ScoresBestCount { get; set; }

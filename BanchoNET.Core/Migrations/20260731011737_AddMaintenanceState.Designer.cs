@@ -3,6 +3,7 @@ using System;
 using BanchoNET.Core.Models.Db;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using NpgsqlTypes;
@@ -12,9 +13,11 @@ using NpgsqlTypes;
 namespace BanchoNET.Core.Migrations
 {
     [DbContext(typeof(BanchoDbContext))]
-    partial class BanchoDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260731011737_AddMaintenanceState")]
+    partial class AddMaintenanceState
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1034,35 +1037,6 @@ namespace BanchoNET.Core.Migrations
                     b.ToTable("Players", (string)null);
                 });
 
-            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.PlayerHistoryDto", b =>
-                {
-                    b.Property<int>("PlayerId")
-                        .HasColumnType("integer");
-
-                    b.Property<byte>("Mode")
-                        .HasColumnType("smallint");
-
-                    b.Property<short>("Metric")
-                        .HasColumnType("smallint");
-
-                    b.Property<short>("Granularity")
-                        .HasColumnType("smallint");
-
-                    b.Property<DateOnly>("Date")
-                        .HasColumnType("date");
-
-                    b.Property<double>("Value")
-                        .HasColumnType("double precision");
-
-                    b.HasKey("PlayerId", "Mode", "Metric", "Granularity", "Date");
-
-                    b.HasIndex("Date");
-
-                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Date"), "brin");
-
-                    b.ToTable("PlayerHistories", (string)null);
-                });
-
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.RelationshipDto", b =>
                 {
                     b.Property<long>("Id")
@@ -1350,9 +1324,6 @@ namespace BanchoNET.Core.Migrations
                     b.Property<int>("PeakRank")
                         .HasColumnType("integer");
 
-                    b.Property<DateTime?>("PeakRankDate")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<int>("PlayCount")
                         .HasColumnType("integer");
 
@@ -1615,15 +1586,6 @@ namespace BanchoNET.Core.Migrations
                     b.Navigation("Channel");
 
                     b.Navigation("Sender");
-                });
-
-            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.PlayerHistoryDto", b =>
-                {
-                    b.HasOne("BanchoNET.Core.Models.Dtos.PlayerDto", null)
-                        .WithMany()
-                        .HasForeignKey("PlayerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.RelationshipDto", b =>

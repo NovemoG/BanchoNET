@@ -1,10 +1,12 @@
 ﻿using System.Diagnostics;
 using BanchoNET.Core.Abstractions.Bancho.Services;
 using BanchoNET.Core.Abstractions.Repositories;
-using BanchoNET.Core.Abstractions.Repositories.Histories;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Models.Db;
+using BanchoNET.Core.Models.Dtos;
+using BanchoNET.Core.Models.History;
 using BanchoNET.Core.Models.Privileges;
+using BanchoNET.Core.Utils.Extensions;
 using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils;
 using Cronos;
@@ -23,10 +25,9 @@ public class BackgroundTasks(
     {
         { "UpdateBotStatus", $"*/{AppSettings.BotStatusUpdateInterval} * * * *" },
         { "CheckSupporters", "*/30 * * * *" },          // every 30 minutes
-        { "AppendRankHistory", "0 0 * * *" },           // every day at midnight
+        { "AppendPlayerHistory", "0 0 * * *" },         // every day at midnight
         { "MarkInactivePlayers", "0 0 * * *" },         // every day at midnight
         { "DeleteUnnecessaryScores", "0 0 */2 * *" },   // every 2 days at midnight
-        { "AppendMonthlyHistory", "0 0 1 * *" },        // every 1st day of the month at midnight
         { "CleanupRefreshTokens", "0 0 * * *" },        // every day at midnight
     };
 
@@ -110,17 +111,14 @@ public class BackgroundTasks(
             case "CheckSupporters":
                 return CheckExpiringSupporters(ct);
 
-            case "AppendRankHistory":
-                return AppendPlayerRankHistory(ct);
+            case "AppendPlayerHistory":
+                return AppendPlayerHistory(ct);
 
             case "MarkInactivePlayers":
                 return MarkInactivePlayers(ct);
 
             case "DeleteUnnecessaryScores":
                 return DeleteUnnecessaryScores(ct);
-
-            case "AppendMonthlyHistory":
-                return AppendPlayerMonthlyHistory(ct);
 
             case "CleanupRefreshTokens":
                 return CleanupRefreshTokens(ct);
@@ -131,121 +129,186 @@ public class BackgroundTasks(
         }
     }
     
-    #region Rank History
-
-    public async Task AppendPlayerRankHistory(CancellationToken ct)
+    #region Player History
+    
+    private const int HistoryBatchSize = 2000;
+    
+    public async Task AppendPlayerHistory(CancellationToken ct)
     {
-        logger.LogInfo($"Appending players' daily rank history ({DateTime.UtcNow})", caller: nameof(BackgroundTasks));
+        var now = DateTime.UtcNow;
+        var today = DateOnly.FromDateTime(now);
+        
+        var monthlyBucket = new DateOnly(today.Year, today.Month, 1).AddMonths(-1);
 
-        for (var i = 0; i < 8; i++)
-        {
-            await ProcessRankHistory((byte)i, ct); //TODO fix with batch updates
-        }
-
-        logger.LogInfo($"Finished updating players' rank history ({DateTime.UtcNow})", caller: nameof(BackgroundTasks));
-    }
-
-    private async Task ProcessRankHistory(byte mode, CancellationToken ct)
-    {
         await using var scope = scopeFactory.CreateAsyncScope();
-        var players = scope.ServiceProvider.GetRequiredService<IPlayersRepository>();
-        var redis = scope.ServiceProvider.GetRequiredService<IConnectionMultiplexer>().GetDatabase();
-        var histories = scope.ServiceProvider.GetRequiredService<IHistoriesRepository>();
+        var db = scope.ServiceProvider.GetRequiredService<BanchoDbContext>();
         
-        var stopwatch = new Stopwatch();
-        stopwatch.Start();
-        
-        var key = $"bancho:leaderboard:{mode}";
-        var playerCount = await redis.SortedSetLengthAsync(key);
-        //var playerCount = await players.TotalPlayerCount();
-        const int limit = 10_000;
-        
-        mode = mode == 7 ? (byte)(mode + 1) : mode;
-        
-        var iter = 0;
-        for (var i = 0; i < playerCount; i += limit)
-        {
-            var ranks = await redis.SortedSetRangeByRankWithScoresAsync(
-                key: key,
-                start: i,
-                stop: limit + iter * limit - 1,
-                order: Order.Descending);
-                
-            for (var j = 0; j < ranks.Length; j++)
-            {
-                var playerId = int.Parse(ranks[j].Element!);
+        var backfilled = await db.MaintenanceState
+            .AsNoTracking()
+            .AnyAsync(s => s.Key == IHistoryMaintenanceService.LifetimeCounterBackfillKey, ct);
 
-                await histories.AddRankHistory(
-                    playerId,
-                    mode,
-                    i + j + 1);
-            }
-                
-            iter++;
+        if (!backfilled)
+        {
+            logger.LogWarning(
+                "Skipping monthly history samples: lifetime counter backfill has not been applied. " +
+                "It runs at startup, so this means the pass failed — check the init logs.",
+                caller: nameof(BackgroundTasks)
+            );
         }
-        
+
+        logger.LogInfo(
+            $"Appending player history (daily {today}, monthly {(backfilled ? monthlyBucket.ToString() : "skipped")})",
+            caller: nameof(BackgroundTasks)
+        );
+
+        var stopwatch = Stopwatch.StartNew();
+        var inserted = 0;
+
+        foreach (var mode in ModeExtensions.TrackedModes)
+        {
+            if (ct.IsCancellationRequested) break;
+
+            inserted += await ProcessPlayerHistory(mode, today, backfilled ? monthlyBucket : null, ct);
+        }
+
         stopwatch.Stop();
-        logger.LogInfo($"Finished updating daily rank history for mode {mode}, execution time: {stopwatch.Elapsed}",
-            caller: nameof(BackgroundTasks));
+
+        var state = await db.MaintenanceState
+            .FirstOrDefaultAsync(s => s.Key == PlayerHistoryJobKey, ct);
+
+        if (state == null)
+        {
+            db.MaintenanceState.Add(new MaintenanceStateDto
+            {
+                Key = PlayerHistoryJobKey,
+                LastRunAt = now,
+                Details = $"daily={today} monthly={monthlyBucket} inserted={inserted}"
+            });
+        }
+        else
+        {
+            state.LastRunAt = now;
+            state.Details = $"daily={today} monthly={monthlyBucket} inserted={inserted}";
+        }
+
+        await db.SaveChangesAsync(ct);
+
+        logger.LogInfo(
+            $"Finished appending player history: {inserted} samples in {stopwatch.Elapsed}",
+            caller: nameof(BackgroundTasks)
+        );
     }
 
-    #endregion
+    private const string PlayerHistoryJobKey = "job:player_history";
+    
+    private async Task<int> ProcessPlayerHistory(
+        byte mode,
+        DateOnly dailyBucket,
+        DateOnly? monthlyBucket,
+        CancellationToken ct
+    ) {
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<BanchoDbContext>();
+        var redis = scope.ServiceProvider.GetRequiredService<IConnectionMultiplexer>().GetDatabase();
+        var playerHistories = scope.ServiceProvider.GetRequiredService<IPlayerHistoryRepository>();
 
-    #region Monthly History
+        var stopwatch = Stopwatch.StartNew();
 
-    public async Task AppendPlayerMonthlyHistory(CancellationToken ct)
-    {
-        logger.LogInfo($"Appending players' monthly history ({DateTime.UtcNow})", caller: nameof(BackgroundTasks));
+        var ranks = await BuildRankMap(redis, mode);
 
-        for (var i = 0; i < 8; i++)
+        var lastPlayerId = 0;
+        var inserted = 0;
+        var samples = new List<PlayerHistorySample>(HistoryBatchSize * 4);
+
+        while (!ct.IsCancellationRequested)
         {
-            await ProcessMonthlyHistory((byte)i, ct); //TODO fix with batch updates
+            var batch = await db.Stats
+                .AsNoTracking()
+                .Where(s => s.Mode == mode
+                            && s.PlayCount > 0
+                            && (s.Player.Privileges & 1) == 1
+                            && s.PlayerId > lastPlayerId)
+                .OrderBy(s => s.PlayerId)
+                .Take(HistoryBatchSize)
+                .Select(s => new
+                {
+                    s.PlayerId,
+                    s.PP,
+                    s.PlayCount,
+                    s.ReplayViews
+                })
+                .ToListAsync(ct);
+
+            if (batch.Count == 0) break;
+
+            lastPlayerId = batch[^1].PlayerId;
+            samples.Clear();
+
+            foreach (var row in batch)
+            {
+                // A player missing from the leaderboard (restricted, or never given a score)
+                // gets no rank sample rather than a fabricated one.
+                if (ranks.TryGetValue(row.PlayerId, out var rank))
+                {
+                    samples.Add(new PlayerHistorySample(
+                        row.PlayerId, mode, HistoryMetric.GlobalRank, HistoryGranularity.Daily, dailyBucket, rank
+                    ));
+                }
+
+                samples.Add(new PlayerHistorySample(
+                    row.PlayerId, mode, HistoryMetric.Pp, HistoryGranularity.Daily, dailyBucket, row.PP
+                ));
+
+                if (monthlyBucket is not { } bucket) continue;
+                
+                samples.Add(new PlayerHistorySample(
+                    row.PlayerId, mode, HistoryMetric.PlayCount, HistoryGranularity.Monthly, bucket, row.PlayCount
+                ));
+
+                samples.Add(new PlayerHistorySample(
+                    row.PlayerId, mode, HistoryMetric.ReplayViews, HistoryGranularity.Monthly, bucket, row.ReplayViews
+                ));
+            }
+
+            inserted += await playerHistories.AppendSamples(samples, ct);
         }
-        
-        logger.LogInfo($"Finished updating players' monthly history ({DateTime.UtcNow})", caller: nameof(BackgroundTasks));
+
+        stopwatch.Stop();
+        logger.LogDebug(
+            $"Player history for mode {mode}: {inserted} samples in {stopwatch.Elapsed}",
+            caller: nameof(BackgroundTasks)
+        );
+
+        return inserted;
     }
     
-    private async Task ProcessMonthlyHistory(byte mode, CancellationToken ct)
-    {
-        await using var scope = scopeFactory.CreateAsyncScope();
-        var players = scope.ServiceProvider.GetRequiredService<IPlayersRepository>();
-        var histories = scope.ServiceProvider.GetRequiredService<IHistoriesRepository>();
-        
-        var stopwatch = new Stopwatch();
-        stopwatch.Start();
+    private static async Task<Dictionary<int, int>> BuildRankMap(
+        IDatabase redis,
+        byte mode
+    ) {
+        var key = $"bancho:leaderboard:{mode}";
+        var total = await redis.SortedSetLengthAsync(key);
 
-        var playerCount = await players.TotalPlayerCount();
-        const int limit = 10_000;
-        
-        mode = mode == 7 ? (byte)(mode + 1) : mode;
-        
-        var iter = 0;
-        for (int i = 0; i < playerCount; i += limit)
+        var ranks = new Dictionary<int, int>((int)total);
+        const int page = 10_000;
+
+        for (long start = 0; start < total; start += page)
         {
-            var stats = await players.GetPlayersModeStatsRange(mode, limit, iter * limit);
-            
-            foreach (var (playerId, playCount, replaysViewed) in stats)
+            var entries = await redis.SortedSetRangeByRankAsync(
+                key: key,
+                start: start,
+                stop: start + page - 1,
+                order: Order.Descending
+            );
+
+            for (var i = 0; i < entries.Length; i++)
             {
-                await Task.WhenAll(
-                    histories.AddPlayCountHistory(
-                        playerId,
-                        mode,
-                        playCount),
-                    histories.AddReplaysHistory(
-                        playerId,
-                        mode,
-                        replaysViewed)
-                );
+                if (int.TryParse((string?)entries[i], out var playerId))
+                    ranks[playerId] = (int)(start + i) + 1;
             }
-                
-            iter++;
         }
 
-        await players.ResetPlayersStats(mode);
-        
-        stopwatch.Stop();
-        logger.LogInfo($"Finished updating monthly history for mode {mode}, execution time: {stopwatch.Elapsed}",
-            caller: nameof(BackgroundTasks));
+        return ranks;
     }
 
     #endregion

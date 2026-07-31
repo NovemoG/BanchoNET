@@ -3,6 +3,7 @@ using System;
 using BanchoNET.Core.Models.Db;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using NpgsqlTypes;
@@ -12,9 +13,11 @@ using NpgsqlTypes;
 namespace BanchoNET.Core.Migrations
 {
     [DbContext(typeof(BanchoDbContext))]
-    partial class BanchoDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260731014143_AddPlayerHistories")]
+    partial class AddPlayerHistories
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1349,9 +1352,6 @@ namespace BanchoNET.Core.Migrations
 
                     b.Property<int>("PeakRank")
                         .HasColumnType("integer");
-
-                    b.Property<DateTime?>("PeakRankDate")
-                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("PlayCount")
                         .HasColumnType("integer");

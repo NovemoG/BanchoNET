@@ -40,11 +40,9 @@ public interface IPlayersRepository
 
     Task GetPlayerStats(Player player);
     Task<StatsDto?> GetPlayerModeStats(int playerId, byte mode);
-    Task<List<PlayerHistoryStats>> GetPlayersModeStatsRange(byte mode, int count, int skip = 0, bool reset = false);
-    Task UpdatePlayerStats(Player player, GameMode mode);
+    Task UpdatePlayerStats(Player player, GameMode mode, StatsDto stats);
     Task UpdatePlayerStats(StatsDto stats, ApiScore score);
     Task IncreasePlayerPlayTime(int playerId, int mode, int timeElapsed);
-    Task ResetPlayersStats(byte mode);
     Task IncreasePlayerReplaysViewed(int playerId, byte mode, long scoreId);
     
     Task<int> GetFriendsCount(int playerId);
@@ -53,9 +51,7 @@ public interface IPlayersRepository
     Task FetchPlayerRelationships(Player player);
     Task UpdatePlayerPrivileges(Player player, PlayerPrivileges playerPrivileges, bool remove);
     
-    Task RecalculatePlayerTopScores(Player player, GameMode mode);
     Task RecalculatePlayerTopScores(int playerId, StatsDto stats, GameMode mode);
-    Task UpdatePlayerRank(Player player, GameMode mode);
     Task UpdatePlayerRank(int playerId,
         bool isRestricted,
         string country,

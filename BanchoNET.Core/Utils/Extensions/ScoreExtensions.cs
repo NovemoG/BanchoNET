@@ -3,9 +3,7 @@ using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Mods;
-using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Scores;
-using osu.Game.Scoring;
 using Pp;
 using Score = BanchoNET.Core.Models.Scores.Score;
 
@@ -113,7 +111,7 @@ public static class ScoreExtensions
     }
 
     public static void IncreasePlaytime(
-        this ModeStats stats,
+        this StatsDto stats,
         LegacyMods mods,
         int timeElapsed
     ) {

@@ -13,7 +13,6 @@ using BanchoNET.Core.Models.Scores;
 using BanchoNET.Core.Utils.Extensions;
 using BanchoNET.Handlers.Lazer.Hubs;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace BanchoNET.Handlers.Lazer.Services;
@@ -319,9 +318,9 @@ public sealed partial class ScoreSubmissionQueue(
                 // leaderboard; then if current score beat both prevBest and bestWithMods
                 // but prevBest is BestWithMods we subtract bestWithMods
                 if (prevBest is { Status: SubmissionStatus.Submitted, Grade: >= Grade.A })
-                    DecreaseGrade(stats, prevBest.Grade);
+                    stats.DecreaseGrade(prevBest.Grade);
                 else if (bestWithMods != null)
-                    DecreaseGrade(stats, bestWithMods.Grade);
+                    stats.DecreaseGrade(bestWithMods.Grade);
                 
                 oldBestScore = prevBest.TotalScore;
             }
@@ -329,7 +328,7 @@ public sealed partial class ScoreSubmissionQueue(
             stats.RankedScore += score.TotalScore - oldBestScore;
             
             if (score.Grade >= Grade.A)
-                IncreaseGrade(stats, score.Grade);
+                stats.IncreaseGrade(score.Grade);
             
             await players.RecalculatePlayerTopScores(player.Id, stats, mode);
             await players.UpdatePlayerRank(player.Id, player.IsRestricted, player.CountryCode.ToLower(), stats, mode);
@@ -338,40 +337,10 @@ public sealed partial class ScoreSubmissionQueue(
         {
             // if our score didnt beat prevBest but beat bestWithMods subtract
             if (bestWithMods is { Grade: >= Grade.A })
-                DecreaseGrade(stats, bestWithMods.Grade);
+                stats.DecreaseGrade(bestWithMods.Grade);
             
             if (score.Grade >= Grade.A)
-                IncreaseGrade(stats, score.Grade);
-        }
-    }
-
-    private static void IncreaseGrade(
-        StatsDto stats,
-        Grade grade
-    ) {
-        switch (grade)
-        {
-            case Grade.A: stats.ACount++; break;
-            case Grade.S: stats.SCount++; break;
-            case Grade.SH: stats.SHCount++; break;
-            case Grade.X: stats.XCount++; break;
-            case Grade.XH: stats.XHCount++; break;
-            default: return;
-        }
-    }
-
-    private static void DecreaseGrade(
-        StatsDto stats,
-        Grade grade
-    ) {
-        switch (grade)
-        {
-            case Grade.A: stats.ACount--; break;
-            case Grade.S: stats.SCount--; break;
-            case Grade.SH: stats.SHCount--; break;
-            case Grade.X: stats.XCount--; break;
-            case Grade.XH: stats.XHCount--; break;
-            default: return;
+                stats.IncreaseGrade(score.Grade);
         }
     }
 }
