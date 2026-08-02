@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using BanchoNET.Core.Models.Players;
+using BanchoNET.Core.Models.Scores;
 
 namespace BanchoNET.Core.Utils;
 
@@ -76,7 +77,27 @@ public static class AppSettings
         var scoreInNotification = Environment.GetEnvironmentVariable("DISPLAY_SCORE_IN_NOTIFICATION");
         DisplayScoreInNotification = string.IsNullOrEmpty(scoreInNotification)
                                      || bool.Parse(scoreInNotification);
-        
+
+        var retentionMode = Environment.GetEnvironmentVariable("SCORE_RETENTION_MODE");
+        ScoreRetentionMode = string.IsNullOrEmpty(retentionMode)
+            ? ScoreRetentionMode.Delete
+            : Enum.Parse<ScoreRetentionMode>(retentionMode, true);
+
+        var retentionHours = Environment.GetEnvironmentVariable("SCORE_RETENTION_HOURS");
+        ScoreRetentionHours = string.IsNullOrEmpty(retentionHours)
+            ? (short)48
+            : short.Parse(retentionHours);
+
+        var mapCompleteTimeout = Environment.GetEnvironmentVariable("MULTIPLAYER_MAP_COMPLETE_TIMEOUT_SECONDS");
+        MultiplayerMapCompleteTimeout = TimeSpan.FromSeconds(
+            string.IsNullOrEmpty(mapCompleteTimeout) ? 60 : int.Parse(mapCompleteTimeout)
+        );
+
+        var mapLoadTimeout = Environment.GetEnvironmentVariable("MULTIPLAYER_MAP_LOAD_TIMEOUT_SECONDS");
+        MultiplayerMapLoadTimeout = TimeSpan.FromSeconds(
+            string.IsNullOrEmpty(mapLoadTimeout) ? 60 : int.Parse(mapLoadTimeout)
+        );
+
         var menuIconUrl = Environment.GetEnvironmentVariable("MENU_ICON_URL");
         MenuIconUrl = string.IsNullOrEmpty(menuIconUrl)
             ? ""
@@ -208,6 +229,10 @@ public static class AppSettings
     public static readonly bool SubmitByPP;
     public static readonly bool DisplayPPInNotification;
     public static readonly bool DisplayScoreInNotification;
+    public static readonly ScoreRetentionMode ScoreRetentionMode;
+    public static readonly short ScoreRetentionHours;
+    public static readonly TimeSpan MultiplayerMapCompleteTimeout;
+    public static readonly TimeSpan MultiplayerMapLoadTimeout;
     public static readonly string MenuIconUrl;
     public static readonly string MenuOnclickUrl;
     public static readonly string BanchoBotName;

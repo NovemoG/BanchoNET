@@ -1,12 +1,11 @@
 ﻿using BanchoNET.Core.Attributes;
 using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Mods;
-using BanchoNET.Core.Models.Mongo;
+using BanchoNET.Core.Models.Multiplayer;
 using BanchoNET.Core.Models.Privileges;
 using BanchoNET.Core.Models.Stable.Multiplayer;
 using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
-using Action = BanchoNET.Core.Models.Mongo.Action;
 using static BanchoNET.Handlers.Stable.Commands.CommandHandlerMap;
 using static BanchoNET.Core.Utils.Extensions.ModsExtensions;
 using MultiplayerMatch = BanchoNET.Core.Models.Stable.Multiplayer.MultiplayerMatch;
@@ -75,8 +74,8 @@ public partial class CommandProcessor
             "password" or "p" => (false, ChangeLobbyPassword(args[1..])),
             "lock" => (false, LockLobby()),
             "unlock" => (false, UnlockLobby()),
-            "size" => (false, SetLobbySize(args[1..])),
-            "set" => (false, SetLobbyProperties(args[1..])),
+            "size" => (false, await SetLobbySize(args[1..])),
+            "set" => (false, await SetLobbyProperties(args[1..])),
             "move" => (false, MovePlayer(args[1..])),
             "host" => (false, await TransferHost(args[1..])),
             "clearhost" or "ch" => (false, await ClearHost()),
@@ -121,9 +120,9 @@ public partial class CommandProcessor
         foreach (var slot in lobby.Slots)
             slot.Status = SlotStatus.Open;
 
-        await multiplayer.CreateMatchAsync(lobby, _playerCtx);
-        
-        return "";
+        return await multiplayer.CreateMatchAsync(lobby, _playerCtx)
+            ? ""
+            : "Couldn't create the lobby right now. Please try again in a moment.";
     }
     
     private string InviteToLobby(string[] args)
@@ -197,20 +196,20 @@ public partial class CommandProcessor
         return "Unlocked the lobby.";
     }
     
-    private string SetLobbySize(string[] args)
+    private async Task<string> SetLobbySize(string[] args)
     {
         if (!_match.Refs.Contains(_playerCtx.Id))
             return "";
-        
+
         if (args.Length == 0)
             return $"Not enough parameters provided. Use '{Prefix}mp size <size>'.";
-        
-        if (!int.TryParse(args[0], out var size)) 
+
+        if (!int.TryParse(args[0], out var size))
             return "Invalid size provided. Available slots: 1-16.";
-        
+
         if (size is < 1 or > 16)
             return "Invalid size provided. Available slots: 1-16.";
-        
+
         for (var i = 0; i < size; i++)
         {
             var slot = _match.Slots[i];
@@ -221,20 +220,20 @@ public partial class CommandProcessor
         for (var i = size; i < _match.Slots.Length; i++)
         {
             var slot = _match.Slots[i];
-            
+
             if ((slot.Status & SlotStatus.PlayerInSlot) != 0)
-                multiplayer.LeavePlayerToLobby(slot.Player!);
-            
+                await multiplayer.LeavePlayerToLobby(slot.Player!, MultiplayerEventType.PlayerKicked);
+
             slot.Reset();
             slot.Status = SlotStatus.Locked;
         }
-        
+
         multiplayer.EnqueueStateTo(_match);
 
         return $"Changed size to: {size}";
     }
-    
-    private string SetLobbyProperties(string[] args)
+
+    private async Task<string> SetLobbyProperties(string[] args)
     {
         if (!_match.Refs.Contains(_playerCtx.Id))
             return "";
@@ -260,8 +259,8 @@ public partial class CommandProcessor
         _match.WinCondition = (WinCondition)scoreMode;
         
         if (args.Length > 2)
-            SetLobbySize(args[2..]);
-        
+            await SetLobbySize(args[2..]);
+
         multiplayer.EnqueueStateTo(_match);
         return $"Changed lobby properties to: Team mode: {_match.Type}, Score mode: {_match.WinCondition}, Size: {_match.Slots.Count(s => s.Status != SlotStatus.Locked)}.";
     }
@@ -325,41 +324,27 @@ public partial class CommandProcessor
         
         var target = slot.Player!;
         _match.HostId = target.Id;
-        
+
         multiplayer.EnqueueStateTo(_match);
-        
-        await histories.AddMatchAction(
-            _match.LobbyId,
-            new ActionEntry
-            {
-                Action = Action.HostChanged,
-                PlayerId = target.Id,
-                Date = DateTime.UtcNow
-            });
-        
+
+        await matchHistory.SetHost(_match.LobbyId, target.Id);
+
         return $"Changed host to {target.Username}.";
     }
-    
+
     private async Task<string> ClearHost()
     {
         if (!_match.Refs.Contains(_playerCtx.Id))
             return "";
-        
+
         _match.HostId = -1;
         multiplayer.EnqueueStateTo(_match);
-        
-        await histories.AddMatchAction(
-            _match.LobbyId,
-            new ActionEntry
-            {
-                Action = Action.HostChanged,
-                PlayerId = 0,
-                Date = DateTime.UtcNow
-            });
-        
+
+        await matchHistory.SetHost(_match.LobbyId, null);
+
         return "Removed host.";
     }
-    
+
     private async Task<string> AbortMatch()
     {
         if (!_match.Refs.Contains(_playerCtx.Id))
@@ -367,11 +352,9 @@ public partial class CommandProcessor
 
         if (!_match.InProgress)
             return "Match is not in progress.";
-        
-        multiplayer.EndMatch(_match);
 
-        await histories.MapAborted(_match.LobbyId);
-        
+        await multiplayer.AbortMatch(_match);
+
         return "Aborted the match.";
     }
     
@@ -527,24 +510,16 @@ public partial class CommandProcessor
 
         _match.ReadyAllPlayers();
         multiplayer.EnqueueStateTo(_match, false);
-        
-        _match.Timer = new LobbyTimer(seconds, true, async () =>
-            await histories.MapStarted(
-                _match.LobbyId,
-                new ScoresEntry
-                {
-                    StartDate = DateTime.UtcNow,
-                    GameMode = (byte)_match.Mode,
-                    WinCondition = (byte)_match.WinCondition,
-                    LobbyType = (byte)_match.Type,
-                    LobbyMods = _match.Freemods ? 0 : (int)_match.Mods,
-                    BeatmapId = _match.BeatmapId,
-                    BeatmapName = _match.BeatmapName,
-                    Values = []
-                }),
-            msg => channels.SendBotMessageTo(_match.Chat, msg, playerService.BanchoBot)
+
+        var match = _match;
+
+        // The timer fires outside this request, so it goes through the coordinator rather than
+        // capturing anything scoped to the command
+        _match.Timer = new LobbyTimer(seconds, true,
+            () => multiplayer.StartMatch(match),
+            msg => channels.SendBotMessageTo(match.Chat, msg, playerService.BanchoBot)
         );
-        
+
         return "";
     }
     
@@ -603,32 +578,11 @@ public partial class CommandProcessor
             return $"{args[0]} is not in the lobby.";
         
         var player = slot.Player!;
-        
-        multiplayer.LeavePlayerToLobby(player);
+
+        await multiplayer.LeavePlayerToLobby(player, MultiplayerEventType.PlayerKicked);
         playerService.SendBotMessageTo(player, "You've been kicked from the lobby.");
-        
-        await histories.AddMatchAction(
-            _match.LobbyId,
-            new ActionEntry
-            {
-                Action = Action.Left,
-                PlayerId = player.Id,
-                Date = DateTime.UtcNow
-            });
 
-        if (_match.IsEmpty())
-        {
-            await histories.AddMatchAction(
-                _match.LobbyId,
-                new ActionEntry
-                {
-                    Action = Action.MatchDisbanded,
-                    PlayerId = player.Id,
-                    Date = DateTime.UtcNow
-                });
-        }
-
-        return $"{slot.Player!.Username} has been kicked.";
+        return $"{player.Username} has been kicked.";
     }
     
     private async Task<string> BanPlayer(string[] args)
@@ -653,11 +607,11 @@ public partial class CommandProcessor
         if (slot != null)
         {
             var player = slot.Player!;
-            
-            multiplayer.LeavePlayerToLobby(player);
+
+            await multiplayer.LeavePlayerToLobby(player, MultiplayerEventType.PlayerKicked);
             playerService.SendBotMessageTo(player, "You've been banned from the lobby.");
         }
-        
+
         return $"{target.Username} has been banned.";
     }
     
@@ -748,31 +702,14 @@ public partial class CommandProcessor
         if (!_match.Refs.Contains(_playerCtx.Id))
             return "";
 
-        var actions = new List<ActionEntry>();
-        
+        // The match closes itself once the last slot empties, so there is nothing to record here
         foreach (var slot in _match.Slots)
         {
             if (slot.Player == null) continue;
-            
-            actions.Add(new ActionEntry
-            {
-                Action = Action.Left,
-                PlayerId = slot.Player.Id,
-                Date = DateTime.UtcNow
-            });
-            
-            multiplayer.LeavePlayerToLobby(slot.Player);
-        }
-        
-        actions.Add(new ActionEntry
-        {
-            Action = Action.MatchDisbanded,
-            PlayerId = _playerCtx.Id,
-            Date = DateTime.UtcNow
-        });
 
-        await histories.AddMatchActions(_match.LobbyId, actions);
-        
+            await multiplayer.LeavePlayerToLobby(slot.Player);
+        }
+
         return "";
     }
 }

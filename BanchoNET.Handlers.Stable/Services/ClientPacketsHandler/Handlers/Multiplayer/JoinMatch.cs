@@ -1,8 +1,6 @@
-﻿using BanchoNET.Core.Models.Mongo;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils.Extensions;
-using Action = BanchoNET.Core.Models.Mongo.Action;
 
 namespace BanchoNET.Handlers.Stable.Services.ClientPacketsHandler;
 
@@ -12,10 +10,10 @@ public partial class ClientPacketsHandler
 	{
 		var lobbyId = br.ReadInt32();
 		var password = br.ReadOsuString();
-		
+
 		if (lobbyId is < 0 or > ushort.MaxValue)
 			return;
-		
+
 		if (player.IsRestricted)
 		{
 			player.Enqueue(new ServerPackets()
@@ -33,12 +31,12 @@ public partial class ClientPacketsHandler
 				.FinalizeAndGetContent());
 			return;
 		}
-		
+
 		var match = multiplayer.GetMatch((ushort)lobbyId);
 		if (match == null)
 		{
-			Console.WriteLine($"[JoinMatch] {player.Username} tried to join a non-existent lobby ({lobbyId})");
-			
+			logger.LogDebug($"{player.Username} tried to join a non-existent lobby ({lobbyId})", nameof(JoinMatch));
+
 			player.Enqueue(new ServerPackets()
 				.MatchJoinFail()
 				.FinalizeAndGetContent());
@@ -53,22 +51,8 @@ public partial class ClientPacketsHandler
 				.FinalizeAndGetContent());
 			return;
 		}
-		
-		player.LastActivityTime = DateTime.UtcNow;
-		if (multiplayerCoordinator.JoinPlayer(match.Id, password, player))
-		{
-			await histories.AddMatchAction(
-				match.LobbyId,
-				new ActionEntry
-				{
-					Action = Action.Joined,
-					PlayerId = player.Id,
-					Date = DateTime.UtcNow
-				});
-		}
 
-		playerService.SendBotMessageTo(player,
-			$"Here is the mp link for the match: {match.MPLinkEmbed()}", "#multiplayer"
-		);
+		player.LastActivityTime = DateTime.UtcNow;
+		await multiplayerCoordinator.JoinPlayer(match.Id, password, player);
 	}
 }

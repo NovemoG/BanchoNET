@@ -11,7 +11,7 @@ public interface IScoresRepository
     Task<bool> ScoreExists(string checksum);
     Task<bool> RecalculateScore(long id);
     Task RecalculateAllScores();
-    Task<List<long>> DeleteOldScores(short differenceInHours = 48);
+    Task<List<long>> PurgeOldScores();
     
     Task ToggleBeatmapScoresVisibility(int mapId);
     Task ToggleBeatmapScoresVisibility(string md5);
@@ -41,11 +41,6 @@ public interface IScoresRepository
     Task<int> PlayerFirstPlaceScoresCount(
         int playerId,
         GameMode mode
-    );
-
-    Task<List<ScoreDto>> GetMultiplayerScores(
-        List<int> playerId,
-        DateTime finishDate
     );
 
     Task UpdateScoreStatus(

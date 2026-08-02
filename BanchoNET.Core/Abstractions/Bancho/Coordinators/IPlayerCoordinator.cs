@@ -4,7 +4,7 @@ namespace BanchoNET.Core.Abstractions.Bancho.Coordinators;
 
 public interface IPlayerCoordinator : ICoordinator
 {
-    bool LogoutPlayer(Player player);
+    Task<bool> LogoutPlayer(Player player);
 
     public bool AddSpectator(
         Player host,

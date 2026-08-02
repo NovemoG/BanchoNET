@@ -1,7 +1,6 @@
 ﻿using BanchoNET.Core.Abstractions.Bancho.Coordinators;
 using BanchoNET.Core.Abstractions.Bancho.Services;
 using BanchoNET.Core.Abstractions.Repositories;
-using BanchoNET.Core.Abstractions.Repositories.Histories;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Api.Player;
@@ -27,7 +26,6 @@ public class PlayersRepository : IPlayersRepository
 	private readonly IPlayerCoordinator _playerCoordinator;
 	private readonly IMultiplayerCoordinator _multiplayer;
 	private readonly IDatabase _redis;
-	private readonly IHistoriesRepository _histories;
 	private readonly IPlayerHistoryRepository _playerHistories;
 	private readonly IPasswordService _passwords;
 
@@ -37,7 +35,6 @@ public class PlayersRepository : IPlayersRepository
 		IPlayerCoordinator playerCoordinator,
 		IMultiplayerCoordinator multiplayer,
 		IConnectionMultiplexer redis,
-		IHistoriesRepository histories,
 		IPlayerHistoryRepository playerHistories,
 		IPasswordService passwords
 	) {
@@ -46,7 +43,6 @@ public class PlayersRepository : IPlayersRepository
 		_multiplayer = multiplayer;
 		_dbContext = dbContext;
 		_redis = redis.GetDatabase();
-		_histories = histories;
 		_playerHistories = playerHistories;
 		_passwords = passwords;
 	}
@@ -265,6 +261,8 @@ public class PlayersRepository : IPlayersRepository
 		}
 	}
 
+	private const int RankHistoryDays = 90;
+
 	public async Task<T?> GetPlayerInfoForMode<T>(
 		int playerId,
 		GameMode? mode = null
@@ -274,41 +272,11 @@ public class PlayersRepository : IPlayersRepository
 
 		var playerMode = mode ?? userInfo.PreferredMode;
 		var country = userInfo.Country.ParseCountry();
-		
+
 		var modeStats = await GetPlayerModeStats(playerId, (byte)playerMode);
 		var stats = await FetchModeStatistics(playerId, playerMode, userInfo.Country);
 
-		var today = DateOnly.FromDateTime(DateTime.UtcNow);
-
-		var rankSamples = await _playerHistories.GetSeries(
-			playerId,
-			(byte)playerMode,
-			[HistoryMetric.GlobalRank],
-			HistoryGranularity.Daily,
-			today.AddDays(-(RankHistoryDays - 1))
-		);
-
-		var monthlySamples = await _playerHistories.GetSeries(
-			playerId,
-			(byte)playerMode,
-			[HistoryMetric.PlayCount, HistoryMetric.ReplayViews],
-			HistoryGranularity.Monthly
-		);
-
-		var playCountSeries = PlayerHistorySeries.ToMonthlySeries(
-			monthlySamples.Where(s => s.Metric == HistoryMetric.PlayCount).ToList(),
-			DateOnly.FromDateTime(userInfo.CreationTime),
-			today,
-			modeStats?.PlayCount ?? 0
-		);
-		
-		var replayViewsSeries = PlayerHistorySeries.ToMonthlySeries(
-			monthlySamples.Where(s => s.Metric == HistoryMetric.ReplayViews).ToList(),
-			DateOnly.FromDateTime(userInfo.CreationTime),
-			today,
-			modeStats?.ReplayViews ?? 0,
-			trimLeadingEmptyMonths: true
-		);
+		var history = await BuildHistory(playerId, (byte)playerMode, userInfo, modeStats);
 
 		var player = new T
 		{
@@ -330,21 +298,8 @@ public class PlayersRepository : IPlayersRepository
 			Country = country,
 			IsRestricted = (userInfo.Privileges & 1) == 0,
 			FollowerCount = await GetFriendsCount(playerId),
-			
-			MonthlyPlaycounts = playCountSeries
-				.Select(m => new MonthlyPlaycounts
-				{
-					StartDate = m.Month.ToDateTime(TimeOnly.MinValue),
-					Count = (int)m.Count
-				}).ToArray(),
-			
-			ReplaysWatchedCounts = replayViewsSeries
-				.Select(m => new ReplaysWatchedCounts
-				{
-					StartDate = m.Month.ToDateTime(TimeOnly.MinValue),
-					Count = (int)m.Count
-				}).ToArray(),
-				
+			MonthlyPlaycounts = history.MonthlyPlaycounts,
+			ReplaysWatchedCounts = history.ReplaysWatchedCounts,
 			RankHighest = modeStats is { PeakRank: > 0, PeakRankDate: not null }
 				? new RankHighest
 				{
@@ -352,7 +307,6 @@ public class PlayersRepository : IPlayersRepository
 					UpdatedAt = modeStats.PeakRankDate.Value
 				}
 				: null,
-			
 			ScoresBestCount = userInfo.TopPlaysCount,
 			ScoresPinnedCount = 0, //TODO
 			Statistics = stats,
@@ -367,13 +321,73 @@ public class PlayersRepository : IPlayersRepository
 		player.MatchmakingStats[0].UserId = playerId;
 		player.MatchmakingStats[0].Rank = stats.GlobalRank ?? 0;  //TODO
 		
-		player.RankHistory.Data = PlayerHistorySeries.ToDailyWindow(rankSamples, today, RankHistoryDays);
+		player.RankHistory.Data = history.RankHistory;
 		player.RankHistory.Mode = EnumExtensions.FromModeMap[playerMode.AsVanilla()];
 
 		return player;
 	}
-	
-	private const int RankHistoryDays = 90;
+
+	private readonly record struct PlayerHistorySections(
+		int[] RankHistory,
+		MonthlyPlaycounts[] MonthlyPlaycounts,
+		ReplaysWatchedCounts[] ReplaysWatchedCounts
+	);
+
+	private async Task<PlayerHistorySections> BuildHistory(
+		int playerId,
+		byte mode,
+		PlayerDto userInfo,
+		StatsDto? modeStats
+	) {
+		var today = DateOnly.FromDateTime(DateTime.UtcNow);
+		var joined = DateOnly.FromDateTime(userInfo.CreationTime);
+
+		var rankSamples = await _playerHistories.GetSeries(
+			playerId,
+			mode,
+			[HistoryMetric.GlobalRank],
+			HistoryGranularity.Daily,
+			today.AddDays(-(RankHistoryDays - 1))
+		);
+
+		var monthlySamples = (await _playerHistories.GetSeries(
+			playerId,
+			mode,
+			[HistoryMetric.PlayCount, HistoryMetric.ReplayViews],
+			HistoryGranularity.Monthly
+		)).ToLookup(s => s.Metric);
+
+		var playCounts = PlayerHistorySeries.ToMonthlySeries(
+			monthlySamples[HistoryMetric.PlayCount].ToList(),
+			joined,
+			today,
+			modeStats?.PlayCount ?? 0
+		);
+
+		var replayViews = PlayerHistorySeries.ToMonthlySeries(
+			monthlySamples[HistoryMetric.ReplayViews].ToList(),
+			joined,
+			today,
+			modeStats?.ReplayViews ?? 0,
+			trimLeadingEmptyMonths: true
+		);
+
+		return new PlayerHistorySections(
+			PlayerHistorySeries.ToDailyWindow(rankSamples, today, RankHistoryDays),
+			playCounts
+				.Select(m => new MonthlyPlaycounts
+				{
+					StartDate = m.Month.ToDateTime(TimeOnly.MinValue),
+					Count = m.Count
+				}).ToArray(),
+			replayViews
+				.Select(m => new ReplaysWatchedCounts
+				{
+					StartDate = m.Month.ToDateTime(TimeOnly.MinValue),
+					Count = m.Count
+				}).ToArray()
+		);
+	}
 
 	public async Task<List<BasicApiPlayer>> GetPlayersFromQuery(
 		string query
@@ -832,16 +846,14 @@ public class PlayersRepository : IPlayersRepository
 		if (online != null)
 		{
 			if (!force) return false;
-			
-			_playerCoordinator.LogoutPlayer(online);
+
+			await _playerCoordinator.LogoutPlayer(online);
 		}
 
 		var batch = _redis.CreateBatch();
 
-		for (byte i = 0; i < 8; i++)
+		foreach (var mode in ModeExtensions.TrackedModes)
 		{
-			var mode = i == 7 ? (byte)(i + 1) : i;
-
 			await batch.SortedSetRemoveAsync($"bancho:leaderboard:{mode}", playerId);
 			await batch.SortedSetRemoveAsync($"bancho:leaderboard:{mode}:{player.Country}", playerId);
 		}
@@ -850,6 +862,7 @@ public class PlayersRepository : IPlayersRepository
 		
 		await _dbContext.Relationships.Where(r => r.PlayerId == playerId || r.TargetId == playerId).ExecuteDeleteAsync();
 		await _dbContext.Stats.Where(s => s.PlayerId == playerId).ExecuteDeleteAsync();
+		await _dbContext.PlayerHistories.Where(h => h.PlayerId == playerId).ExecuteDeleteAsync();
 		//TODO achievements, comments, favorites, club data
 		
 		if (deleteScores)
@@ -863,16 +876,20 @@ public class PlayersRepository : IPlayersRepository
 			player.Username = $"delUser_{id}";
 			player.SafeName = player.Username.MakeSafe();
 			player.LoginName = player.SafeName;
-
-			player.Email = "email";
-			_passwords.Invalidate(player.PasswordHash);
+			
+			player.Email = $"delUser_{id}@deleted.invalid";
 			player.PasswordHash = "1";
 			player.AwayMessage = "";
 			player.UserPageContent = "";
-			player.ApiKey = "";
+			player.ApiKey = null;
+
+			player.Deleted = true;
+			player.Privileges = 0;
+			
+			_passwords.Invalidate(player.PasswordHash);
+
+			await _dbContext.SaveChangesAsync();
 		}
-		
-		await _histories.DeletePlayerData(playerId);
 
 		return true;
 	}
@@ -895,7 +912,7 @@ public class PlayersRepository : IPlayersRepository
 		//TODO store in db
 
 		if (player.InMatch)
-			_multiplayer.LeavePlayer(player);
+			await _multiplayer.LeavePlayer(player);
 
 		return true;
 	}
@@ -925,17 +942,13 @@ public class PlayersRepository : IPlayersRepository
 		entity.Privileges &= ~(int)PlayerPrivileges.Unrestricted;
 		await _dbContext.SaveChangesAsync();
 
-		for (byte i = 0; i < 8; i++)
-		{
-			var mode = i == 7 ? (byte)(i + 1) : i;
-
+		foreach (var mode in ModeExtensions.TrackedModes)
 			await RemovePlayerGlobalRank(mode, player.Geoloc.Country.Acronym, player.Id);
-		}
 		
 		await _dbContext.Stats.Where(s => s.PlayerId == player.Id)
 			.ExecuteUpdateAsync(p => p.SetProperty(s => s.IsRanked, false));
 
-		_playerCoordinator.LogoutPlayer(player);
+		await _playerCoordinator.LogoutPlayer(player);
 
 		return true;
 	}
@@ -956,8 +969,8 @@ public class PlayersRepository : IPlayersRepository
 		
 		await _dbContext.Stats.Where(s => s.PlayerId == player.Id)
 			.ExecuteUpdateAsync(p => p.SetProperty(s => s.IsRanked, true));
-		
-		_playerCoordinator.LogoutPlayer(player);
+
+		await _playerCoordinator.LogoutPlayer(player);
 
 		return true;
 	}

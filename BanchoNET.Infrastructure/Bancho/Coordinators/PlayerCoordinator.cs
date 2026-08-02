@@ -14,13 +14,13 @@ public class PlayerCoordinator(
     IMultiplayerCoordinator multiplayer
 ) : IPlayerCoordinator
 {
-    public bool LogoutPlayer(
+    public async Task<bool> LogoutPlayer(
         Player player
     ) {
         logger.LogDebug($"Logout time difference: {DateTime.UtcNow - player.LoginTime}");
         if (DateTime.UtcNow - player.LoginTime < TimeSpan.FromSeconds(1)) return false;
 
-        if (player.InMatch) multiplayer.LeavePlayer(player);
+        if (player.InMatch) await multiplayer.LeavePlayer(player);
 
         if (player.Spectating != null)
             RemoveSpectator(player.Spectating, player);

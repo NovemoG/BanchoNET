@@ -16,7 +16,8 @@ public partial class UsersController(
     ILazerPlayerService playerService,
     IBeatmapHandler beatmaps,
     IBeatmapsRepository beatmapsRepository,
-    ILazerScoresRepository scores
+    ILazerScoresRepository scores,
+    IMultiplayerHistoryRepository matchHistory
 ) : ApiControllerBase(players, playerService, beatmaps)
 {
     [HttpGet("{userId:int}/{forMode?}")]

@@ -68,30 +68,41 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
     }
     
     /// <summary>
-    /// Deletes all scores with status not flagged as best older than 2 days from when the method was used.
+    /// Ages out scores that never made a leaderboard, according to
+    /// <see cref="AppSettings.ScoreRetentionMode"/>.
+    /// <para>
+    /// Anything attached to a multiplayer game is exempt in every mode - a match scoreboard must
+    /// keep pointing at real scores.
+    /// </para>
     /// </summary>
-    /// <returns>List of IDs of scores that were affected.</returns>
-    public async Task<List<long>> DeleteOldScores(short differenceInHours = 48)
+    /// <returns>IDs whose replay files should be removed from disk.</returns>
+    public async Task<List<long>> PurgeOldScores()
     {
-        //TODO maybe instead of deleting just move to other table so we can keep the data?
-        var date = DateTime.UtcNow - TimeSpan.FromHours(differenceInHours);
+        var mode = AppSettings.ScoreRetentionMode;
+        var date = DateTime.UtcNow - TimeSpan.FromHours(AppSettings.ScoreRetentionHours);
 
-        // Saving IDs of scores that are not failed (we don't store failed scores replays)
-        var scoreIds = await DbContext.Scores
-            .AsNoTracking()
-            .Where(s => s.PlayTime < date
-                        && s.Status == SubmissionStatus.Submitted)
-            .Select(s => s.Id)
-            .ToListAsync();
+        var expired = DbContext.Scores
+            .Where(s => s.PlayTime < date && !DbContext.MultiplayerScores.Any(ms => ms.ScoreId == s.Id));
 
-        var affected = await DbContext.Scores
-            .Where(s => s.Status <= SubmissionStatus.Submitted
-                        && s.PlayTime < date)
-            .ExecuteDeleteAsync();
-        
-        Logger.Shared.LogInfo($"Deleted {affected} scores", caller: "BackgroundTasks");
-        
-        return scoreIds;
+        // Only passed scores have a replay file on disk
+        var replayIds = mode == ScoreRetentionMode.Keep
+            ? []
+            : await expired
+                .AsNoTracking()
+                .Where(s => s.Status == SubmissionStatus.Submitted)
+                .Select(s => s.Id)
+                .ToListAsync();
+
+        var deleted = mode == ScoreRetentionMode.Delete
+            ? await expired.Where(s => s.Status <= SubmissionStatus.Submitted).ExecuteDeleteAsync()
+            : await expired.Where(s => s.Status == SubmissionStatus.Failed).ExecuteDeleteAsync();
+
+        Logger.Shared.LogInfo(
+            $"Score retention ({mode}): deleted {deleted} scores, {replayIds.Count} replays to remove",
+            caller: "BackgroundTasks"
+        );
+
+        return replayIds;
     }
     
     public async Task ToggleBeatmapScoresVisibility(int mapId)
@@ -213,14 +224,6 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
             .CountAsync();
     }
 
-    public async Task<List<ScoreDto>> GetMultiplayerScores(List<int> playerIds, DateTime finishDate)
-    {
-        return await DbContext.Scores
-            .AsNoTracking()
-            .Where(s => playerIds.Contains(s.PlayerId) && s.PlayTime > finishDate)
-            .ToListAsync();
-    }
-    
     public async Task UpdateScoreStatus(long id, SubmissionStatus newStatus)
     {
         await DbContext.Scores

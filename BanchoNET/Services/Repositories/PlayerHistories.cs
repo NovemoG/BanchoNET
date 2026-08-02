@@ -1,4 +1,3 @@
-using System.Text;
 using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Models.Db;
 using BanchoNET.Core.Models.Dtos;
@@ -9,45 +8,52 @@ namespace BanchoNET.Services.Repositories;
 
 public class PlayerHistoryRepository(BanchoDbContext dbContext) : IPlayerHistoryRepository
 {
-    private const int BatchSize = 2000;
+    private const int BatchSize = 10_000;
 
     public async Task<int> AppendSamples(
         IReadOnlyList<PlayerHistorySample> samples,
         CancellationToken ct = default
     ) {
         if (samples.Count == 0) return 0;
+        
+        const string sql =
+            """
+            INSERT INTO "PlayerHistories" ("PlayerId", "Mode", "Metric", "Granularity", "Date", "Value")
+            SELECT * FROM unnest(
+                {0}::integer[], {1}::smallint[], {2}::smallint[],
+                {3}::smallint[], {4}::date[], {5}::double precision[]
+            )
+            ON CONFLICT DO NOTHING
+            """;
 
         var inserted = 0;
 
         for (var offset = 0; offset < samples.Count; offset += BatchSize)
         {
             var count = Math.Min(BatchSize, samples.Count - offset);
-            var parameters = new object[count * 6];
-            var values = new StringBuilder();
+
+            var playerIds = new int[count];
+            var modes = new short[count];
+            var metrics = new short[count];
+            var granularities = new short[count];
+            var dates = new DateOnly[count];
+            var values = new double[count];
 
             for (var i = 0; i < count; i++)
             {
                 var sample = samples[offset + i];
-                var p = i * 6;
 
-                parameters[p] = sample.PlayerId;
-                parameters[p + 1] = (short)sample.Mode;
-                parameters[p + 2] = (short)sample.Metric;
-                parameters[p + 3] = (short)sample.Granularity;
-                parameters[p + 4] = sample.Date;
-                parameters[p + 5] = sample.Value;
-
-                if (i > 0) values.Append(',');
-                values.Append($"({{{p}}},{{{p + 1}}},{{{p + 2}}},{{{p + 3}}},{{{p + 4}}},{{{p + 5}}})");
+                playerIds[i] = sample.PlayerId;
+                modes[i] = sample.Mode;
+                metrics[i] = (short)sample.Metric;
+                granularities[i] = (short)sample.Granularity;
+                dates[i] = sample.Date;
+                values[i] = sample.Value;
             }
             
-            var sql = $"""
-                       INSERT INTO "PlayerHistories" ("PlayerId", "Mode", "Metric", "Granularity", "Date", "Value")
-                       VALUES {values}
-                       ON CONFLICT DO NOTHING
-                       """;
-
-            inserted += await dbContext.Database.ExecuteSqlRawAsync(sql, parameters, ct);
+            inserted += await dbContext.Database.ExecuteSqlRawAsync(
+                sql, [playerIds, modes, metrics, granularities, dates, values], ct
+            );
         }
 
         return inserted;
@@ -82,29 +88,6 @@ public class PlayerHistoryRepository(BanchoDbContext dbContext) : IPlayerHistory
             .ToListAsync(ct);
     }
 
-    public async Task<Dictionary<int, PlayerHistoryDto>> GetLatestSamples(
-        byte mode,
-        HistoryMetric metric,
-        HistoryGranularity granularity,
-        CancellationToken ct = default
-    ) {
-        const string sql =
-            """
-            SELECT DISTINCT ON ("PlayerId")
-                   "PlayerId", "Mode", "Metric", "Granularity", "Date", "Value"
-            FROM "PlayerHistories"
-            WHERE "Mode" = {0} AND "Metric" = {1} AND "Granularity" = {2}
-            ORDER BY "PlayerId", "Date" DESC
-            """;
-
-        var rows = await dbContext.PlayerHistories
-            .FromSqlRaw(sql, (short)mode, (short)metric, (short)granularity)
-            .AsNoTracking()
-            .ToListAsync(ct);
-
-        return rows.ToDictionary(r => r.PlayerId);
-    }
-
     public async Task<Dictionary<int, double>> GetSamplesAsOf(
         IReadOnlyList<int> playerIds,
         byte mode,
@@ -114,7 +97,7 @@ public class PlayerHistoryRepository(BanchoDbContext dbContext) : IPlayerHistory
         CancellationToken ct = default
     ) {
         if (playerIds.Count == 0) return [];
-        
+
         const string sql =
             """
             SELECT DISTINCT ON ("PlayerId")
@@ -131,21 +114,5 @@ public class PlayerHistoryRepository(BanchoDbContext dbContext) : IPlayerHistory
             .ToListAsync(ct);
 
         return rows.ToDictionary(r => r.PlayerId, r => r.Value);
-    }
-
-    public async Task<bool> HasAnySamples(
-        CancellationToken ct = default
-    ) {
-        return await dbContext.PlayerHistories.AnyAsync(ct);
-    }
-
-    public async Task<DateOnly?> GetEarliestSampleDate(
-        HistoryGranularity granularity,
-        CancellationToken ct = default
-    ) {
-        return await dbContext.PlayerHistories
-            .Where(h => h.Granularity == granularity)
-            .Select(h => (DateOnly?)h.Date)
-            .MinAsync(ct);
     }
 }

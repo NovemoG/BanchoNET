@@ -28,7 +28,6 @@
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       </PackageReference>
       <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.10" />
-      <PackageReference Include="MongoDB.Bson" Version="3.10.0" />
       <PackageReference Include="Novelog" Version="0.2.3" />
       <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
       <PackageReference Include="ppy.osu.Game.Rulesets.Catch" Version="2026.702.1" />

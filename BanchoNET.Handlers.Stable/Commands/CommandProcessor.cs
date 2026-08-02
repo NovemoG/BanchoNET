@@ -1,7 +1,6 @@
 ﻿using BanchoNET.Core.Abstractions.Bancho.Coordinators;
 using BanchoNET.Core.Abstractions.Bancho.Services;
 using BanchoNET.Core.Abstractions.Repositories;
-using BanchoNET.Core.Abstractions.Repositories.Histories;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Models.Channels;
 using BanchoNET.Core.Models.Players;
@@ -20,7 +19,7 @@ public partial class CommandProcessor(
     IPlayersRepository players,
     IBeatmapsRepository beatmapsRepository,
     IBeatmapHandler beatmapHandler,
-    IHistoriesRepository histories
+    IMultiplayerHistoryRepository matchHistory
 ) : ICommandProcessor
 {
     private static readonly string Prefix = AppSettings.CommandPrefix;

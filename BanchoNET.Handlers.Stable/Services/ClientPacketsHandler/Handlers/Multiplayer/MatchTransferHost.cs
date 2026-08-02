@@ -1,7 +1,5 @@
-﻿using BanchoNET.Core.Models.Mongo;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Packets;
-using Action = BanchoNET.Core.Models.Mongo.Action;
 
 namespace BanchoNET.Handlers.Stable.Services.ClientPacketsHandler;
 
@@ -20,7 +18,7 @@ public partial class ClientPacketsHandler
 		if (target == null) return;
 
 		match.HostId = target.Id;
-		
+
 		multiplayerCoordinator.EnqueueTo(match,
 			new ServerPackets()
 				.MatchTransferHost()
@@ -28,13 +26,6 @@ public partial class ClientPacketsHandler
 		);
 		multiplayerCoordinator.EnqueueStateTo(match);
 
-		await histories.AddMatchAction(
-			match.LobbyId,
-			new ActionEntry
-			{
-				Action = Action.HostChanged,
-				PlayerId = target.Id,
-				Date = DateTime.UtcNow
-			});
+		await matchHistory.SetHost(match.LobbyId, target.Id);
 	}
 }

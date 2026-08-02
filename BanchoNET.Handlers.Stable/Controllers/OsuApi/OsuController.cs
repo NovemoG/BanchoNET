@@ -18,6 +18,7 @@ public partial class OsuController(
     IBeatmapDownloader beatmapDownloader,
     IBeatmapSearchService beatmapSearch,
     ILegacyScoresRepository scores,
+    IMultiplayerHistoryRepository matchHistory,
     IBeatmapHandler beatmapHandler,
     IGeolocService geoloc,
     IPasswordService passwords,

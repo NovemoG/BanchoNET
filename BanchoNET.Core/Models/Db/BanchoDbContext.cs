@@ -58,7 +58,12 @@ public sealed class BanchoDbContext : DbContext
 	public DbSet<BeatmapSearchRow> BeatmapSearch { get; init; } = null!;
 
 	public DbSet<PlayerHistoryDto> PlayerHistories { get; init; } = null!;
-	public DbSet<MaintenanceStateDto> MaintenanceState { get; init; } = null!;
+
+	public DbSet<MultiplayerMatchDto> MultiplayerMatches { get; init; } = null!;
+	public DbSet<MultiplayerGameDto> MultiplayerGames { get; init; } = null!;
+	public DbSet<MultiplayerScoreDto> MultiplayerScores { get; init; } = null!;
+	public DbSet<MultiplayerEventDto> MultiplayerEvents { get; init; } = null!;
+	public DbSet<MultiplayerParticipantDto> MultiplayerParticipants { get; init; } = null!;
 
 	public DbSet<ReleaseDto> Releases { get; init; } = null!;
 	public DbSet<RefreshToken> RefreshTokens { get; init; } = null!;
@@ -68,6 +73,8 @@ public sealed class BanchoDbContext : DbContext
 	protected override void OnModelCreating(
 		ModelBuilder modelBuilder
 	) {
+		var multiplayerHistory = new MultiplayerHistoryConfiguration();
+
 		modelBuilder
 			.ApplyConfiguration(new PlayerConfiguration())
 			.ApplyConfiguration(new RelationshipConfiguration())
@@ -77,8 +84,13 @@ public sealed class BanchoDbContext : DbContext
 			.ApplyConfiguration(new ScoreConfiguration())
 			.ApplyConfiguration(new SkillsConfiguration())
 			.ApplyConfiguration(new CommentConfiguration())
-			.ApplyConfiguration(new PlayerHistoryConfiguration());
-		
+			.ApplyConfiguration(new PlayerHistoryConfiguration())
+			.ApplyConfiguration<MultiplayerMatchDto>(multiplayerHistory)
+			.ApplyConfiguration<MultiplayerGameDto>(multiplayerHistory)
+			.ApplyConfiguration<MultiplayerScoreDto>(multiplayerHistory)
+			.ApplyConfiguration<MultiplayerEventDto>(multiplayerHistory)
+			.ApplyConfiguration<MultiplayerParticipantDto>(multiplayerHistory);
+
 		modelBuilder.Entity<RefreshToken>(entity =>
 		{
 			entity.HasIndex(x => x.TokenHash).IsUnique();

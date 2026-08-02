@@ -8,7 +8,7 @@ namespace BanchoNET.Middlewares;
 public class RequestTimingMiddleware(ILogger<RequestTimingMiddleware> logger, RequestDelegate next)
 {
     public async Task InvokeAsync(HttpContext context)
-    {
+    {   
         context.Response.ApplyHeaders();
 
         var stopwatch = new Stopwatch();

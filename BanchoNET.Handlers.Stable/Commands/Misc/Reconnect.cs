@@ -13,26 +13,26 @@ public partial class CommandProcessor
         "If you don't have enough permissions this command can only be used to reconnect yourself,\n" +
         "otherwise you can reconnect any player by providing their username.",
         ["rc"])]
-    private Task<string> Reconnect(string[] args)
+    private async Task<string> Reconnect(string[] args)
     {
         if (args.Length == 0)
         {
-            playerCoordinator.LogoutPlayer(_playerCtx);
-            return Task.FromResult("");
+            await playerCoordinator.LogoutPlayer(_playerCtx);
+            return "";
         }
 
         if (args.Length > 0 && !PlayerExtensions.CanUseCommand(_playerCtx, PlayerPrivileges.Administrator))
-            return Task.FromResult("Not enough privileges to reconnect other players.");
-        
+            return "Not enough privileges to reconnect other players.";
+
         var targetPlayer = playerService.GetPlayer(args[0]);
         if (targetPlayer == null)
-            return Task.FromResult(PlayerNotFound);
-        
-        if (targetPlayer.IsBot)
-            return Task.FromResult("Dummy, you can't reconnect a bot \ud83d\udc7c");
-            
-        playerCoordinator.LogoutPlayer(targetPlayer);
+            return PlayerNotFound;
 
-        return Task.FromResult($"{targetPlayer.Username} has been reconnected.");
+        if (targetPlayer.IsBot)
+            return "Dummy, you can't reconnect a bot \ud83d\udc7c";
+
+        await playerCoordinator.LogoutPlayer(targetPlayer);
+
+        return $"{targetPlayer.Username} has been reconnected.";
     }
 }

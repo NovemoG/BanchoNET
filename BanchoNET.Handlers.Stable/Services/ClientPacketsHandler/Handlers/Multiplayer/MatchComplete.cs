@@ -1,7 +1,6 @@
-﻿using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Stable.Multiplayer;
-using BanchoNET.Core.Packets;
+using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
 
 namespace BanchoNET.Handlers.Stable.Services.ClientPacketsHandler;
@@ -13,50 +12,28 @@ public partial class ClientPacketsHandler
 		var match = player.Match;
 		if (match == null) return;
 
-		var slots = match.Slots;
-		
+		// A referee may have aborted the map out from under this client
+		if (!match.InProgress) return;
+
 		var slot = match.GetPlayerSlot(player)!;
 		slot.Status = SlotStatus.Complete;
-		
-		// assigning UtcNow instead of Now because the ClientTime date of score is in UTC
-		if (match.MapFinishDate == DateTime.MinValue)
-			match.MapFinishDate = DateTime.UtcNow;
-        
-		if (slots.Any(s => s.Status == SlotStatus.Playing))
+
+		if (match.Slots.Any(s => s.Status == SlotStatus.Playing))
+		{
+			// The first client to finish starts the clock on the rest of them, so a client that
+			// hangs without ever reporting in cannot hold the lobby forever.
+			if (!match.CompleteTimeout.IsArmed)
+			{
+				match.CompleteTimeout.Arm(AppSettings.MultiplayerMapCompleteTimeout, async () =>
+				{
+					logger.LogWarning($"Match {match.LobbyId} timed out waiting for clients to finish.");
+					await multiplayerCoordinator.CompleteGame(match, forced: true);
+				});
+			}
+
 			return;
-
-		var notPlayingIds = new List<int>();
-
-		foreach (var s in slots)
-		{
-			if (s.Player == null) continue;
-			
-			if (s.Status != SlotStatus.Complete)
-				notPlayingIds.Add(s.Player.Id);
 		}
-		
-		await scoresQueue.EnqueueJobAsync(new MatchScoreRequestDto
-		{
-			Slots = slots
-				.Where(s => s.Status == SlotStatus.Complete)
-				.Select(s => s.Player!.Id)
-				.ToList(),
-			MapFinishDate = match.MapFinishDate,
-			Match = match
-		});
-		
-		match.UnreadyPlayers(SlotStatus.Complete);
-		match.ResetPlayersLoadedStatuses();
-		match.InProgress = false;
-		
-		multiplayerCoordinator.EnqueueTo(match,
-			new ServerPackets().MatchComplete().FinalizeAndGetContent(),
-			notPlayingIds,
-			false
-		);
-		multiplayerCoordinator.EnqueueStateTo(match);
-		
-		// reset map finish date
-		match.MapFinishDate = DateTime.MinValue;
+
+		await multiplayerCoordinator.CompleteGame(match);
 	}
 }

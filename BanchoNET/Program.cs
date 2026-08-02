@@ -9,7 +9,6 @@ using BanchoNET.Bot.Utils;
 using BanchoNET.Core.Abstractions;
 using BanchoNET.Core.Abstractions.Bancho.Services;
 using BanchoNET.Core.Abstractions.Repositories;
-using BanchoNET.Core.Abstractions.Repositories.Histories;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Abstractions.Services.Lazer;
 using BanchoNET.Core.Models;
@@ -27,14 +26,12 @@ using BanchoNET.Handlers.Lazer.Services;
 using BanchoNET.Handlers.Stable.Commands;
 using BanchoNET.Handlers.Stable.Services;
 using BanchoNET.Handlers.Stable.Services.ClientPacketsHandler;
-using BanchoNET.Handlers.Stable.Services.LobbyScoresQueue;
 using BanchoNET.Infrastructure.Bancho.Coordinators;
 using BanchoNET.Middlewares;
 using BanchoNET.Services;
 using BanchoNET.Services.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using MongoDB.Driver;
 using Novelog.Config;
 using StackExchange.Redis;
 using BanchoNET.Infrastructure;
@@ -114,8 +111,6 @@ public class Program
 			"POSTGRES_DB",
 			"REDIS_HOST",
 			"REDIS_PORT",
-			"MONGO_HOST",
-			"MONGO_PORT",
 			"CLIENT_ID",
 			"CLIENT_SECRET",
 			"GITHUB_TOKEN"
@@ -140,10 +135,6 @@ public class Program
 			RedisHost = Environment.GetEnvironmentVariable("REDIS_HOST")!,
 			RedisPort = Environment.GetEnvironmentVariable("REDIS_PORT")!,
 			RedisPass = Environment.GetEnvironmentVariable("REDIS_PASS")!,
-			MongoHost = Environment.GetEnvironmentVariable("MONGO_HOST")!,
-			MongoPort = Environment.GetEnvironmentVariable("MONGO_PORT")!,
-			MongoUser = Environment.GetEnvironmentVariable("MONGO_USER")!,
-			MongoPass = Environment.GetEnvironmentVariable("MONGO_PASS")!,
 		};
 		
 		var postgresConnectionString =
@@ -161,34 +152,6 @@ public class Program
 			$"password={dbConnections.RedisPass}," +
 			$"allowAdmin=true";
 
-		var credentials = true;
-		var mongoUser = dbConnections.MongoUser;
-		var mongoPass = dbConnections.MongoPass;
-		if (string.IsNullOrEmpty(mongoUser)
-		    && !string.IsNullOrEmpty(mongoPass))
-		{
-			Logger.Shared.LogWarning("You specified password but left username empty for MongoDB. Ignoring password.", caller: "Init");
-			credentials = false;
-		}
-		else if (string.IsNullOrEmpty(mongoUser)
-		         && string.IsNullOrEmpty(mongoPass))
-		{
-			Logger.Shared.LogWarning("No credentials specified for MongoDB.", caller: "Init");
-			credentials = false;
-		}
-		else
-		{
-			mongoUser = EscapeMongoCharacters(mongoUser);
-			mongoPass = string.IsNullOrEmpty(mongoPass)
-				? ""
-				: EscapeMongoCharacters(mongoPass);
-		}
-		
-		var mongoConnectionString =
-			$"mongodb://" +
-			$"{(credentials ? $"{mongoUser}:{mongoPass}@" : "")}" +
-			$"{dbConnections.MongoHost}:{dbConnections.MongoPort}";
-		
 		#endregion
 
 		builder.Services
@@ -201,41 +164,36 @@ public class Program
 				o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
 			});
 
-		var mongoSettings = MongoClientSettings.FromConnectionString(mongoConnectionString);
-
 		void ConfigureBancho(DbContextOptionsBuilder options)
 		{
 			options.UseNpgsql(postgresConnectionString);
 		}
-		
+
 		builder.Services
 			.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConnectionString))
-			.AddSingleton(new MongoClient(mongoSettings))
 			.AddDbContext<BanchoDbContext>(ConfigureBancho)
-			.AddDbContextFactory<BanchoDbContext>(ConfigureBancho)
-			.AddSingleton<IHistoriesRepository, HistoriesRepository>();
-		
+			.AddDbContextFactory<BanchoDbContext>(ConfigureBancho);
+
 		//TODO
 		builder.Services.AddScoped<IBeatmapsRepository, BeatmapsRepository>();
 		builder.Services.AddScoped<IClientsRepository, ClientsRepository>();
 		builder.Services.AddScoped<IMessagesRepository, MessagesRepository>();
 		builder.Services.AddScoped<IPlayersRepository, PlayersRepository>();
 		builder.Services.AddScoped<IPlayerHistoryRepository, PlayerHistoryRepository>();
+		builder.Services.AddScoped<IMultiplayerHistoryRepository, MultiplayerHistoryRepository>();
 		builder.Services.AddScoped<ILegacyScoresRepository, LegacyScoresRepository>();
 		builder.Services.AddScoped<ILazerScoresRepository, LazerScoresRepository>();
 		builder.Services.AddScoped<IReleasesRepository, ReleasesRepository>();
 		builder.Services.AddScoped<ICommentsRepository, CommentsRepository>();
 		builder.Services.AddScoped<IBeatmapHandler, BeatmapHandler>();
-		builder.Services.AddScoped<IHistoryMaintenanceService, HistoryMaintenanceService>();
+		builder.Services.AddScoped<IPlayerHistoryCollector, PlayerHistoryCollector>();
 		builder.Services.AddScoped<ISearchProjectionSyncService, SearchProjectionSyncService>();
 		builder.Services.AddScoped<IBeatmapSearchService, BeatmapSearchService>();
 		
 		builder.Services
 			.AddSingleton<ScoreSubmissionQueue>()
 			.AddSingleton<IScoreSubmissionQueue>(sp => sp.GetRequiredService<ScoreSubmissionQueue>())
-			.AddHostedService(sp => sp.GetRequiredService<ScoreSubmissionQueue>())
-			.AddSingleton<ILobbyScoresQueue, LobbyScoresQueue>()
-			.AddHostedService<LobbyQueueHostedService>();
+			.AddHostedService(sp => sp.GetRequiredService<ScoreSubmissionQueue>());
 
 		builder.Services
 			.AddSingleton<IPasswordService, PasswordService>()
@@ -355,8 +313,6 @@ public class Program
 		
 		EnsureDatabaseExists(app.Services.CreateScope());
 
-		InitHistoryMaintenance(app.Services.CreateScope());
-
 		InitBanchoBot(app.Services.CreateScope());
 		InitChannels(app.Services.CreateScope());
 		InitOAuthClients(app.Services.CreateScope());
@@ -396,54 +352,6 @@ public class Program
 		Logger.Shared.LogInfo("Database is ready.", "Init");
 	}
 	
-	private static void InitHistoryMaintenance(IServiceScope scope)
-	{
-		var maintenance = scope.ServiceProvider.GetRequiredService<IHistoryMaintenanceService>();
-		
-		RunHistoryPass("lifetime counter backfill", async () =>
-		{
-			var report = await maintenance.BackfillLifetimeCounters(dryRun: false);
-
-			return report.AlreadyApplied
-				? null
-				: $"{report.StatsRowsAffected} rows, +{report.PlayCountRecovered} play count, " +
-				  $"+{report.ReplayViewsRecovered} replay views";
-		});
-
-		RunHistoryPass("mongo history import", async () =>
-		{
-			var report = await maintenance.ImportMongoHistories(dryRun: false);
-
-			return report.AlreadyImported
-				? null
-				: $"{report.DocumentsRead} documents, {report.SamplesInserted} samples";
-		});
-
-		RunHistoryPass("peak rank recompute", async () =>
-		{
-			var report = await maintenance.RecomputePeakRanks(dryRun: false);
-
-			return report.AlreadyApplied
-				? null
-				: $"{report.RowsAffected} recomputed, {report.RowsCleared} cleared";
-		});
-	}
-	
-	private static void RunHistoryPass(string name, Func<Task<string?>> pass)
-	{
-		try
-		{
-			var summary = pass().GetAwaiter().GetResult();
-
-			if (summary != null)
-				Logger.Shared.LogInfo($"Applied {name}: {summary}", "Init");
-		}
-		catch (Exception ex)
-		{
-			Logger.Shared.LogError($"History maintenance pass '{name}' failed", ex);
-		}
-	}
-
 	private static void InitBanchoBot(IServiceScope scope)
 	{
 		var db = scope.ServiceProvider.GetRequiredService<BanchoDbContext>();
@@ -605,14 +513,6 @@ public class Program
 		Logger.Shared.LogInfo($"Redis leaderboards updated in {stopwatch.ElapsedMilliseconds}ms", "Init");
 	}
 	
-	private static string EscapeMongoCharacters(string input)
-	{
-		return Regex.Replace(
-			Uri.EscapeDataString(input),
-			@"[$:/?$[\]@]",
-			m => Uri.HexEscape(Convert.ToChar(m.Value[0].ToString())));
-	}
-
 	private static void MigrateLegacyLazerLayout()
 	{
 		var legacyMarker = Path.Combine(LazerStorage.ReleasesPath, "RELEASES");

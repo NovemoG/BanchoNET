@@ -4,6 +4,7 @@ using BanchoNET.Core.Models.Channels;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Scores;
+using BanchoNET.Core.Models.Stable.Multiplayer;
 using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
@@ -186,15 +187,21 @@ public partial class OsuController
         
         score.Player = player;
         player.RecentScore = await scores.InsertScore(score, beatmap.Checksum, beatmapId);
-        
+
+        await CaptureMultiplayerScore(player, score);
+
         if (score.Passed)
         {
             if (replayFile.Length >= 24)
             {
-                await using var fileStream = new FileStream(Storage.GetReplayPath(score.Id), FileMode.Create, FileAccess.ReadWrite);
-                //TODO unreadable replay
-                await replayFile.CopyToAsync(fileStream);
+                await using (var fileStream = new FileStream(Storage.GetReplayPath(score.Id), FileMode.Create, FileAccess.ReadWrite))
+                {
+                    //TODO unreadable replay
+                    await replayFile.CopyToAsync(fileStream);
+                }
+                
                 score.HasReplay = true;
+                await scores.ToggleScoreReplayAvailability(score.Id);
             }
             else
             {
@@ -437,6 +444,50 @@ public partial class OsuController
         }
     }
 	
+    /// <summary>
+    /// Attaches a freshly submitted score to the multiplayer game it was played on, if any. The
+    /// match is identified by the beatmap, so a client that submits minutes late still lands on
+    /// the right scoreboard, and a solo score played on another map or after leaving the lobby
+    /// is ignored.
+    /// </summary>
+    private async Task CaptureMultiplayerScore(
+        Player player,
+        Score score
+    ) {
+        if (player.Match is not { } match || string.IsNullOrEmpty(score.BeatmapMD5)) return;
+
+        var gameId = match.ClaimGameFor(score.BeatmapMD5, player.Id);
+        if (gameId == null) return;
+
+        try
+        {
+            await matchHistory.AppendScore(new MultiplayerScoreDto
+            {
+                GameId = gameId.Value,
+                PlayerId = player.Id,
+                ScoreId = score.Id,
+                Team = match.GetPlayerSlot(player.Id)?.Team ?? LobbyTeams.Neutral,
+                TotalScore = score.TotalScore,
+                MaxCombo = score.MaxCombo,
+                Accuracy = score.Acc,
+                Grade = score.Grade,
+                Mods = score.Mods,
+                Count300 = score.Count300,
+                Count100 = score.Count100,
+                Count50 = score.Count50,
+                Gekis = score.Gekis,
+                Katus = score.Katus,
+                Misses = score.Misses,
+                Failed = !score.Passed
+            });
+        }
+        catch (Exception ex)
+        {
+            // Missing a scoreboard entry is not a reason to fail the player's submission
+            logger.LogError($"Failed to attach score {score.Id} to multiplayer game {gameId}", ex);
+        }
+    }
+
     private static (string[] scoreData, string clientHash)? DecryptScoreData(
         string osuVersion,
         string ivB64,

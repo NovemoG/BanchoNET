@@ -232,7 +232,7 @@ namespace BanchoNET.Core.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("tsvector")
-                        .HasComputedColumnSql("setweight(to_tsvector('simple', coalesce(\"Title\", '') || ' ' || coalesce(\"TitleUnicode\", '')), 'A') ||\nsetweight(to_tsvector('simple', coalesce(\"Artist\", '') || ' ' || coalesce(\"ArtistUnicode\", '')), 'B') ||\nsetweight(to_tsvector('simple', coalesce(\"CreatorName\", '')), 'C') ||\nsetweight(to_tsvector('simple', coalesce(\"OwnerNames\", '') || ' ' || coalesce(\"Version\", '') || ' ' || coalesce(\"Source\", '') || ' ' || coalesce(\"Tags\", '')), 'D')", true);
+                        .HasComputedColumnSql("setweight(to_tsvector('simple', coalesce(\"Title\", '') || ' ' || coalesce(\"TitleUnicode\", '')), 'A') ||\r\nsetweight(to_tsvector('simple', coalesce(\"Artist\", '') || ' ' || coalesce(\"ArtistUnicode\", '')), 'B') ||\r\nsetweight(to_tsvector('simple', coalesce(\"CreatorName\", '')), 'C') ||\r\nsetweight(to_tsvector('simple', coalesce(\"OwnerNames\", '') || ' ' || coalesce(\"Version\", '') || ' ' || coalesce(\"Source\", '') || ' ' || coalesce(\"Tags\", '')), 'D')", true);
 
                     b.Property<int>("SetId")
                         .HasColumnType("integer");
@@ -536,7 +536,7 @@ namespace BanchoNET.Core.Migrations
                     b.Property<float>("Rating")
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("real")
-                        .HasComputedColumnSql("COALESCE((\n    \"Ratings\"[1] * 1 + \"Ratings\"[2] * 2 + \"Ratings\"[3] * 3 + \"Ratings\"[4] * 4 +\n    \"Ratings\"[5] * 5 + \"Ratings\"[6] * 6 + \"Ratings\"[7] * 7 + \"Ratings\"[8] * 8 +\n    \"Ratings\"[9] * 9 + \"Ratings\"[10] * 10\n)::real / NULLIF(\n    \"Ratings\"[1] + \"Ratings\"[2] + \"Ratings\"[3] + \"Ratings\"[4] + \"Ratings\"[5] +\n    \"Ratings\"[6] + \"Ratings\"[7] + \"Ratings\"[8] + \"Ratings\"[9] + \"Ratings\"[10]\n, 0), 0)", true);
+                        .HasComputedColumnSql("COALESCE((\r\n    \"Ratings\"[1] * 1 + \"Ratings\"[2] * 2 + \"Ratings\"[3] * 3 + \"Ratings\"[4] * 4 +\r\n    \"Ratings\"[5] * 5 + \"Ratings\"[6] * 6 + \"Ratings\"[7] * 7 + \"Ratings\"[8] * 8 +\r\n    \"Ratings\"[9] * 9 + \"Ratings\"[10] * 10\r\n)::real / NULLIF(\r\n    \"Ratings\"[1] + \"Ratings\"[2] + \"Ratings\"[3] + \"Ratings\"[4] + \"Ratings\"[5] +\r\n    \"Ratings\"[6] + \"Ratings\"[7] + \"Ratings\"[8] + \"Ratings\"[9] + \"Ratings\"[10]\r\n, 0), 0)", true);
 
                     b.PrimitiveCollection<int[]>("Ratings")
                         .IsRequired()
@@ -848,24 +848,6 @@ namespace BanchoNET.Core.Migrations
                     b.ToTable("PlayerLogins");
                 });
 
-            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.MaintenanceStateDto", b =>
-                {
-                    b.Property<string>("Key")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<string>("Details")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)");
-
-                    b.Property<DateTime>("LastRunAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Key");
-
-                    b.ToTable("MaintenanceState");
-                });
-
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.MessageDto", b =>
                 {
                     b.Property<long>("Id")
@@ -900,6 +882,203 @@ namespace BanchoNET.Core.Migrations
                     b.HasIndex("SentAt");
 
                     b.ToTable("Messages", (string)null);
+                });
+
+            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.MultiplayerEventDto", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("GameId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("MatchId")
+                        .HasColumnType("bigint");
+
+                    b.Property<short>("Type")
+                        .HasColumnType("smallint");
+
+                    b.Property<int?>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GameId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("MatchId", "Id");
+
+                    b.ToTable("MultiplayerEvents", (string)null);
+                });
+
+            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.MultiplayerGameDto", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<bool>("Aborted")
+                        .HasColumnType("boolean");
+
+                    b.Property<int?>("BeatmapId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("BeatmapMD5")
+                        .IsRequired()
+                        .IsUnicode(false)
+                        .HasColumnType("CHAR(32)");
+
+                    b.Property<string>("BeatmapName")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<DateTimeOffset?>("EndTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("ForceCompleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<short>("LobbyType")
+                        .HasColumnType("smallint");
+
+                    b.Property<long>("MatchId")
+                        .HasColumnType("bigint");
+
+                    b.Property<byte>("Mode")
+                        .HasColumnType("smallint");
+
+                    b.Property<int>("Mods")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("StartTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<short>("WinCondition")
+                        .HasColumnType("smallint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MatchId");
+
+                    b.ToTable("MultiplayerGames", (string)null);
+                });
+
+            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.MultiplayerMatchDto", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTimeOffset?>("EndTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("HostId")
+                        .HasColumnType("integer");
+
+                    b.Property<byte>("Mode")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<DateTimeOffset>("StartTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HostId");
+
+                    b.HasIndex("StartTime");
+
+                    b.ToTable("MultiplayerMatches", (string)null);
+                });
+
+            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.MultiplayerParticipantDto", b =>
+                {
+                    b.Property<int>("PlayerId")
+                        .HasColumnType("integer");
+
+                    b.Property<long>("MatchId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("PlayerId", "MatchId");
+
+                    b.HasIndex("MatchId");
+
+                    b.ToTable("MultiplayerParticipants", (string)null);
+                });
+
+            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.MultiplayerScoreDto", b =>
+                {
+                    b.Property<long>("GameId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("PlayerId")
+                        .HasColumnType("integer");
+
+                    b.Property<float>("Accuracy")
+                        .HasColumnType("numeric(6,3)");
+
+                    b.Property<int>("Count100")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Count300")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Count50")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("Failed")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Gekis")
+                        .HasColumnType("integer");
+
+                    b.Property<short>("Grade")
+                        .HasColumnType("smallint");
+
+                    b.Property<int>("Katus")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MaxCombo")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Misses")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Mods")
+                        .HasColumnType("integer");
+
+                    b.Property<long?>("ScoreId")
+                        .HasColumnType("bigint");
+
+                    b.Property<short>("Team")
+                        .HasColumnType("smallint");
+
+                    b.Property<long>("TotalScore")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("GameId", "PlayerId");
+
+                    b.HasIndex("PlayerId");
+
+                    b.HasIndex("ScoreId");
+
+                    b.ToTable("MultiplayerScores", (string)null);
                 });
 
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.PlayerDto", b =>
@@ -1617,6 +1796,91 @@ namespace BanchoNET.Core.Migrations
                     b.Navigation("Sender");
                 });
 
+            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.MultiplayerEventDto", b =>
+                {
+                    b.HasOne("BanchoNET.Core.Models.Dtos.MultiplayerGameDto", "Game")
+                        .WithMany()
+                        .HasForeignKey("GameId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("BanchoNET.Core.Models.Dtos.MultiplayerMatchDto", "Match")
+                        .WithMany("Events")
+                        .HasForeignKey("MatchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BanchoNET.Core.Models.Dtos.PlayerDto", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Game");
+
+                    b.Navigation("Match");
+                });
+
+            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.MultiplayerGameDto", b =>
+                {
+                    b.HasOne("BanchoNET.Core.Models.Dtos.MultiplayerMatchDto", "Match")
+                        .WithMany("Games")
+                        .HasForeignKey("MatchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Match");
+                });
+
+            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.MultiplayerMatchDto", b =>
+                {
+                    b.HasOne("BanchoNET.Core.Models.Dtos.PlayerDto", null)
+                        .WithMany()
+                        .HasForeignKey("HostId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.MultiplayerParticipantDto", b =>
+                {
+                    b.HasOne("BanchoNET.Core.Models.Dtos.MultiplayerMatchDto", "Match")
+                        .WithMany("Participants")
+                        .HasForeignKey("MatchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BanchoNET.Core.Models.Dtos.PlayerDto", "Player")
+                        .WithMany()
+                        .HasForeignKey("PlayerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Match");
+
+                    b.Navigation("Player");
+                });
+
+            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.MultiplayerScoreDto", b =>
+                {
+                    b.HasOne("BanchoNET.Core.Models.Dtos.MultiplayerGameDto", "Game")
+                        .WithMany("Scores")
+                        .HasForeignKey("GameId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BanchoNET.Core.Models.Dtos.PlayerDto", "Player")
+                        .WithMany()
+                        .HasForeignKey("PlayerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BanchoNET.Core.Models.Dtos.ScoreDto", null)
+                        .WithMany()
+                        .HasForeignKey("ScoreId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Game");
+
+                    b.Navigation("Player");
+                });
+
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.PlayerHistoryDto", b =>
                 {
                     b.HasOne("BanchoNET.Core.Models.Dtos.PlayerDto", null)
@@ -1773,6 +2037,20 @@ namespace BanchoNET.Core.Migrations
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.CommentDto", b =>
                 {
                     b.Navigation("Replies");
+                });
+
+            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.MultiplayerGameDto", b =>
+                {
+                    b.Navigation("Scores");
+                });
+
+            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.MultiplayerMatchDto", b =>
+                {
+                    b.Navigation("Events");
+
+                    b.Navigation("Games");
+
+                    b.Navigation("Participants");
                 });
 
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.PlayerDto", b =>

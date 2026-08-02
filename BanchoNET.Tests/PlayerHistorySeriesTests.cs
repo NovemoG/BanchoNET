@@ -1,5 +1,6 @@
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.History;
+using BanchoNET.Core.Utils.Extensions;
 
 namespace BanchoNET.Tests;
 
@@ -9,79 +10,24 @@ public class PlayerHistorySeriesTests
     private const int PlayerId = 7;
 
     [Test]
-    public void FromAbsoluteEntries_PlacesLastEntryOnAnchorAndWalksBackwards()
+    public void ToPeriodCounts_InvertsARunningSum()
     {
-        var anchor = new DateOnly(2026, 7, 31);
+        int[] activity = [5, 3, 0, 7, 12];
 
-        var samples = PlayerHistorySeries.FromAbsoluteEntries(
-            PlayerId, Mode, HistoryMetric.GlobalRank, HistoryGranularity.Daily,
-            [300, 200, 100], anchor).ToList();
+        var stored = new List<PlayerHistoryDto>();
+        var running = 0;
+        var month = new DateOnly(2026, 2, 1);
 
-        Assert.That(samples.Select(s => s.Date), Is.EqualTo(new[]
+        foreach (var count in activity)
         {
-            new DateOnly(2026, 7, 29),
-            new DateOnly(2026, 7, 30),
-            new DateOnly(2026, 7, 31)
-        }));
-
-        // Absolute measurements are carried over untouched.
-        Assert.That(samples.Select(s => s.Value), Is.EqualTo(new double[] { 300, 200, 100 }));
-    }
-
-    [Test]
-    public void FromAbsoluteEntries_CrossesMonthBoundaryByDay()
-    {
-        var samples = PlayerHistorySeries.FromAbsoluteEntries(
-            PlayerId, Mode, HistoryMetric.GlobalRank, HistoryGranularity.Daily,
-            [1, 2, 3], new DateOnly(2026, 3, 2)).ToList();
-
-        Assert.That(samples[0].Date, Is.EqualTo(new DateOnly(2026, 2, 28)));
-        Assert.That(samples[1].Date, Is.EqualTo(new DateOnly(2026, 3, 1)));
-    }
-
-    [Test]
-    public void FromPeriodCounts_SumsForwardAndDatesByMonth()
-    {
-        // Monthly anchor is the month that just ended, not the current one.
-        var anchor = new DateOnly(2026, 6, 1);
-
-        var samples = PlayerHistorySeries.FromPeriodCounts(
-            PlayerId, Mode, HistoryMetric.PlayCount, HistoryGranularity.Monthly,
-            [5, 3, 0, 7], anchor).ToList();
-
-        Assert.That(samples.Select(s => s.Date), Is.EqualTo(new[]
-        {
-            new DateOnly(2026, 3, 1),
-            new DateOnly(2026, 4, 1),
-            new DateOnly(2026, 5, 1),
-            new DateOnly(2026, 6, 1)
-        }));
-
-        Assert.That(samples.Select(s => s.Value), Is.EqualTo(new double[] { 5, 8, 8, 15 }));
-    }
-
-    [Test]
-    public void PeriodCounts_RoundTripThroughCumulativeForm()
-    {
-        int[] original = [5, 3, 0, 7, 12];
-
-        var stored = PlayerHistorySeries.FromPeriodCounts(
-                PlayerId, Mode, HistoryMetric.PlayCount, HistoryGranularity.Monthly,
-                original, new DateOnly(2026, 6, 1))
-            .Select(s => new PlayerHistoryDto
-            {
-                PlayerId = s.PlayerId,
-                Mode = s.Mode,
-                Metric = s.Metric,
-                Granularity = s.Granularity,
-                Date = s.Date,
-                Value = s.Value
-            })
-            .ToList();
+            running += count;
+            stored.Add(Sample(month, running));
+            month = month.AddMonths(1);
+        }
 
         var recovered = PlayerHistorySeries.ToPeriodCounts(stored);
 
-        Assert.That(recovered.Select(c => c.Count), Is.EqualTo(original.Select(e => (double)e)));
+        Assert.That(recovered.Select(c => c.Count), Is.EqualTo(activity.Select(e => (double)e)));
     }
 
     [Test]
@@ -106,31 +52,6 @@ public class PlayerHistorySeriesTests
 
         Assert.That(counts, Has.Count.EqualTo(1));
         Assert.That(counts[0].Count, Is.EqualTo(42));
-    }
-
-    [Test]
-    public void BucketBefore_MonthlyStepsByMonthNotByDays()
-    {
-        var anchor = new DateOnly(2026, 1, 1);
-
-        Assert.That(
-            PlayerHistorySeries.BucketBefore(anchor, HistoryGranularity.Monthly, 2),
-            Is.EqualTo(new DateOnly(2025, 11, 1)));
-    }
-
-    [Test]
-    public void EmptyEntries_ProduceNoSamples()
-    {
-        var absolute = PlayerHistorySeries.FromAbsoluteEntries(
-            PlayerId, Mode, HistoryMetric.GlobalRank, HistoryGranularity.Daily,
-            [], new DateOnly(2026, 7, 31));
-
-        var counts = PlayerHistorySeries.FromPeriodCounts(
-            PlayerId, Mode, HistoryMetric.PlayCount, HistoryGranularity.Monthly,
-            [], new DateOnly(2026, 6, 1));
-
-        Assert.That(absolute, Is.Empty);
-        Assert.That(counts, Is.Empty);
     }
 
     [Test]
@@ -194,7 +115,21 @@ public class PlayerHistorySeriesTests
         }));
 
         // Jan/Feb precede any play, May has no sample, June comes from the live counter.
-        Assert.That(series.Select(s => s.Count), Is.EqualTo(new double[] { 0, 0, 10, 15, 0, 15 }));
+        Assert.That(series.Select(s => s.Count), Is.EqualTo(new[] { 0, 0, 10, 15, 0, 15 }));
+    }
+
+    [Test]
+    public void ToMonthlySeries_AttributesAMissedRunToTheNextSampledMonth()
+    {
+        // April and May were never sampled, so the 30 plays that accrued across April, May and
+        // June cannot be split apart and all land on June.
+        var series = PlayerHistorySeries.ToMonthlySeries(
+            [CountSample(new DateOnly(2026, 3, 1), 10), CountSample(new DateOnly(2026, 6, 1), 40)],
+            firstMonth: new DateOnly(2026, 1, 1),
+            currentMonth: new DateOnly(2026, 7, 20),
+            currentCumulative: 50);
+
+        Assert.That(series.Select(s => s.Count), Is.EqualTo(new[] { 0, 0, 10, 0, 0, 30, 10 }));
     }
 
     [Test]
@@ -219,7 +154,19 @@ public class PlayerHistorySeriesTests
             currentMonth: new DateOnly(2026, 6, 20),
             currentCumulative: 12);
 
-        Assert.That(series.Select(s => s.Count), Is.EqualTo(new double[] { 0, 12 }));
+        Assert.That(series.Select(s => s.Count), Is.EqualTo(new[] { 0, 12 }));
+    }
+
+    [Test]
+    public void ToMonthlySeries_DoesNotDoubleCountAnAlreadySampledCurrentMonth()
+    {
+        var series = PlayerHistorySeries.ToMonthlySeries(
+            [CountSample(new DateOnly(2026, 5, 1), 4)],
+            firstMonth: new DateOnly(2026, 3, 1),
+            currentMonth: new DateOnly(2026, 5, 20),
+            currentCumulative: 4);
+
+        Assert.That(series.Select(s => s.Count), Is.EqualTo(new[] { 0, 0, 4 }));
     }
 
     [Test]
@@ -246,7 +193,7 @@ public class PlayerHistorySeriesTests
             new DateOnly(2026, 6, 1)
         }));
 
-        Assert.That(series.Select(s => s.Count), Is.EqualTo(new double[] { 4, 2 }));
+        Assert.That(series.Select(s => s.Count), Is.EqualTo(new[] { 4, 2 }));
     }
 
     [Test]
@@ -267,26 +214,13 @@ public class PlayerHistorySeriesTests
             trimLeadingEmptyMonths: true);
 
         // April is idle but sits between active months, so it stays.
-        Assert.That(series.Select(s => s.Count), Is.EqualTo(new double[] { 5, 0, 4 }));
+        Assert.That(series.Select(s => s.Count), Is.EqualTo(new[] { 5, 0, 4 }));
     }
 
     [Test]
-    public void ToMonthlySeries_TrimmingYieldsNothingWhenThereWasNeverAnyActivity()
-    {
-        var series = PlayerHistorySeries.ToMonthlySeries(
-            [CountSample(new DateOnly(2026, 5, 1), 0)],
-            firstMonth: new DateOnly(2026, 1, 1),
-            currentMonth: new DateOnly(2026, 6, 20),
-            currentCumulative: 0,
-            trimLeadingEmptyMonths: true);
-
-        Assert.That(series, Is.Empty);
-    }
-
-    [Test]
-    public void ToMonthlySeries_WithoutTrimmingStillYieldsNothingWhenNeverPlayed()
-    {
-        // Sampled every month since signup, but never a single play.
+    public void ToMonthlySeries_YieldsNothingWhenThereWasNeverAnyActivity(
+        [Values(false, true)] bool trimLeadingEmptyMonths
+    ) {
         var samples = new[]
         {
             CountSample(new DateOnly(2026, 3, 1), 0),
@@ -298,7 +232,8 @@ public class PlayerHistorySeriesTests
             samples,
             firstMonth: new DateOnly(2026, 1, 1),
             currentMonth: new DateOnly(2026, 6, 20),
-            currentCumulative: 0);
+            currentCumulative: 0,
+            trimLeadingEmptyMonths);
 
         Assert.That(series, Is.Empty);
     }
@@ -313,19 +248,14 @@ public class PlayerHistorySeriesTests
             currentMonth: new DateOnly(2026, 5, 20),
             currentCumulative: 1);
 
-        Assert.That(series.Select(s => s.Count), Is.EqualTo(new double[] { 0, 0, 1 }));
+        Assert.That(series.Select(s => s.Count), Is.EqualTo(new[] { 0, 0, 1 }));
     }
 
     [Test]
-    public void ToMonthlySeries_StillBackfillsFromSignupWhenTrimmingIsOff()
+    public void IsCumulative_IsDefinedForEveryMetric()
     {
-        var series = PlayerHistorySeries.ToMonthlySeries(
-            [CountSample(new DateOnly(2026, 5, 1), 4)],
-            firstMonth: new DateOnly(2026, 3, 1),
-            currentMonth: new DateOnly(2026, 5, 20),
-            currentCumulative: 4);
-
-        Assert.That(series.Select(s => s.Count), Is.EqualTo(new double[] { 0, 0, 4 }));
+        foreach (var metric in Enum.GetValues<HistoryMetric>())
+            Assert.DoesNotThrow(() => metric.IsCumulative(), $"{metric} has no cumulative decision");
     }
 
     private static PlayerHistoryDto RankSample(DateOnly date, double value) => new()

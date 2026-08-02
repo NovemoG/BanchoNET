@@ -1,6 +1,5 @@
-﻿using BanchoNET.Core.Models.Players;
+using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Stable.Multiplayer;
-using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils.Extensions;
 
 namespace BanchoNET.Handlers.Stable.Services.ClientPacketsHandler;
@@ -16,12 +15,7 @@ public partial class ClientPacketsHandler
 		slot.Loaded = true;
 
 		if (!match.Slots.Any(s => s is { Status: SlotStatus.Playing, Loaded: false }))
-		{
-			multiplayerCoordinator.EnqueueTo(match,
-				new ServerPackets().MatchAllPlayersLoaded().FinalizeAndGetContent(),
-				toLobby: false
-			);
-		}
+			multiplayerCoordinator.AllPlayersLoaded(match);
 
 		return Task.CompletedTask;
 	}

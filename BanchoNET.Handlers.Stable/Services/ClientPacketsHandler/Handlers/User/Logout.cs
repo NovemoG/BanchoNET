@@ -8,7 +8,7 @@ public partial class ClientPacketsHandler
 	{
 		br.ReadInt32();
 		
-		if (playerCoordinator.LogoutPlayer(player))
+		if (await playerCoordinator.LogoutPlayer(player))
 			await players.UpdateLatestActivity(player);
 	}
 }

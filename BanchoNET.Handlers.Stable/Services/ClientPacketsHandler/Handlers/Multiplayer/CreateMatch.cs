@@ -29,7 +29,7 @@ public partial class ClientPacketsHandler
 			return;
 		}
 
-		await multiplayerCoordinator.CreateMatchAsync(matchData, player);
-		player.LastActivityTime = DateTime.UtcNow;
+		if (await multiplayerCoordinator.CreateMatchAsync(matchData, player))
+			player.LastActivityTime = DateTime.UtcNow;
 	}
 }

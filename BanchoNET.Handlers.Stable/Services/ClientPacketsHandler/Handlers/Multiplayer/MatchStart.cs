@@ -1,4 +1,3 @@
-﻿using BanchoNET.Core.Models.Mongo;
 using BanchoNET.Core.Models.Players;
 
 namespace BanchoNET.Handlers.Stable.Services.ClientPacketsHandler;
@@ -10,21 +9,8 @@ public partial class ClientPacketsHandler
 		var match = player.Match;
 		if (match == null) return;
 		if (player.Id != match.HostId) return;
+		if (match.BeatmapId < 1 || string.IsNullOrEmpty(match.BeatmapMD5)) return;
 
-		multiplayerCoordinator.StartMatch(match);
-
-		await histories.MapStarted(
-			match.LobbyId,
-			new ScoresEntry
-			{
-				StartDate = DateTime.UtcNow,
-				GameMode = (byte)match.Mode,
-				WinCondition = (byte)match.WinCondition,
-				LobbyType = (byte)match.Type,
-				LobbyMods = match.Freemods ? 0 : (int)match.Mods,
-				BeatmapId = match.BeatmapId,
-				BeatmapName = match.BeatmapName,
-				Values = []
-			});
+		await multiplayerCoordinator.StartMatch(match);
 	}
 }

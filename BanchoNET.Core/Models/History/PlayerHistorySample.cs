@@ -10,4 +10,5 @@ public readonly record struct PlayerHistorySample(
     HistoryMetric Metric,
     HistoryGranularity Granularity,
     DateOnly Date,
-    double Value);
+    double Value
+);

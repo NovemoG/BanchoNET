@@ -99,7 +99,7 @@ public partial class ChoController
 					.FinalizeAndGetContentResult();
 			}
 
-			playerCoordinator.LogoutPlayer(player);
+			await playerCoordinator.LogoutPlayer(player);
 		}
 		
 		var userInfo = await players.GetPlayerInfoFromLogin(loginData.Username);

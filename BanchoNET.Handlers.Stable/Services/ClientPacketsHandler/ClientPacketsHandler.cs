@@ -2,7 +2,6 @@
 using BanchoNET.Core.Abstractions.Bancho.Coordinators;
 using BanchoNET.Core.Abstractions.Bancho.Services;
 using BanchoNET.Core.Abstractions.Repositories;
-using BanchoNET.Core.Abstractions.Repositories.Histories;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Packets;
@@ -16,11 +15,10 @@ public partial class ClientPacketsHandler(
 	IMultiplayerService multiplayer,
 	IMultiplayerCoordinator multiplayerCoordinator,
 	IPlayersRepository players,
-	IHistoriesRepository histories,
+	IMultiplayerHistoryRepository matchHistory,
 	IBeatmapHandler beatmaps,
 	IMessagesRepository messages,
 	ICommandProcessor commands,
-	ILobbyScoresQueue scoresQueue,
 	ILogger logger
 	) : IClientPacketsHandler
 {
