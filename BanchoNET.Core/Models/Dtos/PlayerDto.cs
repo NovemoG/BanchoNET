@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
+using BanchoNET.Core.Models.Players;
 
 namespace BanchoNET.Core.Models.Dtos;
 
@@ -32,11 +33,26 @@ public class PlayerDto
 	
 	public int TopPlaysCount { get; set; }
 	public GameMode PreferredMode { get; set; }
-	public byte PlayStyle { get; set; }
-	
+	public Playstyle PlayStyle { get; set; }
+
 	public string? AwayMessage { get; set; }
 	public string? UserPageContent { get; set; }
 	public string? ApiKey { get; set; }
+
+	public string? UserFrom { get; set; }
+	public string? UserInterests { get; set; }
+	public string? UserOcc { get; set; }
+	public string? UserTwitter { get; set; }
+	public string? UserDiscord { get; set; }
+	public string? UserWebsite { get; set; }
+	public string? UserSig { get; set; }
+	public bool UserNotify { get; set; } = true;
+
+	public string? AvatarExtension { get; set; }
+	public DateTime? AvatarUpdatedAt { get; set; }
+	public int? CoverPresetId { get; set; }
+	public string? CoverFile { get; set; }
+	public DateTime? CoverUpdatedAt { get; set; }
 
 	public ICollection<StatsDto> Stats { get; set; } = null!;
 	public ICollection<LoginDto> LoginsData { get; set; } = null!;
@@ -57,6 +73,9 @@ public class PlayerDto
 	public ICollection<ThreadFollows> ThreadFollows { get; set; } = [];
 	public ICollection<CommentVote> CommentVotes { get; set; } = [];
 	
+	public PlayerProfileCustomizationDto? ProfileCustomization { get; set; }
+	public ICollection<PlayerNotificationOptionDto> NotificationOptions { get; set; } = [];
+
 	public long SkillsId { get; set; }
 	public SkillsDto Skills { get; set; } = new();
 	

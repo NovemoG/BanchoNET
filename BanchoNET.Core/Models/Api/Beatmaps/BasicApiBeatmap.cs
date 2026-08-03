@@ -27,6 +27,7 @@ public class BasicApiBeatmap
     public DateTimeOffset? DeletedAt { get; set; }
     public float Drain { get; set; }
     public int HitLength { get; set; }
+    public int? MaxCombo { get; set; }
     public bool IsScoreable { get; set; }
     public DateTimeOffset LastUpdated { get; set; }
     public int ModeInt { get; set; }
@@ -61,6 +62,7 @@ public class BasicApiBeatmap
         DeletedAt = null; //TODO
         Drain = beatmap.Hp;
         HitLength = beatmap.HitLength;
+        MaxCombo = beatmap.MaxCombo;
         IsScoreable = beatmap.IsScoreable;
         LastUpdated = beatmap.LastUpdated;
         ModeInt = (int)beatmap.Mode;
@@ -93,6 +95,7 @@ public class BasicApiBeatmap
         DeletedAt = null; //TODO
         Drain = beatmap.Hp;
         HitLength = beatmap.HitLength;
+        MaxCombo = beatmap.MaxCombo;
         IsScoreable = beatmap.IsScoreable;
         LastUpdated = beatmap.LastUpdated;
         ModeInt = (int)beatmap.Mode;

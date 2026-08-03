@@ -29,6 +29,7 @@ public class BackgroundTasks(
             UpdateBotStatus();
             return Task.CompletedTask;
         }),
+        new("SampleOnlineCount", "*/10 * * * *", SampleOnlineCount),               // every 10 minutes
         new("CheckSupporters", "*/30 * * * *", CheckExpiringSupporters),           // every 30 minutes
         new("AppendPlayerHistory", "0 0 * * *", AppendPlayerHistory),              // every day at midnight
         new("MarkInactivePlayers", "0 0 * * *", MarkInactivePlayers),              // every day at midnight
@@ -107,6 +108,14 @@ public class BackgroundTasks(
         var collector = scope.ServiceProvider.GetRequiredService<IPlayerHistoryCollector>();
 
         await collector.Collect(ct);
+    }
+
+    public async Task SampleOnlineCount(CancellationToken ct)
+    {
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var stats = scope.ServiceProvider.GetRequiredService<IServerStatsService>();
+        
+        await stats.SampleOnlineCount();
     }
 
     public async Task CleanupRefreshTokens(CancellationToken ct)

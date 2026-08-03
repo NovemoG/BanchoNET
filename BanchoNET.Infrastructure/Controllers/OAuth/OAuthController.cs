@@ -2,6 +2,7 @@ using System.Text.Json;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Attributes;
 using BanchoNET.Core.Models.Auth;
+using BanchoNET.Core.Utils.Extensions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -66,7 +67,7 @@ public class OAuthController(
                         "The user credentials were incorrect."
                     );
 
-                var tokens = await auth.CreateTokensForUser(user, client, scope);
+                var tokens = await auth.CreateTokensForUser(user, client, scope, Request.GetSessionOrigin());
                 var session = await auth.CreateSessionVerificationForUser(user.Id);
 
                 return Ok(new
@@ -89,7 +90,7 @@ public class OAuthController(
                         "Check the `refresh_token` parameter"
                     );
 
-                var tokens = await auth.Refresh(req.refresh_token, client);
+                var tokens = await auth.Refresh(req.refresh_token, client, Request.GetSessionOrigin());
                 if (tokens == null)
                     return OAuthError(
                         StatusCodes.Status401Unauthorized,

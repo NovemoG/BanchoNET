@@ -159,6 +159,11 @@ public static class AppSettings
             ? 1
             : int.Parse(versionFetchHours);
         
+        var lazerActivityInterval = Environment.GetEnvironmentVariable("LAZER_ACTIVITY_WRITE_INTERVAL_IN_SECONDS");
+        LazerActivityWriteIntervalInSeconds = string.IsNullOrEmpty(lazerActivityInterval)
+            ? 60
+            : int.Parse(lazerActivityInterval);
+        
         var daysUntilInactive = Environment.GetEnvironmentVariable("DAYS_UNTIL_PLAYER_IS_MARKED_INACTIVE");
         DaysUntilPlayerIsMarkedInactive = string.IsNullOrEmpty(daysUntilInactive)
             ? 1
@@ -217,6 +222,8 @@ public static class AppSettings
     public const string LazerClientId = "5";
     public const string LazerClientSecret = "FGc9GAtyHzeQDshWP5Ah7dega8hJACAJpQtw6OXk";
 
+    public const int TopPlaysCount = 500;
+
     public static readonly byte[] JwtSecret;
 
     public static readonly string Domain;
@@ -245,6 +252,7 @@ public static class AppSettings
     public static readonly int BotStatusUpdateInterval;
     public static readonly int VersionFetchHoursInterval;
     public static readonly int DaysUntilPlayerIsMarkedInactive;
+    public static readonly int LazerActivityWriteIntervalInSeconds;
     public static readonly string CommandPrefix;
     public static readonly string? GithubToken;
     public static readonly string OsuClientId;

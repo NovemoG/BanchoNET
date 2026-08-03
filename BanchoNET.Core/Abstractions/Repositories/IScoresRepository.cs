@@ -89,6 +89,13 @@ public interface IScoresRepository
         int count = 50
     );
 
+    /// <summary>
+    /// How many scores <see cref="GetBestScores"/> can page through.
+    /// </summary>
+    Task<int> GetBestScoresCount(
+        GameMode mode
+    );
+
     Task<List<ScoreDto>> GetRecentScores(
         GameMode mode,
         int skip = 0,

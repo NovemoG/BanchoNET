@@ -1,13 +1,17 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 using BanchoNET.Core.Models.Dtos;
-using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
 
 namespace BanchoNET.Core.Models.Api.Player;
 
 public class BasicApiPlayer
 {
-    public string AvatarUrl => $"https://a.{AppSettings.Domain}/{Id}";
+    public string AvatarUrl
+    {
+        get => field ?? ProfileAssetUrls.Avatar(Id, null);
+        set;
+    }
+
     public string CountryCode { get; set; } = "Unknown";
     public string DefaultGroup { get; set; } = "default"; //TODO
     public int Id { get; set; }
@@ -20,14 +24,14 @@ public class BasicApiPlayer
     public bool PmFriendsOnly { get; set; }
     public string? ProfileColour { get; set; } //TODO
     public string Username { get; set; } = null!;
-    
+
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Country? Country { get; set; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Cover? Cover { get; set; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Team? Team { get; set; }
-    
+
     [JsonConstructor]
     public BasicApiPlayer() { }
 
@@ -38,18 +42,12 @@ public class BasicApiPlayer
         Id = player.Id;
         //TODO IsActive
         IsBot = player.IsBot;
-        //TODO IsOnline
+        IsOnline = !player.AppearOffline;
         IsSupporter = player.IsSupporter;
         LastVisit = player.AppearOffline ? null : player.LoginTime;
         PmFriendsOnly = player.PmFriendsOnly;
         Username = player.Username;
         Country = CountryCode.ParseCountry();
-        //TODO Cover
-        Cover = new Cover
-        {
-            CustomUrl = $"https://assets.{AppSettings.Domain}/user-profile-covers/{Id}",
-            Url = $"https://assets.{AppSettings.Domain}/user-profile-covers/{Id}",
-        };
         //TODO Team
     }
 
@@ -60,18 +58,17 @@ public class BasicApiPlayer
         Id = playerDto.Id;
         IsActive = !playerDto.Inactive;
         //TODO IsBot
-        //TODO IsOnline
         IsSupporter = playerDto.IsSupporter;
-        LastVisit = playerDto.HideOnlineActivity ? null : playerDto.LastLoginTime;
+        LastVisit = playerDto.HideOnlineActivity ? null : playerDto.LastActivityTime;
         PmFriendsOnly = playerDto.PmFriendsOnly;
         Username = playerDto.Username;
         Country = CountryCode.ParseCountry();
-        //TODO Cover
-        Cover = new Cover
-        {
-            CustomUrl = $"https://assets.{AppSettings.Domain}/user-profile-covers/{Id}",
-            Url = $"https://assets.{AppSettings.Domain}/user-profile-covers/{Id}",
-        };
+        AvatarUrl = ProfileAssetUrls.Avatar(playerDto.Id, playerDto.AvatarUpdatedAt);
+        Cover = ProfileAssetUrls.Cover(
+            playerDto.Id,
+            playerDto.CoverPresetId,
+            playerDto.CoverFile,
+            playerDto.CoverUpdatedAt);
         //TODO Team
     }
 }

@@ -32,6 +32,8 @@ public sealed class BanchoDbContext : DbContext
 	}
 	
 	public DbSet<PlayerDto> Players { get; init; } = null!;
+	public DbSet<PlayerProfileCustomizationDto> PlayerProfileCustomizations { get; init; } = null!;
+	public DbSet<PlayerNotificationOptionDto> PlayerNotificationOptions { get; init; } = null!;
 	public DbSet<StatsDto> Stats { get; init; } = null!;
 	public DbSet<RelationshipDto> Relationships { get; init; } = null!;
 	public DbSet<LoginDto> PlayerLogins { get; init; } = null!;
@@ -77,6 +79,8 @@ public sealed class BanchoDbContext : DbContext
 
 		modelBuilder
 			.ApplyConfiguration(new PlayerConfiguration())
+			.ApplyConfiguration(new PlayerProfileCustomizationConfiguration())
+			.ApplyConfiguration(new PlayerNotificationOptionConfiguration())
 			.ApplyConfiguration(new RelationshipConfiguration())
 			.ApplyConfiguration(new BeatmapConfiguration())
 			.ApplyConfiguration(new BeatmapsetConfiguration())
@@ -97,6 +101,10 @@ public sealed class BanchoDbContext : DbContext
 			entity.HasIndex(x => x.UserId);
 			entity.HasIndex(x => x.FamilyId);
 			entity.HasIndex(x => x.ExpiresAt);
+			entity.HasIndex(x => new { x.UserId, x.FamilyId });
+
+			entity.Property(x => x.Ip).HasMaxLength(45).IsUnicode(false);
+			entity.Property(x => x.UserAgent).HasMaxLength(512);
 		});
 
 		modelBuilder.Entity<OAuthClient>(entity =>

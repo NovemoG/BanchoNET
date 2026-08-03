@@ -54,12 +54,55 @@ public class AuthService(
         return CryptographicOperations.FixedTimeEquals(presented, stored) ? client : null;
     }
 
+    public async Task<bool> IsClientTrusted(
+        string? clientId
+    ) {
+        if (!int.TryParse(clientId, out var id)) return false;
+
+        var client = await db.OAuthClients.FirstOrDefaultAsync(c => c.Id == id);
+
+        return client is { Revoked: false, Trusted: true };
+    }
+
     public async Task<TokenResponseDto> CreateTokensForUser(
         Player player,
         OAuthClient client,
-        string scope
+        string scope,
+        SessionOrigin origin
     ) {
-        return await IssueTokens(player.Id, client.Id, scope, Guid.NewGuid());
+        var existing = await FindReusableFamily(player.Id, client.Id, origin);
+
+        return await IssueTokens(player.Id, client.Id, scope, existing ?? Guid.NewGuid(), origin);
+    }
+
+    /// <summary>
+    /// The newest live family for this user on the same client and origin, if any.
+    /// </summary>
+    private async Task<Guid?> FindReusableFamily(
+        int userId,
+        int clientId,
+        SessionOrigin origin
+    ) {
+        // An unknown origin cannot be matched to anything, so it always starts a new session
+        if (origin.Ip == null || origin.UserAgent == null) return null;
+
+        var now = DateTime.UtcNow;
+        var candidate = await db.RefreshTokens
+            .Where(t => t.UserId == userId
+                        && t.ClientId == clientId
+                        && !t.Revoked
+                        && t.ExpiresAt > now
+                        && t.Ip == origin.Ip
+                        && t.UserAgent == origin.UserAgent)
+            .OrderByDescending(t => t.CreatedAt)
+            .FirstOrDefaultAsync();
+
+        if (candidate == null) return null;
+        
+        candidate.Revoked = true;
+        await db.SaveChangesAsync();
+
+        return candidate.FamilyId;
     }
 
     public TokenResponseDto CreateTokensForClient(
@@ -79,7 +122,8 @@ public class AuthService(
 
     public async Task<TokenResponseDto?> Refresh(
         string refreshTokenPlain,
-        OAuthClient client
+        OAuthClient client,
+        SessionOrigin origin
     ) {
         var hash = refreshTokenPlain.HashStringSHA256();
         var dbToken = await db.RefreshTokens.FirstOrDefaultAsync(t => t.TokenHash == hash);
@@ -100,11 +144,14 @@ public class AuthService(
         var exists = await players.PlayerExists(dbToken.UserId);
         if (!exists) return null;
 
+        dbToken.LastUsedAt = DateTime.UtcNow;
+
         return await IssueTokens(
             dbToken.UserId,
             dbToken.ClientId,
             dbToken.Scope,
             dbToken.FamilyId,
+            origin,
             replaced: dbToken
         );
     }
@@ -126,11 +173,100 @@ public class AuthService(
         await denylist.Revoke(jti, accessTokenExpiresAt);
     }
 
+    public async Task<Guid?> GetFamilyForJti(
+        string? jti
+    ) {
+        if (string.IsNullOrEmpty(jti)) return null;
+
+        var token = await db.RefreshTokens.FirstOrDefaultAsync(t => t.Jti == jti);
+
+        return token?.FamilyId;
+    }
+
+    public async Task<List<UserSessionDto>> GetSessions(
+        int userId,
+        string? currentJti
+    ) {
+        var currentFamily = await GetFamilyForJti(currentJti);
+
+        var rows = await db.RefreshTokens
+            .Where(t => t.UserId == userId && !t.Revoked && t.ExpiresAt > DateTime.UtcNow)
+            .ToListAsync();
+
+        var clientIds = rows.Select(t => t.ClientId).Distinct().ToArray();
+        var clients = await db.OAuthClients
+            .Where(c => clientIds.Contains(c.Id))
+            .ToDictionaryAsync(c => c.Id, c => c.Name);
+        
+        return rows
+            .GroupBy(t => t.FamilyId)
+            .Select(family => family.OrderByDescending(t => t.CreatedAt).First())
+            .Select(token => new UserSessionDto
+            {
+                Id = token.FamilyId.ToString(),
+                Current = currentFamily == token.FamilyId,
+                CreatedAt = token.CreatedAt,
+                LastUsedAt = token.LastUsedAt,
+                ExpiresAt = token.ExpiresAt,
+                Ip = token.Ip,
+                UserAgent = token.UserAgent,
+                Client = new SessionClientDto
+                {
+                    Id = token.ClientId,
+                    Name = clients.GetValueOrDefault(token.ClientId)
+                }
+            })
+            .OrderByDescending(s => s.LastUsedAt ?? s.CreatedAt)
+            .ToList();
+    }
+
+    public async Task<bool> RevokeSession(
+        int userId,
+        Guid familyId
+    ) {
+        var rows = await db.RefreshTokens
+            .Where(t => t.UserId == userId && t.FamilyId == familyId && !t.Revoked)
+            .ToListAsync();
+
+        if (rows.Count == 0) return false;
+
+        await RevokeRows(rows);
+        return true;
+    }
+
+    public async Task RevokeAllSessions(
+        int userId,
+        Guid? exceptFamily
+    ) {
+        var rows = await db.RefreshTokens
+            .Where(t => t.UserId == userId && !t.Revoked && t.FamilyId != exceptFamily)
+            .ToListAsync();
+
+        if (rows.Count == 0) return;
+
+        await RevokeRows(rows);
+    }
+    
+    private async Task RevokeRows(
+        List<RefreshToken> rows
+    ) {
+        foreach (var row in rows)
+        {
+            row.Revoked = true;
+
+            if (row.AccessTokenExpiresAt > DateTime.UtcNow)
+                await denylist.Revoke(row.Jti, row.AccessTokenExpiresAt);
+        }
+
+        await db.SaveChangesAsync();
+    }
+
     private async Task<TokenResponseDto> IssueTokens(
         int userId,
         int clientId,
         string scope,
         Guid familyId,
+        SessionOrigin origin,
         RefreshToken? replaced = null
     ) {
         var jti = Guid.NewGuid().ToString();
@@ -155,7 +291,11 @@ public class AuthService(
             Scope = scope,
             ExpiresAt = now.Add(RefreshTokenLifetime),
             Revoked = false,
-            Jti = jti
+            Jti = jti,
+            CreatedAt = now,
+            AccessTokenExpiresAt = expires,
+            Ip = origin.Ip,
+            UserAgent = origin.UserAgent
         });
         await db.SaveChangesAsync();
 

@@ -44,8 +44,7 @@ public partial class UsersController(
         
         apiPlayer.ScoresFirstCount = await scores.PlayerFirstPlaceScoresCount(userId, mode);
         apiPlayer.ScoresRecentCount = await scores.PlayerRecentScoresCount(userId, mode);
-        apiPlayer.IsOnline = await PlayerService.IsOnline(userId);
-        
+
         return JsonSnake(apiPlayer);
     }
 }

@@ -103,7 +103,7 @@ public partial class OsuController
             return Ok("error: no");
         }
         
-        await players.UpdateLatestActivity(player);
+        await players.UpdateLatestActivity(player, updateInactivity: true);
 
         if (score.Mode != player.Status.Mode)
         {

@@ -179,6 +179,10 @@ public class Program
 		builder.Services.AddScoped<IClientsRepository, ClientsRepository>();
 		builder.Services.AddScoped<IMessagesRepository, MessagesRepository>();
 		builder.Services.AddScoped<IPlayersRepository, PlayersRepository>();
+		builder.Services.AddScoped<IAccountSettingsRepository, AccountSettingsRepository>();
+		builder.Services.AddScoped<IAccountSettingsService, AccountSettingsService>();
+		builder.Services.AddScoped<IProfileImageService, ProfileImageService>();
+		builder.Services.AddSingleton<IServerStatsService, ServerStatsService>();
 		builder.Services.AddScoped<IPlayerHistoryRepository, PlayerHistoryRepository>();
 		builder.Services.AddScoped<IMultiplayerHistoryRepository, MultiplayerHistoryRepository>();
 		builder.Services.AddScoped<ILegacyScoresRepository, LegacyScoresRepository>();
@@ -316,6 +320,7 @@ public class Program
 		InitBanchoBot(app.Services.CreateScope());
 		InitChannels(app.Services.CreateScope());
 		InitOAuthClients(app.Services.CreateScope());
+		InitWebOAuthClient(app.Services.CreateScope());
 		
 		// Even if redis creates snapshots of rankings it isn't
 		// always 100% accurate with database so we need to update
@@ -467,6 +472,58 @@ public class Program
 		if (client.SecretHash == secretHash && !client.Revoked && client.Trusted) return;
 
 		Logger.Shared.LogInfo("Updating the osu!lazer oauth client to match configuration.", "Init");
+
+		client.SecretHash = secretHash;
+		client.Revoked = false;
+		client.Trusted = true;
+
+		db.SaveChanges();
+	}
+	
+	private static void InitWebOAuthClient(IServiceScope scope)
+	{
+		var clientId = Environment.GetEnvironmentVariable("WEB_CLIENT_ID");
+		var clientSecret = Environment.GetEnvironmentVariable("WEB_CLIENT_SECRET");
+
+		if (!int.TryParse(clientId, out var id) || string.IsNullOrWhiteSpace(clientSecret))
+		{
+			Logger.Shared.LogWarning(
+				"WEB_CLIENT_ID/WEB_CLIENT_SECRET are unset, the website will have to use the lazer client.",
+				caller: "Init");
+			return;
+		}
+
+		if (id == int.Parse(AppSettings.LazerClientId))
+		{
+			Logger.Shared.LogWarning("WEB_CLIENT_ID collides with the lazer client id, skipping.", caller: "Init");
+			return;
+		}
+
+		var db = scope.ServiceProvider.GetRequiredService<BanchoDbContext>();
+		var secretHash = clientSecret.HashStringSHA256();
+		var client = db.OAuthClients.FirstOrDefault(c => c.Id == id);
+
+		if (client == null)
+		{
+			Logger.Shared.LogInfo("Seeding the website oauth client.", "Init");
+
+			db.OAuthClients.Add(new OAuthClient
+			{
+				Id = id,
+				Name = "osu!novemo",
+				SecretHash = secretHash,
+				AllowedScopes = "public identify friends.read chat.read chat.write",
+				Trusted = true,
+				CreatedAt = DateTime.UtcNow
+			});
+
+			db.SaveChanges();
+			return;
+		}
+
+		if (client.SecretHash == secretHash && !client.Revoked && client.Trusted) return;
+
+		Logger.Shared.LogInfo("Updating the website oauth client to match configuration.", "Init");
 
 		client.SecretHash = secretHash;
 		client.Revoked = false;

@@ -4,6 +4,7 @@ using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Services.Lazer;
 using BanchoNET.Core.Models.Lazer.Metadata;
 using BanchoNET.Core.Models.Players;
+using BanchoNET.Core.Utils;
 
 namespace BanchoNET.Handlers.Lazer.Hubs;
 
@@ -17,6 +18,7 @@ public class MetadataHub(
     private static string UserPresenceGroup(int userId) => $"presence:{userId}";
     
     private static readonly ConcurrentDictionary<int, UserPresence> ConnectedUsers = new();
+    private static readonly TimeSpan ActivityWriteInterval = TimeSpan.FromSeconds(AppSettings.LazerActivityWriteIntervalInSeconds);
     
     public async Task<BeatmapUpdates> GetChangesSince(
         int queueId
@@ -37,6 +39,9 @@ public class MetadataHub(
         presence.Activity = activity;
         ConnectedUsers[userId] = presence;
 
+        if (presence.Status != UserStatus.Offline)
+            await TouchActivity(userId);
+
         await Task.WhenAll(
             presence.Status != UserStatus.Offline
                 ? BroadcastUserPresenceUpdate(userId, presence)
@@ -56,7 +61,13 @@ public class MetadataHub(
         presence.Status = status;
         ConnectedUsers[userId] = presence;
 
-        await BroadcastUserPresenceUpdate(userId, presence);
+        var hidden = status == UserStatus.Offline;
+        await playerService.SetPresenceHidden(userId, hidden);
+
+        if (!hidden)
+            await TouchActivity(userId);
+
+        await BroadcastUserPresenceUpdate(userId, hidden ? null : presence);
     }
 
     public async Task BeginWatchingUserPresence() {
@@ -101,7 +112,7 @@ public class MetadataHub(
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, UserPresenceGroup(friendId));
             
-            if (ConnectedUsers.TryGetValue(friendId, out var presence))
+            if (ConnectedUsers.TryGetValue(friendId, out var presence) && presence.Status != UserStatus.Offline)
                 await Clients.Caller.FriendPresenceUpdated(friendId, presence);
         }
         
@@ -122,6 +133,7 @@ public class MetadataHub(
             }
             
             await RefreshFriends();
+            await TouchActivity(userId, true);
         }
         
         await base.OnConnectedAsync();
@@ -133,6 +145,10 @@ public class MetadataHub(
         if (TryGetUserId(out var userId))
         {
             ConnectedUsers.TryRemove(userId, out var presence);
+
+            if (presence.Status != UserStatus.Offline)
+                await TouchActivity(userId, true);
+
             await playerService.RemovePlayer(userId);
             
             if (presence.Status != UserStatus.Offline)
@@ -140,6 +156,16 @@ public class MetadataHub(
         }
         
         await base.OnDisconnectedAsync(exception);
+    }
+    
+    private async Task TouchActivity(
+        int userId,
+        bool force = false
+    ) {
+        if (!force && !await playerService.WriteActivity(userId, ActivityWriteInterval))
+            return;
+
+        await players.UpdateLatestActivity(userId);
     }
 
     private Task BroadcastUserPresenceUpdate(

@@ -1,6 +1,7 @@
 using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Abstractions.Services.Lazer;
+using BanchoNET.Core.Models.Api.Player;
 using BanchoNET.Core.Models.Api.Relationships;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Utils.Extensions;
@@ -20,9 +21,10 @@ public partial class ApiController(
         List<RelationshipReadDto> relationships,
         string type
     ) {
-        var online = await PlayerService.FilterOnline(
-            relationships.Select(r => r.TargetId).ToArray()
-        );
+        var targetIds = relationships.Select(r => r.TargetId).ToArray();
+        var online = await Players.FilterOnline(targetIds);
+        var hidden = await Players.FilterHidden(targetIds);
+        var statistics = await Players.GetPlayersStatistics(targetIds);
 
         List<Relationship> relationshipList = [];
         relationshipList.AddRange(
@@ -40,15 +42,17 @@ public partial class ApiController(
                     IsActive = !target.Inactive,
                     IsBot = false,
                     IsDeleted = target.Deleted,
-                    IsOnline = online.Contains(target.Id),
+                    IsOnline = !target.HideOnlineActivity && online.Contains(target.Id),
                     IsSupporter = target.IsSupporter,
-                    LastVisit = target.LastActivityTime,
+                    LastVisit = target.HideOnlineActivity || hidden.Contains(target.Id)
+                        ? null
+                        : target.LastActivityTime,
                     PmFriendsOnly = target.PmFriendsOnly,
                     ProfileColour = null, //TODO
                     Username = target.Username,
                     Country = target.Country.ParseCountry(),
                     //Groups = [], TODO
-                    //Statistics = new Statistics(), TODO
+                    Statistics = statistics.GetValueOrDefault(target.Id) ?? new Statistics(),
                     SupportLevel = target.SupporterLevel,
                     Team = null //TODO
                 }

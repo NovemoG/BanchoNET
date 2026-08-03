@@ -9,7 +9,6 @@ public class ApiBeatmap : BasicApiBeatmap
     public int CurrentUserPlaycount { get; set; }
     public string[] CurrentUserTagIds { get; set; } = [];
     public Failtime Failtimes { get; set; }
-    public int? MaxCombo { get; set; } = 0;
     public List<Owner>? Owners { get; set; }
     public List<MapTag> TopTagIds { get; set; } = [];
     
@@ -28,7 +27,6 @@ public class ApiBeatmap : BasicApiBeatmap
             Fail = beatmap.Fails,
             Exit = beatmap.Exits
         };
-        MaxCombo = beatmap.MaxCombo;
         Owners =
         [
             new Owner { Id = beatmap.OwnerId, Username = beatmap.OwnerName },
@@ -47,7 +45,6 @@ public class ApiBeatmap : BasicApiBeatmap
             Fail = beatmap.Fails,
             Exit = beatmap.Exits
         };
-        MaxCombo = beatmap.MaxCombo;
         Owners =
         [
             new Owner { Id = beatmap.OwnerId, Username = beatmap.OwnerName },

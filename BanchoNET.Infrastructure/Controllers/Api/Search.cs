@@ -18,11 +18,7 @@ public partial class ApiController
         {
             case "user":
                 var results = await Players.GetPlayersFromQuery(query);
-                var online = await PlayerService.FilterOnline(results.Select(p => p.Id).ToArray());
 
-                foreach (var player in results)
-                    player.IsOnline = online.Contains(player.Id);
-                
                 return JsonSnake(new { user = new SearchResultResponse
                 {
                     Data = results,

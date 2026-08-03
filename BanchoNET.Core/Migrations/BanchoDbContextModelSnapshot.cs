@@ -66,8 +66,14 @@ namespace BanchoNET.Core.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime>("AccessTokenExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int>("ClientId")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("ExpiresAt")
                         .HasColumnType("timestamp with time zone");
@@ -75,9 +81,17 @@ namespace BanchoNET.Core.Migrations
                     b.Property<Guid>("FamilyId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Ip")
+                        .HasMaxLength(45)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(45)");
+
                     b.Property<string>("Jti")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<DateTime?>("LastUsedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("ReplacedByToken")
                         .HasColumnType("text");
@@ -93,6 +107,10 @@ namespace BanchoNET.Core.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
                     b.Property<int>("UserId")
                         .HasColumnType("integer");
 
@@ -106,6 +124,8 @@ namespace BanchoNET.Core.Migrations
                         .IsUnique();
 
                     b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "FamilyId");
 
                     b.ToTable("RefreshTokens");
                 });
@@ -1094,6 +1114,14 @@ namespace BanchoNET.Core.Migrations
                         .IsUnicode(false)
                         .HasColumnType("CHAR");
 
+                    b.Property<string>("AvatarExtension")
+                        .HasMaxLength(8)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<DateTime?>("AvatarUpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("AwayMessage")
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
@@ -1102,6 +1130,17 @@ namespace BanchoNET.Core.Migrations
                         .IsRequired()
                         .IsUnicode(false)
                         .HasColumnType("CHAR(2)");
+
+                    b.Property<string>("CoverFile")
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<int?>("CoverPresetId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("CoverUpdatedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("CreationTime")
                         .HasColumnType("timestamp with time zone");
@@ -1179,9 +1218,42 @@ namespace BanchoNET.Core.Migrations
                     b.Property<int>("TopPlaysCount")
                         .HasColumnType("integer");
 
+                    b.Property<string>("UserDiscord")
+                        .HasMaxLength(37)
+                        .HasColumnType("character varying(37)");
+
+                    b.Property<string>("UserFrom")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("UserInterests")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<bool>("UserNotify")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("UserOcc")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
                     b.Property<string>("UserPageContent")
                         .HasMaxLength(4096)
                         .HasColumnType("character varying(4096)");
+
+                    b.Property<string>("UserSig")
+                        .HasMaxLength(3000)
+                        .HasColumnType("character varying(3000)");
+
+                    b.Property<string>("UserTwitter")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("UserWebsite")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("Username")
                         .IsRequired()
@@ -1240,6 +1312,82 @@ namespace BanchoNET.Core.Migrations
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Date"), "brin");
 
                     b.ToTable("PlayerHistories", (string)null);
+                });
+
+            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.PlayerNotificationOptionDto", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Details")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasDefaultValueSql("'{}'::jsonb");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<int>("PlayerId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlayerId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("PlayerNotificationOptions", (string)null);
+                });
+
+            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.PlayerProfileCustomizationDto", b =>
+                {
+                    b.Property<int>("PlayerId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("BeatmapsetDownload")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(8)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(8)")
+                        .HasDefaultValue("All");
+
+                    b.Property<bool>("BeatmapsetShowAnimeCover")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("BeatmapsetShowNsfw")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("BeatmapsetTitleShowOriginal")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("ExtrasOrder")
+                        .HasColumnType("jsonb");
+
+                    b.Property<int?>("ProfileHue")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("PlayerId");
+
+                    b.ToTable("PlayerProfileCustomizations", (string)null);
                 });
 
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.RelationshipDto", b =>
@@ -1890,6 +2038,28 @@ namespace BanchoNET.Core.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.PlayerNotificationOptionDto", b =>
+                {
+                    b.HasOne("BanchoNET.Core.Models.Dtos.PlayerDto", "Player")
+                        .WithMany("NotificationOptions")
+                        .HasForeignKey("PlayerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Player");
+                });
+
+            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.PlayerProfileCustomizationDto", b =>
+                {
+                    b.HasOne("BanchoNET.Core.Models.Dtos.PlayerDto", "Player")
+                        .WithOne("ProfileCustomization")
+                        .HasForeignKey("BanchoNET.Core.Models.Dtos.PlayerProfileCustomizationDto", "PlayerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Player");
+                });
+
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.RelationshipDto", b =>
                 {
                     b.HasOne("BanchoNET.Core.Models.Dtos.PlayerDto", "Player")
@@ -2069,9 +2239,13 @@ namespace BanchoNET.Core.Migrations
 
                     b.Navigation("LoginsData");
 
+                    b.Navigation("NotificationOptions");
+
                     b.Navigation("PlayedBeatmaps");
 
                     b.Navigation("PlayerChannels");
+
+                    b.Navigation("ProfileCustomization");
 
                     b.Navigation("Relationships");
 

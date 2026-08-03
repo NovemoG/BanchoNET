@@ -17,6 +17,11 @@ public interface ILazerPlayerService
     Task<bool> RemovePlayer(
         int userId
     );
+    
+    Task RefreshPlayer(
+        int userId,
+        ApiPlayer fresh
+    );
 
     Task<LazerPlayer?> GetPlayer(
         int userId
@@ -42,5 +47,19 @@ public interface ILazerPlayerService
         int userId,
         int beatmapId,
         int exitIndex
+    );
+
+    Task<HashSet<int>> FilterHidden(
+        IReadOnlyCollection<int> userIds
+    );
+
+    Task SetPresenceHidden(
+        int userId,
+        bool hidden
+    );
+
+    Task<bool> WriteActivity(
+        int userId,
+        TimeSpan interval
     );
 }

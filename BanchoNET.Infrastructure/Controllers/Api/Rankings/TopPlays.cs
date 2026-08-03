@@ -21,7 +21,18 @@ public partial class RankingsController
         var returnList = bestScores
             .Select(s => new ApiScoreExtended(s, s.Player, s.Beatmap))
             .ToList();
-        
+
         return JsonSnake(returnList);
+    }
+    
+    [HttpGet("top-plays/{mode}/count")]
+    [AllowClientCredentials]
+    public async Task<IActionResult> GetTopScoresCount(
+        string mode
+    ) {
+        if (!EnumExtensions.ToModeMap.TryGetValue(mode, out var gameMode))
+            return BadRequest();
+
+        return JsonSnake(new { total = await scores.GetBestScoresCount(gameMode) });
     }
 }

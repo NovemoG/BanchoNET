@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using BanchoNET.Core.Abstractions.Services.Lazer;
 using BanchoNET.Core.Models.Api.Player;
 using BanchoNET.Core.Models.Players;
@@ -15,8 +15,10 @@ public sealed class LazerPlayerService(
     private readonly IDatabase _redis = redis.GetDatabase();
 
     private const string OnlineKey = "bancho:lazer:online";
+    private const string HiddenKey = "bancho:lazer:hidden";
     private static string PlayerKey(int userId) => $"bancho:lazer:player:{userId}";
     private static string LocalKey(int userId) => $"lazer:player:{userId}";
+    private static string ActivityKey(int userId) => $"bancho:lazer:activity:{userId}";
 
     private static readonly TimeSpan PlayerLifetime = TimeSpan.FromHours(12);
     private static readonly TimeSpan LocalLifetime = TimeSpan.FromSeconds(10);
@@ -49,9 +51,29 @@ public sealed class LazerPlayerService(
         cache.Remove(LocalKey(userId));
 
         var removed = await _redis.SetRemoveAsync(OnlineKey, userId);
+        await _redis.SetRemoveAsync(HiddenKey, userId);
         await _redis.KeyDeleteAsync(PlayerKey(userId));
+        await _redis.KeyDeleteAsync(ActivityKey(userId));
 
         return removed;
+    }
+
+    public async Task RefreshPlayer(
+        int userId,
+        ApiPlayer fresh
+    ) {
+        var cached = await GetPlayer(userId);
+        if (cached == null) return;
+
+        fresh.IsOnline = cached.Player.IsOnline;
+
+        await Save(new LazerPlayer
+        {
+            Player = fresh,
+            Friends = cached.Friends,
+            LastPlayedBeatmapId = cached.LastPlayedBeatmapId,
+            LastPlayedBeatmapExitIndex = cached.LastPlayedBeatmapExitIndex
+        });
     }
 
     public async Task<LazerPlayer?> GetPlayer(
@@ -83,12 +105,13 @@ public sealed class LazerPlayerService(
 
         var ids = userIds.ToArray();
         var values = ids.Select(id => (RedisValue)id).ToArray();
-        var results = await _redis.SetContainsAsync(OnlineKey, values);
+        var connected = await _redis.SetContainsAsync(OnlineKey, values);
+        var hidden = await _redis.SetContainsAsync(HiddenKey, values);
 
         var online = new HashSet<int>();
         for (var i = 0; i < ids.Length; i++)
         {
-            if (results[i])
+            if (connected[i] && !hidden[i])
                 online.Add(ids[i]);
         }
 
@@ -107,6 +130,40 @@ public sealed class LazerPlayerService(
         player.LastPlayedBeatmapExitIndex = exitIndex;
 
         await Save(player);
+    }
+
+    public async Task<HashSet<int>> FilterHidden(
+        IReadOnlyCollection<int> userIds
+    ) {
+        if (userIds.Count == 0) return [];
+
+        var ids = userIds.ToArray();
+        var values = ids.Select(id => (RedisValue)id).ToArray();
+        var results = await _redis.SetContainsAsync(HiddenKey, values);
+
+        var hidden = new HashSet<int>();
+        for (var i = 0; i < ids.Length; i++)
+        {
+            if (results[i])
+                hidden.Add(ids[i]);
+        }
+
+        return hidden;
+    }
+
+    public async Task SetPresenceHidden(
+        int userId,
+        bool hidden
+    ) {
+        if (hidden) await _redis.SetAddAsync(HiddenKey, userId);
+        else await _redis.SetRemoveAsync(HiddenKey, userId);
+    }
+
+    public async Task<bool> WriteActivity(
+        int userId,
+        TimeSpan interval
+    ) {
+        return await _redis.StringSetAsync(ActivityKey(userId), 1, interval, When.NotExists);
     }
 
     private async Task Save(

@@ -2,6 +2,7 @@
 using BanchoNET.Core.Abstractions.Bancho.Services;
 using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Services;
+using BanchoNET.Core.Abstractions.Services.Lazer;
 using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Api.Player;
 using BanchoNET.Core.Models.Api.Scores;
@@ -12,6 +13,7 @@ using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
 using BanchoNET.Core.Models.Scores;
 using BanchoNET.Core.Packets;
+using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
@@ -28,6 +30,7 @@ public class PlayersRepository : IPlayersRepository
 	private readonly IDatabase _redis;
 	private readonly IPlayerHistoryRepository _playerHistories;
 	private readonly IPasswordService _passwords;
+	private readonly ILazerPlayerService _lazerPlayers;
 
 	public PlayersRepository(
 		BanchoDbContext dbContext,
@@ -36,7 +39,8 @@ public class PlayersRepository : IPlayersRepository
 		IMultiplayerCoordinator multiplayer,
 		IConnectionMultiplexer redis,
 		IPlayerHistoryRepository playerHistories,
-		IPasswordService passwords
+		IPasswordService passwords,
+		ILazerPlayerService lazerPlayers
 	) {
 		_players = players;
 		_playerCoordinator = playerCoordinator;
@@ -45,6 +49,37 @@ public class PlayersRepository : IPlayersRepository
 		_redis = redis.GetDatabase();
 		_playerHistories = playerHistories;
 		_passwords = passwords;
+		_lazerPlayers = lazerPlayers;
+	}
+
+	private async Task<bool> IsPlayerOnline(
+		int playerId
+	) {
+		if (_players.GetPlayer(playerId) != null) return true;
+
+		return (await _lazerPlayers.FilterOnline([playerId])).Count != 0;
+	}
+
+	public async Task<HashSet<int>> FilterHidden(
+		IReadOnlyCollection<int> playerIds
+	) {
+		return playerIds.Count == 0 ? [] : await _lazerPlayers.FilterHidden(playerIds);
+	}
+
+	public async Task<HashSet<int>> FilterOnline(
+		IReadOnlyCollection<int> playerIds
+	) {
+		if (playerIds.Count == 0) return [];
+
+		var online = await _lazerPlayers.FilterOnline(playerIds);
+
+		foreach (var playerId in playerIds)
+		{
+			if (_players.GetPlayer(playerId) != null)
+				online.Add(playerId);
+		}
+
+		return online;
 	}
 	
 	public async Task<bool> EmailTaken(string email)
@@ -100,12 +135,14 @@ public class PlayersRepository : IPlayersRepository
 				IsActive = !p.Inactive,
 				IsDeleted = p.Deleted,
 				IsSupporter = p.IsSupporter,
-				LastVisit = p.LastActivityTime,
+				LastVisit = p.HideOnlineActivity ? null : p.LastActivityTime,
 				PmFriendsOnly = p.PmFriendsOnly,
 				Username = p.Username,
 				PreferredMode = (byte)p.PreferredMode,
+				AvatarUrl = ProfileAssetUrls.Avatar(p.Id, p.AvatarUpdatedAt),
+				Cover = ProfileAssetUrls.Cover(p.Id, p.CoverPresetId, p.CoverFile, p.CoverUpdatedAt),
 			}).ToListAsync();
-		
+
 		foreach (var player in players)
 		{
 			player.GlobalRank = new GlobalRank
@@ -114,6 +151,8 @@ public class PlayersRepository : IPlayersRepository
 				RulesetId = player.PreferredMode
 			};
 		}
+
+		await AssignPresence(players);
 
 		return players;
 	}
@@ -219,10 +258,14 @@ public class PlayersRepository : IPlayersRepository
 
 	public async Task<MeResponse?> GetFullPlayerInfo(
 		int playerId
-	) {
-		var player = await GetPlayerInfoForMode<MeResponse>(playerId);
+	) => await GetFullPlayerInfo<MeResponse>(playerId);
+
+	public async Task<T?> GetFullPlayerInfo<T>(
+		int playerId
+	) where T : MeResponse, new() {
+		var player = await GetPlayerInfoForMode<T>(playerId);
 		if (player == null) return null;
-		
+
 		var vanillaModes = new[] {
 			GameMode.VanillaStd,
 			GameMode.VanillaTaiko,
@@ -267,7 +310,7 @@ public class PlayersRepository : IPlayersRepository
 		int playerId,
 		GameMode? mode = null
 	) where T : ApiPlayer, new() {
-		var userInfo = await GetPlayerInfo(playerId);
+		var userInfo = await GetPlayerInfoWithCustomization(playerId);
 		if (userInfo == null) return null;
 
 		var playerMode = mode ?? userInfo.PreferredMode;
@@ -278,6 +321,14 @@ public class PlayersRepository : IPlayersRepository
 
 		var history = await BuildHistory(playerId, (byte)playerMode, userInfo, modeStats);
 
+		var hidden = userInfo.HideOnlineActivity || (await FilterHidden([playerId])).Count != 0;
+		var online = !hidden && await IsPlayerOnline(playerId);
+		var cover = ProfileAssetUrls.Cover(
+			playerId,
+			userInfo.CoverPresetId,
+			userInfo.CoverFile,
+			userInfo.CoverUpdatedAt);
+
 		var player = new T
 		{
 			CountryCode = country.Code,
@@ -285,10 +336,10 @@ public class PlayersRepository : IPlayersRepository
 			IsActive = !userInfo.Inactive,
 			IsBot = false,
 			IsDeleted = userInfo.Deleted,
-			IsOnline = true, //TODO if hideOnlineActivity then return false
+			IsOnline = online,
 			IsSupporter = userInfo.RemainingSupporter > DateTime.UtcNow,
 			SupportLevel = userInfo.SupporterLevel,
-			LastVisit = userInfo.LastActivityTime, //TODO if hideOnlineActivity then return null
+			LastVisit = hidden ? null : userInfo.LastActivityTime,
 			PmFriendsOnly = userInfo.PmFriendsOnly,
 			Username = userInfo.Username,
 			HasSupported = userInfo.HasSupported,
@@ -300,6 +351,18 @@ public class PlayersRepository : IPlayersRepository
 			FollowerCount = await GetFriendsCount(playerId),
 			MonthlyPlaycounts = history.MonthlyPlaycounts,
 			ReplaysWatchedCounts = history.ReplaysWatchedCounts,
+			AvatarUrl = ProfileAssetUrls.Avatar(playerId, userInfo.AvatarUpdatedAt),
+			Cover = cover,
+			CoverUrl = cover.Url,
+			Location = userInfo.UserFrom,
+			Interests = userInfo.UserInterests,
+			Occupation = userInfo.UserOcc,
+			Twitter = userInfo.UserTwitter,
+			Discord = userInfo.UserDiscord,
+			Website = userInfo.UserWebsite,
+			Playstyle = userInfo.PlayStyle.ToNames(),
+			Page = new Page { Raw = userInfo.UserPageContent ?? "" }, //TODO render html from BBCode
+			ProfileHue = userInfo.ProfileCustomization?.ProfileHue ?? 0,
 			RankHighest = modeStats is { PeakRank: > 0, PeakRankDate: not null }
 				? new RankHighest
 				{
@@ -392,11 +455,56 @@ public class PlayersRepository : IPlayersRepository
 	public async Task<List<BasicApiPlayer>> GetPlayersFromQuery(
 		string query
 	) {
-		return await _dbContext.Players
+		var players = await _dbContext.Players
 			.Where(p => (p.Privileges & 1) == 1
 			            && EF.Functions.ILike(p.Username, $"%{query.Replace("_", @"\_")}%"))
 			.Select(p => new BasicApiPlayer(p))
 			.ToListAsync();
+
+		await AssignPresence(players);
+
+		return players;
+	}
+
+	private async Task AssignPresence<T>(
+		List<T> players
+	) where T : BasicApiPlayer {
+		if (players.Count == 0) return;
+
+		var ids = players.Select(p => p.Id).ToArray();
+		var online = await FilterOnline(ids);
+		var hidden = await FilterHidden(ids);
+
+		foreach (var player in players)
+		{
+			if (hidden.Contains(player.Id))
+				player.LastVisit = null;
+
+			player.IsOnline = player.LastVisit != null && online.Contains(player.Id);
+		}
+	}
+	
+	public async Task<Dictionary<int, Statistics>> GetPlayersStatistics(
+		int[] playerIds
+	) {
+		if (playerIds.Length == 0) return [];
+
+		var players = await _dbContext.Players
+			.AsNoTracking()
+			.Where(p => playerIds.Contains(p.Id))
+			.Select(p => new { p.Id, p.PreferredMode, p.Country })
+			.ToListAsync();
+
+		var result = new Dictionary<int, Statistics>(players.Count);
+
+		foreach (var player in players)
+		{
+			if (await GetPlayerModeStats(player.Id, (byte)player.PreferredMode) == null) continue;
+
+			result[player.Id] = await FetchModeStatistics(player.Id, player.PreferredMode, player.Country);
+		}
+
+		return result;
 	}
 
 	private async Task<Statistics> FetchModeStatistics(
@@ -447,20 +555,20 @@ public class PlayersRepository : IPlayersRepository
 		return stats;
 	}
 
-	public async Task UpdateLatestActivity(Player player)
+	public async Task UpdateLatestActivity(Player player, bool updateInactivity = false)
 	{
 		player.LastActivityTime = DateTime.UtcNow;
 		
-		await UpdateLatestActivity(player.Id);
+		await UpdateLatestActivity(player.Id, updateInactivity);
 	}
 	
-	public async Task UpdateLatestActivity(int playerId)
+	public async Task UpdateLatestActivity(int playerId, bool updateInactivity = false)
 	{
 		await _dbContext.Players
 			.Where(p => p.Id == playerId)
-			.ExecuteUpdateAsync(p => 
+			.ExecuteUpdateAsync(p =>
 				p.SetProperty(u => u.LastActivityTime, DateTime.UtcNow)
-				 .SetProperty(u => u.Inactive, false));
+				 .SetProperty(u => u.Inactive, u => !updateInactivity && u.Inactive));
 	}
 	
 	public async Task UpdatePlayerCountry(Player player, string country)
@@ -481,11 +589,42 @@ public class PlayersRepository : IPlayersRepository
 				p.SetProperty(u => u.PmFriendsOnly, pmFriendsOnly));
 	}
 
+	public async Task UpdatePlayerPassword(
+		int playerId,
+		string passwordHash
+	) {
+		await _dbContext.Players
+			.Where(p => p.Id == playerId)
+			.ExecuteUpdateAsync(p =>
+				p.SetProperty(u => u.PasswordHash, passwordHash));
+	}
+
+	public async Task UpdatePlayerEmail(
+		int playerId,
+		string email
+	) {
+		await _dbContext.Players
+			.Where(p => p.Id == playerId)
+			.ExecuteUpdateAsync(p =>
+				p.SetProperty(u => u.Email, email));
+	}
+
 	public async Task<PlayerDto?> GetPlayerInfo(int playerId)
 	{
 		if (playerId < 1) return null;
-		
+
 		return await _dbContext.Players.FindAsync(playerId);
+	}
+
+	public async Task<PlayerDto?> GetPlayerInfoWithCustomization(
+		int playerId
+	) {
+		if (playerId < 1) return null;
+
+		return await _dbContext.Players
+			.AsNoTracking()
+			.Include(p => p.ProfileCustomization)
+			.FirstOrDefaultAsync(p => p.Id == playerId);
 	}
 	
 	public async Task<PlayerDto?> GetPlayerInfo(string username)
@@ -674,7 +813,6 @@ public class PlayersRepository : IPlayersRepository
 		}
 	}
 	
-	//TODO
 	public async Task RecalculatePlayerTopScores(
 		int playerId,
 		StatsDto stats,
@@ -686,7 +824,7 @@ public class PlayersRepository : IPlayersRepository
 			            && s.Mode == mode
 			            && s.Ranked)
 			.OrderByDescending(s => s.PP)
-			.Take(200)
+			.Take(AppSettings.TopPlaysCount)
 			.ToListAsync();
 
 		var weightedAcc = 0.0f;
@@ -709,7 +847,9 @@ public class PlayersRepository : IPlayersRepository
 		await _dbContext.SaveChangesAsync();
 
 		await _dbContext.Players.Where(p => p.Id == playerId)
-			.ExecuteUpdateAsync(s => s.SetProperty(p => p.TopPlaysCount, Math.Min(bestScores.Count, 200)));
+			.ExecuteUpdateAsync(s => s.SetProperty(
+				p => p.TopPlaysCount, Math.Min(bestScores.Count, AppSettings.TopPlaysCount)
+			));
 	}
 
 	public async Task UpdatePlayerRank(
@@ -744,7 +884,8 @@ public class PlayersRepository : IPlayersRepository
 		byte mode = 0,
 		int page = 1,
 		string country = "",
-		bool filterByScore = false
+		bool filterByScore = false,
+		int[]? restrictToPlayerIds = null
 	) {
 		var ranking = await _dbContext.Stats
 			.AsNoTracking()
@@ -752,6 +893,7 @@ public class PlayersRepository : IPlayersRepository
 			.Where(s => s.Mode == mode
 			            && s.IsRanked
 			            && (string.IsNullOrEmpty(country) || s.Player.Country == country)
+			            && (restrictToPlayerIds == null || restrictToPlayerIds.Contains(s.PlayerId))
 			)
 			.OrderByDescending(s => filterByScore ? s.TotalScore : s.PP)
 			.Skip((page - 1) * 50)
@@ -766,6 +908,44 @@ public class PlayersRepository : IPlayersRepository
 		await AssignRankChange(ranking, mode, page);
 
 		return ranking;
+	}
+
+	public async Task<List<string>> GetRankedCountries(
+		byte mode = 0
+	) {
+		return await _dbContext.Stats
+			.AsNoTracking()
+			.Where(s => s.Mode == mode && s.IsRanked)
+			.Select(s => s.Player.Country)
+			.Distinct()
+			.ToListAsync();
+	}
+
+	public async Task<(List<CountryRankingDto> Ranking, int Total)> GetCountryRanking(
+		byte mode = 0,
+		int page = 1
+	) {
+		var query = _dbContext.Stats
+			.AsNoTracking()
+			.Where(s => s.Mode == mode && s.IsRanked)
+			.GroupBy(s => s.Player.Country)
+			.Select(g => new CountryRankingDto
+			{
+				Code = g.Key,
+				ActiveUsers = g.Count(),
+				PlayCount = g.Sum(s => (long)s.PlayCount),
+				RankedScore = g.Sum(s => s.RankedScore),
+				Performance = g.Sum(s => (long)s.PP)
+			});
+
+		var total = await query.CountAsync();
+		var ranking = await query
+			.OrderByDescending(c => c.Performance)
+			.Skip((page - 1) * 50)
+			.Take(50)
+			.ToListAsync();
+
+		return (ranking, total);
 	}
 	
 	private async Task AssignRankChange(
@@ -835,6 +1015,12 @@ public class PlayersRepository : IPlayersRepository
 		}
 
 		await _dbContext.Stats.AddRangeAsync(scoreDtos);
+		
+		_dbContext.PlayerProfileCustomizations.Add(new PlayerProfileCustomizationDto
+		{
+			PlayerId = playerId,
+			UpdatedAt = DateTime.UtcNow
+		});
 		await _dbContext.SaveChangesAsync();
 	}
 
@@ -865,6 +1051,8 @@ public class PlayersRepository : IPlayersRepository
 		await _dbContext.PlayerHistories.Where(h => h.PlayerId == playerId).ExecuteDeleteAsync();
 		//TODO achievements, comments, favorites, club data
 		
+		Storage.DeleteProfileImages(playerId);
+
 		if (deleteScores)
 		{
 			await _dbContext.Scores.Where(s => s.PlayerId == playerId).ExecuteDeleteAsync();
@@ -873,20 +1061,37 @@ public class PlayersRepository : IPlayersRepository
 		else
 		{
 			var id = Guid.NewGuid().ToString()[..8];
+			var oldPasswordHash = player.PasswordHash;
+
 			player.Username = $"delUser_{id}";
 			player.SafeName = player.Username.MakeSafe();
 			player.LoginName = player.SafeName;
-			
+
 			player.Email = $"delUser_{id}@deleted.invalid";
 			player.PasswordHash = "1";
 			player.AwayMessage = "";
 			player.UserPageContent = "";
 			player.ApiKey = null;
 
+			player.UserFrom = null;
+			player.UserInterests = null;
+			player.UserOcc = null;
+			player.UserTwitter = null;
+			player.UserDiscord = null;
+			player.UserWebsite = null;
+			player.UserSig = null;
+			player.PlayStyle = Playstyle.None;
+
+			player.AvatarExtension = null;
+			player.AvatarUpdatedAt = null;
+			player.CoverPresetId = null;
+			player.CoverFile = null;
+			player.CoverUpdatedAt = null;
+
 			player.Deleted = true;
 			player.Privileges = 0;
-			
-			_passwords.Invalidate(player.PasswordHash);
+
+			_passwords.Invalidate(oldPasswordHash);
 
 			await _dbContext.SaveChangesAsync();
 		}

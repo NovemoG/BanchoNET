@@ -73,6 +73,25 @@ public class PlayerConfiguration : IEntityTypeConfiguration<PlayerDto>
         builder.Property(p => p.UserPageContent)
             .HasMaxLength(4096);
 
+        builder.Property(p => p.PlayStyle)
+            .HasConversion<byte>();
+
+        builder.Property(p => p.UserFrom).HasMaxLength(100);
+        builder.Property(p => p.UserInterests).HasMaxLength(255);
+        builder.Property(p => p.UserOcc).HasMaxLength(255);
+        builder.Property(p => p.UserTwitter).HasMaxLength(255);
+        builder.Property(p => p.UserDiscord).HasMaxLength(37);
+        builder.Property(p => p.UserWebsite).HasMaxLength(200);
+        builder.Property(p => p.UserSig).HasMaxLength(3000);
+        builder.Property(p => p.UserNotify).HasDefaultValue(true);
+
+        builder.Property(p => p.AvatarExtension)
+            .HasMaxLength(8)
+            .IsUnicode(false);
+        builder.Property(p => p.CoverFile)
+            .HasMaxLength(64)
+            .IsUnicode(false);
+
         builder.Ignore(p => p.IsSupporter);
     }
 }

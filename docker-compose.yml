@@ -17,12 +17,40 @@
       - ${DATA_PATH:-./data}:/app/files
     restart: unless-stopped
     networks:
-      - banchonet
+      banchonet:
+        aliases:
+          - osu.${DOMAIN}
+          - notify.${DOMAIN}
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+
+  web:
+    image: osunovemo-web
+    hostname: web
+    container_name: web
+    build:
+      context: ./osunovemo-web
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_OSU_API_BASE_URL: https://osu.${DOMAIN}/api/v2
+        NEXT_PUBLIC_OSU_NOTIFICATION_ENDPOINT: ${NOTIFICATION_ENDPOINT:-}
+    environment:
+      OSU_API_BASE_URL: http://osu.${DOMAIN}:5000/api/v2
+      OSU_OAUTH_CLIENT_ID: ${WEB_CLIENT_ID}
+      OSU_OAUTH_CLIENT_SECRET: ${WEB_CLIENT_SECRET}
+      OSU_AUTH_SECRET: ${WEB_AUTH_SECRET}
+      OSU_AUTH_SCOPE: "public identify friends.read chat.read chat.write"
+      OSU_NOTIFICATION_ENDPOINT: ${NOTIFICATION_ENDPOINT:-ws://notify.${DOMAIN}:5000/notify}
+    ports:
+      - ${WEB_PORT:-16728}:3000
+    restart: unless-stopped
+    networks:
+      - banchonet
+    depends_on:
+      - banchonet
 
   postgres:
     image: postgres:17

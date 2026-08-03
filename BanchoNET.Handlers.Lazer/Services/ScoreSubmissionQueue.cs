@@ -161,7 +161,7 @@ public sealed partial class ScoreSubmissionQueue(
 
         await RecalculatePlayerStats(players, beatmap, player, stats, mode, apiScore, prevBest, bestWithMods);
         await players.UpdatePlayerStats(stats, apiScore);
-        await players.UpdateLatestActivity(userId);
+        await players.UpdateLatestActivity(userId, updateInactivity: true);
 
         return apiScore;
     }
@@ -213,8 +213,7 @@ public sealed partial class ScoreSubmissionQueue(
                     );
                 }
             }
-
-            // Explicit write: the player is a copy out of the store, not a shared object
+            
             await lazerPlayers.SetLastPlayed(playerId, beatmap.Id, index);
         }
     }
