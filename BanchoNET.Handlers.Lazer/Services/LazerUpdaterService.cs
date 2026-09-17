@@ -254,7 +254,7 @@ public class LazerUpdaterService(
 
             var publishPath = LazerStorage.GetLazerPublishPath(platform);
             var buildResult = await RunCommand(
-                "/opt/dotnet8/dotnet",
+                "/opt/dotnet10/dotnet",
                 $"publish --self-contained -r {rid} -p:Version={tagName} -o \"{publishPath}\"",
                 LazerStorage.LazerProjectPath,
                 ct

@@ -1,4 +1,4 @@
-﻿FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 USER $APP_UID
 WORKDIR /app
 
@@ -35,7 +35,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 RUN curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh \
     && chmod +x /tmp/dotnet-install.sh \
-    && /tmp/dotnet-install.sh --version 8.0.100 --install-dir /opt/dotnet8 --no-path \
+    && /tmp/dotnet-install.sh --channel 10.0 --install-dir /opt/dotnet10 --no-path \
     && rm /tmp/dotnet-install.sh
 RUN mkdir -p /data/lazer \
     && chown -R "$APP_UID:$APP_UID" /data/lazer
