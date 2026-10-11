@@ -145,31 +145,38 @@ public sealed class BeatmapHandler(
 	public async Task<Beatmapset?> GetBeatmapset(
 		int setId,
 		int mapId = -1,
-		bool recheckApi = false
+		bool recheckApi = false,
+		CancellationToken cancellationToken = default
 	) {
-		var didApiRequest = false;
 		var beatmapset = beatmapCache.GetBeatmapset(setId);
-		
+
+		if (recheckApi)
+		{
+			var updated = await GetBeatmapsetFromApi(setId, cancellationToken);
+			return updated == null ? null : beatmapCache.GetBeatmapset(setId);
+		}
+
 		if (beatmapset == null)
 		{
 			var dbBeatmapset = await beatmaps.GetBeatmapset(setId);
 			if (dbBeatmapset == null)
 			{
-				var apiBeatmapset = await GetBeatmapsetFromApi(setId);
+				var apiBeatmapset = await GetBeatmapsetFromApi(setId, cancellationToken);
 				if (apiBeatmapset == null) return null;
 
-				didApiRequest = true;
-				await beatmaps.InsertBeatmapset(beatmapset = new Beatmapset(apiBeatmapset));
+				return beatmapCache.GetBeatmapset(setId);
 			}
-			else beatmapset = new Beatmapset(dbBeatmapset);
-			
-			if (didApiRequest && !recheckApi)
-				beatmapCache.InsertBeatmapset(beatmapset);
+
+			beatmapset = new Beatmapset(dbBeatmapset);
+			beatmapCache.InsertBeatmapset(beatmapset);
 		}
 		
-		if (!didApiRequest && mapId > 0)
-			if (recheckApi || beatmapset.Beatmaps.All(b => b.Id != mapId))
-				await GetBeatmapsetFromApi(setId);
+		if (mapId > 0 && beatmapset.Beatmaps.All(b => b.Id != mapId))
+		{
+			var updated = await GetBeatmapsetFromApi(setId, cancellationToken);
+			if (updated != null)
+				return beatmapCache.GetBeatmapset(setId);
+		}
 		
 		return beatmapset;
 	}
@@ -276,12 +283,13 @@ public sealed class BeatmapHandler(
 	}
 
 	private async Task<ApiBeatmapsetFull?> GetBeatmapsetFromApi(
-		int beatmapsetId
+		int beatmapsetId,
+		CancellationToken cancellationToken = default
 	) {
 		var url = $"https://osu.ppy.sh/api/v2/beatmapsets/{beatmapsetId}";
 		
-		var response = await _bearerClient.GetAsync(url);
-		var content = await response.Content.ReadAsStringAsync();
+		using var response = await _bearerClient.GetAsync(url, cancellationToken);
+		var content = await response.Content.ReadAsStringAsync(cancellationToken);
 
 		if (response.IsSuccessStatusCode && content.IsValidResponse())
 		{

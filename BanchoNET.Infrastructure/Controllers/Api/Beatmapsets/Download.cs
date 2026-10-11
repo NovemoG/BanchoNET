@@ -10,13 +10,16 @@ public partial class BeatmapsetsController
         int beatmapsetId,
         [FromQuery] int noVideo
     ) {
-        var beatmapsetPath = Storage.GetBeatmapsetPath(beatmapsetId);
-        if (!System.IO.File.Exists(beatmapsetPath))
+        if (beatmapsetId < 1)
+            return BadRequest();
+
+        if (!await beatmapDownloader.EnsureBeatmapset(beatmapsetId, HttpContext.RequestAborted))
         {
-            var downloaded = await beatmapDownloader.DownloadBeatmap(beatmapsetId);
-            if (!downloaded) return NotFound();
+            Response.Headers.RetryAfter = "30";
+            return StatusCode(503);
         }
-        
+
+        var beatmapsetPath = Storage.GetBeatmapsetPath(beatmapsetId);
         return new PhysicalFileResult(beatmapsetPath, "application/zip");
     }
 }

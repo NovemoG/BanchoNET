@@ -33,7 +33,6 @@ public static class Storage
 	
 	public static string GetBeatmapPath(int beatmapId) => Path.Combine(BeatmapsPath, $"{beatmapId}.osu");
 	public static string GetBeatmapsetPath(int beatmapsetId) => Path.Combine(BeatmapsetsPath, $"{beatmapsetId}.osz");
-	public static string GetTempBeatmapsetPath() => Path.Combine(TempPath, $"{Guid.NewGuid()}.osz");
 	public static string GetReplayPath(long scoreId) => Path.Combine(ReplaysPath, $"{scoreId}.osr");
 	public static string GetMajorOsuVersionFilePath() => Path.Combine(BasePath, "major_osu_versions.txt");
 	public static string GetLogFilePath(string filename) => Path.Combine(LogsPath, filename);

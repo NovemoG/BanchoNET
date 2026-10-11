@@ -20,7 +20,7 @@ public interface IBeatmapHandler
     
     Task<Beatmap?> GetBeatmap(int mapId, int setId = -1);
     Task<Beatmap?> GetBeatmap(string beatmapMD5, int setId = -1);
-    Task<Beatmapset?> GetBeatmapset(int setId, int mapId = -1, bool recheckApi = false);
+    Task<Beatmapset?> GetBeatmapset(int setId, int mapId = -1, bool recheckApi = false, CancellationToken cancellationToken = default);
     Task<List<Beatmap>> GetBeatmaps(int[] beatmapIds);
 
     Task<ApiBeatmapsetFull?> GetBeatmapsetFromApiOrCached(

@@ -8,22 +8,19 @@ public partial class OsuController
     [HttpGet("/d/{beatmapsetArg}")]
     public async Task<IActionResult> GetOszFile(string beatmapsetArg)
     {
-        /*var noVideo = beatmapsetArg[^1] == 'n';
-        if (noVideo)
-            beatmapsetArg = beatmapsetArg[..^1];*/
-        
-        var beatmapsetId = int.Parse(beatmapsetArg[..^1]);
-        
-        var beatmapsetPath = Storage.GetBeatmapsetPath(beatmapsetId);
-        if (!System.IO.File.Exists(beatmapsetPath))
+        if (beatmapsetArg.EndsWith('n'))
+            beatmapsetArg = beatmapsetArg[..^1];
+
+        if (!int.TryParse(beatmapsetArg, out var beatmapsetId) || beatmapsetId < 1)
+            return BadRequest();
+
+        if (!await beatmapDownloader.EnsureBeatmapset(beatmapsetId, HttpContext.RequestAborted))
         {
-            var downloaded = await beatmapDownloader.DownloadBeatmap(beatmapsetId);
-            if (!downloaded) return NotFound();
+            Response.Headers.RetryAfter = "30";
+            return StatusCode(503);
         }
-        
+
+        var beatmapsetPath = Storage.GetBeatmapsetPath(beatmapsetId);
         return new PhysicalFileResult(beatmapsetPath, "application/zip");
-        
-        /*var redirectUrl = $"{AppSettings.OsuDirectDownloadEndpoint}{beatmapsetId}?n={(noVideo ? 0 : 1)}";
-        return RedirectPermanent(redirectUrl);*/
     }
 }

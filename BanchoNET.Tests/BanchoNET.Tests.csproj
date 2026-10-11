@@ -24,6 +24,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\BanchoNET.Core\BanchoNET.Core.csproj" />
+        <ProjectReference Include="..\BanchoNET.BeatmapServer\BanchoNET.BeatmapServer.csproj" />
     </ItemGroup>
 
     <ItemGroup>

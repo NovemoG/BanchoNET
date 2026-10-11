@@ -2,11 +2,7 @@
 
 public interface IBeatmapDownloader
 {
-    bool AddBeatmapsetForUpdate(
-        int beatmapsetId
-    );
-
-    Task<bool> DownloadBeatmap(
+    Task<bool> EnsureBeatmapset(
         int beatmapsetId,
         CancellationToken cancellationToken = default
     );

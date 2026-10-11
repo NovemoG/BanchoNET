@@ -1,5 +1,4 @@
 ﻿using BanchoNET.Core.Abstractions.Repositories;
-using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Db;
 using BanchoNET.Core.Models.Dtos;
@@ -11,8 +10,7 @@ namespace BanchoNET.BeatmapServer.Services;
 
 public class BeatmapsRepository(
 	BanchoDbContext dbContext,
-	ILegacyScoresRepository scores,
-	IBeatmapDownloader beatmapDownloader
+	ILegacyScoresRepository scores
 ) : IBeatmapsRepository
 {
 	public async Task<List<BeatmapsetDto>> GetRandomBeatmaps() {
@@ -316,7 +314,6 @@ public class BeatmapsRepository(
 				if (!dbBeatmap.MD5.Equals(beatmap.Checksum, StringComparison.OrdinalIgnoreCase))
 				{
 					await scores.ToggleBeatmapScoresVisibility(dbBeatmap.MD5.ToLower());
-					beatmapDownloader.AddBeatmapsetForUpdate(set.Id);
 					dbBeatmap.MaximumStatistics = new Dictionary<HitResult, int>();
 				}
 				var previousStatus = dbBeatmap.Status;
