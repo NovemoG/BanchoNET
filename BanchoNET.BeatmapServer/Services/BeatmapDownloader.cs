@@ -63,6 +63,8 @@ public sealed class BeatmapDownloader(
                 return await Fallback(beatmapsetId, cancellationToken);
 
             logger.LogDebug("Downloading beatmapset from official osu website");
+            
+            _cookieClient.DefaultRequestHeaders.TryAddWithoutValidation("Referer", $"https://osu.ppy.sh/beatmapsets/{beatmapsetId}");
 
             var url = $"https://osu.ppy.sh/beatmapsets/{beatmapsetId}/download?noVideo=1";
             using var response = await _cookieClient.GetAsync(url, cancellationToken);
@@ -70,7 +72,7 @@ public sealed class BeatmapDownloader(
             if (!response.IsSuccessStatusCode)
             {
                 logger.LogWarning($"Download failed for beatmapset {beatmapsetId}. Status: {response.StatusCode}");
-                return false;
+                return await Fallback(beatmapsetId, cancellationToken);
             }
 
             await using var downloadStream = await response.Content.ReadAsStreamAsync(cancellationToken);
@@ -90,9 +92,9 @@ public sealed class BeatmapDownloader(
         int beatmapsetId,
         CancellationToken cancellationToken
     ) {
-        logger.LogDebug("Downloading beatmapset from osu.direct");
+        logger.LogDebug($"Downloading beatmapset {beatmapsetId} from osu.direct");
         
-        var url = $"{AppSettings.OsuDirectDownloadEndpoint}{beatmapsetId}?n=1";
+        var url = $"{AppSettings.OsuDirectDownloadEndpoint}/{beatmapsetId}?n=1";
         using var response = await _cookieClient.GetAsync(url, cancellationToken);
 
         if (!response.IsSuccessStatusCode)

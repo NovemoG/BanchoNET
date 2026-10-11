@@ -244,8 +244,7 @@ public class Program
 			.AddSingleton<IBeatmapDownloader, BeatmapDownloader>()
 			.AddHttpClient(nameof(BeatmapDownloader), client =>
 			{
-				client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36");
-				client.DefaultRequestHeaders.TryAddWithoutValidation("Referer", "https://osu.ppy.sh/beatmapsets/");
+				client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0");
 				client.Timeout = TimeSpan.FromSeconds(5);
 			})
 			.ConfigurePrimaryHttpMessageHandler(() =>

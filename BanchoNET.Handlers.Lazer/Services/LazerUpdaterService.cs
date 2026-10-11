@@ -367,7 +367,9 @@ public class LazerUpdaterService(
                 {
                     if (isTachyon)
                     {
-                        releases.Add(rel);
+                        if (!releases.Any(IsTachyonRelease))
+                            releases.Add(rel);
+                        
                         continue;
                     }
 
@@ -385,8 +387,17 @@ public class LazerUpdaterService(
                     break;
                 }
                 
-                if (isLazer || isTachyon)
+                if ((isLazer && !releases.Any(IsLazerRelease)) ||
+                    (isTachyon && !releases.Any(IsTachyonRelease)))
+                {
                     releases.Add(rel);
+                }
+
+                if (releases.Count == 2)
+                {
+                    cutoffReached = true;
+                    break;
+                }
             }
         }
 
