@@ -217,18 +217,7 @@ public class Program
 			.AddHostedService<HubShutdownNotifier>()
 			.AddHostedService<BackgroundTasks>();
 
-		builder.Services
-			.AddHostedService<LazerUpdaterService>()
-			.AddHttpClient(nameof(LazerUpdaterService), client =>
-			{
-				client.DefaultRequestHeaders.Accept.Add(
-					new MediaTypeWithQualityHeaderValue("application/vnd.github+json")
-				);
-				client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue(new ProductHeaderValue("request")));
-        
-				if (!string.IsNullOrWhiteSpace(AppSettings.GithubToken))
-					client.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", "token " + AppSettings.GithubToken);
-			});
+		builder.Services.AddHostedService<LazerReleaseImportService>();
 
 		builder.Services
 			.AddSingleton<OsuTokenProvider>()

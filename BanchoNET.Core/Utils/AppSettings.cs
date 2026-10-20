@@ -24,6 +24,8 @@ public static class AppSettings
             ? "osubanchonet"
             : lazerName;
         
+        LazerReleaseInbox = Environment.GetEnvironmentVariable("LAZER_RELEASE_INBOX");
+
         var disallowOldClients = Environment.GetEnvironmentVariable("DISALLOW_OLD_CLIENTS");
         DisallowOldClients = string.IsNullOrEmpty(disallowOldClients)
                              || bool.Parse(disallowOldClients);
@@ -229,6 +231,7 @@ public static class AppSettings
     public static readonly string Domain;
     public static readonly bool Debug;
     public static readonly string LazerName;
+    public static readonly string? LazerReleaseInbox;
     public static readonly string BanchoNETVersion;
     public static readonly bool DisallowOldClients;
     public static readonly bool SortLeaderboardByPP;

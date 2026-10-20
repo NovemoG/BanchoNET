@@ -12,8 +12,11 @@
       - ${SERVER_PORT}:5000
     env_file:
       - .env
+    environment:
+      LAZER_RELEASE_INBOX: /release-inbox
     volumes:
       - banchonet-lazer-data:/data/lazer
+      - novemo-release-inbox:/release-inbox
       - ${DATA_PATH:-./data}:/app/files
     restart: unless-stopped
     networks:
@@ -100,6 +103,9 @@ networks:
     name: banchonet
 
 volumes:
+  novemo-release-inbox:
+    external: true
+    name: novemo-release-inbox
   banchonet-lazer-data:
     driver: local
   banchonet-db-data:
