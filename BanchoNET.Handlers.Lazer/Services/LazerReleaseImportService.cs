@@ -16,6 +16,7 @@ public sealed class LazerReleaseImportService(
 
         Directory.CreateDirectory(inbox);
         Directory.CreateDirectory(PublishedLazerReleases.Root);
+        var nextCleanup = DateTimeOffset.MinValue;
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -62,6 +63,25 @@ public sealed class LazerReleaseImportService(
                         );
                     }
                 }
+            }
+
+            if (DateTimeOffset.UtcNow >= nextCleanup)
+            {
+                try
+                {
+                    await LazerReleaseRetention.Cleanup(PublishedLazerReleases.Root, DateTimeOffset.UtcNow, stoppingToken);
+                    LazerReleaseRetention.CleanupInbox(inbox, DateTimeOffset.UtcNow);
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError("Release cleanup failed", ex, caller: nameof(LazerReleaseImportService));
+                }
+
+                nextCleanup = DateTimeOffset.UtcNow.AddHours(1);
             }
 
             await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);

@@ -27,8 +27,10 @@ public static class LazerReleasePublisher
         {
             var existing = await LazerReleaseBundle.Read(destination, ct);
             if (existing.Commit != release.Commit
+                || existing.SchemaVersion != release.SchemaVersion
                 || existing.Channel != release.Channel
                 || existing.PackageId != release.PackageId
+                || JsonSerializer.Serialize(existing.Bases) != JsonSerializer.Serialize(release.Bases)
                 || JsonSerializer.Serialize(existing.Files) != JsonSerializer.Serialize(release.Files))
             {
                 throw new InvalidDataException("Version exists with different content. Use a new version.");
@@ -36,6 +38,24 @@ public static class LazerReleasePublisher
 
             return;
         }
+
+        var published = await PublishedLazerReleases.List(root, ct);
+        var latest = published.FirstOrDefault();
+        
+        if (latest != null && LazerReleaseBundle.VersionNumber(release.Version) <= LazerReleaseBundle.VersionNumber(latest.Version))
+            throw new InvalidDataException("Version must exceed the latest published release.");
+
+        foreach (var deltaBase in release.Bases)
+        {
+            if (latest == null || deltaBase.Version != latest.Version
+                || !deltaBase.SHA256.Equals(latest.Single(deltaBase.Platform, "full").SHA256, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidDataException("Delta base is stale or does not match the published package. Build a new candidate.");
+            }
+        }
+
+        if (release.SchemaVersion == 2 && latest != null && release.Bases.Count == 0)
+            throw new InvalidDataException("A published base exists; delta packages are required.");
 
         var staging = Path.Combine(root, ".import-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(staging);

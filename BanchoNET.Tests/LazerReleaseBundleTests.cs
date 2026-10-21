@@ -72,11 +72,162 @@ public class LazerReleaseBundleTests
         return file;
     }
 
+    private void SetVersion(
+        string version
+    ) {
+        var previous = _bundle.Version;
+        _bundle.Version = version;
+        _bundle.Channel = version.Split('-')[1];
+
+        foreach (var file in _bundle.Files.Where(f => f.Kind == "feed"))
+        {
+            var path = Path.Combine(_directory, file.Name);
+            File.WriteAllText(path, File.ReadAllText(path).Replace(previous, version));
+            file.Size = new FileInfo(path).Length;
+            file.SHA256 = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path)));
+        }
+    }
+
+    private void AddDeltas(
+        string version
+    ) {
+        _bundle.SchemaVersion = 2;
+
+        foreach (var platform in new[] { "win", "linux" })
+        {
+            var delta = Add($"test-{platform}-delta.nupkg", platform, "delta", "delta");
+            _bundle.Bases.Add(new LazerReleaseBase
+            {
+                Platform = platform,
+                Version = version,
+                SHA256 = _bundle.Single(platform, "full").SHA256
+            });
+
+            var file = _bundle.Single(platform, "feed");
+            var path = Path.Combine(_directory, file.Name);
+            var feed = JsonSerializer.Deserialize<VelopackReleaseFeed>(File.ReadAllText(path))!;
+            feed.Assets.Add(new VelopackAsset
+            {
+                PackageId = _bundle.PackageId,
+                Version = _bundle.Version,
+                Type = "Delta",
+                FileName = delta.Name,
+                Size = delta.Size,
+                SHA256 = delta.SHA256
+            });
+            File.WriteAllText(path, JsonSerializer.Serialize(feed));
+            file.Size = new FileInfo(path).Length;
+            file.SHA256 = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path)));
+        }
+    }
+
+    private async Task Import(
+        string published
+    ) {
+        await File.WriteAllTextAsync(Path.Combine(_directory, "manifest.json"), JsonSerializer.Serialize(_bundle));
+        await LazerReleasePublisher.Import(_directory, published, "test");
+    }
+
     [TearDown]
     public void TearDown() => Directory.Delete(_directory, true);
 
     [Test]
     public async Task CompleteBundleIsAccepted() => await _bundle.Validate(_directory, "test");
+
+    [Test]
+    public async Task CompleteDeltaBundleIsAccepted()
+    {
+        AddDeltas("2026.1019.1-lazer");
+        await _bundle.Validate(_directory, "test");
+    }
+
+    [Test]
+    public async Task PrunedFullPackageIsNotAdvertisedButDeltaRemainsAvailable()
+    {
+        AddDeltas("2026.1019.1-lazer");
+        File.Delete(Path.Combine(_directory, _bundle.Single("win", "full").Name));
+
+        var feed = await _bundle.ReadFeed(_directory, "win");
+        var legacy = await _bundle.ReadFeed(_directory, "win", true);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(feed.Assets, Has.Count.EqualTo(1));
+            Assert.That(feed.Assets[0].Type, Is.EqualTo("Delta"));
+            Assert.That(legacy.Assets, Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task OlderClientsOnlySeeFullPackages()
+    {
+        AddDeltas("2026.1019.1-lazer");
+
+        var feed = await _bundle.ReadFeed(_directory, "win", true);
+
+        Assert.That(feed.Assets.Select(a => a.Type), Is.EqualTo(new[] { "Full" }));
+    }
+
+    [Test]
+    public void CorruptDeltaIsRejected()
+    {
+        AddDeltas("2026.1019.1-lazer");
+        File.WriteAllText(Path.Combine(_directory, _bundle.Single("win", "delta").Name), "tampered");
+
+        Assert.ThrowsAsync<InvalidDataException>(() => _bundle.Validate(_directory, "test"));
+    }
+
+    [Test]
+    public void DeltaWithoutBaseIsRejected()
+    {
+        AddDeltas("2026.1019.1-lazer");
+        _bundle.Bases.Clear();
+
+        Assert.ThrowsAsync<InvalidDataException>(() => _bundle.Validate(_directory, "test"));
+    }
+
+    [Test]
+    public void FutureBaseIsRejected()
+    {
+        AddDeltas("2026.1021.1-tachyon");
+
+        Assert.ThrowsAsync<InvalidDataException>(() => _bundle.Validate(_directory, "test"));
+    }
+
+    [Test]
+    public async Task StaleDeltaBaseIsRejected()
+    {
+        var published = Path.Combine(_directory, "published");
+        await Import(published);
+        AddDeltas(_bundle.Version);
+        SetVersion("2026.1020.2-tachyon");
+        await Import(published);
+        SetVersion("2026.1020.3-lazer");
+
+        Assert.ThrowsAsync<InvalidDataException>(() => Import(published));
+        Assert.That(Directory.GetDirectories(published), Has.Length.EqualTo(2));
+    }
+
+    [Test]
+    public async Task OutOfOrderPublicationIsRejected()
+    {
+        var published = Path.Combine(_directory, "published");
+        await Import(published);
+        SetVersion("2026.1019.1-lazer");
+
+        Assert.ThrowsAsync<InvalidDataException>(() => Import(published));
+    }
+
+    [Test]
+    public async Task RetryAfterPruningIsAccepted()
+    {
+        var published = Path.Combine(_directory, "published");
+        await Import(published);
+        File.Delete(Path.Combine(published, _bundle.Version, _bundle.Single("win", "full").Name));
+        await Import(published);
+
+        Assert.That(Directory.GetDirectories(published), Has.Length.EqualTo(1));
+    }
 
     [Test]
     public void CorruptPackageIsRejected()
@@ -97,6 +248,8 @@ public class LazerReleaseBundleTests
     [TestCase("../outside")]
     [TestCase("..\\outside")]
     [TestCase("C:outside")]
+    [TestCase("result.json")]
+    [TestCase("result.tmp")]
     public void TraversalIsRejected(
         string name
     ) {

@@ -18,27 +18,41 @@ public class UpdaterController(
     private static string BaseUrl => $"https://api.{AppSettings.Domain}/api/v3/repos";
 
     [HttpGet("ppy/osu/releases")]
+    [HttpGet("ppy/osu/{stream}/releases")]
+    [HttpGet("ppy/osu/{stream}/{baseVersion}/releases")]
     public async Task<ActionResult<List<GithubFeed>>> GetReleases(
         [FromQuery(Name = "per_page")] int perPage = 10,
-        int page = 1
+        int page = 1,
+        [FromRoute] string? stream = null,
+        [FromRoute] string? baseVersion = null
     ) {
-        if (perPage is < 1 or > 100 || page is < 1 or > 100000) return BadRequest();
+        if (perPage is < 1 or > 100 || page is < 1 or > 100000 || stream is not (null or "lazer" or "tachyon"))
+            return BadRequest();
 
         var published = await PublishedLazerReleases.List(HttpContext.RequestAborted);
-        var feeds = published.Select(r => new GithubFeed
+        var selected = stream == null ? published : PublishedLazerReleases.ForStream(published, stream);
+        var fullOnly = stream == null || !PublishedLazerReleases.CanUseDeltas(
+            PublishedLazerReleases.Root,
+            selected,
+            baseVersion,
+            Math.Min(perPage, 10)
+        );
+        
+        var feeds = selected.Select(r => new GithubFeed
         {
             TagName = r.Version,
             Name = r.Version,
-            Prerelease = r.Channel == "tachyon",
+            Prerelease = stream != "lazer" && r.Channel == "tachyon",
             PublishedAt = r.PublishedAt,
-            Assets = r.Files.Select(f => Asset(
+            Assets = r.Files.Where(f => (!fullOnly || f.Kind != "delta")
+                && System.IO.File.Exists(PublishedLazerReleases.FilePath(r, f))).Select(f => Asset(
                 f.Name,
-                $"{BaseUrl}/{r.Version}/asset/{Uri.EscapeDataString(f.Name)}",
+                $"{BaseUrl}/{r.Version}/asset/{Uri.EscapeDataString(f.Name)}?fullOnly={fullOnly}",
                 f.Kind == "feed"
             )).ToList()
         }).ToList();
 
-        var legacy = await releases.GetReleases(int.MaxValue, 0);
+        var legacy = stream == null ? await releases.GetReleases(int.MaxValue, 0) : [];
 
         foreach (var group in legacy.GroupBy(r => r.Version))
         {
@@ -99,6 +113,14 @@ public class UpdaterController(
             .Take(perPage));
     }
 
+    [HttpGet("release-base")]
+    public async Task<IActionResult> GetReleaseBase()
+    {
+        var latest = (await PublishedLazerReleases.List(HttpContext.RequestAborted)).FirstOrDefault();
+
+        return latest == null ? NoContent() : Serve(Path.Combine(PublishedLazerReleases.Root, latest.Version, "manifest.json"), true);
+    }
+
     private static GithubRelease Asset(
         string name,
         string url,
@@ -120,7 +142,8 @@ public class UpdaterController(
         string tagName,
         string type,
         string? package = null,
-        [FromQuery] LazerPlatform platform = LazerPlatform.Win
+        [FromQuery] LazerPlatform platform = LazerPlatform.Win,
+        bool fullOnly = false
     ) {
         if (!SafeTag(tagName) || !Enum.IsDefined(platform)) return BadRequest();
 
@@ -138,7 +161,17 @@ public class UpdaterController(
                         _ => null
                     }));
 
-            return file == null ? NotFound() : Serve(PublishedLazerReleases.FilePath(release, file), file.Kind == "feed");
+            if (file == null) return NotFound();
+            if (file.Kind != "feed") return Serve(PublishedLazerReleases.FilePath(release, file));
+
+            var feed = await release.ReadFeed(
+                Path.Combine(PublishedLazerReleases.Root, release.Version),
+                file.Platform,
+                fullOnly,
+                HttpContext.RequestAborted
+            );
+
+            return new JsonResult(feed, new JsonSerializerOptions { PropertyNamingPolicy = null });
         }
 
         if (type == "releases")
