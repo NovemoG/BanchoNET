@@ -23,7 +23,8 @@ public interface IScoresRepository
         int playerId,
         GameMode mode,
         int start = 0,
-        int count = 50
+        int count = 50,
+        bool failed = false
     );
 
     Task<int> PlayerRecentScoresCount(

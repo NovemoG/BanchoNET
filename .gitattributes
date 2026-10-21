@@ -1,0 +1,7 @@
+# Use Windows line endings for text; detect binary files automatically.
+* text=auto eol=crlf
+
+# Keep files used by Linux tooling on LF.
+*.sh text eol=lf
+Dockerfile text eol=lf
+Dockerfile.* text eol=lf

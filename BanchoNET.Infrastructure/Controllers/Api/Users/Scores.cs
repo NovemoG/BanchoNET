@@ -34,7 +34,8 @@ public partial class UsersController
         string type,
         [FromQuery] int offset,
         [FromQuery] int limit,
-        [FromQuery] string mode
+        [FromQuery] string mode,
+        [FromQuery] bool failed = false
     ) {
         if (!EnumExtensions.ToModeMap.TryGetValue(mode, out var gameMode)) return BadRequest();
 
@@ -42,7 +43,7 @@ public partial class UsersController
         switch (type)
         {
             case "recent":
-                tempScores = await scores.GetPlayerRecentScores(userId, gameMode, offset, limit);
+                tempScores = await scores.GetPlayerRecentScores(userId, gameMode, offset, limit, failed);
                 return JsonSnake(tempScores.Select(s => new ApiScoreExtended(s, s.Player, s.Beatmap, s.Beatmap.Beatmapset)));
             
             case "firsts":

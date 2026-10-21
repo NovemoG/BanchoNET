@@ -140,7 +140,8 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
         int playerId,
         GameMode mode,
         int start = 0,
-        int count = 50
+        int count = 50,
+        bool failed = false
     ) {
         return await DbContext.Scores
             .AsNoTracking()
@@ -149,6 +150,7 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
                 .ThenInclude(b => b.Beatmapset)
             .Where(s => s.PlayerId == playerId
                         && s.Mode == mode
+                        && (failed || s.Status > SubmissionStatus.Failed)
                         && s.PlayTime > DateTime.UtcNow.AddHours(-24))
             .OrderByDescending(s => s.PlayTime)
             .Skip(start)
