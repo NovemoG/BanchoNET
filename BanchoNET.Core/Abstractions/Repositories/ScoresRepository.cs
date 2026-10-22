@@ -352,15 +352,54 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
                         && s.Ranked)
             .OrderByDescending(s => s.PP)
             .Skip(offset)
-            .Take(Math.Min(limit, AppSettings.TopPlaysCount))
+            .Take(PageSize(offset, limit, AppSettings.TopPlaysCount))
             .ToListAsync();
     }
-    
+
     public async Task<List<ScoreDto>> GetPlayerBestScoresWithMods(
         int playerId,
         GameMode mode,
         int offset,
         int limit,
+        string[] mods,
+        bool matchExactly
+    ) {
+        return await PlayerBestScoresWithMods(playerId, mode, mods, matchExactly)
+            .AsNoTracking()
+            .Include(s => s.Player)
+            .Include(s => s.Beatmap)
+                .ThenInclude(b => b.Beatmapset)
+            .OrderByDescending(s => s.PP)
+            .Skip(offset)
+            .Take(PageSize(offset, limit, AppSettings.FilteredTopPlaysCount))
+            .ToListAsync();
+    }
+
+    public async Task<int> GetPlayerBestScoresWithModsCount(
+        int playerId,
+        GameMode mode,
+        string[] mods,
+        bool matchExactly
+    ) {
+        var count = await PlayerBestScoresWithMods(playerId, mode, mods, matchExactly)
+            .AsNoTracking()
+            .CountAsync();
+
+        return Math.Min(count, AppSettings.FilteredTopPlaysCount);
+    }
+
+    /// <summary>
+    /// Limits a page so that paging never goes past the first <paramref name="cap"/> scores.
+    /// </summary>
+    private static int PageSize(
+        int offset,
+        int limit,
+        int cap
+    ) => Math.Clamp(Math.Min(limit, cap - offset), 0, cap);
+
+    private IQueryable<ScoreDto> PlayerBestScoresWithMods(
+        int playerId,
+        GameMode mode,
         string[] mods,
         bool matchExactly
     ) {
@@ -389,21 +428,11 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
         }
 
         // Multiple mod combinations can contain the requested mods, only the best of them is kept for each beatmap
-        var query = matching.Where(s =>
+        return matching.Where(s =>
             !matching.Any(o => o.MapId == s.MapId
                                && (o.PP > s.PP || (o.PP == s.PP && o.Id > s.Id))
             )
         );
-
-        return await query
-            .AsNoTracking()
-            .Include(s => s.Player)
-            .Include(s => s.Beatmap)
-                .ThenInclude(b => b.Beatmapset)
-            .OrderByDescending(s => s.PP)
-            .Skip(offset)
-            .Take(Math.Min(limit, AppSettings.TopPlaysCount))
-            .ToListAsync();
     }
     
     public async Task<List<ScoreDto>> GetBestScores(

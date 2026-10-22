@@ -225,6 +225,7 @@ public static class AppSettings
     public const string LazerClientSecret = "FGc9GAtyHzeQDshWP5Ah7dega8hJACAJpQtw6OXk";
 
     public const int TopPlaysCount = 500;
+    public const int FilteredTopPlaysCount = 200;
 
     public static readonly byte[] JwtSecret;
 

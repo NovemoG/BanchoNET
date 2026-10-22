@@ -1,6 +1,7 @@
 ﻿using BanchoNET.Core.Attributes;
 using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Models.Dtos;
+using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
 using Microsoft.AspNetCore.Mvc;
 
@@ -24,9 +25,23 @@ public partial class UsersController
         if (!EnumExtensions.ToModeMap.TryGetValue(mode, out var gameMode))
             return BadRequest();
         
-        var bestScores = mods.Length > 0 || matchExactly
-            ? await scores.GetPlayerBestScoresWithMods(userId, gameMode, offset, limit, mods, matchExactly)
-            : await scores.GetPlayerBestScores(userId, gameMode, offset, limit);
+        List<ScoreDto> bestScores;
+
+        if (mods.Length > 0 || matchExactly)
+        {
+            bestScores = await scores.GetPlayerBestScoresWithMods(userId, gameMode, offset, limit, mods, matchExactly);
+
+            // The player's best scores count doesn't apply to filtered ones, the first page reports how many there are.
+            if (offset == 0)
+            {
+                var total = bestScores.Count < Math.Min(limit, AppSettings.FilteredTopPlaysCount)
+                    ? bestScores.Count
+                    : await scores.GetPlayerBestScoresWithModsCount(userId, gameMode, mods, matchExactly);
+
+                Response.Headers["X-Total-Count"] = total.ToString();
+            }
+        }
+        else bestScores = await scores.GetPlayerBestScores(userId, gameMode, offset, limit);
 
         return JsonSnake(bestScores.Select((s, i) => new ApiScoreBest(s, player, s.Beatmap, s.Beatmap.Beatmapset, i)));
     }

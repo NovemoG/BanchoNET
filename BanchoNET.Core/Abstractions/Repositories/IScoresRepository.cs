@@ -93,6 +93,16 @@ public interface IScoresRepository
         bool matchExactly
     );
 
+    /// <summary>
+    /// How many scores <see cref="GetPlayerBestScoresWithMods"/> can page through.
+    /// </summary>
+    Task<int> GetPlayerBestScoresWithModsCount(
+        int playerId,
+        GameMode mode,
+        string[] mods,
+        bool matchExactly
+    );
+
     Task<List<ScoreDto>> GetBestScores(
         GameMode mode,
         int skip = 0,
