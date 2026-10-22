@@ -54,6 +54,7 @@ public interface IPlayersRepository
 
     Task GetPlayerStats(Player player);
     Task<StatsDto?> GetPlayerModeStats(int playerId, byte mode);
+    Task UpdatePlayerProfileDefaultMods(int playerId, byte mode, string modKeys, bool matchExactly);
     Task UpdatePlayerStats(Player player, GameMode mode, StatsDto stats);
     Task UpdatePlayerStats(StatsDto stats, ApiScore score);
     Task IncreasePlayerPlayTime(int playerId, int mode, int timeElapsed);

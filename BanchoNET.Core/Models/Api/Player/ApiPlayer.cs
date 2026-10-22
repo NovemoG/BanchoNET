@@ -60,6 +60,8 @@ public class ApiPlayer : BasicApiPlayer
     public int ScoresFirstCount { get; set; }
     public int ScoresPinnedCount { get; set; }
     public int ScoresRecentCount { get; set; }
+    public string[] ProfileDefaultMods { get; set; } = [];
+    public bool ProfileDefaultModsMatchExactly { get; set; }
     public Statistics Statistics { get; set; } = new(); //TODO statistics for mode set in playmode
     public int SupportLevel { get; set; }
     public UserAchievements[] UserAchievements { get; set; } = [];

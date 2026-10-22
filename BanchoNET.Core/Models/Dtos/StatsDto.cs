@@ -39,6 +39,12 @@ public class StatsDto
 	public int SCount { get; set; }
 	public int ACount { get; set; }
 	
+	/// <summary>
+	/// Mods the player's best performance is filtered by on their profile, stored like score mod keys
+	/// </summary>
+	public string ProfileDefaultMods { get; set; } = "";
+	public bool ProfileDefaultModsMatchExactly { get; set; }
+	
 	[NotMapped] public long TotalStdHits => Total300s + Total100s + Total50s;
 	[NotMapped] public long TotalTaikoHits => TotalStdHits + TotalGekis + TotalKatus;
 	[NotMapped] public long TotalManiaHits => TotalTaikoHits;

@@ -1686,6 +1686,13 @@ namespace BanchoNET.Core.Migrations
                     b.Property<int>("PlayTime")
                         .HasColumnType("integer");
 
+                    b.Property<string>("ProfileDefaultMods")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("ProfileDefaultModsMatchExactly")
+                        .HasColumnType("boolean");
+
                     b.Property<long>("RankedScore")
                         .HasColumnType("bigint");
 

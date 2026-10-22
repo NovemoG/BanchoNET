@@ -372,6 +372,8 @@ public class PlayersRepository : IPlayersRepository
 				: null,
 			ScoresBestCount = userInfo.TopPlaysCount,
 			ScoresPinnedCount = 0, //TODO
+			ProfileDefaultMods = modeStats?.ProfileDefaultMods.Split(';', StringSplitOptions.RemoveEmptyEntries) ?? [],
+			ProfileDefaultModsMatchExactly = modeStats?.ProfileDefaultModsMatchExactly ?? false,
 			Statistics = stats,
 			DailyChallengeUserStats = {
 				UserId = playerId
@@ -658,6 +660,19 @@ public class PlayersRepository : IPlayersRepository
 	public async Task<StatsDto?> GetPlayerModeStats(int playerId, byte mode)
 	{
 		return await _dbContext.Stats.FirstOrDefaultAsync(s => s.PlayerId == playerId && s.Mode == mode);
+	}
+
+	public async Task UpdatePlayerProfileDefaultMods(
+		int playerId,
+		byte mode,
+		string modKeys,
+		bool matchExactly
+	) {
+		await _dbContext.Stats
+			.Where(s => s.PlayerId == playerId && s.Mode == mode)
+			.ExecuteUpdateAsync(s => s
+				.SetProperty(u => u.ProfileDefaultMods, modKeys)
+				.SetProperty(u => u.ProfileDefaultModsMatchExactly, matchExactly));
 	}
 
 	public async Task UpdatePlayerStats(

@@ -356,6 +356,56 @@ public abstract class ScoresRepository(BanchoDbContext dbContext) : IScoresRepos
             .ToListAsync();
     }
     
+    public async Task<List<ScoreDto>> GetPlayerBestScoresWithMods(
+        int playerId,
+        GameMode mode,
+        int offset,
+        int limit,
+        string[] mods,
+        bool matchExactly
+    ) {
+        var matching = DbContext.Scores
+            .Where(s => s.PlayerId == playerId
+                        && (s.Beatmap.Status == BeatmapStatus.Ranked || s.Beatmap.Status == BeatmapStatus.Approved)
+                        && s.Status >= SubmissionStatus.BestWithMods
+                        && s.Mode == mode
+                        && s.Ranked);
+
+        // Mod keys of lazer scores aren't sorted, so every mod is matched on its own
+        var modKeys = mods
+            .Where(m => m != "NM")
+            .Select(m => $";{m.ToUpper()};")
+            .Distinct()
+            .ToArray();
+        
+        foreach (var key in modKeys)
+            matching = matching.Where(s => (";" + s.ModKeys).Contains(key));
+
+        if (matchExactly)
+        {
+            // Key count makes sure the score has no other mods
+            var modCount = modKeys.Length;
+            matching = matching.Where(s => s.ModKeys.Length - s.ModKeys.Replace(";", "").Length == modCount);
+        }
+
+        // Multiple mod combinations can contain the requested mods, only the best of them is kept for each beatmap
+        var query = matching.Where(s =>
+            !matching.Any(o => o.MapId == s.MapId
+                               && (o.PP > s.PP || (o.PP == s.PP && o.Id > s.Id))
+            )
+        );
+
+        return await query
+            .AsNoTracking()
+            .Include(s => s.Player)
+            .Include(s => s.Beatmap)
+                .ThenInclude(b => b.Beatmapset)
+            .OrderByDescending(s => s.PP)
+            .Skip(offset)
+            .Take(Math.Min(limit, AppSettings.TopPlaysCount))
+            .ToListAsync();
+    }
+    
     public async Task<List<ScoreDto>> GetBestScores(
         GameMode mode,
         int skip = 0,

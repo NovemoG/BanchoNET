@@ -14,7 +14,9 @@ public partial class UsersController
         int userId,
         [FromQuery] int offset,
         [FromQuery] int limit,
-        [FromQuery] string mode
+        [FromQuery] string mode,
+        [FromQuery(Name = "mods[]")] string[] mods,
+        [FromQuery(Name = "match_exactly")] bool matchExactly = false
     ) {
         var player = await Players.GetPlayerInfo(userId);
         if (player == null) return NotFound();
@@ -22,7 +24,9 @@ public partial class UsersController
         if (!EnumExtensions.ToModeMap.TryGetValue(mode, out var gameMode))
             return BadRequest();
         
-        var bestScores = await scores.GetPlayerBestScores(userId, gameMode, offset, limit);
+        var bestScores = mods.Length > 0 || matchExactly
+            ? await scores.GetPlayerBestScoresWithMods(userId, gameMode, offset, limit, mods, matchExactly)
+            : await scores.GetPlayerBestScores(userId, gameMode, offset, limit);
 
         return JsonSnake(bestScores.Select((s, i) => new ApiScoreBest(s, player, s.Beatmap, s.Beatmap.Beatmapset, i)));
     }

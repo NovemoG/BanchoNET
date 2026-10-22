@@ -83,6 +83,15 @@ public interface IScoresRepository
         int offset,
         int limit
     );
+    
+    Task<List<ScoreDto>> GetPlayerBestScoresWithMods(
+        int playerId,
+        GameMode mode,
+        int offset,
+        int limit,
+        string[] mods,
+        bool matchExactly
+    );
 
     Task<List<ScoreDto>> GetBestScores(
         GameMode mode,
