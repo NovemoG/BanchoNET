@@ -1,7 +1,6 @@
 using BanchoNET.Core.Abstractions.Services.Lazer;
 using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Api.Player;
-using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
@@ -55,9 +54,6 @@ public interface IPlayersRepository
     Task GetPlayerStats(Player player);
     Task<StatsDto?> GetPlayerModeStats(int playerId, byte mode);
     Task UpdatePlayerProfileDefaultMods(int playerId, byte mode, string modKeys, bool matchExactly);
-    Task UpdatePlayerStats(Player player, GameMode mode, StatsDto stats);
-    Task UpdatePlayerStats(StatsDto stats, ApiScore score);
-    Task IncreasePlayerPlayTime(int playerId, int mode, int timeElapsed);
     Task IncreasePlayerReplaysViewed(int playerId, byte mode, long scoreId);
     
     Task<int> GetFriendsCount(int playerId);

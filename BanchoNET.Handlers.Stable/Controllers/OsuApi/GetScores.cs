@@ -1,8 +1,7 @@
-﻿using BanchoNET.Core.Models;
+using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Mods;
-using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Scores;
 using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils;
@@ -48,21 +47,6 @@ public partial class OsuController
 		}
 		
 		var mods = (LegacyMods)modsValue;
-		if (mods.HasMod(LegacyMods.Relax))
-		{
-			if (modeValue == (int)GameMode.VanillaMania)
-				mods &= ~LegacyMods.Relax;
-			else
-				modeValue += 4;
-		}
-		else if (mods.HasMod(LegacyMods.Autopilot))
-		{
-			if (modeValue is (int)GameMode.VanillaTaiko or (int)GameMode.VanillaCatch or (int)GameMode.VanillaMania)
-				mods &= ~LegacyMods.Autopilot;
-			else
-				modeValue += 8;
-		}
-
 		var mode = (GameMode)modeValue;
 		if (mode != player.Status.Mode)
 		{
@@ -80,20 +64,24 @@ public partial class OsuController
 		if (beatmap.Status < BeatmapStatus.Ranked)
 			return Responses.BytesContentResult("0|false");
 		
-		(List<ScoreDto> Scores, Score? PlayerBest) leaderboard = !fromEditor
-			? await scores.GetLeaderboardScores(
-				(LeaderboardType)leaderboardType,
-				mode,
-				mods.ToKeysString(),
-				player.Id,
-				player.Geoloc.Country.Acronym,
-				player.Friends.ToHashSet(),
-				beatmap.Id)
-			: ([], null);
-		
-		var rating = beatmap.Set.Rating;
+        var (pp, leaderboardSort) = await scores.GetLeaderboardPreferences(player.Id);
+        var leaderboard = !fromEditor
+            ? await scores.GetLeaderboardScores(
+	            beatmap.Id,
+	            mode,
+	            (LeaderboardType)leaderboardType,
+                mods.ToKeysString(),
+	            player.Id,
+	            player.Geoloc.Country.Acronym,
+                player.Friends.ToHashSet(),
+                [],
+	            pp,
+	            leaderboardSort, AppSettings.ScoresOnLeaderboard)
+            : new ScoreLeaderboard([], 0, null, 0);
 
-		string response;
+        string response;
+
+		var rating = beatmap.Set.Rating;
 		var responseLines = new List<string>
 		{
 			$"{beatmap.Status.ToLegacyStatus()}|false|{beatmap.Id}|{beatmap.BeatmapsetId}|{leaderboard.Scores.Count}|0|",
@@ -108,24 +96,17 @@ public partial class OsuController
 			return Responses.BytesContentResult(response);
 		}
 
-		responseLines.Add(leaderboard.PlayerBest != null ? FormatBestScore(leaderboard.PlayerBest, player) : "");
-		responseLines.AddRange(leaderboard.Scores.Select((score, i) => FormatScore(score, i + 1)));
+		responseLines.Add(leaderboard.UserScore != null ? FormatScore(leaderboard.UserScore, leaderboard.Position, pp) : "");
+		responseLines.AddRange(leaderboard.Scores.Select((score, i) => FormatScore(score, i + 1, pp)));
 		
 		response = string.Join("\n", responseLines);
 		
 		return Responses.BytesContentResult(response);
 	}
 
-	private static string FormatScore(ScoreDto dto, int position)
+	private static string FormatScore(ScoreDto dto, int position, bool scoreAsPp)
 	{
-		var scoreAsPp = dto.Mode >= GameMode.RelaxStd || AppSettings.SortLeaderboardByPP;
-		return $"{(int)dto.Id}|{dto.Player.Username}|{(int)(scoreAsPp ? MathF.Round(dto.PP) : dto.LegacyTotalScore)}|{dto.MaxCombo}|{dto.GetCount50()}|{dto.GetCount100()}|{dto.GetCount300()}|{dto.GetCountMiss()}|{dto.GetCountKatu()}|{dto.GetCountGeki()}|{dto.LegacyPerfect}|{dto.Mods}|{dto.PlayerId}|{position}|{dto.PlayTime.ToUnixTimeSeconds()}|{dto.HasReplay}";
-	}
-
-	private static string FormatBestScore(Score score, Player player)
-	{
-		var scoreAsPp = score.Mode >= GameMode.RelaxStd || AppSettings.SortLeaderboardByPP;
-		return $"{(int)score.Id}|{player.Username}|{(int)(scoreAsPp ? MathF.Round(score.PP) : score.TotalScore)}|{score.MaxCombo}|{score.Count50}|{score.Count100}|{score.Count300}|{score.Misses}|{score.Katus}|{score.Gekis}|{score.Perfect}|{(int)score.Mods}|{player.Id}|{score.LeaderboardPosition}|{score.ClientTime.ToUnixTimeSeconds()}|{score.HasReplay}";
+		return $"{(int)dto.Id}|{dto.Player.Username}|{(int)(scoreAsPp ? MathF.Round(dto.PP) : dto.TotalScore)}|{dto.MaxCombo}|{dto.GetCount50()}|{dto.GetCount100()}|{dto.GetCount300()}|{dto.GetCountMiss()}|{dto.GetCountKatu()}|{dto.GetCountGeki()}|{dto.LegacyPerfect}|{(int)dto.Mods}|{dto.PlayerId}|{position}|{dto.PlayTime.ToUnixTimeSeconds()}|{dto.HasReplay}";
 	}
 
 	private static long DateTimeToUnix(DateTime dateTime)

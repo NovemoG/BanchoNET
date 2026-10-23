@@ -6,16 +6,31 @@ namespace BanchoNET.Core.Abstractions.Repositories;
 
 public interface IScoresRepository
 {
+    Task<ScoreLeaderboard> GetLeaderboardScores(
+        int mapId,
+        GameMode mode,
+        LeaderboardType type,
+        string mods,
+        int playerId,
+        string country,
+        HashSet<int> friends,
+        HashSet<int> teammates,
+        bool representedByPp,
+        LeaderboardSort sort,
+        int limit
+    );
+
+    Task<ScoreLeaderboardPreferences> GetLeaderboardPreferences(int playerId);
+    Task<ScoreDto?> GetPlayerRecentScore(int playerId);
+    Task<ScoreDto?> GetPlayerBestScoreOnMap(int playerId, GameMode mode, int mapId, bool performancePoints, string? mods = null);
+    Task<int> GetLeaderboardPosition(ScoreDto score, bool performancePoints, LeaderboardSort sort, string? mods = null);
+
     Task<ScoreDto?> GetScore(long id);
-    Task RemoveScore(long id);
-    Task<bool> ScoreExists(string checksum);
-    Task<bool> RecalculateScore(long id);
-    Task RecalculateAllScores();
+    Task<bool> GetLeaderboardPerformancePoints(int playerId);
     Task<List<long>> PurgeOldScores();
     
     Task ToggleBeatmapScoresVisibility(int mapId);
     Task ToggleBeatmapScoresVisibility(string md5);
-    Task ToggleScoreReplayAvailability(long scoreId);
     
     Task SetBeatmapScoresRankedStatus(int mapId, bool ranked);
 
@@ -29,7 +44,8 @@ public interface IScoresRepository
 
     Task<int> PlayerRecentScoresCount(
         int playerId,
-        GameMode mode
+        GameMode mode,
+        bool failed = false
     );
 
     Task<List<ScoreDto>> GetPlayerFirstPlaceScores(
@@ -44,11 +60,6 @@ public interface IScoresRepository
         GameMode mode
     );
 
-    Task UpdateScoreStatus(
-        long id,
-        SubmissionStatus newStatus
-    );
-
     Task<ScoreDto?> GetBestBeatmapScore(
         string md5,
         GameMode mode
@@ -57,24 +68,6 @@ public interface IScoresRepository
     Task<ScoreDto?> GetBestBeatmapScore(
         int mapId,
         GameMode mode
-    );
-    
-    Task<List<ScoreDto>> GetBeatmapLeaderboard(
-        GameMode mode,
-        LeaderboardType type,
-        string mods,
-        string country,
-        HashSet<int> playerIds,
-        string md5
-    );
-
-    Task<List<ScoreDto>> GetBeatmapLeaderboard(
-        GameMode mode,
-        LeaderboardType type,
-        string mods,
-        string country,
-        HashSet<int> playerIds,
-        int mapId
     );
     
     Task<List<ScoreDto>> GetPlayerBestScores(

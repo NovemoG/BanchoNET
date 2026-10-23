@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using BanchoNET.Core.Models.Api.Scores;
@@ -19,10 +19,11 @@ public static class ReplaySerializer
 	public static void Serialize(
 		ApiScore score,
 		List<LegacyReplayFrame> frames,
-		Beatmap beatmap
+		Beatmap beatmap,
+		string? outputPath = null
 	) {
 		using var fs = new FileStream(
-			Storage.GetReplayPath(score.Id),
+			outputPath ?? Storage.GetReplayPath(score.Id),
 			FileMode.Create,
 			FileAccess.Write,
 			FileShare.None,

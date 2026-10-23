@@ -1,4 +1,4 @@
-﻿using BanchoNET.Core.Abstractions.Bancho.Services;
+using BanchoNET.Core.Abstractions.Bancho.Services;
 using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Attributes;
@@ -14,10 +14,10 @@ public partial class OsuController(
     IBeatmapService beatmapService,
     IPlayersRepository players,
     IChannelService channels,
-    IBeatmapsRepository beatmapsRepository,
     IBeatmapDownloader beatmapDownloader,
     IBeatmapSearchService beatmapSearch,
-    ILegacyScoresRepository scores,
+    IScoresRepository scores,
+    IScoreService scoreService,
     IMultiplayerHistoryRepository matchHistory,
     IBeatmapHandler beatmapHandler,
     IGeolocService geoloc,

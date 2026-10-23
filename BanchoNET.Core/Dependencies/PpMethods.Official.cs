@@ -19,54 +19,6 @@ public static partial class PpMethods
     };
 
     public static float ComputeScorePp(
-        Beatmap beatmap,
-        Score score
-    ) {
-        return LegacyPerformance(
-            beatmap.Id,
-            score.Mode,
-            score.Mods,
-            score.Acc,
-            score.MaxCombo,
-            score.TotalScore,
-            score.Count300,
-            score.Count100,
-            score.Count50,
-            score.Gekis,
-            score.Katus,
-            score.Misses
-        );
-    }
-
-    public static float ComputeScorePp(
-        int beatmapId,
-        ApiScore score
-    ) {
-        return Guarded(() =>
-        {
-            var ruleset = OfficialCalculator.RulesetFor(score.RulesetId);
-            var beatmap = OfficialCalculator.LoadBeatmap(beatmapId);
-
-            if (beatmap == null) return 0f;
-
-            var mods = OfficialCalculator.LazerMods(ruleset, score.Mods);
-
-            var scoreInfo = OfficialCalculator.LazerScore(
-                ruleset,
-                beatmap,
-                mods,
-                score.Accuracy / 100d,
-                score.MaxCombo,
-                score.TotalScore,
-                score.LegacyTotalScore,
-                score.Statistics
-            );
-
-            return OfficialCalculator.Performance(ruleset, beatmap, scoreInfo);
-        });
-    }
-
-    public static float ComputeScorePp(
         int beatmapId,
         ScoreDto score,
         BanchoMod[] mods

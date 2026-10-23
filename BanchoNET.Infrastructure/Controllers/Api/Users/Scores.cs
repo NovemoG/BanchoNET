@@ -63,6 +63,10 @@ public partial class UsersController
         {
             case "recent":
                 tempScores = await scores.GetPlayerRecentScores(userId, gameMode, offset, limit, failed);
+                
+                if (offset == 0)
+                    Response.Headers["X-Total-Count"] = (await scores.PlayerRecentScoresCount(userId, gameMode, failed)).ToString();
+                
                 return JsonSnake(tempScores.Select(s => new ApiScoreExtended(s, s.Player, s.Beatmap, s.Beatmap.Beatmapset)));
             
             case "firsts":

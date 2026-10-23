@@ -554,10 +554,10 @@ public partial class BeatmapSearchService(IDbContextFactory<BanchoDbContext> dbF
 
         return mode.ToLowerInvariant() switch
         {
-            "osu" or "standard" or "std" => (short)GameMode.VanillaStd,
-            "taiko" => (short)GameMode.VanillaTaiko,
-            "fruits" or "catch" or "ctb" => (short)GameMode.VanillaCatch,
-            "mania" => (short)GameMode.VanillaMania,
+            "osu" or "standard" or "std" => (short)GameMode.Standard,
+            "taiko" => (short)GameMode.Taiko,
+            "fruits" or "catch" or "ctb" => (short)GameMode.Catch,
+            "mania" => (short)GameMode.Mania,
             _ => null
         };
     }

@@ -1,4 +1,4 @@
-﻿using BanchoNET.Core.Models;
+using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Packets;
@@ -18,19 +18,6 @@ public partial class ClientPacketsHandler
 		
 		var mods = (LegacyMods)br.ReadInt32();
 		var mode = (GameMode)br.ReadByte();
-
-		if (mods.HasMod(LegacyMods.Relax))
-		{
-			if (mode == GameMode.VanillaMania)
-				mods &= ~LegacyMods.Relax;
-			else mode += 4;
-		}
-		else if (mods.HasMod(LegacyMods.Autopilot))
-		{
-			if (mode is GameMode.VanillaTaiko or GameMode.VanillaCatch or GameMode.VanillaMania)
-				mods &= ~LegacyMods.Autopilot;
-			else mode += 8;
-		}
 
 		status.CurrentMods = mods;
 		status.Mode = mode;

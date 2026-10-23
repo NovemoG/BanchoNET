@@ -16,6 +16,7 @@ using BanchoNET.Core.Models.Db;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
+using BanchoNET.Core.Tools;
 using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
 using BanchoNET.Core.Utils.SignalR;
@@ -35,6 +36,7 @@ using StackExchange.Redis;
 using BanchoNET.Infrastructure;
 using BanchoNET.Infrastructure.Bancho.Services;
 using BanchoNET.Infrastructure.Services;
+using BanchoNET.Services.Scores;
 using DSharpPlus;
 using Microsoft.AspNetCore.SignalR;
 using LogLevel = Novelog.Types.LogLevel;
@@ -49,7 +51,8 @@ public class Program
 		var initStopwatch = new Stopwatch();
 		initStopwatch.Start();
 		
-		var builder = WebApplication.CreateBuilder(args);
+		var standardiseScores = args.Contains("--standardise-scores", StringComparer.Ordinal);
+		var builder = WebApplication.CreateBuilder(args.Where(a => a != "--standardise-scores").ToArray());
 		
 		#region Logging
 
@@ -177,8 +180,8 @@ public class Program
 		builder.Services.AddSingleton<IServerStatsService, ServerStatsService>();
 		builder.Services.AddScoped<IPlayerHistoryRepository, PlayerHistoryRepository>();
 		builder.Services.AddScoped<IMultiplayerHistoryRepository, MultiplayerHistoryRepository>();
-		builder.Services.AddScoped<ILegacyScoresRepository, LegacyScoresRepository>();
-		builder.Services.AddScoped<ILazerScoresRepository, LazerScoresRepository>();
+		builder.Services.AddScoped<IScoresRepository, ScoresRepository>();
+		builder.Services.AddScoped<IScoreService, ScoreService>();
 		builder.Services.AddScoped<IReleasesRepository, ReleasesRepository>();
 		builder.Services.AddScoped<ICommentsRepository, CommentsRepository>();
 		builder.Services.AddScoped<IBeatmapHandler, BeatmapHandler>();
@@ -274,6 +277,33 @@ public class Program
 		);
 		
 		var app = builder.Build();
+		if (standardiseScores)
+		{
+			try
+			{
+				using var scope = app.Services.CreateScope();
+				EnsureDatabaseExists(scope);
+				
+				var db = scope.ServiceProvider.GetRequiredService<BanchoDbContext>();
+				
+				db.Database.SetCommandTimeout((int)TimeSpan.FromHours(1).TotalSeconds);
+				
+				ScoreMigration.Run(db, scope.ServiceProvider.GetRequiredService<IBeatmapHandler>()).GetAwaiter().GetResult();
+				InitRedis(scope, dbConnections.RedisHost, dbConnections.RedisPort);
+				
+				Logger.Shared.LogInfo("Historical score migration completed. Exiting without starting the server.", "ScoreMigration");
+			}
+			catch (Exception ex)
+			{
+				Logger.Shared.LogError("Historical score migration failed.", ex, "ScoreMigration");
+				Environment.ExitCode = 1;
+			}
+			finally
+			{
+				app.DisposeAsync().AsTask().GetAwaiter().GetResult();
+			}
+			return;
+		}
 		
 		app.UseHttpsRedirection();
 		app.UseAuthentication();
@@ -528,11 +558,8 @@ public class Program
 		if (staleLeaderboards.Length > 0)
 			redisDb.KeyDelete(staleLeaderboards);
 
-		for (byte i = 0; i <= (byte)GameMode.AutopilotStd; i++)
+		foreach (var mode in ModeExtensions.TrackedModes)
 		{
-			if (i == 7) continue;
-
-			var mode = i;
 			var playersPpModeValues = db.Stats.Include(s => s.Player)
 				.Where(s => s.Mode == mode &&
 				            (s.Player.Privileges & 1) == 1)

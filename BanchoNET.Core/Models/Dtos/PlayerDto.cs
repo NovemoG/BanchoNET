@@ -1,5 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations.Schema;
 using BanchoNET.Core.Models.Players;
+using BanchoNET.Core.Models.Scores;
 
 namespace BanchoNET.Core.Models.Dtos;
 
@@ -33,6 +34,8 @@ public class PlayerDto
 	
 	public int TopPlaysCount { get; set; }
 	public GameMode PreferredMode { get; set; }
+	public bool LeaderboardPerformancePoints { get; set; }
+	public LeaderboardSort LeaderboardSorting { get; set; }
 	public Playstyle PlayStyle { get; set; }
 
 	public string? AwayMessage { get; set; }

@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Channels;
 using BanchoNET.Core.Models.Dtos;
@@ -8,6 +8,7 @@ using BanchoNET.Core.Models.Stable.Multiplayer;
 using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
+using BanchoNET.Core.Utils.Scores;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Org.BouncyCastle.Crypto.Engines;
@@ -97,14 +98,6 @@ public partial class OsuController
             //return Ok("error: ban");
         }
 
-        if (await scores.ScoreExists(score.ClientChecksum))
-        {
-            logger.LogWarning($"{player.Username} tried to submit a duplicate score.");
-            return Ok("error: no");
-        }
-        
-        await players.UpdateLatestActivity(player, updateInactivity: true);
-
         if (score.Mode != player.Status.Mode)
         {
             player.Status.Mode = score.Mode;
@@ -117,49 +110,33 @@ public partial class OsuController
                     .FinalizeAndGetContent());
             }
         }
-        score.CalculateAccuracy();
         
-        var prevBest = await scores.GetPlayerBestScoreOnMap(player.Id, score.Mode, beatmapId);
-        var sameMods = score.EqualModsWith(prevBest);
-        
-        var bestWithMods = prevBest != null && !sameMods
-            ? await scores.GetPlayerBestScoreWithModsOnMap(player.Id, score.Mode, score.ModKeys ?? "", beatmapId)
-            : null;
-        
-        if (await beatmapHandler.EnsureLocalBeatmapFile(beatmap))
-        {
-            if (score.Passed)
-            {
-                score.CalculatePerformance(beatmap);
-                
-                ComputeSubmissionStatus(score, prevBest, bestWithMods, sameMods);
-
-                score.Preserve = score.Status > SubmissionStatus.Submitted;
-                
-                await scores.UpdateScoreStatus(prevBest);
-                await scores.UpdateScoreStatus(bestWithMods);
-                
-                if (beatmap.Status >= BeatmapStatus.Ranked)
-                    await scores.SetScoreLeaderboardPosition(score, withMods: false, beatmapId);
-            }
-            else score.Status = SubmissionStatus.Failed;
-        }
-        else
-        {
-            score.PP = 0;
-            score.Status = score.Passed ? SubmissionStatus.Submitted : SubmissionStatus.Failed;
-        }
+        if (score.Passed && replayFile.Length < 24 && !player.IsRestricted)
+            await players.RestrictPlayer(player, "Submitted score with invalid replay length");
 
         score.TimeElapsed = score.Passed ? scoreTime : failTime;
+        score.Player = player;
         
-        if (score.Status == SubmissionStatus.Best)
+        var submission = await scoreService.Submit(ScoreSubmissionMapping.FromLegacy(score, beatmap));
+        var prevStats = submission.PreviousStatistics.ToModeStats(submission.PreviousRank);
+        
+        ScoreSubmissionMapping.Apply(submission.Score, score);
+        
+        score.LeaderboardPosition = submission.Position;
+        score.PreviousBest = submission.PreviousBest == null ? null : new Score(submission.PreviousBest)
+        {
+            LeaderboardPosition = submission.PreviousPosition
+        };
+        player.RecentScore = score;
+
+        if (submission.IsNew && (AppSettings.CountFirstPlaceRanksByScore ? score.TotalScoreStatus : score.Status) == SubmissionStatus.Best)
         {
             if (beatmap.HasLeaderboard())
             {
                 var scoreNotification = $"You achieved #{score.LeaderboardPosition} on a leaderboard!\n";
 
                 if (AppSettings.DisplayScoreInNotification)
-                    scoreNotification += $"({score.TotalScore.SplitNumber()} score)\n";
+                    scoreNotification += $"({score.StandardisedTotalScore.SplitNumber()} score)\n";
                 
                 if (AppSettings.DisplayPPInNotification)
                     scoreNotification += $"({score.PP:F2}pp) ";
@@ -181,68 +158,37 @@ public partial class OsuController
                     .Notification(scoreNotification)
                     .FinalizeAndGetContent());
 
-                await AnnounceNewFirstScore(score, player, beatmap);
+                if (submission.IsFirstPlace)
+                    AnnounceNewFirstScore(score, player, beatmap, submission.PreviousFirstPlace);
             }
         }
         
-        score.Player = player;
-        player.RecentScore = await scores.InsertScore(score, beatmap.Checksum, beatmapId);
-
-        await CaptureMultiplayerScore(player, score);
+        if (submission.IsNew) await CaptureMultiplayerScore(player, score);
 
         if (score.Passed)
         {
             if (replayFile.Length >= 24)
             {
-                await using (var fileStream = new FileStream(Storage.GetReplayPath(score.Id), FileMode.Create, FileAccess.ReadWrite))
+                var completed = await scoreService.Complete(score.Id, writeReplay: async path =>
                 {
-                    //TODO unreadable replay
+                    await using var fileStream = new FileStream(path, FileMode.Create, FileAccess.Write);
                     await replayFile.CopyToAsync(fileStream);
-                }
-                
-                score.HasReplay = true;
-                await scores.ToggleScoreReplayAvailability(score.Id);
-            }
-            else
-            {
-                logger.LogWarning($"{player.Username} submitted a replay file with invalid length.");
-
-                if (!player.IsRestricted)
-                    await players.RestrictPlayer(player, "Submitted score with invalid replay length");
+                });
+                score.HasReplay = completed.HasReplay;
             }
         }
         
-        var prevStats = player.Stats[score.Mode].Copy();
-        var stats = (await players.GetPlayerModeStats(player.Id, (byte)score.Mode))!;
-
-        stats.IncreasePlaytime(score.Mods, score.TimeElapsed);
-        stats.PlayCount += 1;
-        stats.TotalScore += score.TotalScore;
-        stats.UpdateHits(score);
-
         var previousBest = score.PreviousBest;
-        if (previousBest != null && beatmap.Status >= BeatmapStatus.Ranked)
-            await scores.SetScoreLeaderboardPosition(previousBest, withMods: false, beatmapId);
-
-        await RecalculatePlayerStats(beatmap, stats, player, score, previousBest, bestWithMods);
-        await players.UpdatePlayerStats(player, score.Mode, stats);
-        
+        await players.GetPlayerStats(player);
         var newStats = player.Stats[score.Mode];
-
+        
         if (!player.IsRestricted)
         {
             playerService.EnqueueToPlayers(new ServerPackets()
                 .UserStats(player)
                 .FinalizeAndGetContent());
-
-            beatmap.Set.PlayCount += 1;
-            beatmap.Plays += 1;
-            if (score.Passed)
-                beatmap.Passes += 1;
-			
-            await beatmapsRepository.UpdateBeatmapPlayCount(beatmap, player.Id);
         }
-		
+
         string response;
         var achievements = "";
         
@@ -260,8 +206,8 @@ public partial class OsuController
                 $"chartUrl:{beatmap.Set.Url()}",
                 "chartName:Beatmap Ranking",
                 ChartEntry("rank", previousBest?.LeaderboardPosition, score.LeaderboardPosition),
-                ChartEntry("rankedScore", previousBest?.TotalScore, score.TotalScore),
-                ChartEntry("totalScore", previousBest?.TotalScore, score.TotalScore),
+                ChartEntry("rankedScore", previousBest?.StandardisedTotalScore, score.StandardisedTotalScore),
+                ChartEntry("totalScore", previousBest?.StandardisedTotalScore, score.StandardisedTotalScore),
                 ChartEntry("maxCombo", previousBest?.MaxCombo, score.MaxCombo),
                 ChartEntry("accuracy",
                     previousBest == null ? null : MathF.Round(previousBest.Acc, 2),
@@ -298,152 +244,34 @@ public partial class OsuController
         return Responses.BytesContentResult(response);
     }
     
-    private static void ComputeSubmissionStatus(
-        Score newScore,
-        Score? prevBest,
-        Score? bestWithMods,
-        bool sameMods
-    ) {
-        // if we beat prevBest
-        if (newScore.IsBetterThan(prevBest))
-        {
-            newScore.Status = SubmissionStatus.Best;
-            
-            // if prevBest exists, we update its status depending on if mods are equal
-            if (prevBest != null)
-            {
-                prevBest.Status = !sameMods
-                    ? SubmissionStatus.BestWithMods
-                    : SubmissionStatus.Submitted;
-
-                newScore.PreviousBest = prevBest;
-            }
-        }
-        else
-        {
-            // prevBest must exist because the current score is worse
-            newScore.Status = !sameMods
-                ? SubmissionStatus.BestWithMods
-                : SubmissionStatus.Submitted;
-
-            newScore.PreviousBest = prevBest;
-        }
-
-        // the new score is not the best, but the bestWithMods does not exist, so we return early
-        // we also compare if prevBest is the same as bestWithMods and return if yes (no need to compare further)
-        if (bestWithMods == null || prevBest?.Id == bestWithMods.Id)
-            return;
-        
-        // the new score is not the best
-        if (newScore.Status != SubmissionStatus.Best)
-        {
-            // but is better than bestWithMods
-            if (newScore.IsBetterThan(bestWithMods))
-            {
-                newScore.Status = SubmissionStatus.BestWithMods;
-                bestWithMods.Status = SubmissionStatus.Submitted;
-            }
-            // but is not better than bestWithMods, it is not any leaderboard worthy score
-            else
-            {
-                newScore.Status = SubmissionStatus.Submitted;
-            }
-        }
-        else
-        {
-            // the new score is better than bestWithMods
-            bestWithMods.Status = SubmissionStatus.Submitted;
-        }
-    }
-
-    private async Task RecalculatePlayerStats(
+    private void AnnounceNewFirstScore(
+        Score score,
+        Player player,
         Beatmap beatmap,
-        StatsDto stats,
-        Player player,
-        Score score,
-        Score? prevBest,
-        Score? bestWithMods
+        ScoreDto? previousFirst
     ) {
-        if (!score.Passed || !beatmap.AwardsPp())
-            return;
+        if (player.IsRestricted) return;
         
-        if (score.MaxCombo > stats.MaxCombo)
-            stats.MaxCombo = score.MaxCombo;
+        var announceChannel = channels.GetChannel("#announce");
+        if (announceChannel == null) return;
         
-        if (score.Status == SubmissionStatus.Best)
+        var announcement = $"\x01ACTION achieved #1 on {beatmap.Embed()} with {score.Acc:F2}% and {score.PP}pp.";
+        
+        if (score.Mods > 0)
+            announcement = announcement.Insert(0, $"+{score.Mods}");
+        
+        if (previousFirst != null && previousFirst.PlayerId != player.Id)
+            announcement += $" (Previous #1: [https://{AppSettings.Domain}/u/{previousFirst.PlayerId} {previousFirst.Player.Username}])";
+       
+        channels.SendMessageTo(announceChannel, new Message
         {
-            long oldBestScore = 0;
-            
-            if (prevBest != null)
-            {
-                // our current score is best, so if prevbest is submitted subtract,
-                // otherwise our score should still count because it is in the modded
-                // leaderboard; then if current score beat both prevBest and bestWithMods
-                // but prevBest is BestWithMods we subtract bestWithMods
-                if (prevBest is { Status: SubmissionStatus.Submitted, Grade: >= Grade.A })
-                    stats.DecreaseGrade(prevBest.Grade);
-                else if (bestWithMods != null)
-                    stats.DecreaseGrade(bestWithMods.Grade);
-                
-                oldBestScore = prevBest.TotalScore;
-            }
-            
-            stats.RankedScore += score.TotalScore - oldBestScore;
-            
-            if (score.Grade >= Grade.A)
-                stats.IncreaseGrade(score.Grade);
-
-            //TODO maybe recalculate top scores only when score is at least in top100?
-            await players.RecalculatePlayerTopScores(player.Id, stats, score.Mode);
-            await players.UpdatePlayerRank(
-                player.Id,
-                player.IsRestricted,
-                player.Geoloc.Country.Acronym,
-                stats,
-                score.Mode
-            );
-        }
-        else if (score.Status == SubmissionStatus.BestWithMods)
-        {
-            // if our score didnt beat prevBest but beat bestWithMods subtract
-            if (bestWithMods is { Grade: >= Grade.A })
-                stats.DecreaseGrade(bestWithMods.Grade);
-
-            if (score.Grade >= Grade.A)
-                stats.IncreaseGrade(score.Grade);
-        }
+            Sender = player.Username,
+            Content = announcement,
+            Destination = "",
+            SenderId = player.Id
+        });
     }
 
-    private async Task AnnounceNewFirstScore(
-        Score score,
-        Player player,
-        Beatmap beatmap
-    ) {
-        if (score.LeaderboardPosition == 1 && !player.IsRestricted)
-        {
-            var announceChannel = channels.GetChannel("#announce");
-            var announcement = $@"\x01ACTION achieved #1 on {beatmap.Embed()} with {score.Acc:F2}% and {score.PP}pp.";
-			
-            var currentBest = await scores.GetBestBeatmapScore(beatmap.Id, score.Mode);
-					
-            if (score.Mods > 0)
-                announcement = announcement.Insert(0, $"+{score.Mods}");
-
-            if (currentBest != null)
-                if (currentBest.PlayerId != score.PlayerId)
-                    announcement += $" (Previous #1: [https://{AppSettings.Domain}/u/{currentBest.PlayerId} {currentBest.Player.Username}])";
-
-            if (announceChannel is null) return;
-            channels.SendMessageTo(announceChannel, new Message
-            {
-                Sender = player.Username,
-                Content = announcement,
-                Destination = "",
-                SenderId = player.Id
-            });
-        }
-    }
-	
     /// <summary>
     /// Attaches a freshly submitted score to the multiplayer game it was played on, if any. The
     /// match is identified by the beatmap, so a client that submits minutes late still lands on

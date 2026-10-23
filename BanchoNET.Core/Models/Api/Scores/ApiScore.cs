@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 using BanchoNET.Core.Models.Api.Player;
 using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Dtos;
@@ -11,7 +11,7 @@ namespace BanchoNET.Core.Models.Api.Scores;
 
 public class ApiScore
 {
-    public int ClassicTotalScore { get; set; }
+    [JsonIgnore] public int ClassicTotalScore { get; set; }
     public bool Preserve { get; set; }
     public bool Processed { get; set; }
     public bool Ranked { get; set; }
@@ -51,6 +51,7 @@ public class ApiScore
     [JsonIgnore] public int Combo { get; set; }
     [JsonIgnore] public int LeaderboardPosition { get; set; }
     [JsonIgnore] public SubmissionStatus Status { get; set; }
+    [JsonIgnore] public SubmissionStatus TotalScoreStatus { get; set; }
     [JsonIgnore] public int TimeElapsed { get; set; }
     [JsonIgnore] public double ClockRate { get; set; }
     [JsonIgnore] public ApiScore? PreviousBest { get; set; }
@@ -63,14 +64,13 @@ public class ApiScore
         ScoreDto score,
         PlayerDto player
     ) {
-        //TODO (for players that have Classic score enabled)
-        ClassicTotalScore = (int)(AppSettings.SortLeaderboardByPP ? MathF.Round(score.PP) : score.LegacyTotalScore);
+        ClassicTotalScore = (int)score.LegacyTotalScore;
         Preserve = score.Preserve;
         Processed = score.Processed;
         Ranked = score.Ranked;
         LegacyMods = score.Mods;
         Mods = score.LazerMods?.ToMods() ?? LegacyMods.ToLazerMods();
-        ModKeys = score.ModKeys ?? "";
+        ModKeys = score.ModKeys;
         Statistics = score.Statistics;
         TotalScoreWithoutMods = score.TotalScoreWithoutMods;
         Id = score.Id;
@@ -82,17 +82,18 @@ public class ApiScore
         HasReplay = score.HasReplay;
         IsPerfectCombo = score.IsPerfectCombo;
         LegacyPerfect = score.IsPerfectCombo;
-        //TODO LegacyScoreId
-        //TODO LegacyTotalScore
         MaxCombo = score.MaxCombo;
         Passed = score.Passed;
         Pp = score.PP;
         RulesetId = (int)score.Mode;
         StartedAt = score.StartTime;
-        TotalScore = AppSettings.SortLeaderboardByPP ? (int)MathF.Round(score.PP) : score.LegacyTotalScore;
+        TotalScore = score.TotalScore;
         Replay = HasReplay;
         //TODO CurrentUserAttributes pin
         Status = score.Status;
+        TotalScoreStatus = score.TotalScoreStatus;
+        LegacyTotalScore = score.LazerMods == null ? (int?)score.LegacyTotalScore : null;
+        LegacyScoreId = score.LazerMods == null ? score.Id : null;
         
         User = new BasicApiPlayer(player);
     }

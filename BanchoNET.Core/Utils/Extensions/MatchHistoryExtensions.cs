@@ -87,5 +87,5 @@ public static class MatchHistoryExtensions
     }
 
     private static string ModeName(byte mode) =>
-        EnumExtensions.FromModeMap.GetValueOrDefault(((GameMode)mode).AsVanilla(), "osu");
+        EnumExtensions.FromModeMap.GetValueOrDefault((GameMode)mode, "osu");
 }

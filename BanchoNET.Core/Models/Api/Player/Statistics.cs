@@ -62,10 +62,10 @@ public class Statistics
         TotalScore = stats.TotalScore;
         TotalHits = (GameMode)stats.Mode switch
         {
-            GameMode.VanillaStd => stats.TotalStdHits,
-            GameMode.VanillaTaiko => stats.TotalTaikoHits,
-            GameMode.VanillaCatch => stats.TotalCatchHits,
-            GameMode.VanillaMania => stats.TotalManiaHits,
+            GameMode.Standard => stats.TotalStdHits,
+            GameMode.Taiko => stats.TotalTaikoHits,
+            GameMode.Catch => stats.TotalCatchHits,
+            GameMode.Mania => stats.TotalManiaHits,
             _ => stats.TotalStdHits
         };
         MaximumCombo = stats.MaxCombo;

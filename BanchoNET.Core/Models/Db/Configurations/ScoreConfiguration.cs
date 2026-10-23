@@ -1,4 +1,4 @@
-﻿using BanchoNET.Core.Models.Dtos;
+using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Utils.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -25,6 +25,8 @@ public class ScoreConfiguration : IEntityTypeConfiguration<ScoreDto>
         builder.HasIndex(s => s.Status);
         builder.HasIndex(s => s.PlayTime);
         builder.HasIndex(s => s.Ranked);
+        builder.HasIndex(s => new { s.MapId, s.Mode, s.Status, s.PP });
+        builder.HasIndex(s => new { s.MapId, s.Mode, s.TotalScoreStatus, s.TotalScore });
 
         builder.Property(s => s.BeatmapMD5)
             .IsRequired()

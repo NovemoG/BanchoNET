@@ -51,7 +51,7 @@ internal static class OfficialCalculator
 
     public static Ruleset RulesetFor(
         GameMode mode
-    ) => RulesetFor((int)mode.AsVanilla());
+    ) => RulesetFor((int)mode);
 
     public static BanchoWorkingBeatmap? LoadBeatmap(
         int beatmapId

@@ -1,4 +1,5 @@
-#if OFFICIAL_PP
+using BanchoNET.Core.Utils;
+using BanchoNET.Core.Utils.Scores;
 using osu.Framework.Audio.Track;
 using osu.Framework.Graphics.Textures;
 using osu.Game.Beatmaps;
@@ -31,7 +32,7 @@ internal sealed class BanchoWorkingBeatmap : WorkingBeatmap
 
         var decoded = Decoder.GetDecoder<Beatmap>(reader).Decode(reader);
 
-        decoded.BeatmapInfo.Ruleset = OfficialCalculator
+        decoded.BeatmapInfo.Ruleset = ScoreStandardisation
             .RulesetFor(decoded.BeatmapInfo.Ruleset.OnlineID)
             .RulesetInfo;
 
@@ -44,4 +45,3 @@ internal sealed class BanchoWorkingBeatmap : WorkingBeatmap
     protected override ISkin? GetSkin() => null;
     public override Stream? GetStream(string storagePath) => null;
 }
-#endif
