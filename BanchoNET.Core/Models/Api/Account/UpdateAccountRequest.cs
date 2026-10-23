@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
-using BanchoNET.Core.Utils;
 
 namespace BanchoNET.Core.Models.Api.Account;
 

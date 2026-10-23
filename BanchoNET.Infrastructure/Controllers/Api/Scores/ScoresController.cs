@@ -1,4 +1,4 @@
-﻿using BanchoNET.Core.Abstractions.Repositories;
+using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Abstractions.Services.Lazer;
 using BanchoNET.Core.Attributes;
@@ -13,7 +13,8 @@ public partial class ScoresController(
     IPlayersRepository players,
     ILazerPlayerService playerService,
     IBeatmapHandler beatmaps,
-    ILazerScoresRepository scores
+    IScoresRepository scores,
+    IScoreService scoreService
 ) : ApiControllerBase(players, playerService, beatmaps)
 {
     [HttpGet("recent")]

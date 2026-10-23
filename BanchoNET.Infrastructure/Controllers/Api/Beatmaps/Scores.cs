@@ -1,7 +1,6 @@
-﻿using BanchoNET.Core.Models.Api.Beatmaps;
+using BanchoNET.Core.Models.Api.Beatmaps;
 using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Models.Beatmaps;
-using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Scores;
 using BanchoNET.Core.Utils.Extensions;
@@ -17,11 +16,23 @@ public partial class BeatmapsController
         [FromQuery] string type,
         [FromQuery] string mode,
         [FromQuery(Name = "mods[]")] string[] mods, 
-        [FromQuery] int limit
+        [FromQuery] int limit,
+        [FromQuery] string sort = "score",
+        [FromQuery(Name = "score_display")] string scoreDisplay = "score"
     ) {
         if (!User.TryGetUserId(out var uid)) return Unauthorized();
         
-        if (limit is < 0 or > 100) return BadRequest();
+        if (limit is < 0 or > 100
+            || scoreDisplay is not ("score" or "pp")
+            || !Enum.TryParse<LeaderboardSort>(sort, true, out var sorting)
+            || !Enum.IsDefined(sorting))
+        {
+            return BadRequest();
+        }
+
+        if (sorting == LeaderboardSort.Score && scoreDisplay == "pp")
+            sorting = LeaderboardSort.PP;
+
         if (!EnumExtensions.ToModeMap.TryGetValue(mode, out var gameMode))
             return BadRequest();
 
@@ -55,27 +66,31 @@ public partial class BeatmapsController
 
         var modsString = string.Empty;
         if (withMods && mods[0] != "NM")
-            modsString = mods.Aggregate(string.Empty, (current, mod) => $"{current}{mod};").ToUpper();
-        
-        var (leaderboardScores, scoreCount, playerBest) = await scores.GetLeaderboardScores(
-            leaderboardType,
+            modsString = string.Join(';', mods.Order()).ToUpper() + ";";
+
+        var (leaderboard, count, playerBest, position) = await scores.GetLeaderboardScores(
+            beatmap.Id,
             gameMode,
+            leaderboardType,
             modsString,
             uid,
             player?.CountryCode.ToString().ToLower() ?? "",
             player?.Friends.ToHashSet() ?? [],
-            beatmap
+            [],
+            scoreDisplay == "pp",
+            sorting,
+            limit
         );
 
         var response = new BeatmapScoresResponseDto
         {
-            ScoreCount = scoreCount,
+            ScoreCount = count,
             UserScore = playerBest == null ? null : new UserScore
             {
-                Position = playerBest.LeaderboardPosition,
-                Score = playerBest
+                Position = position,
+                Score = new ApiScore(playerBest, playerBest.Player, beatmap)
             },
-            Scores = leaderboardScores
+            Scores = leaderboard.Select(s => new ApiScore(s, s.Player, beatmap)).ToList()
         };
 
         return JsonSnake(response);

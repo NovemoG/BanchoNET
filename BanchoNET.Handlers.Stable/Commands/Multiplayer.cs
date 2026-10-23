@@ -404,7 +404,7 @@ public partial class CommandProcessor
         
         var gameMode = args.Length > 1 && int.TryParse(args[1], out var mode)
             ? (GameMode)mode
-            : GameMode.VanillaStd;
+            : GameMode.Standard;
         
         var beatmap = await beatmapHandler.GetBeatmap(beatmapId);
         if (beatmap == null)
@@ -438,7 +438,7 @@ public partial class CommandProcessor
                     break;
                 }
                 
-                if (_match.Mode != GameMode.VanillaMania)
+                if (_match.Mode != GameMode.Mania)
                     if (modMap > LegacyMods.Perfect)
                         continue;
 
@@ -452,7 +452,7 @@ public partial class CommandProcessor
                     break;
                 }
 
-                if (_match.Mode != GameMode.VanillaMania)
+                if (_match.Mode != GameMode.Mania)
                     if (modParse > LegacyMods.Perfect)
                         continue;
 

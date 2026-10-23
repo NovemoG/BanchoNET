@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations.Schema;
 using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Models.Scores;
 
@@ -7,6 +7,7 @@ namespace BanchoNET.Core.Models.Dtos;
 public class ScoreDto
 {
 	public long Id { get; set; }
+	public bool PlayTimeRecorded { get; set; } = true;
 	
 	public required string BeatmapMD5 { get; set; }
 	public int MapId { get; set; }
@@ -22,6 +23,7 @@ public class ScoreDto
 	public float Acc { get; set; }
 	public int MaxCombo { get; set; }
 	public LegacyMods Mods { get; set; }
+	public int MissCount { get; set; }
 	
 	/// <summary>
 	/// Mods are stored as an ordered string of keys separated by semicolon
@@ -45,6 +47,7 @@ public class ScoreDto
 	
 	public Grade Grade { get; set; }
 	public SubmissionStatus Status { get; set; }
+	public SubmissionStatus TotalScoreStatus { get; set; }
 	public GameMode Mode { get; set; }
 	
 	/// <summary>

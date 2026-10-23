@@ -1,4 +1,4 @@
-﻿using BanchoNET.Core.Attributes;
+using BanchoNET.Core.Attributes;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
 using BanchoNET.Core.Models.Scores;
@@ -28,12 +28,12 @@ public partial class CommandProcessor
             if (player.IsBot)
                 return (true, "Sadly, bots can't play the game \ud83d\ude2d");
 
-            score = player.RecentScore ?? await scores.GetPlayerRecentScore(player.Id);
+            score = player.RecentScore ?? (await scores.GetPlayerRecentScore(player.Id) is { } recent ? new Score(recent) : null);
         }
         else
         {
             player = _playerCtx;
-            score = _playerCtx.RecentScore ?? await scores.GetPlayerRecentScore(_playerCtx.Id);
+            score = _playerCtx.RecentScore ?? (await scores.GetPlayerRecentScore(_playerCtx.Id) is { } recent ? new Score(recent) : null);
         }
         
         if (score == null)

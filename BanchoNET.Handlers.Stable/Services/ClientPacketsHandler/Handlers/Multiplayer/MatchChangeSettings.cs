@@ -1,4 +1,4 @@
-﻿using BanchoNET.Core.Models.Mods;
+using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Stable.Multiplayer;
 using BanchoNET.Core.Utils.Extensions;
@@ -66,7 +66,7 @@ public partial class ClientPacketsHandler
 				match.BeatmapId = beatmap.Id;
 				match.BeatmapName = beatmap.FullName();
 				match.BeatmapMD5 = beatmap.Checksum;
-				match.Mode = host.Player!.Status.Mode.AsVanilla();
+				match.Mode = host.Player!.Status.Mode;
 			}
 			else
 			{

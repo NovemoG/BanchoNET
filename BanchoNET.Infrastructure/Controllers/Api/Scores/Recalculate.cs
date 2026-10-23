@@ -1,4 +1,4 @@
-﻿using BanchoNET.Core.Models.Privileges;
+using BanchoNET.Core.Models.Privileges;
 using BanchoNET.Core.Utils.Extensions;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,7 +14,7 @@ public partial class ScoresController
         if (player == null || !((PlayerPrivileges)player.Privileges).HasPrivilege(PlayerPrivileges.Staff))
             return Unauthorized();
         
-        await scores.RecalculateAllScores();
+        await scoreService.RecalculateAllScores();
         return Ok();
     }
 
@@ -28,7 +28,7 @@ public partial class ScoresController
         if (player == null || !((PlayerPrivileges)player.Privileges).HasPrivilege(PlayerPrivileges.Staff))
             return Unauthorized();
 
-        return await scores.RecalculateScore(scoreId)
+        return await scoreService.RecalculateScore(scoreId)
             ? Ok()
             : NotFound();
     }

@@ -25,18 +25,18 @@ public static class EnumExtensions
 	
 	public static readonly Dictionary<string, GameMode> ToModeMap = new()
 	{
-		{ "osu", GameMode.VanillaStd },
-		{ "taiko", GameMode.VanillaTaiko },
-		{ "mania", GameMode.VanillaMania },
-		{ "fruits", GameMode.VanillaCatch }
+		{ "osu", GameMode.Standard },
+		{ "taiko", GameMode.Taiko },
+		{ "mania", GameMode.Mania },
+		{ "fruits", GameMode.Catch }
 	};
     
 	public static readonly Dictionary<GameMode, string> FromModeMap = new()
 	{
-		{ GameMode.VanillaStd, "osu" },
-		{ GameMode.VanillaTaiko, "taiko" },
-		{ GameMode.VanillaMania, "mania" },
-		{ GameMode.VanillaCatch, "fruits" }
+		{ GameMode.Standard, "osu" },
+		{ GameMode.Taiko, "taiko" },
+		{ GameMode.Mania, "mania" },
+		{ GameMode.Catch, "fruits" }
 	};
 	
 	private static readonly (LegacyMods Mod, string ShortCode)[] ModMap =

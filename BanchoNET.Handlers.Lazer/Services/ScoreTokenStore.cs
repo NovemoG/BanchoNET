@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using BanchoNET.Core.Abstractions.Services.Lazer;
 using BanchoNET.Core.Models.Api;
 using StackExchange.Redis;
@@ -9,15 +9,9 @@ public sealed class ScoreTokenStore(IConnectionMultiplexer redis) : IScoreTokenS
 {
     private readonly IDatabase _redis = redis.GetDatabase();
 
-    private const string SequenceKey = "bancho:lazer:score-token:seq";
     private static string TokenKey(long tokenId) => $"bancho:lazer:score-token:{tokenId}";
     
     private static readonly TimeSpan Lifetime = TimeSpan.FromHours(24);
-
-    public async Task<long> NextTokenId()
-    {
-        return await _redis.StringIncrementAsync(SequenceKey);
-    }
 
     public async Task Store(
         PendingScore pending

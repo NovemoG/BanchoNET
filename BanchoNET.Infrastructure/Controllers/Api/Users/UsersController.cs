@@ -1,4 +1,4 @@
-﻿using BanchoNET.Core.Abstractions.Repositories;
+using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Abstractions.Services.Lazer;
 using BanchoNET.Core.Attributes;
@@ -16,7 +16,7 @@ public partial class UsersController(
     ILazerPlayerService playerService,
     IBeatmapHandler beatmaps,
     IBeatmapsRepository beatmapsRepository,
-    ILazerScoresRepository scores,
+    IScoresRepository scores,
     IMultiplayerHistoryRepository matchHistory
 ) : ApiControllerBase(players, playerService, beatmaps)
 {

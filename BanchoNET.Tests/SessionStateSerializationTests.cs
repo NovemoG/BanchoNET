@@ -33,6 +33,8 @@ public class SessionStateSerializationTests
                 Rank = "S",
                 Passed = true,
                 ClockRate = 1.5d,
+                Status = SubmissionStatus.Best,
+                TotalScoreStatus = SubmissionStatus.BestWithMods,
                 Pauses = [10, 20, 30]
             }
         };
@@ -51,6 +53,8 @@ public class SessionStateSerializationTests
             Assert.That(restored.Score!.Id, Is.EqualTo(99));
             Assert.That(restored.Score.Passed, Is.True);
             Assert.That(restored.Score.ClockRate, Is.EqualTo(1.5d));
+            Assert.That(restored.Score.Status, Is.EqualTo(SubmissionStatus.Best));
+            Assert.That(restored.Score.TotalScoreStatus, Is.EqualTo(SubmissionStatus.BestWithMods));
             Assert.That(restored.Score.Pauses, Is.EqualTo([10, 20, 30]));
         }
     }

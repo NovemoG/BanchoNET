@@ -1,4 +1,4 @@
-﻿using BanchoNET.Core.Abstractions.Bancho.Services;
+using BanchoNET.Core.Abstractions.Bancho.Services;
 using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Models.Db;
@@ -153,7 +153,7 @@ public class BackgroundTasks(
         logger.LogInfo($"Applying score retention ({AppSettings.ScoreRetentionMode})...", caller: nameof(BackgroundTasks));
 
         await using var scope = scopeFactory.CreateAsyncScope();
-        var scores = scope.ServiceProvider.GetRequiredService<ILegacyScoresRepository>();
+        var scores = scope.ServiceProvider.GetRequiredService<IScoresRepository>();
 
         var expiredReplays = await scores.PurgeOldScores();
         var removed = 0;

@@ -52,59 +52,6 @@ public static partial class PpMethods
         IntPtr value
     );
     
-    public static float ComputeScorePp(
-        Beatmap beatmap,
-        Score score
-    ) {
-        return (float)ComputePp(
-            Storage.GetBeatmapPath(beatmap.Id),
-            (byte)score.Mode.AsVanilla(),
-            (uint)score.Mods,
-            (uint)score.MaxCombo,
-            score.Acc,
-            (uint)score.Count300,
-            (uint)score.Gekis,
-            (uint)score.Count100,
-            (uint)score.Katus,
-            (uint)score.Count50,
-            (uint)score.Misses,
-            nint.Zero,
-            beatmap.Cs,
-            beatmap.Ar,
-            beatmap.Od,
-            lazer: false
-        );
-    }
-    
-    public static unsafe float ComputeScorePp(
-        int beatmapId,
-        ApiScore score,
-        double clockRate,
-        bool isLazer,
-        float cs,
-        float ar,
-        float od
-    ) {
-        return (float)ComputePp(
-            Storage.GetBeatmapPath(beatmapId),
-            (byte)score.RulesetId,
-            (uint)score.LegacyMods,
-            (uint)score.MaxCombo,
-            score.Accuracy,
-            (uint)score.GetCount300(),
-            (uint)score.GetCountGeki(),
-            (uint)score.GetCount100(),
-            (uint)score.GetCountKatu(),
-            (uint)score.GetCount50(),
-            (uint)score.GetCountMiss(),
-            (nint)(&clockRate),
-            cs,
-            ar,
-            od,
-            isLazer
-        );
-    }
-    
     public static unsafe float ComputeScorePp(
         int beatmapId,
         ScoreDto score,
@@ -152,7 +99,7 @@ public static partial class PpMethods
             
         return (float)ComputePp(
             Storage.GetBeatmapPath(beatmap.Id),
-            (byte)score.Mode.AsVanilla(),
+            (byte)score.Mode,
             (uint)score.Mods,
             (uint)maxCombo,
             acc,

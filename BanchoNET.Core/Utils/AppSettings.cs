@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Scores;
 
@@ -59,18 +59,14 @@ public static class AppSettings
             ? "You've been restricted. You can't access any online features on this server until restrictions are lifted.\nPlease contact support for more information"
             : restrictedMessage;
         
-        var sortLeaderboardByPP = Environment.GetEnvironmentVariable("SORT_LEADERBOARD_BY_PP");
-        SortLeaderboardByPP = string.IsNullOrEmpty(sortLeaderboardByPP)
-                              || bool.Parse(sortLeaderboardByPP);
+        var countFirstPlacesByScore = Environment.GetEnvironmentVariable("COUNT_FIRST_PLACE_RANKS_BY_SCORE");
+        CountFirstPlaceRanksByScore = string.IsNullOrEmpty(countFirstPlacesByScore)
+                                      || bool.Parse(countFirstPlacesByScore);
         
         var scoresOnLeaderboard = Environment.GetEnvironmentVariable("SCORES_ON_LEADERBOARD");
         ScoresOnLeaderboard = string.IsNullOrEmpty(scoresOnLeaderboard)
             ? 50
             : int.Parse(scoresOnLeaderboard);
-        
-        var submitByPP = Environment.GetEnvironmentVariable("SUBMIT_BY_PP");
-        SubmitByPP = string.IsNullOrEmpty(submitByPP)
-                     || bool.Parse(submitByPP);
 
         var ppInNotification = Environment.GetEnvironmentVariable("DISPLAY_PP_IN_NOTIFICATION");
         DisplayPPInNotification = string.IsNullOrEmpty(ppInNotification)
@@ -235,9 +231,8 @@ public static class AppSettings
     public static readonly string? LazerReleaseInbox;
     public static readonly string BanchoNETVersion;
     public static readonly bool DisallowOldClients;
-    public static readonly bool SortLeaderboardByPP;
+    public static readonly bool CountFirstPlaceRanksByScore;
     public static readonly int ScoresOnLeaderboard;
-    public static readonly bool SubmitByPP;
     public static readonly bool DisplayPPInNotification;
     public static readonly bool DisplayScoreInNotification;
     public static readonly ScoreRetentionMode ScoreRetentionMode;

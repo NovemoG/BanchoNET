@@ -3,7 +3,6 @@ using System.Reflection;
 using BanchoNET.BeatmapServer.Services;
 using BanchoNET.Core.Abstractions.Bancho.Services;
 using BanchoNET.Core.Abstractions.Repositories;
-using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Dtos;
 using Novelog.Abstractions;

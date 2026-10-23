@@ -1,4 +1,4 @@
-﻿using BanchoNET.Core.Abstractions.Bancho.Coordinators;
+using BanchoNET.Core.Abstractions.Bancho.Coordinators;
 using BanchoNET.Core.Abstractions.Bancho.Services;
 using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Services;
@@ -15,7 +15,7 @@ public partial class CommandProcessor(
     IPlayerCoordinator playerCoordinator,
     IMultiplayerCoordinator multiplayer,
     IChannelService channels,
-    ILegacyScoresRepository scores,
+    IScoresRepository scores,
     IPlayersRepository players,
     IBeatmapsRepository beatmapsRepository,
     IBeatmapHandler beatmapHandler,

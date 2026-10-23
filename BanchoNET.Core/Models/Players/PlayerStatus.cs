@@ -8,6 +8,6 @@ public class PlayerStatus
 	public string ActivityDescription { get; set; } = string.Empty;
 	public string BeatmapMD5 { get; set; } = string.Empty;
 	public LegacyMods CurrentMods { get; set; } = LegacyMods.None;
-	public GameMode Mode { get; set; } = GameMode.VanillaStd;
+	public GameMode Mode { get; set; } = GameMode.Standard;
 	public int BeatmapId { get; set; }
 }

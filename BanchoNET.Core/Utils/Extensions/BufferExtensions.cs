@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Channels;
 using BanchoNET.Core.Models.Mods;
@@ -202,7 +202,7 @@ public static class BufferExtensions
 			bw.WriteOsuString(player.Status.ActivityDescription);
 			bw.WriteOsuString(player.Status.BeatmapMD5);
 			bw.Write((int)player.Status.CurrentMods);
-			bw.Write((byte)player.Status.Mode.AsVanilla());
+			bw.Write((byte)player.Status.Mode);
 			bw.Write(player.Status.BeatmapId);
 			bw.Write(modeRankedScore);
 			bw.Write(modeStats.Accuracy / 100);
@@ -237,7 +237,7 @@ public static class BufferExtensions
 			bw.WriteOsuString(player.Username);
 			bw.Write((byte)(player.TimeZone + 24));
 			bw.Write((byte)player.Geoloc.Country.Numeric);
-			bw.Write((byte)((int)player.ToBanchoPrivileges() | ((int)player.Status.Mode.AsVanilla() << 5)));
+			bw.Write((byte)((int)player.ToBanchoPrivileges() | ((int)player.Status.Mode << 5)));
 			bw.Write(player.Geoloc.Longitude);
 			bw.Write(player.Geoloc.Latitude);
 			bw.Write(player.Stats[player.Status.Mode].Rank);

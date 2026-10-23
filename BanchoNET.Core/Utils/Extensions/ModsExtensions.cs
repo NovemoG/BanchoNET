@@ -1,4 +1,5 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
+using System.Globalization;
 using System.Text.Json;
 using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Api.Scores;
@@ -44,7 +45,7 @@ public static class ModsExtensions
     /// <param name="mods">A string value of shortcut mods</param>
     /// <param name="mode">Game mode to account for when parsing mods</param>
     /// <returns>A <see cref="LegacyMods"/> enum value</returns>
-    public static LegacyMods ParseMods(this string mods, GameMode mode = GameMode.VanillaStd)
+    public static LegacyMods ParseMods(this string mods, GameMode mode = GameMode.Standard)
     {
         var splitMods = mods.SplitToParts(2).ToArray();
         
@@ -58,7 +59,7 @@ public static class ModsExtensions
     /// <param name="mods">An array of string mod values</param>
     /// <param name="mode">Game mode to account for when parsing mods</param>
     /// <returns>A <see cref="LegacyMods"/> enum value</returns>
-    public static LegacyMods ParseMods(this string[] mods, GameMode mode = GameMode.VanillaStd)
+    public static LegacyMods ParseMods(this string[] mods, GameMode mode = GameMode.Standard)
     {
         var result = LegacyMods.None;
         
@@ -72,7 +73,7 @@ public static class ModsExtensions
                     break;
                 }
                 
-                if (mode != GameMode.VanillaMania)
+                if (mode != GameMode.Mania)
                     if (modMap > LegacyMods.Perfect)
                         continue;
 
@@ -86,7 +87,7 @@ public static class ModsExtensions
                     break;
                 }
 
-                if (mode != GameMode.VanillaMania)
+                if (mode != GameMode.Mania)
                     if (modParse > LegacyMods.Perfect)
                         continue;
 
@@ -147,6 +148,24 @@ public static class ModsExtensions
                 legacyMods |= legacyMod;
         
         return legacyMods;
+    }
+
+    public static double GetClockRate(this IEnumerable<Mod> mods)
+    {
+        var speedMod = mods.FirstOrDefault(m => m.Acronym is "DT" or "NC" or "HT" or "DC");
+        var rate = speedMod?.Acronym is "DT" or "NC" ? 1.5 : speedMod == null ? 1 : 0.75;
+
+        if (speedMod != null && speedMod.Settings.TryGetValue("speed_change", out var setting))
+        {
+            rate = setting is JsonElement element
+                ? element.GetDouble()
+                : Convert.ToDouble(setting, CultureInfo.InvariantCulture);
+        }
+
+        if (!double.IsFinite(rate) || rate <= 0)
+            throw new ArgumentOutOfRangeException(nameof(mods), "Clock rate must be a positive finite number.");
+
+        return rate;
     }
 
     public static float GetFloat(

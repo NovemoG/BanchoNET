@@ -1,4 +1,4 @@
-﻿using BanchoNET.Core.Models.Beatmaps;
+using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Mods;
 using BanchoNET.Core.Models.Players;
@@ -31,6 +31,8 @@ public class Score
 	public int IgnoreHit { get; set; }
 	public int IgnoreMiss { get; set; }
 	public long TotalScore { get; set; }
+	public long StandardisedTotalScore { get; set; }
+	public long TotalScoreWithoutMods { get; set; }
 	public int MaxCombo { get; set; }
 	public bool Perfect { get; set; }
 	public bool Passed { get; set; }
@@ -40,6 +42,7 @@ public class Score
 	public bool HasReplay { get; set; }
 	
 	public SubmissionStatus Status { get; set; }
+	public SubmissionStatus TotalScoreStatus { get; set; }
 	public Grade Grade { get; set; }
 	public LegacyMods Mods { get; set; }
 	public string ModKeys { get; set; } = string.Empty;
@@ -69,7 +72,7 @@ public class Score
 		var mods = (LegacyMods)int.Parse(scoreData[11]);
 		
 		Passed = scoreData[12] == "True";
-		Mode = ((GameMode)int.Parse(scoreData[13])).FromMods(mods);
+		Mode = (GameMode)int.Parse(scoreData[13]);
 		
 		Beatmap = beatmap;
 		BeatmapMD5 = beatmap.Checksum;
@@ -116,6 +119,9 @@ public class Score
 		IgnoreHit = scoreDto.GetCountIgnoreHit();
 		IgnoreMiss = scoreDto.GetCountIgnoreMiss();
 		TotalScore = scoreDto.LegacyTotalScore;
+        StandardisedTotalScore = scoreDto.TotalScore;
+        TotalScoreWithoutMods = scoreDto.TotalScoreWithoutMods;
+        TotalScoreStatus = scoreDto.TotalScoreStatus;
 		MaxCombo = scoreDto.MaxCombo;
 		Perfect = scoreDto.LegacyPerfect;
 		Status = scoreDto.Status;
@@ -125,7 +131,7 @@ public class Score
 		Ranked = scoreDto.Ranked;
 		Grade = scoreDto.Grade;
 		Mods = scoreDto.Mods;
-		ModKeys = scoreDto.ModKeys ?? "";
+		ModKeys = scoreDto.ModKeys;
 		Mode = scoreDto.Mode;
 		ClientChecksum = scoreDto.OnlineChecksum ?? string.Empty;
 		ClientFlags = (ClientFlags)scoreDto.ClientFlags;

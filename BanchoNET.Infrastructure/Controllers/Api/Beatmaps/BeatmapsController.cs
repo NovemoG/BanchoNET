@@ -1,10 +1,9 @@
-﻿using BanchoNET.Core.Abstractions.Bancho.Services;
+using BanchoNET.Core.Abstractions.Bancho.Services;
 using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Abstractions.Services.Lazer;
 using BanchoNET.Core.Attributes;
 using BanchoNET.Core.Models.Api.Beatmaps;
-using BanchoNET.Core.Utils.Extensions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BanchoNET.Infrastructure.Controllers.Api.Beatmaps;
@@ -17,7 +16,7 @@ public partial class BeatmapsController(
     IBeatmapsRepository beatmapsRepository,
     IBeatmapService beatmapService,
     IScoreSubmissionQueue scoresQueue,
-    ILazerScoresRepository scores
+    IScoresRepository scores
 ) : ApiControllerBase(players, playerService, beatmaps)
 {
     [HttpGet]

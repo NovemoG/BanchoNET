@@ -53,6 +53,6 @@ public partial class HistoryController(
             ));
         }
 
-        return JsonSnake(samples.ToResponse(userId, EnumExtensions.FromModeMap[playerMode.AsVanilla()]));
+        return JsonSnake(samples.ToResponse(userId, EnumExtensions.FromModeMap[playerMode]));
     }
 }

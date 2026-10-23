@@ -1,20 +1,19 @@
-﻿using BanchoNET.Core.Abstractions.Bancho.Coordinators;
+using BanchoNET.Core.Abstractions.Bancho.Coordinators;
 using BanchoNET.Core.Abstractions.Bancho.Services;
 using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Abstractions.Services.Lazer;
 using BanchoNET.Core.Models;
 using BanchoNET.Core.Models.Api.Player;
-using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Models.Db;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.History;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
-using BanchoNET.Core.Models.Scores;
 using BanchoNET.Core.Packets;
 using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
+using BanchoNET.Core.Utils.Scores;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
 using Statistics = BanchoNET.Core.Models.Api.Player.Statistics;
@@ -267,10 +266,10 @@ public class PlayersRepository : IPlayersRepository
 		if (player == null) return null;
 
 		var vanillaModes = new[] {
-			GameMode.VanillaStd,
-			GameMode.VanillaTaiko,
-			GameMode.VanillaMania,
-			GameMode.VanillaCatch
+			GameMode.Standard,
+			GameMode.Taiko,
+			GameMode.Mania,
+			GameMode.Catch
 		};
 
 		var preferred = EnumExtensions.ToModeMap[player.Playmode];
@@ -297,10 +296,10 @@ public class PlayersRepository : IPlayersRepository
 	) {
 		switch (mode)
 		{
-			case GameMode.VanillaStd: target.Osu = stats; break;
-			case GameMode.VanillaTaiko: target.Taiko = stats; break;
-			case GameMode.VanillaCatch: target.Fruits = stats; break;
-			case GameMode.VanillaMania: target.Mania = stats; break;
+			case GameMode.Standard: target.Osu = stats; break;
+			case GameMode.Taiko: target.Taiko = stats; break;
+			case GameMode.Catch: target.Fruits = stats; break;
+			case GameMode.Mania: target.Mania = stats; break;
 		}
 	}
 
@@ -349,6 +348,8 @@ public class PlayersRepository : IPlayersRepository
 			Country = country,
 			IsRestricted = (userInfo.Privileges & 1) == 0,
 			FollowerCount = await GetFriendsCount(playerId),
+			FavouriteBeatmapsetCount = await GetFavouriteBeatmapsetsCount(playerId),
+			BeatmapPlaycountsCount = await GetPlayedBeatmapsCount(playerId),
 			MonthlyPlaycounts = history.MonthlyPlaycounts,
 			ReplaysWatchedCounts = history.ReplaysWatchedCounts,
 			AvatarUrl = ProfileAssetUrls.Avatar(playerId, userInfo.AvatarUpdatedAt),
@@ -387,7 +388,7 @@ public class PlayersRepository : IPlayersRepository
 		player.MatchmakingStats[0].Rank = stats.GlobalRank ?? 0;  //TODO
 		
 		player.RankHistory.Data = history.RankHistory;
-		player.RankHistory.Mode = EnumExtensions.FromModeMap[playerMode.AsVanilla()];
+		player.RankHistory.Mode = EnumExtensions.FromModeMap[playerMode];
 
 		return player;
 	}
@@ -524,10 +525,10 @@ public class PlayersRepository : IPlayersRepository
 			Count50 = dbStats.Total50s,
 			TotalHits = mode switch
 			{
-				GameMode.VanillaStd => dbStats.TotalStdHits,
-				GameMode.VanillaTaiko => dbStats.TotalTaikoHits,
-				GameMode.VanillaMania => dbStats.TotalManiaHits,
-				GameMode.VanillaCatch => dbStats.TotalCatchHits,
+				GameMode.Standard => dbStats.TotalStdHits,
+				GameMode.Taiko => dbStats.TotalTaikoHits,
+				GameMode.Mania => dbStats.TotalManiaHits,
+				GameMode.Catch => dbStats.TotalCatchHits,
 				_ => 0
 			},
 			GlobalRank = rank,
@@ -675,47 +676,6 @@ public class PlayersRepository : IPlayersRepository
 				.SetProperty(u => u.ProfileDefaultModsMatchExactly, matchExactly));
 	}
 
-	public async Task UpdatePlayerStats(
-		Player player,
-		GameMode mode,
-		StatsDto stats
-	) {
-		await _dbContext.SaveChangesAsync();
-
-		player.Stats[mode] = stats.ToModeStats(await GetPlayerGlobalRank(mode, player.Id));
-	}
-
-	public async Task UpdatePlayerStats(
-		StatsDto stats,
-		ApiScore score
-	) {
-		stats.PlayCount += 1;
-		stats.TotalScore += score.TotalScore;
-
-		var statistics = score.Statistics;
-		
-		stats.Total300s += statistics.GetStatCount(HitResult.Great);
-		stats.Total100s += statistics.GetStatCount(HitResult.Ok);
-		stats.Total50s += statistics.GetStatCount(HitResult.Meh);
-
-		if (((GameMode)score.RulesetId).AsVanilla() is GameMode.VanillaMania or GameMode.VanillaTaiko)
-		{
-			stats.TotalGekis += statistics.GetStatCount(HitResult.LargeTickHit);
-			stats.TotalKatus += statistics.GetStatCount(HitResult.SliderTailHit);
-		}
-		
-		await _dbContext.SaveChangesAsync();
-	}
-
-	public async Task IncreasePlayerPlayTime(
-		int playerId,
-		int mode,
-		int timeElapsed
-	) {
-		await _dbContext.Stats.Where(s => s.PlayerId == playerId && s.Mode == mode)
-			.ExecuteUpdateAsync(p => p.SetProperty(s => s.PlayTime, s => s.PlayTime + timeElapsed));
-	}
-
 	public async Task IncreasePlayerReplaysViewed(
 		int playerId,
 		byte mode,
@@ -750,6 +710,24 @@ public class PlayersRepository : IPlayersRepository
 		return await _dbContext.Relationships
 			.AsNoTracking()
 			.Where(r => r.TargetId == playerId && r.Relation == (byte)Relations.Friend)
+			.CountAsync();
+	}
+
+	private async Task<int> GetFavouriteBeatmapsetsCount(
+		int playerId
+	) {
+		return await _dbContext.BeatmapsetFavorites
+			.AsNoTracking()
+			.Where(f => f.PlayerId == playerId)
+			.CountAsync();
+	}
+
+	private async Task<int> GetPlayedBeatmapsCount(
+		int playerId
+	) {
+		return await _dbContext.BeatmapPlays
+			.AsNoTracking()
+			.Where(p => p.PlayerId == playerId)
 			.CountAsync();
 	}
 
@@ -828,44 +806,11 @@ public class PlayersRepository : IPlayersRepository
 		}
 	}
 	
-	public async Task RecalculatePlayerTopScores(
+	public Task RecalculatePlayerTopScores(
 		int playerId,
 		StatsDto stats,
 		GameMode mode
-	) {
-		var bestScores = await _dbContext.Scores
-			.Where(s => s.PlayerId == playerId
-			            && s.Status == SubmissionStatus.Best
-			            && s.Mode == mode
-			            && s.Ranked)
-			.OrderByDescending(s => s.PP)
-			.Take(AppSettings.TopPlaysCount)
-			.ToListAsync();
-
-		var weightedAcc = 0.0f;
-		var weightedPp = 0.0f;
-
-		for (var i = 0; i < bestScores.Count; i++)
-		{
-			var score = bestScores[i];
-			var weight = MathF.Pow(0.95f, i);
-
-			weightedAcc += score.Acc * weight;
-			weightedPp += score.PP * weight;
-		}
-
-		var accWeight = 100f / (20 * (1 - MathF.Pow(0.95f, bestScores.Count)));
-		var bonusPp = (417 - (float)1/3) * (1 - MathF.Pow(0.995f, MathF.Min(1000, bestScores.Count)));
-		
-		stats.Accuracy = weightedAcc * accWeight / 100;
-		stats.PP = (ushort)MathF.Round(weightedPp + bonusPp);
-		await _dbContext.SaveChangesAsync();
-
-		await _dbContext.Players.Where(p => p.Id == playerId)
-			.ExecuteUpdateAsync(s => s.SetProperty(
-				p => p.TopPlaysCount, Math.Min(bestScores.Count, AppSettings.TopPlaysCount)
-			));
-	}
+	) => ScoreStatistics.Recalculate(_dbContext, stats);
 
 	public async Task UpdatePlayerRank(
 		int playerId,

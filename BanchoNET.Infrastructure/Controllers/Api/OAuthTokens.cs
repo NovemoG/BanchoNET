@@ -1,7 +1,6 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using BanchoNET.Core.Attributes;
 using BanchoNET.Core.Models.Auth;
-using BanchoNET.Core.Utils.Extensions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BanchoNET.Infrastructure.Controllers.Api;
