@@ -16,7 +16,6 @@ using BanchoNET.Core.Models.Db;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Models.Privileges;
-using BanchoNET.Core.Tools;
 using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
 using BanchoNET.Core.Utils.SignalR;
@@ -51,8 +50,7 @@ public class Program
 		var initStopwatch = new Stopwatch();
 		initStopwatch.Start();
 		
-		var standardiseScores = args.Contains("--standardise-scores", StringComparer.Ordinal);
-		var builder = WebApplication.CreateBuilder(args.Where(a => a != "--standardise-scores").ToArray());
+		var builder = WebApplication.CreateBuilder(args);
 		
 		#region Logging
 
@@ -277,33 +275,6 @@ public class Program
 		);
 		
 		var app = builder.Build();
-		if (standardiseScores)
-		{
-			try
-			{
-				using var scope = app.Services.CreateScope();
-				EnsureDatabaseExists(scope);
-				
-				var db = scope.ServiceProvider.GetRequiredService<BanchoDbContext>();
-				
-				db.Database.SetCommandTimeout((int)TimeSpan.FromHours(1).TotalSeconds);
-				
-				ScoreMigration.Run(db, scope.ServiceProvider.GetRequiredService<IBeatmapHandler>()).GetAwaiter().GetResult();
-				InitRedis(scope, dbConnections.RedisHost, dbConnections.RedisPort);
-				
-				Logger.Shared.LogInfo("Historical score migration completed. Exiting without starting the server.", "ScoreMigration");
-			}
-			catch (Exception ex)
-			{
-				Logger.Shared.LogError("Historical score migration failed.", ex, "ScoreMigration");
-				Environment.ExitCode = 1;
-			}
-			finally
-			{
-				app.DisposeAsync().AsTask().GetAwaiter().GetResult();
-			}
-			return;
-		}
 		
 		app.UseHttpsRedirection();
 		app.UseAuthentication();

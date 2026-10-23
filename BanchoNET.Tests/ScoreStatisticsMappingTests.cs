@@ -4,7 +4,6 @@ using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Scores;
-using BanchoNET.Core.Tools;
 using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
 using BanchoNET.Core.Utils.Scores;
@@ -45,49 +44,6 @@ public class ScoreStatisticsMappingTests
             Assert.That(stored.GetCount50(), Is.EqualTo(2));
             Assert.That(stored.GetCountKatu(), Is.EqualTo(3));
         }
-    }
-
-    [TestCase(GameMode.Standard, false)]
-    [TestCase(GameMode.Taiko, false)]
-    [TestCase(GameMode.Catch, false)]
-    [TestCase(GameMode.Mania, false)]
-    [TestCase(GameMode.Taiko, true)]
-    [TestCase(GameMode.Catch, true)]
-    [TestCase(GameMode.Mania, true)]
-    public void HistoricalStatisticsAreConvertedOnceEvenAcrossDatabaseRoundTrips(GameMode mode, bool empty)
-    {
-        var row = new ScoreDto
-        {
-            BeatmapMD5 = "", ModKeys = "", Mode = mode,
-            Statistics = empty ? new() : new()
-            {
-                [HitResult.Great] = 10, [HitResult.Ok] = 5, [HitResult.Meh] = 2,
-                [HitResult.LargeTickHit] = 7, [HitResult.SliderTailHit] = 3, [HitResult.Miss] = 1
-            }
-        };
-        ScoreMigration.MigrateStatistics(row);
-        if (!empty)
-            Assert.That(row.Statistics, Is.EquivalentTo(Expected(mode)));
-        else
-            Assert.That(row.Statistics.Values.All(v => v == 0), Is.True);
-
-        var converted = row.Statistics.ToDictionary();
-        row.Statistics = JsonSerializer.Deserialize<Dictionary<HitResult, int>>(JsonSerializer.Serialize(row.Statistics))!;
-        ScoreMigration.MigrateStatistics(row);
-        Assert.That(row.Statistics, Is.EquivalentTo(converted));
-    }
-
-    [Test]
-    public void HistoricalLazerStatisticsRemainUnchanged()
-    {
-        var row = new ScoreDto
-        {
-            BeatmapMD5 = "", ModKeys = "", Mode = GameMode.Standard, LazerMods = "",
-            Statistics = new() { [HitResult.Great] = 10, [HitResult.LargeTickHit] = 7, [HitResult.SliderTailHit] = 3 }
-        };
-        var original = row.Statistics.ToDictionary();
-        ScoreMigration.MigrateStatistics(row);
-        Assert.That(row.Statistics, Is.EquivalentTo(original));
     }
 
     private static Dictionary<HitResult, int> Expected(GameMode mode)
