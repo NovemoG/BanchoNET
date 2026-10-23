@@ -1,6 +1,5 @@
 ﻿using BanchoNET.Core.Attributes;
 using BanchoNET.Core.Models.Api.Beatmaps;
-using BanchoNET.Core.Utils.Extensions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BanchoNET.Infrastructure.Controllers.Api.Users;

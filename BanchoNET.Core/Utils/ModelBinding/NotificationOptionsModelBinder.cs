@@ -1,8 +1,6 @@
 using System.Text.RegularExpressions;
 using BanchoNET.Core.Models.Api.Account;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
-using BanchoNET.Core.Utils;
 
 namespace BanchoNET.Core.Utils.ModelBinding;
 

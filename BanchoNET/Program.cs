@@ -1,9 +1,7 @@
 using System.Diagnostics;
 using System.Net;
-using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
 using BanchoNET.BeatmapServer.Services;
 using BanchoNET.Bot.Utils;
 using BanchoNET.Core.Abstractions;
@@ -93,12 +91,6 @@ public class Program
 			Logger.Shared.LogCritical("Please set the DOMAIN environment variable.", null, "Init");
 			return;
 		}
-
-		#endregion
-
-		#region Legacy Lazer Layout Migration
-
-		MigrateLegacyLazerLayout();
 
 		#endregion
 
@@ -556,47 +548,5 @@ public class Program
 		
 		stopwatch.Stop();
 		Logger.Shared.LogInfo($"Redis leaderboards updated in {stopwatch.ElapsedMilliseconds}ms", "Init");
-	}
-	
-	private static void MigrateLegacyLazerLayout()
-	{
-		var legacyMarker = Path.Combine(LazerStorage.ReleasesPath, "RELEASES");
-		if (!File.Exists(legacyMarker))
-			return;
-
-		Logger.Shared.LogInfo("Detected legacy lazer release layout, migrating to multi-platform naming...", caller: "Init");
-
-		foreach (var tachyon in new[] { false, true })
-		{
-			var track = tachyon ? "tachyon" : "lazer";
-			var oldZip = Path.Combine(LazerStorage.ReleasesPath, $"{AppSettings.LazerName}-{track}-Portable.zip");
-			if (File.Exists(oldZip))
-				File.Move(oldZip, LazerStorage.GetLazerPortablePath(tachyon), overwrite: true);
-		}
-
-		foreach (var oldFeed in Directory.GetFiles(LazerStorage.ReleasesPath, "releases.*.json"))
-		{
-			var fileName = Path.GetFileName(oldFeed);
-			if (fileName.EndsWith(".win.json", StringComparison.OrdinalIgnoreCase) ||
-			    fileName.EndsWith(".linux.json", StringComparison.OrdinalIgnoreCase))
-				continue;
-
-			var tagName = fileName["releases.".Length..^".json".Length];
-			File.Move(oldFeed, LazerStorage.GetReleasesPath(tagName), overwrite: true);
-		}
-
-		var winPackReleasesDir = Path.Combine(LazerStorage.GetPackPath(LazerPlatform.Win), "Releases");
-		Directory.CreateDirectory(winPackReleasesDir);
-
-		foreach (var nupkg in Directory.GetFiles(LazerStorage.ReleasesPath, "*.nupkg"))
-			FileLinking.LinkOrCopy(nupkg, Path.Combine(winPackReleasesDir, Path.GetFileName(nupkg)));
-
-		var assetsFile = Path.Combine(LazerStorage.ReleasesPath, "assets.win.json");
-		if (File.Exists(assetsFile))
-			File.Move(assetsFile, Path.Combine(winPackReleasesDir, "assets.win.json"), overwrite: true);
-
-		File.Move(legacyMarker, Path.Combine(winPackReleasesDir, "RELEASES"), overwrite: true);
-
-		Logger.Shared.LogInfo("Finished migrating legacy lazer release layout", caller: "Init");
 	}
 }
