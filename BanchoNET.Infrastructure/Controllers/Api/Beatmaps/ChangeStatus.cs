@@ -17,7 +17,7 @@ public partial class BeatmapsController
         var player = await Players.GetPlayerOrOffline(uid);
         if (player == null) return NotFound();
         
-        if (!player.Privileges.HasPrivilege(PlayerPrivileges.Nominator))
+        if (!player.Privileges.HasPrivilegeOrHigher(PlayerPrivileges.Nominator))
             return Unauthorized();
 
         var beatmap = await Beatmaps.GetBeatmap(beatmapId);
@@ -26,7 +26,7 @@ public partial class BeatmapsController
         if (await beatmapsRepository.UpdateBeatmapStatus(beatmapId, targetStatus) > 0)
         {
             beatmap.Status = targetStatus;
-            await scores.SetBeatmapScoresRankedStatus(beatmap.Id, ranked: true);
+            await scores.SetBeatmapScoresRankedStatus(beatmap.Id, ranked: beatmap.AwardsPp());
         }
         
         return Ok();

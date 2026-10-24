@@ -1,4 +1,4 @@
-﻿using BanchoNET.Core.Abstractions.Bancho.Coordinators;
+using BanchoNET.Core.Abstractions.Bancho.Coordinators;
 using BanchoNET.Core.Abstractions.Bancho.Services;
 using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Models.Channels;
@@ -100,7 +100,7 @@ public class MultiplayerCoordinator(
         MultiplayerSlot? slot;
         if (match.HostId != player.Id)
         {
-            if (password != match.Password && !player.Privileges.HasFlag(PlayerPrivileges.Staff))
+            if (password != match.Password && !player.Privileges.HasPrivilegeOrHigher(PlayerPrivileges.Administrator))
             {
                 player.Enqueue(DefaultPackets.MatchJoinFailData());
                 logger.LogDebug($"{player.Username} tried to join {match.LobbyId} with incorrect password.");

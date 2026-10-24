@@ -1,4 +1,4 @@
-﻿using BanchoNET.Core.Attributes;
+using BanchoNET.Core.Attributes;
 using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Privileges;
 using BanchoNET.Core.Utils.Extensions;
@@ -9,7 +9,7 @@ namespace BanchoNET.Handlers.Stable.Commands;
 public partial class CommandProcessor
 {
     [Command("map",
-        PlayerPrivileges.Nominator | PlayerPrivileges.Administrator,
+        PlayerPrivileges.Nominator,
         "Changes the status of previously /np'd map. Syntax: map <status> [<set>]",
         "\nAvailable statuses: love, qualify, approve, rank, unrank" +
         "\nmrs - ranks whole set",

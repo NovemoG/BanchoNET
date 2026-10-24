@@ -1,4 +1,4 @@
-﻿using BanchoNET.Core.Attributes;
+using BanchoNET.Core.Attributes;
 using BanchoNET.Core.Models.Privileges;
 using BanchoNET.Core.Utils.Extensions;
 
@@ -7,7 +7,7 @@ namespace BanchoNET.Handlers.Stable.Commands;
 public partial class CommandProcessor
 {
     [Command("delete_user",
-        PlayerPrivileges.Developer | PlayerPrivileges.Staff,
+        PlayerPrivileges.Developer,
         "Deletes provided user's account. Syntax: delete_user <delete_scores> [<force>] \"<username>\"",
         "\nForce is only needed if you want to delete other staff member account or an online player.")]
     private async Task<string> DeleteUser(string[] args)

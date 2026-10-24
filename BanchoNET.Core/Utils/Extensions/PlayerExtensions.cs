@@ -34,8 +34,12 @@ public static class PlayerExtensions
 		public bool CanUseCommand(
 			PlayerPrivileges requiredPrivileges
 		) {
-			return player.Privileges.HasAnyPrivilege(requiredPrivileges) &&
-			       player.Privileges.CompareHighestPrivileges(requiredPrivileges);
+			var otherPrivileges = requiredPrivileges & ~PlayerPrivileges.Staff;
+			if (player.Privileges.HasAnyPrivilege(otherPrivileges))
+				return true;
+
+			var ranks = requiredPrivileges & PlayerPrivileges.Staff;
+			return ranks != 0 && player.Privileges.HasPrivilegeOrHigher(ranks.GetLowestPrivilege());
 		}
 
 		public bool BlockedByPlayer(

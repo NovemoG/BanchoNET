@@ -1,4 +1,4 @@
-﻿using BanchoNET.Core.Attributes;
+using BanchoNET.Core.Attributes;
 using BanchoNET.Core.Models.Privileges;
 using BanchoNET.Core.Utils.Extensions;
 using static BanchoNET.Handlers.Stable.Commands.CommandHandlerMap;
@@ -8,7 +8,7 @@ namespace BanchoNET.Handlers.Stable.Commands;
 public partial class CommandProcessor
 {
     [Command("addpriv",
-        PlayerPrivileges.Administrator | PlayerPrivileges.Developer,
+        PlayerPrivileges.Administrator,
         "Adds given privilege to a player with given username. Syntax: addpriv <username> <privilege>",
         "\nYou can only add privileges that are lower in rank than yours. If player's username contains spaces" +
         "\nplease replace them with underscores." +
@@ -45,7 +45,7 @@ public partial class CommandProcessor
     }
 
     [Command("rmpriv",
-        PlayerPrivileges.Administrator | PlayerPrivileges.Developer,
+        PlayerPrivileges.Administrator,
         "Removes given privilege from a player with given username. Syntax: rmpriv <username> <privilege>",
         "\nYou can only remove privileges that are lower in rank than yours. If player's username contains spaces" +
         "\nplease replace them with underscores." +

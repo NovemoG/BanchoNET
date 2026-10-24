@@ -96,6 +96,31 @@ public class PlayerHistorySeriesTests
     }
 
     [Test]
+    public void ToDailyWindow_LiveValueReplacesTodaysSample()
+    {
+        var today = new DateOnly(2026, 7, 31);
+
+        // Today's sample was taken at #28 before the player climbed to #27.
+        var window = PlayerHistorySeries.ToDailyWindow(
+            [RankSample(today.AddDays(-1), 30), RankSample(today, 28)],
+            today,
+            3,
+            liveValue: 27);
+
+        Assert.That(window, Is.EqualTo(new[] { 0, 30, 27 }));
+    }
+
+    [Test]
+    public void ToDailyWindow_MissingLiveValueKeepsStoredSample()
+    {
+        var today = new DateOnly(2026, 7, 31);
+
+        var window = PlayerHistorySeries.ToDailyWindow([RankSample(today, 28)], today, 2, liveValue: null);
+
+        Assert.That(window, Is.EqualTo(new[] { 0, 28 }));
+    }
+
+    [Test]
     public void ToMonthlySeries_BackfillsFromJoinDateAndDerivesTheMonthInProgress()
     {
         var series = PlayerHistorySeries.ToMonthlySeries(

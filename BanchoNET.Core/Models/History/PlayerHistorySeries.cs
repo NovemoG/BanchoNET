@@ -33,10 +33,14 @@ public static class PlayerHistorySeries
     /// carry the last known value forward; days before the first sample stay 0.
     /// </summary>
     /// <param name="ascendingSamples">Samples for a single metric, ordered by date.</param>
+    /// <param name="endDate">The last day of the window.</param>
+    /// <param name="days">The window length.</param>
+    /// <param name="liveValue">The current value, which replaces the last day.</param>
     public static int[] ToDailyWindow(
         IReadOnlyList<PlayerHistoryDto> ascendingSamples,
         DateOnly endDate,
-        int days
+        int days,
+        int? liveValue = null
     ) {
         if (days <= 0) return [];
 
@@ -67,6 +71,9 @@ public static class PlayerHistorySeries
 
             window[i] = current;
         }
+
+        if (liveValue is > 0)
+            window[^1] = liveValue.Value;
 
         return window;
     }

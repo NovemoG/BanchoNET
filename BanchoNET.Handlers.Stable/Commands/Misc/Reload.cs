@@ -1,4 +1,4 @@
-﻿using BanchoNET.Core.Attributes;
+using BanchoNET.Core.Attributes;
 using BanchoNET.Core.Models.Privileges;
 
 namespace BanchoNET.Handlers.Stable.Commands;
@@ -6,7 +6,7 @@ namespace BanchoNET.Handlers.Stable.Commands;
 public partial class CommandProcessor
 {
     [Command("reload",
-        PlayerPrivileges.Staff,
+        PlayerPrivileges.Developer,
         "Reloads given collection/configuration. Syntax: reload <collection>",
         "\nAvailable options: commands",
         ["rl"])]

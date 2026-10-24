@@ -1,4 +1,4 @@
-﻿using BanchoNET.Core.Attributes;
+using BanchoNET.Core.Attributes;
 using BanchoNET.Core.Models.Privileges;
 using BanchoNET.Core.Utils.Extensions;
 using static BanchoNET.Handlers.Stable.Commands.CommandHandlerMap;
@@ -8,7 +8,7 @@ namespace BanchoNET.Handlers.Stable.Commands;
 public partial class CommandProcessor
 {
     [Command("silence",
-        PlayerPrivileges.Moderator | PlayerPrivileges.Staff,
+        PlayerPrivileges.Moderator,
         "Silences provided user's account for a specified amount of time. Syntax: silence <username> <duration> <reason>",
         "\nDuration can be provided as follows: 7d - 7 days, 6h30m - 6 hours 30 minutes, 1m5d - 1 month 5 days, 6000 - seconds." +
         "\nYou can connect these timespans however you want (not counting the only seconds one). Other available is y for years." +
@@ -42,7 +42,7 @@ public partial class CommandProcessor
     }
 
     [Command("unsilence",
-        PlayerPrivileges.Moderator | PlayerPrivileges.Staff,
+        PlayerPrivileges.Moderator,
         "Removes a silence from provided user's account. Syntax: unsilence <username> <reason>",
         "\nReason can be provided with spaces between words.")]
     private async Task<string> Unsilence(string[] args)

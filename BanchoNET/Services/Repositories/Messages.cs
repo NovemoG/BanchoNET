@@ -20,8 +20,14 @@ public class MessagesRepository(BanchoDbContext dbContext) : IMessagesRepository
         int receiverId,
         bool loadNav = false
     ) {
-        var channel = await dbContext.Channels
-            .AsNoTracking()
+        var query = dbContext.Channels.AsNoTracking();
+
+        // Callers building API responses read the other participant from ChannelPlayers,
+        // so an existing channel needs them loaded too.
+        if (loadNav)
+            query = query.Include(c => c.ChannelPlayers).ThenInclude(cp => cp.Player);
+
+        var channel = await query
             .SingleOrDefaultAsync(c =>
                 c.Type == ChannelType.PM
                 && c.ChannelPlayers.Any(p => p.PlayerId == senderId)
@@ -139,16 +145,27 @@ public class MessagesRepository(BanchoDbContext dbContext) : IMessagesRepository
 
         return newMessage;
     }
-
+    
     public async Task<List<MessageDto>> GetChannelMessages(
-        long channelId
+        long channelId,
+        long? since = null,
+        long? until = null,
+        int limit = 50
     ) {
-        var messages = await dbContext.Messages
+        var query = dbContext.Messages
             .AsNoTracking()
             .Include(m => m.Sender)
-            .Where(m => m.ChannelId == channelId)
-            .OrderByDescending(m => m.SentAt)
-            .Take(50)
+            .Where(m => m.ChannelId == channelId);
+
+        if (since != null)
+            query = query.Where(m => m.Id > since);
+
+        if (until != null)
+            query = query.Where(m => m.Id < until);
+
+        var messages = await query
+            .OrderByDescending(m => m.Id)
+            .Take(Math.Clamp(limit, 1, 50))
             .ToListAsync();
 
         messages.Reverse();
@@ -194,10 +211,11 @@ public class MessagesRepository(BanchoDbContext dbContext) : IMessagesRepository
         int userId,
         long messageId
     ) {
+        // A null last read id means nothing was read yet
         await dbContext.ChannelPlayers
             .Where(c => c.ChannelId == channelId
                         && c.PlayerId == userId
-                        && c.LastReadMessageId < messageId)
+                        && (c.LastReadMessageId == null || c.LastReadMessageId < messageId))
             .ExecuteUpdateAsync(p => p.SetProperty(c => c.LastReadMessageId, messageId));
     }
     

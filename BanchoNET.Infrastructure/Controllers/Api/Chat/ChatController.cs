@@ -145,9 +145,12 @@ public class ChatController(
 
     [HttpGet("channels/{channelId:long}/messages")]
     public async Task<ActionResult<List<ChannelMessage>>> ChatMessages(
-        long channelId
+        long channelId,
+        [FromQuery] long? since,
+        [FromQuery] long? until,
+        [FromQuery] int limit = 50
     ) {
-        var messagesList = await messages.GetChannelMessages(channelId);
+        var messagesList = await messages.GetChannelMessages(channelId, since, until, limit);
         var returnMessages = messagesList.Select(m => new ChannelMessage(m));
         
         return JsonSnake(returnMessages);

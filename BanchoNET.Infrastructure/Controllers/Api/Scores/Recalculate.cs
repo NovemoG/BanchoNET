@@ -11,7 +11,7 @@ public partial class ScoresController
         if (!User.TryGetUserId(out var uid)) return Unauthorized();
         
         var player = await Players.GetPlayer(uid);
-        if (player == null || !((PlayerPrivileges)player.Privileges).HasPrivilege(PlayerPrivileges.Staff))
+        if (player == null || !((PlayerPrivileges)player.Privileges).HasPrivilegeOrHigher(PlayerPrivileges.Administrator))
             return Unauthorized();
         
         await scoreService.RecalculateAllScores();
@@ -25,7 +25,7 @@ public partial class ScoresController
         if (!User.TryGetUserId(out var uid)) return Unauthorized();
 
         var player = await Players.GetPlayer(uid);
-        if (player == null || !((PlayerPrivileges)player.Privileges).HasPrivilege(PlayerPrivileges.Staff))
+        if (player == null || !((PlayerPrivileges)player.Privileges).HasPrivilegeOrHigher(PlayerPrivileges.Administrator))
             return Unauthorized();
 
         return await scoreService.RecalculateScore(scoreId)

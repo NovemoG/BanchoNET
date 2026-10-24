@@ -51,7 +51,7 @@ public partial class ApiController(
                     ProfileColour = null, //TODO
                     Username = target.Username,
                     Country = target.Country.ParseCountry(),
-                    //Groups = [], TODO
+                    Groups = PlayerGroups.FromPrivileges(target.Privileges),
                     Statistics = statistics.GetValueOrDefault(target.Id) ?? new Statistics(),
                     SupportLevel = target.SupporterLevel,
                     Team = null //TODO

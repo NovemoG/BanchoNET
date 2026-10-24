@@ -140,6 +140,7 @@ public class PlayersRepository : IPlayersRepository
 				PreferredMode = (byte)p.PreferredMode,
 				AvatarUrl = ProfileAssetUrls.Avatar(p.Id, p.AvatarUpdatedAt),
 				Cover = ProfileAssetUrls.Cover(p.Id, p.CoverPresetId, p.CoverFile, p.CoverUpdatedAt),
+				Groups = PlayerGroups.FromPrivileges(p.Privileges),
 			}).ToListAsync();
 
 		foreach (var player in players)
@@ -318,7 +319,7 @@ public class PlayersRepository : IPlayersRepository
 		var modeStats = await GetPlayerModeStats(playerId, (byte)playerMode);
 		var stats = await FetchModeStatistics(playerId, playerMode, userInfo.Country);
 
-		var history = await BuildHistory(playerId, (byte)playerMode, userInfo, modeStats);
+		var history = await BuildHistory(playerId, (byte)playerMode, userInfo, modeStats, stats.GlobalRank);
 
 		var hidden = userInfo.HideOnlineActivity || (await FilterHidden([playerId])).Count != 0;
 		var online = !hidden && await IsPlayerOnline(playerId);
@@ -347,6 +348,7 @@ public class PlayersRepository : IPlayersRepository
 			Playmode = EnumExtensions.FromModeMap[userInfo.PreferredMode],
 			Country = country,
 			IsRestricted = (userInfo.Privileges & 1) == 0,
+			Groups = PlayerGroups.FromPrivileges(userInfo.Privileges),
 			FollowerCount = await GetFriendsCount(playerId),
 			FavouriteBeatmapsetCount = await GetFavouriteBeatmapsetsCount(playerId),
 			BeatmapPlaycountsCount = await GetPlayedBeatmapsCount(playerId),
@@ -403,7 +405,8 @@ public class PlayersRepository : IPlayersRepository
 		int playerId,
 		byte mode,
 		PlayerDto userInfo,
-		StatsDto? modeStats
+		StatsDto? modeStats,
+		int? liveRank
 	) {
 		var today = DateOnly.FromDateTime(DateTime.UtcNow);
 		var joined = DateOnly.FromDateTime(userInfo.CreationTime);
@@ -439,7 +442,7 @@ public class PlayersRepository : IPlayersRepository
 		);
 
 		return new PlayerHistorySections(
-			PlayerHistorySeries.ToDailyWindow(rankSamples, today, RankHistoryDays),
+			PlayerHistorySeries.ToDailyWindow(rankSamples, today, RankHistoryDays, liveRank),
 			playCounts
 				.Select(m => new MonthlyPlaycounts
 				{

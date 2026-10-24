@@ -1,4 +1,4 @@
-﻿using BanchoNET.Core.Attributes;
+using BanchoNET.Core.Attributes;
 using BanchoNET.Core.Models.Privileges;
 using BanchoNET.Core.Utils.Extensions;
 using static BanchoNET.Handlers.Stable.Commands.CommandHandlerMap;
@@ -8,7 +8,7 @@ namespace BanchoNET.Handlers.Stable.Commands;
 public partial class CommandProcessor
 {
     [Command("restrict",
-        PlayerPrivileges.Moderator | PlayerPrivileges.Staff,
+        PlayerPrivileges.Moderator,
         "Restricts provided user's account. Syntax: restrict <username> <reason>",
         "\nReason can be provided with spaces between words.")]
     private async Task<string> Restrict(string[] args)
@@ -43,7 +43,7 @@ public partial class CommandProcessor
     }
 
     [Command("unrestrict",
-        PlayerPrivileges.Moderator | PlayerPrivileges.Staff,
+        PlayerPrivileges.Moderator,
         "Removes a restriction from provided user's account. Syntax: unrestrict <username> <reason>",
         "\nReason can be provided with spaces between words.")]
     private async Task<string> Unrestrict(string[] args)

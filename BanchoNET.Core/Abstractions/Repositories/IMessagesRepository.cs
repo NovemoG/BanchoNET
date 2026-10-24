@@ -1,4 +1,4 @@
-﻿using BanchoNET.Core.Models.Dtos;
+using BanchoNET.Core.Models.Dtos;
 
 namespace BanchoNET.Core.Abstractions.Repositories;
 
@@ -19,7 +19,7 @@ public interface IMessagesRepository
         bool loadNav = false
     );
     
-    Task<List<MessageDto>> GetChannelMessages(long channelId);
+    Task<List<MessageDto>> GetChannelMessages(long channelId, long? since = null, long? until = null, int limit = 50);
     Task<long?> GetLastChannelMessageId(long channelId);
     Task<long?> GetLastReadMessageId(long channelId, int userId);
     Task<List<MessageDto>> GetUnreadMessages(int playerId);
