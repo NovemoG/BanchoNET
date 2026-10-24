@@ -304,6 +304,74 @@ public sealed class BeatmapHandler(
 		return null;
 	}
 	
+	public async Task<BeatmapsetImportResult> ImportBeatmapsetFromApi(
+		int beatmapsetId,
+		CancellationToken cancellationToken = default
+	) {
+		var url = $"https://osu.ppy.sh/api/v2/beatmapsets/{beatmapsetId}";
+
+		using var response = await _bearerClient.GetAsync(url, cancellationToken);
+
+		switch (response.StatusCode)
+		{
+			case HttpStatusCode.NotFound:
+			case HttpStatusCode.Forbidden:
+				return BeatmapsetImportResult.Unavailable;
+
+			case HttpStatusCode.TooManyRequests:
+				return BeatmapsetImportResult.RateLimited;
+		}
+
+		if (!response.IsSuccessStatusCode)
+			return BeatmapsetImportResult.Failed;
+
+		var content = await response.Content.ReadAsStringAsync(cancellationToken);
+		if (!content.IsValidResponse())
+			return BeatmapsetImportResult.Invalid;
+
+		var beatmapset = Deserialize<ApiBeatmapsetFull>(content);
+		if (beatmapset == null)
+			return BeatmapsetImportResult.Invalid;
+
+		var set = new Beatmapset(beatmapset);
+		await beatmaps.InsertBeatmapset(set);
+
+		// only refresh sets that are already cached, caching every imported set would hold the whole catalogue in memory
+		if (beatmapCache.GetBeatmapset(beatmapsetId) != null)
+			beatmapCache.InsertBeatmapset(set);
+
+		return BeatmapsetImportResult.Imported;
+	}
+
+	public async Task<int?> GetNewestBeatmapsetIdFromApi(
+		CancellationToken cancellationToken = default
+	) {
+		// new uploads count as updates, so the most recently updated sets probably include the newest one
+		const string url = "https://osu.ppy.sh/api/v2/beatmapsets/search?s=any&sort=updated_desc&nsfw=true";
+
+		using var response = await _bearerClient.GetAsync(url, cancellationToken);
+		if (!response.IsSuccessStatusCode)
+			return null;
+
+		await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+		using var json = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
+
+		if (!json.RootElement.TryGetProperty("beatmapsets", out var beatmapsets)
+		    || beatmapsets.ValueKind != JsonValueKind.Array)
+			return null;
+
+		int? newest = null;
+		foreach (var beatmapset in beatmapsets.EnumerateArray())
+		{
+			if (beatmapset.TryGetProperty("id", out var id)
+			    && id.TryGetInt32(out var value)
+			    && value > (newest ?? 0))
+				newest = value;
+		}
+
+		return newest;
+	}
+
 	private static T? Deserialize<T>(string content) => JsonSerializer.Deserialize<T?>(content, SnakeCaseNamingPolicy.Options);
 
 	private async Task UpdateBeatmapset(

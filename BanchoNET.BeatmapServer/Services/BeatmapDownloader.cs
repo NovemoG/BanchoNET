@@ -16,7 +16,7 @@ public sealed class BeatmapDownloader(
 {
     private readonly HttpClient _cookieClient = httpClientFactory.CreateClient(nameof(BeatmapDownloader));
     private readonly Func<int, string> _getBeatmapsetPath = Storage.GetBeatmapsetPath;
-    private readonly DownloadThrottler _throttler = new();
+    private readonly SlidingWindowThrottler _throttler = new(AppSettings.BeatmapDownloadsPerHour, TimeSpan.FromHours(1));
     private readonly ConcurrentDictionary<int, Lazy<Task<bool>>> _inFlightDownloads = new();
 
     internal BeatmapDownloader(
@@ -106,7 +106,7 @@ public sealed class BeatmapDownloader(
                 return false;
 
             var downloaded = false;
-            if (_throttler.TryRegisterDownload())
+            if (_throttler.TryRegister())
             {
                 var url = $"https://osu.ppy.sh/beatmapsets/{beatmapsetId}/download?noVideo=1";
                 downloaded = await DownloadBeatmapset(beatmapsetId, url, checksums, beatmaps, cancellationToken);
@@ -195,39 +195,6 @@ public sealed class BeatmapDownloader(
         finally
         {
             File.Delete(tempPath);
-        }
-    }
-
-    private class DownloadThrottler
-    {
-        private const int DownloadsPerHour = 170;
-        private static readonly TimeSpan Window = TimeSpan.FromHours(1);
-        
-        private readonly Queue<DateTimeOffset> _downloadTimes = new();
-        private readonly Lock _sync = new();
-
-        public bool TryRegisterDownload() {
-            lock (_sync)
-            {
-                var now = DateTimeOffset.UtcNow;
-                PruneOldEntries(now);
-                
-                if (_downloadTimes.Count >= DownloadsPerHour)
-                    return false;
-                
-                _downloadTimes.Enqueue(now);
-                return true;
-            }
-        }
-
-        private void PruneOldEntries(
-            DateTimeOffset now
-        ) {
-            while (_downloadTimes.Count > 0
-                   && now - _downloadTimes.Peek() >= Window)
-            {
-                _downloadTimes.Dequeue();
-            }
         }
     }
 }

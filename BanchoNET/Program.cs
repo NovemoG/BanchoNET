@@ -211,6 +211,7 @@ public class Program
 			.AddHostedService<BackgroundTasks>();
 
 		builder.Services.AddHostedService<LazerReleaseImportService>();
+		builder.Services.AddHostedService<BeatmapsetCrawler>();
 
 		builder.Services
 			.AddSingleton<OsuTokenProvider>()

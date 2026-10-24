@@ -46,10 +46,9 @@ public class Beatmapset : IBeatmapSet,
 	public int[] Ratings { get; set; } = new int[10];
 	
 	/// <summary>
-	/// Only if map is not ranked on official server
+	/// When the set was last fetched from the official server, used to schedule the next recheck
 	/// </summary>
-	public DateTime NextApiCheck { get; set; } = DateTime.UtcNow.AddDays(1);
-	public int ApiChecks { get; set; }
+	public DateTime LastApiCheck { get; set; }
 
 	#region Constructors
 
@@ -81,6 +80,7 @@ public class Beatmapset : IBeatmapSet,
 		LanguageId = beatmapset.LanguageId;
 		Bpm = (float)beatmapset.Bpm;
 		IsScoreable = beatmapset.IsScoreable;
+		LastApiCheck = DateTime.UtcNow;
 	}
 
 	public Beatmapset(
@@ -115,6 +115,7 @@ public class Beatmapset : IBeatmapSet,
 		PlayCount = beatmapset.PlayCount;
 		Ratings = beatmapset.Ratings;
 		Rating = beatmapset.Rating;
+		LastApiCheck = beatmapset.LastApiCheck.UtcDateTime;
 	}
 
 	#endregion

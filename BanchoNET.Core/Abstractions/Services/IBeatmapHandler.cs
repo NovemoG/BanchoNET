@@ -32,4 +32,19 @@ public interface IBeatmapHandler
         int mapId,
         bool withAllData = true
     );
+
+    /// <summary>
+    /// Fetches a beatmapset from the official server and stores it, without adding it to the in-memory cache.
+    /// </summary>
+    Task<BeatmapsetImportResult> ImportBeatmapsetFromApi(
+        int beatmapsetId,
+        CancellationToken cancellationToken = default
+    );
+
+    /// <summary>
+    /// Returns the id of the newest beatmapset on the official server, or null if it couldn't be determined.
+    /// </summary>
+    Task<int?> GetNewestBeatmapsetIdFromApi(
+        CancellationToken cancellationToken = default
+    );
 }

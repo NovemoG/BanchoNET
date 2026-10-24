@@ -167,6 +167,33 @@ public static class AppSettings
             ? 1
             : int.Parse(daysUntilInactive);
 
+        var downloadsPerHour = Environment.GetEnvironmentVariable("BEATMAP_DOWNLOADS_PER_HOUR");
+        BeatmapDownloadsPerHour = string.IsNullOrEmpty(downloadsPerHour)
+            ? 160
+            : int.Parse(downloadsPerHour);
+
+        var apiCheckMin = Environment.GetEnvironmentVariable("BEATMAP_API_CHECK_MIN_INTERVAL_HOURS");
+        BeatmapApiCheckMinInterval = TimeSpan.FromHours(string.IsNullOrEmpty(apiCheckMin)
+            ? 24
+            : int.Parse(apiCheckMin));
+
+        var apiCheckMax = Environment.GetEnvironmentVariable("BEATMAP_API_CHECK_MAX_INTERVAL_HOURS");
+        BeatmapApiCheckMaxInterval = TimeSpan.FromHours(string.IsNullOrEmpty(apiCheckMax)
+            ? 720
+            : int.Parse(apiCheckMax));
+
+        if (BeatmapApiCheckMaxInterval < BeatmapApiCheckMinInterval)
+            BeatmapApiCheckMaxInterval = BeatmapApiCheckMinInterval;
+
+        var crawlerEnabled = Environment.GetEnvironmentVariable("BEATMAPSET_CRAWLER_ENABLED");
+        BeatmapsetCrawlerEnabled = !string.IsNullOrEmpty(crawlerEnabled)
+                                   && bool.Parse(crawlerEnabled);
+
+        var crawlerRequests = Environment.GetEnvironmentVariable("BEATMAPSET_CRAWLER_REQUESTS_PER_MINUTE");
+        BeatmapsetCrawlerRequestsPerMinute = string.IsNullOrEmpty(crawlerRequests)
+            ? 300
+            : int.Parse(crawlerRequests);
+
         GithubToken = Environment.GetEnvironmentVariable("GITHUB_TOKEN");
 
         var osuCookie = Environment.GetEnvironmentVariable("OSU_COOKIE");
@@ -252,6 +279,11 @@ public static class AppSettings
     public static readonly int VersionFetchHoursInterval;
     public static readonly int DaysUntilPlayerIsMarkedInactive;
     public static readonly int LazerActivityWriteIntervalInSeconds;
+    public static readonly int BeatmapDownloadsPerHour;
+    public static readonly TimeSpan BeatmapApiCheckMinInterval;
+    public static readonly TimeSpan BeatmapApiCheckMaxInterval;
+    public static readonly bool BeatmapsetCrawlerEnabled;
+    public static readonly int BeatmapsetCrawlerRequestsPerMinute;
     public static readonly string CommandPrefix;
     public static readonly string? GithubToken;
     public static readonly string OsuClientId;

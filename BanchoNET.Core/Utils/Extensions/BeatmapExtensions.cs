@@ -7,12 +7,27 @@ namespace BanchoNET.Core.Utils.Extensions;
 public static class BeatmapExtensions
 {
 	public const int RatingBuckets = 10;
+	
+	public static TimeSpan MinimumApiCheckInterval => AppSettings.BeatmapApiCheckMinInterval;
+	public static TimeSpan MaximumApiCheckInterval => AppSettings.BeatmapApiCheckMaxInterval;
 
-	private static readonly TimeSpan[] ApiCheckIntervals = [
-		TimeSpan.FromDays(3),
-		TimeSpan.FromDays(5),
-		TimeSpan.FromDays(7)
-	];
+	/// <summary>
+	/// Fraction of the time since the set's last official update to wait before checking it again.
+	/// </summary>
+	private const double ApiCheckIntervalFactor = 0.1;
+
+	/// <summary>
+	/// Time to wait after <see cref="Beatmapset.LastApiCheck"/> before fetching the set from the official server again.
+	/// </summary>
+	public static TimeSpan GetApiCheckInterval(
+		DateTime lastUpdate
+	) {
+		var sinceUpdate = DateTime.UtcNow - lastUpdate;
+		var interval = sinceUpdate * ApiCheckIntervalFactor;
+
+		if (interval < MinimumApiCheckInterval) return MinimumApiCheckInterval;
+		return interval > MaximumApiCheckInterval ? MaximumApiCheckInterval : interval;
+	}
 	
 	public static BeatmapStatus ToBeatmapStatus(this string status)
 	{
@@ -67,20 +82,22 @@ public static class BeatmapExtensions
 		}
 
 		public bool ShouldRecheckApi() {
-			if (set.IsRankedOfficially) return false;
+			if (set.IsRankedOfficially || set.IsPrivateUpload) return false;
 			if (set.Status < BeatmapStatus.LatestPending) return false;
-			if (set.NextApiCheck < DateTime.UtcNow)
-			{
-				set.UpdateApiChecks();
-				return true;
-			}
 
-			return false;
+			return set.TryStartApiCheck();
 		}
 
-		public void UpdateApiChecks() {
-			set.NextApiCheck = DateTime.UtcNow.Add(ApiCheckIntervals[set.ApiChecks]);
-			if (set.ApiChecks < ApiCheckIntervals.Length - 1) set.ApiChecks++;
+		/// <summary>
+		/// Marks the set as checked if its recheck interval has passed, so concurrent requests don't all hit the official server.
+		/// </summary>
+		public bool TryStartApiCheck() {
+			var now = DateTime.UtcNow;
+			if (set.LastApiCheck + GetApiCheckInterval(set.LastUpdate) > now)
+				return false;
+
+			set.LastApiCheck = now;
+			return true;
 		}
 	}
 	
@@ -136,22 +153,10 @@ public static class BeatmapExtensions
 		}
 
 		public bool ShouldRecheckApi() {
-			if (beatmap.Set.IsRankedOfficially) return false;
+			if (beatmap.Set.IsRankedOfficially || beatmap.Set.IsPrivateUpload) return false;
 			if (beatmap.Status < BeatmapStatus.LatestPending) return false;
-			if (beatmap.Set.NextApiCheck < DateTime.UtcNow)
-			{
-				beatmap.UpdateApiChecks();
-				return true;
-			}
-
-			return false;
-		}
-
-		public void UpdateApiChecks() {
-			var set = beatmap.Set;
 			
-			set.NextApiCheck = DateTime.UtcNow.Add(ApiCheckIntervals[set.ApiChecks]);
-			if (set.ApiChecks < ApiCheckIntervals.Length - 1) set.ApiChecks++;
+			return beatmap.Set.TryStartApiCheck();
 		}
 	}
 
@@ -244,6 +249,7 @@ public static class BeatmapExtensions
 			SubmittedDate = set.SubmitDate,
 			LastUpdated = set.LastUpdate,
 			RankedDate = set.RankedDate,
+			LastApiCheck = set.LastApiCheck,
 			Ratings = set.Ratings,
 
 			CreatorName = set.CreatorName,
@@ -393,6 +399,7 @@ public static class BeatmapExtensions
 		currentBeatmapset.SubmittedDate = newBeatmapset.SubmitDate;
 		currentBeatmapset.LastUpdated = newBeatmapset.LastUpdate;
 		currentBeatmapset.RankedDate = newBeatmapset.RankedDate;
+		currentBeatmapset.LastApiCheck = newBeatmapset.LastApiCheck;
 		
 		if (!wasPlayerSubmitted)
 		{

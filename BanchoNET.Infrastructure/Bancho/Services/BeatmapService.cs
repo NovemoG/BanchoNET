@@ -74,8 +74,6 @@ public class BeatmapService(
         if (!set.IsRankedOfficially)
         {
             currentBeatmap.Status = prevBeatmap.Status;
-            set.ApiChecks = prevBeatmap.Set.ApiChecks;
-            set.NextApiCheck = prevBeatmap.Set.NextApiCheck;
         }
 
         return currentBeatmap;

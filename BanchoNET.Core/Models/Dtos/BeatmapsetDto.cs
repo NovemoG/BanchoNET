@@ -33,6 +33,7 @@ public class BeatmapsetDto
     public DateTimeOffset SubmittedDate { get; set; }
     public DateTimeOffset LastUpdated { get; set; }
     public DateTimeOffset? RankedDate { get; set; }
+    public DateTimeOffset LastApiCheck { get; set; }
     
     public int[] Ratings { get; set; } = new int[10];
     public float Rating { get; private set; }
