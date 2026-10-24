@@ -1,5 +1,6 @@
 ﻿using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Dtos;
+using BanchoNET.Core.Models.Lazer.Metadata;
 using BanchoNET.Core.Models.Scores;
 
 namespace BanchoNET.Core.Abstractions.Repositories;
@@ -78,7 +79,17 @@ public interface IBeatmapsRepository
         BeatmapStatus targetStatus
     );
 
+    Task<int> RestoreOfficialStatuses(
+        int setId,
+        IReadOnlyDictionary<int, BeatmapStatus> officialStatuses,
+        int mapId = -1
+    );
+
     Task<List<int>> RankAllPending();
+
+    Task<BeatmapUpdates> GetBeatmapsetChangesSince(
+        int queueId
+    );
 
     Task InsertBeatmapset(Beatmapset set);
 }

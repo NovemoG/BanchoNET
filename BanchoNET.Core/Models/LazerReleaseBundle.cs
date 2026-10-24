@@ -14,6 +14,7 @@ public sealed class LazerReleaseBundle
     public DateTimeOffset PublishedAt { get; set; }
     public List<LazerReleaseFile> Files { get; set; } = [];
     public List<LazerReleaseBase> Bases { get; set; } = [];
+    public List<LazerChangelogEntry> Changelog { get; set; } = [];
 
     public static bool IsVersion(
         string value
@@ -38,8 +39,13 @@ public sealed class LazerReleaseBundle
         string packageId,
         CancellationToken ct = default
     ) {
-        if (SchemaVersion is not (1 or 2) || !IsVersion(Version) || Channel is not ("lazer" or "tachyon")
-            || !Version.EndsWith("-" + Channel, StringComparison.Ordinal) || PackageId != packageId)
+        if (SchemaVersion is not (1 or 2)
+            || !IsVersion(Version)
+            || Channel is not ("lazer" or "tachyon")
+            || !Version.EndsWith("-" + Channel, StringComparison.Ordinal)
+            || PackageId != packageId
+            // Changelog build IDs reserve three digits for the revision.
+            || VersionNumber(Version).Build >= 1000)
         {
             throw new InvalidDataException("Invalid release version, channel, schema or package ID.");
         }
@@ -125,6 +131,13 @@ public sealed class LazerReleaseBundle
 
         if (Bases.Any(b => b.Platform is not ("win" or "linux")) || Bases.Select(b => b.Version).Distinct().Count() > 1)
             throw new InvalidDataException("Invalid delta platforms or versions.");
+        
+        if (Changelog.Any(e => e.Type is not ("add" or "fix" or "misc")
+                               || string.IsNullOrWhiteSpace(e.Category)
+                               || string.IsNullOrWhiteSpace(e.Title)))
+        {
+            throw new InvalidDataException("Invalid changelog entry.");
+        }
     }
 
     public async Task<VelopackReleaseFeed> ReadFeed(
@@ -154,6 +167,15 @@ public sealed class LazerReleaseBase
     public string Platform { get; set; } = string.Empty;
     public string Version { get; set; } = string.Empty;
     public string SHA256 { get; set; } = string.Empty;
+}
+
+public sealed class LazerChangelogEntry
+{
+    public string Type { get; set; } = string.Empty;
+    public bool Major { get; set; }
+    public string Category { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string? Message { get; set; }
 }
 
 public sealed class LazerReleaseFile

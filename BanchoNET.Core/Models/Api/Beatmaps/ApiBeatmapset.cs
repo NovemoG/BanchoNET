@@ -26,6 +26,7 @@ public class ApiBeatmapset : BasicApiBeatmapset
     public Availability Availability { get; set; }
     public bool HasFavourited { get; set; }
     public int[] Ratings { get; set; } = new int[BeatmapExtensions.RatingBuckets + 1];
+    public bool IsRankedOfficially { get; set; }
     
     [JsonConstructor]
     public ApiBeatmapset() { }
@@ -66,6 +67,7 @@ public class ApiBeatmapset : BasicApiBeatmapset
         };
         HasFavourited = false; //TODO
         Ratings = beatmapset.Ratings.ToApiRatings();
+        IsRankedOfficially = beatmapset.IsRankedOfficially;
     }
     
     public ApiBeatmapset(
@@ -104,5 +106,6 @@ public class ApiBeatmapset : BasicApiBeatmapset
         };
         HasFavourited = false; //TODO
         Ratings = beatmapset.Ratings.ToApiRatings();
+        IsRankedOfficially = beatmapset.IsRankedOfficially;
     }
 }

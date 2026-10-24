@@ -4,17 +4,17 @@ namespace BanchoNET.Core.Abstractions.Repositories;
 
 public interface ICommentsRepository
 {
-    Task<CommentsResponse> GetBeatmapsetComments(
-        int beatmapsetId,
+    Task<CommentsResponse?> GetComments(
+        Commentable commentable,
         string sort,
         int userId,
         long? parentId = null,
         int page = 1
     );
-
-    Task<CommentsResponse> PostComment(
+    
+    Task<CommentsResponse?> PostComment(
         int userId,
-        int beatmapsetId,
+        Commentable commentable,
         string message,
         long? replyToId = null
     );

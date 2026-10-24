@@ -329,12 +329,9 @@ public static class BeatmapExtensions
 
 	public static BeatmapDto UpdateWith(
 		this BeatmapDto currentBeatmap,
-		Beatmap newBeatmap,
-		bool rankedOfficially
+		Beatmap newBeatmap
 	) {
-		currentBeatmap.Status = rankedOfficially //TODO preservestatusonranked .env
-			? newBeatmap.Status
-			: currentBeatmap.Status;
+		currentBeatmap.Status = currentBeatmap.Status.ResolveWithOfficial(newBeatmap.Status);
 		
 		currentBeatmap.Id = newBeatmap.Id;
 		currentBeatmap.SetId = newBeatmap.BeatmapsetId;
@@ -374,10 +371,7 @@ public static class BeatmapExtensions
 		this BeatmapsetDto currentBeatmapset,
 		Beatmapset newBeatmapset
 	) {
-		currentBeatmapset.Status = newBeatmapset.IsRankedOfficially //TODO preservestatusonranked .env
-			? newBeatmapset.Status
-			: currentBeatmapset.Status;
-		
+		// the status and ranked date follow the beatmaps, see ApplyBeatmapStatuses
 		var wasPlayerSubmitted = currentBeatmapset.IsPrivateUpload;
 
 		currentBeatmapset.Id = newBeatmapset.Id;
@@ -398,7 +392,6 @@ public static class BeatmapExtensions
 		currentBeatmapset.Description = newBeatmapset.Description;
 		currentBeatmapset.SubmittedDate = newBeatmapset.SubmitDate;
 		currentBeatmapset.LastUpdated = newBeatmapset.LastUpdate;
-		currentBeatmapset.RankedDate = newBeatmapset.RankedDate;
 		currentBeatmapset.LastApiCheck = newBeatmapset.LastApiCheck;
 		
 		if (!wasPlayerSubmitted)
@@ -407,20 +400,80 @@ public static class BeatmapExtensions
 			currentBeatmapset.CreatorId = newBeatmapset.CreatorId;
 		}
 
-		newBeatmapset.Status = currentBeatmapset.Status;
 		newBeatmapset.FavoriteCount = currentBeatmapset.FavoriteCount;
 		newBeatmapset.PlayCount = currentBeatmapset.PlayCount;
 		newBeatmapset.Ratings = currentBeatmapset.Ratings;
 		newBeatmapset.Rating = currentBeatmapset.Rating;
 		newBeatmapset.IsScoreable = currentBeatmapset.IsScoreable;
 		
-		if (currentBeatmapset.Status is BeatmapStatus.Ranked or BeatmapStatus.Approved
-		    && newBeatmapset.RankedDate == null)
-		{
-			newBeatmapset.RankedDate = newBeatmapset.LastUpdate;
-			currentBeatmapset.RankedDate = newBeatmapset.LastUpdate;
-		}
-		
 		return currentBeatmapset;
+	}
+
+	/// <summary>
+	/// Sets the set's status and ranked date from its beatmaps, once their statuses are resolved.
+	/// An official ranked date is kept, otherwise ranking uses the set's last update.
+	/// </summary>
+	public static void ApplyBeatmapStatuses(
+		this BeatmapsetDto currentBeatmapset,
+		Beatmapset newBeatmapset
+	) {
+		var status = newBeatmapset.Beatmaps.Select(b => b.Status).ToBeatmapsetStatus();
+		var officialRankedDate = newBeatmapset is { IsRankedOfficially: true, RankedDate: { } date }
+			? new DateTimeOffset(date, TimeSpan.Zero)
+			: (DateTimeOffset?)null;
+
+		currentBeatmapset.Status = status;
+		currentBeatmapset.RankedDate = status.HasLeaderboard()
+			? officialRankedDate ?? currentBeatmapset.RankedDate ?? currentBeatmapset.LastUpdated
+			: null;
+
+		newBeatmapset.Status = currentBeatmapset.Status;
+		newBeatmapset.RankedDate = currentBeatmapset.RankedDate?.UtcDateTime;
+	}
+
+	public static bool HasLeaderboard(
+		this BeatmapStatus status
+	) {
+		return status >= BeatmapStatus.Ranked;
+	}
+	
+	public static bool IsOfficial(
+		this BeatmapStatus status
+	) {
+		return status is BeatmapStatus.Ranked or BeatmapStatus.Approved or BeatmapStatus.Loved;
+	}
+	
+	public static BeatmapStatus ResolveWithOfficial(
+		this BeatmapStatus status,
+		BeatmapStatus officialStatus
+	) {
+		return !status.HasLeaderboard() || (officialStatus.IsOfficial() && !status.IsOfficial())
+			? officialStatus
+			: status;
+	}
+
+	/// <summary>
+	/// The status a set shows for its beatmaps: its most official one, ranked over approved over qualified over loved,
+	/// and pending over wip over graveyard when none of them has a leaderboard.
+	/// </summary>
+	public static BeatmapStatus ToBeatmapsetStatus(
+		this IEnumerable<BeatmapStatus> statuses
+	) {
+		return statuses.DefaultIfEmpty(BeatmapStatus.LatestPending).MaxBy(BeatmapsetStatusPriority);
+	}
+
+	private static int BeatmapsetStatusPriority(
+		BeatmapStatus status
+	) {
+		return status switch
+		{
+			BeatmapStatus.Ranked => 7,
+			BeatmapStatus.Approved => 6,
+			BeatmapStatus.Qualified => 5,
+			BeatmapStatus.Loved => 4,
+			BeatmapStatus.LatestPending => 3,
+			BeatmapStatus.WIP => 2,
+			_ => 1
+		};
 	}
 }

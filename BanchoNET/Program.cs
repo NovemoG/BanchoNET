@@ -217,6 +217,7 @@ public class Program
 			.AddSingleton<IScoreTokenStore, ScoreTokenStore>()
 			.AddSingleton<ISpectatorStateStore, SpectatorStateStore>()
 			.AddSingleton<ILazerPlayerService, LazerPlayerService>()
+			.AddSingleton<IBeatmapChangeNotifier, BeatmapChangeNotifier>()
 			.AddSingleton<INotifySocketManager, NotifySocketManager>()
 			.AddSingleton<OsuVersionService>()
 			.AddSingleton<IOsuVersionService>(sp => sp.GetRequiredService<OsuVersionService>())

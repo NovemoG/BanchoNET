@@ -134,6 +134,69 @@ public class LazerReleaseBundleTests
     [Test]
     public async Task CompleteBundleIsAccepted() => await _bundle.Validate(_directory, "test");
 
+    [TestCase("feature", "Gameplay", "Title")]
+    [TestCase("fix", "", "Title")]
+    [TestCase("fix", "Gameplay", " ")]
+    public void InvalidChangelogEntryIsRejected(
+        string type,
+        string category,
+        string title
+    ) {
+        _bundle.Changelog.Add(new LazerChangelogEntry { Type = type, Category = category, Title = title });
+
+        Assert.ThrowsAsync<InvalidDataException>(() => _bundle.Validate(_directory, "test"));
+    }
+
+    [Test]
+    public async Task ImportedChangelogIsServedPerStream()
+    {
+        var published = Path.Combine(_directory, "published");
+        _bundle.Changelog.Add(new LazerChangelogEntry { Type = "add", Major = true, Category = "Browser", Title = "Tabs", Message = "**Yes**" });
+        await Import(published);
+
+        var releases = await PublishedLazerReleases.List(published);
+        var index = LazerChangelog.Index(releases);
+
+        Assert.That(index.Streams.Select(s => s.Name), Is.EqualTo(new[] { "lazer" }));
+        Assert.That(index.Streams[0].LatestBuild!.Version, Is.EqualTo("2026.1020.1"));
+
+        var entry = index.Builds.Single().ChangelogEntries.Single();
+        Assert.That((entry.Type, entry.Major, entry.Category, entry.Title, entry.Message), Is.EqualTo(("add", true, "Browser", "Tabs", "**Yes**")));
+
+        var build = LazerChangelog.Single(releases, "lazer", "2026.1020.1")!;
+        Assert.That(build.Id, Is.EqualTo(261020001));
+        Assert.That(build.ChangelogEntries[0].Id, Is.EqualTo(261020001000));
+        Assert.That(build.ChangelogEntries, Has.Count.EqualTo(1));
+        Assert.That(build.Versions!.Previous, Is.Null);
+        Assert.That(LazerChangelog.Single(releases, "tachyon", "2026.1020.1"), Is.Null);
+    }
+
+    [Test]
+    public void LazerBuildIncludesTachyonChangesSincePreviousLazerBuild()
+    {
+        LazerReleaseBundle Release(string version, params string[] titles) => new()
+        {
+            Version = version,
+            Channel = version.Split('-')[1],
+            Changelog = titles.Select(t => new LazerChangelogEntry { Type = "add", Category = "Gameplay", Title = t }).ToList()
+        };
+
+        // Newest first, as PublishedLazerReleases.List orders them.
+        var releases = new List<LazerReleaseBundle>
+        {
+            Release("2026.1024.1-lazer"),
+            Release("2026.1023.2-tachyon", "B"),
+            Release("2026.1023.1-tachyon", "A"),
+            Release("2026.1020.1-lazer", "Old")
+        };
+
+        var index = LazerChangelog.Index(releases);
+
+        Assert.That(index.Builds[0].ChangelogEntries.Select(e => e.Title), Is.EqualTo(new[] { "A", "B" }));
+        Assert.That(index.Builds[1].ChangelogEntries.Select(e => e.Title), Is.EqualTo(new[] { "B" }));
+        Assert.That(LazerChangelog.Single(releases, "lazer", "2026.1024.1")!.Versions!.Previous!.Version, Is.EqualTo("2026.1020.1"));
+    }
+
     [Test]
     public async Task CompleteDeltaBundleIsAccepted()
     {

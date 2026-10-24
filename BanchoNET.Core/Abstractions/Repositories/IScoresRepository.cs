@@ -32,7 +32,8 @@ public interface IScoresRepository
     Task ToggleBeatmapScoresVisibility(int mapId);
     Task ToggleBeatmapScoresVisibility(string md5);
     
-    Task SetBeatmapScoresRankedStatus(int mapId, bool ranked);
+    Task RefreshScoresRankedStatus(IReadOnlyCollection<int> mapIds);
+    Task RecalculatePlayerStats(IEnumerable<(int PlayerId, GameMode Mode)> players);
 
     Task<List<ScoreDto>> GetPlayerRecentScores(
         int playerId,

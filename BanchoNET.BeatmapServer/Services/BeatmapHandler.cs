@@ -372,6 +372,38 @@ public sealed class BeatmapHandler(
 		return newest;
 	}
 
+	public async Task<bool> RestoreOfficialStatus(
+		int setId,
+		int mapId = -1,
+		CancellationToken cancellationToken = default
+	) {
+		var stored = await beatmaps.GetBeatmapset(setId);
+		if (stored == null) return false;
+		
+		ApiBeatmapsetFull? official = null;
+		
+		if (!stored.IsPrivateUpload)
+		{
+			using var response = await _bearerClient.GetAsync($"https://osu.ppy.sh/api/v2/beatmapsets/{setId}", cancellationToken);
+			var content = await response.Content.ReadAsStringAsync(cancellationToken);
+
+			if (response.IsSuccessStatusCode && content.IsValidResponse())
+				official = Deserialize<ApiBeatmapsetFull>(content);
+		}
+		
+		// sets the official server doesn't have go back to pending
+		if (official == null)
+			return mapId > 0
+				? await beatmaps.UpdateBeatmapStatus(mapId, BeatmapStatus.LatestPending) > 0
+				: await beatmaps.UpdateBeatmapsetStatus(setId, BeatmapStatus.LatestPending) > 0;
+		
+		var officialStatuses = official.Beatmaps.ToDictionary(b => b.Id, b => (BeatmapStatus)b.Ranked);
+		
+		await UpdateBeatmapset(official);
+		
+		return await beatmaps.RestoreOfficialStatuses(setId, officialStatuses, mapId) > 0;
+	}
+	
 	private static T? Deserialize<T>(string content) => JsonSerializer.Deserialize<T?>(content, SnakeCaseNamingPolicy.Options);
 
 	private async Task UpdateBeatmapset(
@@ -384,10 +416,14 @@ public sealed class BeatmapHandler(
 		
 		beatmapset.Status = cache.Status.ToApiBeatmapStatus();
 		beatmapset.Ranked = (int)cache.Status;
+		beatmapset.RankedDate = cache.RankedDate is { } rankedDate
+			? new DateTimeOffset(DateTime.SpecifyKind(rankedDate, DateTimeKind.Utc))
+			: null;
 		beatmapset.FavouriteCount = cache.FavoriteCount;
 		beatmapset.PlayCount = cache.PlayCount;
 		beatmapset.Ratings = cache.Ratings.ToApiRatings();
 		beatmapset.Rating = cache.Rating;
+		beatmapset.IsRankedOfficially = cache.IsRankedOfficially;
 		
 		foreach (var beatmap in beatmapset.Beatmaps)
 		{

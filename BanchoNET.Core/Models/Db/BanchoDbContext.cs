@@ -58,6 +58,7 @@ public sealed class BanchoDbContext : DbContext
 	public DbSet<CommentVote> CommentVotes { get; init; } = null!;
 
 	public DbSet<BeatmapSearchRow> BeatmapSearch { get; init; } = null!;
+	public DbSet<BeatmapsetChange> BeatmapsetChanges { get; init; } = null!;
 
 	public DbSet<PlayerHistoryDto> PlayerHistories { get; init; } = null!;
 

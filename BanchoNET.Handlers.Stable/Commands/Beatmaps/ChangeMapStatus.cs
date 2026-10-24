@@ -38,12 +38,18 @@ public partial class CommandProcessor
         if (playerNp == null || playerNp.SetId == -1)
             return "Please /np a map first.";
         
-        var changed = set
-            ? await beatmapsRepository.UpdateBeatmapsetStatus(playerNp.SetId, targetStatus) >= 1
-            : await beatmapsRepository.UpdateBeatmapStatus(playerNp.BeatmapId, targetStatus) == 1;
+        // unranking gives the map its official status back
+        var changed = targetStatus.HasLeaderboard()
+            ? set
+                ? await beatmapsRepository.UpdateBeatmapsetStatus(playerNp.SetId, targetStatus) >= 1
+                : await beatmapsRepository.UpdateBeatmapStatus(playerNp.BeatmapId, targetStatus) == 1
+            : await beatmapHandler.RestoreOfficialStatus(playerNp.SetId, set ? -1 : playerNp.BeatmapId);
         
-        return changed                                                       // Quick fix for Latest Pending
-            ? $"Successfully updated beatmap status to {targetStatus.ToString().Replace("P", " P")}"
-            : $"{(set ? "Set" : "Map")} was not found or status is the same.";
+        if (!changed)
+            return $"{(set ? "Set" : "Map")} was not found or status is the same.";
+
+        return targetStatus.HasLeaderboard()
+            ? $"Successfully updated beatmap status to {targetStatus}"
+            : "Successfully restored the official beatmap status";
     }
 }

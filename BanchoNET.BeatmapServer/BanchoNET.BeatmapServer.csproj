@@ -8,7 +8,6 @@
 
     <ItemGroup>
       <ProjectReference Include="..\BanchoNET.Core\BanchoNET.Core.csproj" />
-      <InternalsVisibleTo Include="BanchoNET.Tests" />
     </ItemGroup>
 
     <ItemGroup>

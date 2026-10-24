@@ -19,21 +19,19 @@ public partial class CommentsController(
     public async Task<ActionResult<CommentsResponse>> GetComments(
         [FromQuery(Name = "commentable_id")] int commentableId,
         [FromQuery(Name = "commentable_type")] string commentableType,
-        int page,
-        string sort,
-        int parentId
+        int page = 1,
+        string sort = "new",
+        [FromQuery(Name = "parent_id")] long? parentId = null
     ) {
         if (!User.TryGetUserId(out var uid)) return Unauthorized();
 
-        if (!commentableType.Equals("beatmapset", StringComparison.OrdinalIgnoreCase))
+        if (Commentable.Parse(commentableType, commentableId) is not { } commentable)
             return BadRequest();
         
-        //TODO reply comments have show more button (?)
-        //TODO cant load nested comments by clicking show more
+        // A parent ID of 0 means top-level comments.
+        var response = await comments.GetComments(commentable, sort, uid, parentId is null or 0 ? null : parentId, page);
 
-        return JsonSnake(
-            await comments.GetBeatmapsetComments(commentableId, sort, uid, parentId == 0 ? null : parentId, page)
-        );
+        return response == null ? NotFound() : JsonSnake(response);
     }
 
     [HttpPost]
@@ -42,10 +40,15 @@ public partial class CommentsController(
     ) {
         if (!User.TryGetUserId(out var uid)) return Unauthorized();
 
-        if (!dto.CommentableType.Equals("beatmapset", StringComparison.OrdinalIgnoreCase))
+        if (Commentable.Parse(dto.CommentableType, dto.CommentableId) is not { } commentable
+            || string.IsNullOrWhiteSpace(dto.Message))
+        {
             return BadRequest();
+        }
         
-        return JsonSnake(await comments.PostComment(uid, dto.CommentableId, dto.Message, dto.ParentId));
+        var response = await comments.PostComment(uid, commentable, dto.Message, dto.ParentId);
+        
+        return response == null ? NotFound() : JsonSnake(response);
     }
     
     [HttpPost("{commentId:long}/vote")]

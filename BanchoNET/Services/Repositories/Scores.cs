@@ -5,6 +5,7 @@ using BanchoNET.Core.Models.Db;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Scores;
 using BanchoNET.Core.Utils;
+using BanchoNET.Core.Utils.Scores;
 using Microsoft.EntityFrameworkCore;
 
 namespace BanchoNET.Services.Repositories;
@@ -187,13 +188,43 @@ public sealed class ScoresRepository(BanchoDbContext dbContext) : IScoresReposit
                 .SetProperty(s => s.TotalScoreStatus, SubmissionStatus.Submitted));
     }
 
-    public async Task SetBeatmapScoresRankedStatus(
-        int mapId,
-        bool ranked
+    public async Task RefreshScoresRankedStatus(
+        IReadOnlyCollection<int> mapIds
     ) {
-        await dbContext.Scores
-            .Where(s => s.MapId == mapId)
-            .ExecuteUpdateAsync(p => p.SetProperty(s => s.Ranked, ranked));
+        if (mapIds.Count == 0) return;
+
+        // passed scores on ranked or approved beatmaps give pp, restricted players are left out when stats and leaderboards are read
+        var changed = await dbContext.Scores
+            .Where(s => mapIds.Contains(s.MapId))
+            .Where(s => s.Ranked != (s.Status > SubmissionStatus.Failed
+                                     && (s.Beatmap.Status == BeatmapStatus.Ranked || s.Beatmap.Status == BeatmapStatus.Approved)))
+            .Select(s => new { s.Id, s.PlayerId, s.Mode, Ranked = !s.Ranked })
+            .ToListAsync();
+
+        if (changed.Count == 0) return;
+
+        foreach (var group in changed.GroupBy(s => s.Ranked))
+        {
+            var ids = group.Select(s => s.Id).ToList();
+
+            await dbContext.Scores
+                .Where(s => ids.Contains(s.Id))
+                .ExecuteUpdateAsync(p => p.SetProperty(s => s.Ranked, group.Key));
+        }
+
+        await RecalculatePlayerStats(changed.Select(s => (s.PlayerId, s.Mode)));
+    }
+
+    public async Task RecalculatePlayerStats(
+        IEnumerable<(int PlayerId, GameMode Mode)> players
+    ) {
+        foreach (var (playerId, mode) in players.Distinct())
+        {
+            var stats = await dbContext.Stats.SingleOrDefaultAsync(s => s.PlayerId == playerId && s.Mode == (byte)mode);
+            if (stats == null) continue;
+
+            await ScoreStatistics.Recalculate(dbContext, stats);
+        }
     }
 
     public async Task<List<ScoreDto>> GetPlayerRecentScores(

@@ -13,6 +13,7 @@ namespace BanchoNET.Handlers.Lazer.Hubs;
 public class MetadataHub(
     ILogger logger,
     IPlayersRepository players,
+    IBeatmapsRepository beatmaps,
     IPlayerService stablePlayers,
     ILazerPlayerService playerService
 ) : BaseHub<IMetadataClient>(logger)
@@ -23,11 +24,10 @@ public class MetadataHub(
     private static readonly ConcurrentDictionary<int, MetadataClientState> ConnectedUsers = new();
     private static readonly TimeSpan ActivityWriteInterval = TimeSpan.FromSeconds(AppSettings.LazerActivityWriteIntervalInSeconds);
     
-    public async Task<BeatmapUpdates> GetChangesSince(
+    public Task<BeatmapUpdates> GetChangesSince(
         int queueId
     ) {
-        Logger.LogDebug("Invoked");
-        return new BeatmapUpdates([], -1);
+        return beatmaps.GetBeatmapsetChangesSince(queueId);
     }
 
     public async Task UpdateActivity(

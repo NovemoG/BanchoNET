@@ -47,4 +47,14 @@ public interface IBeatmapHandler
     Task<int?> GetNewestBeatmapsetIdFromApi(
         CancellationToken cancellationToken = default
     );
+
+    /// <summary>
+    /// Unranks a set, or one of its beatmaps, by giving it back its status from the official server and refreshing the set.
+    /// Sets the official server doesn't have become pending.
+    /// </summary>
+    Task<bool> RestoreOfficialStatus(
+        int setId,
+        int mapId = -1,
+        CancellationToken cancellationToken = default
+    );
 }

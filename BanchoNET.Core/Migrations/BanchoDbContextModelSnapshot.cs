@@ -483,6 +483,25 @@ namespace BanchoNET.Core.Migrations
                     b.ToTable("BeatmapPlays");
                 });
 
+            modelBuilder.Entity("BanchoNET.Core.Models.Dtos.BeatmapsetChange", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BeatmapsetId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("ChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("BeatmapsetChanges");
+                });
+
             modelBuilder.Entity("BanchoNET.Core.Models.Dtos.BeatmapsetDto", b =>
                 {
                     b.Property<int>("Id")
@@ -1764,12 +1783,18 @@ namespace BanchoNET.Core.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("BeatmapsetId")
+                    b.Property<int?>("BeatmapsetId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("BuildId")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
 
                     b.HasIndex("BeatmapsetId")
+                        .IsUnique();
+
+                    b.HasIndex("BuildId")
                         .IsUnique();
 
                     b.ToTable("Threads");
@@ -2179,8 +2204,7 @@ namespace BanchoNET.Core.Migrations
                     b.HasOne("BanchoNET.Core.Models.Dtos.BeatmapsetDto", "Beatmapset")
                         .WithOne("Thread")
                         .HasForeignKey("BanchoNET.Core.Models.Dtos.ThreadDto", "BeatmapsetId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("Beatmapset");
                 });

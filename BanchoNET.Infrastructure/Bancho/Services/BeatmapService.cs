@@ -24,7 +24,8 @@ public class BeatmapService(
         foreach (var beatmap in set.Beatmaps)
         {
             BeatmapsByMD5.TryAdd(beatmap.Checksum, beatmap.Id);
-            Items.AddOrUpdate(beatmap.Id, beatmap, (_, prev) => UpdateStatus(beatmap, prev));
+            // statuses were already resolved against the database when the set was stored
+            Items.AddOrUpdate(beatmap.Id, beatmap, (_, _) => beatmap);
         }
     }
 
@@ -64,18 +65,5 @@ public class BeatmapService(
         int setId
     ) {
         return BeatmapSets.TryGetValue(setId, out var beatmapSet) ? beatmapSet : null;
-    }
-
-    private static Beatmap UpdateStatus(
-        Beatmap currentBeatmap,
-        Beatmap prevBeatmap
-    ) {
-        var set = currentBeatmap.Set;
-        if (!set.IsRankedOfficially)
-        {
-            currentBeatmap.Status = prevBeatmap.Status;
-        }
-
-        return currentBeatmap;
     }
 }

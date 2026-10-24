@@ -30,15 +30,17 @@ public class Comment
 
     public Comment(
         CommentDto comment,
-        bool pinned = false
+        Commentable commentable,
+        int repliesCount
     ) {
         Id = comment.Id;
         ParentId = comment.ReplyToId;
         UserId = comment.AuthorId;
-        Pinned = pinned;
-        RepliesCount = comment.RepliesCount;
+        Pinned = comment.Pinned;
+        RepliesCount = repliesCount;
         VotesCount = comment.VotesCount;
-        CommentableId = comment.ThreadId;
+        CommentableType = commentable.Type;
+        CommentableId = commentable.Id;
         CreatedAt = comment.CreatedAt;
         UpdatedAt = comment.UpdatedAt;
         DeletedAt = comment.DeletedAt;

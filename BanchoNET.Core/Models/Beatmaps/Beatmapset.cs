@@ -59,7 +59,7 @@ public class Beatmapset : IBeatmapSet,
 		Beatmaps = beatmapset.Beatmaps.Select(b => new Beatmap(b, this)).ToList();
 
 		IsPrivateUpload = false;
-		IsRankedOfficially = (BeatmapStatus)beatmapset.Ranked == BeatmapStatus.Ranked;
+		IsRankedOfficially = ((BeatmapStatus)beatmapset.Ranked).IsOfficial();
 		Nsfw = beatmapset.Nsfw;
 		Artist = beatmapset.Artist;
 		ArtistUnicode = beatmapset.ArtistUnicode;

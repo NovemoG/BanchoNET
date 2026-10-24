@@ -15,8 +15,7 @@ public partial class BeatmapsetsController(
     IBeatmapHandler beatmaps,
     IBeatmapsRepository beatmapsRepository,
     IBeatmapDownloader beatmapDownloader,
-    IBeatmapSearchService beatmapSearch,
-    IScoresRepository scores
+    IBeatmapSearchService beatmapSearch
 ) : ApiControllerBase(players, playerService, beatmaps)
 {
     [HttpGet("{beatmapsetId:int}")]

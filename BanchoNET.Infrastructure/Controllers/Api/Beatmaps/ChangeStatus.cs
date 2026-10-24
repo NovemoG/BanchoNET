@@ -23,11 +23,11 @@ public partial class BeatmapsController
         var beatmap = await Beatmaps.GetBeatmap(beatmapId);
         if (beatmap == null) return NotFound();
 
-        if (await beatmapsRepository.UpdateBeatmapStatus(beatmapId, targetStatus) > 0)
-        {
-            beatmap.Status = targetStatus;
-            await scores.SetBeatmapScoresRankedStatus(beatmap.Id, ranked: beatmap.AwardsPp());
-        }
+        // unranking gives the beatmap its official status back
+        if (targetStatus.HasLeaderboard())
+            await beatmapsRepository.UpdateBeatmapStatus(beatmapId, targetStatus);
+        else
+            await Beatmaps.RestoreOfficialStatus(beatmap.Set.Id, beatmapId);
         
         return Ok();
     }

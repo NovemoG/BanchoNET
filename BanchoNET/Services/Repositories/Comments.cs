@@ -1,4 +1,5 @@
-﻿using BanchoNET.Core.Abstractions.Repositories;
+﻿using System.Net;
+using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Models.Api.Comments;
 using BanchoNET.Core.Models.Api.Player;
 using BanchoNET.Core.Models.Db;
@@ -10,171 +11,119 @@ namespace BanchoNET.Services.Repositories;
 
 public class CommentsRepository(BanchoDbContext dbContext) : ICommentsRepository
 {
-	public async Task<CommentsResponse> GetBeatmapsetComments(
-		int beatmapsetId,
+	private const int PageSize = 50;
+
+	public async Task<CommentsResponse?> GetComments(
+		Commentable commentable,
 		string sort,
 		int userId,
 		long? parentId = null,
 		int page = 1
 	) {
-		var take = (page - 1) * 50 + 50;
-		
-		var thread = await dbContext.Threads
-			.AsNoTracking()
-			.FirstOrDefaultAsync(t => t.BeatmapsetId == beatmapsetId);
-		
-		var beatmapset = await dbContext.Beatmapsets
-			.AsNoTracking()
-			.Where(bs => bs.Id == beatmapsetId)
-			.FirstOrDefaultAsync();
+		var meta = await GetMeta(commentable);
+		if (meta == null) return null;
 
-		if (thread == null && beatmapset != null)
-		{
-			thread = new ThreadDto { BeatmapsetId = beatmapsetId };
-			dbContext.Threads.Add(thread);
-			
-			await dbContext.SaveChangesAsync();
-		}
-		else if (thread == null || beatmapset == null)
-		{
-			return new CommentsResponse();
-		}
-		
+		var thread = await FindThread(commentable).AsNoTracking().FirstOrDefaultAsync();
+		if (thread == null)
+			return new CommentsResponse { Sort = sort, CommentableMeta = [meta] };
+
 		var baseQuery = dbContext.Comments
 			.AsNoTracking()
 			.Where(c => c.ThreadId == thread.Id);
-		
+
 		var totalComments = await baseQuery.CountAsync();
 		var topLevelCount = await baseQuery.CountAsync(c => c.ReplyToId == null);
-		
-		var pinnedComments = await baseQuery
+
+		// The client requests the replies of a comment with its ID as parent_id, and top-level comments without one.
+		var levelQuery = baseQuery
 			.Include(c => c.Author)
-			.Where(c => c.Pinned)
+			.Where(c => c.ReplyToId == parentId);
+
+		levelQuery = sort switch
+		{
+			"old" => levelQuery.OrderBy(c => c.CreatedAt).ThenBy(c => c.Id),
+			"top" => levelQuery.OrderByDescending(c => c.VotesCount).ThenByDescending(c => c.Id),
+			_ => levelQuery.OrderByDescending(c => c.CreatedAt).ThenByDescending(c => c.Id),
+		};
+
+		var comments = await levelQuery
+			.Skip((Math.Max(page, 1) - 1) * PageSize)
+			.Take(PageSize + 1)
 			.ToListAsync();
 
-		var commentsQuery = baseQuery
-			.Include(c => c.Author)
-			.Where(c => c.ReplyToId == null)
-			.AsQueryable();
-		
-		commentsQuery = sort switch
-		{
-			"old" => commentsQuery.OrderBy(c => c.CreatedAt),
-			"new" => commentsQuery.OrderByDescending(c => c.CreatedAt),
-			"top" => commentsQuery.OrderByDescending(c => c.VotesCount),
-			_ => commentsQuery.OrderByDescending(c => c.CreatedAt),
-		};
-		
-		if (parentId.HasValue)
-			commentsQuery = commentsQuery.Where(c => c.Id < parentId.Value);
-		
-		var mainComments = await commentsQuery.Take(take + 1).ToListAsync();
-		
-		var hasMore = mainComments.Count > take;
-		if (hasMore) mainComments.RemoveAt(take);
-		
-		var nextId = mainComments.LastOrDefault()?.Id ?? 0;
+		var hasMore = comments.Count > PageSize;
+		if (hasMore) comments.RemoveAt(PageSize);
 
-		var visibleTopLevelIds = mainComments
-			.Select(c => c.Id)
-			.Concat(pinnedComments.Select(c => c.Id))
-			.Distinct()
-			.ToList();
-		
-		List<CommentDto> includedComments = [];
-		if (visibleTopLevelIds.Count > 0)
-		{
-			includedComments = await baseQuery
+		var pinnedComments = parentId == null && page <= 1
+			? await baseQuery
 				.Include(c => c.Author)
-				.Where(c => c.ReplyToId != null && visibleTopLevelIds.Contains(c.ReplyToId.Value))
-				.ToListAsync();
-		}
-		
-		var allVisibleComments = mainComments
-			.Concat(pinnedComments)
-			.Concat(includedComments)
-			.ToList();
-		
-		var allVisibleIds = allVisibleComments
-			.Select(c => c.Id)
-			.Distinct()
-			.ToList();
+				.Where(c => c.Pinned && c.ReplyToId == null)
+				.ToListAsync()
+			: [];
 
-		List<long> userVotes = [];
-		if (allVisibleIds.Count > 0)
-		{
-			userVotes = await dbContext.CommentVotes
-				.Where(v => v.PlayerId == userId && allVisibleIds.Contains(v.CommentId))
-				.Select(v => v.CommentId)
-				.ToListAsync();
-		}
-		
-		var userFollows = await dbContext.ThreadFollows
-			.AnyAsync(f => f.ThreadId == thread.Id && f.PlayerId == userId);
-		
-		var uniqueUsers = allVisibleComments
-			.Select(c => c.Author)
-			.GroupBy(a => a.Id)
-			.Select(g => g.First())
-			.Select(u => new BasicApiPlayer(u))
-			.ToList();
+		var parentIds = comments.Concat(pinnedComments).Select(c => c.Id).Distinct().ToList();
 
-		var metaList = GenerateMetaList(allVisibleComments, beatmapset);
+		// Direct replies are included, so a comment's replies show without another request.
+		// Deeper replies are loaded when the client asks for them by parent ID.
+		var includedComments = parentIds.Count == 0 ? [] : await baseQuery
+			.Include(c => c.Author)
+			.Where(c => c.ReplyToId != null && parentIds.Contains(c.ReplyToId.Value))
+			.ToListAsync();
+
+		var allVisibleComments = comments.Concat(pinnedComments).Concat(includedComments).ToList();
+		var repliesCounts = await GetRepliesCounts(baseQuery, allVisibleComments);
 
 		return new CommentsResponse
 		{
-			Comments = mainComments.Select(c => new Comment(c)).ToList(),
-			PinnedComments = pinnedComments.Select(c => new Comment(c)).ToList(),
-			IncludedComments = includedComments.Select(c => new Comment(c)).ToList(),
-			Users = uniqueUsers,
-			UserVotes = userVotes,
-			UserFollow = userFollows,
+			Comments = comments.Select(ToApi).ToList(),
+			PinnedComments = pinnedComments.Select(ToApi).ToList(),
+			IncludedComments = includedComments.Select(ToApi).ToList(),
+			Users = UniqueUsers(allVisibleComments),
+			UserVotes = await GetUserVotes(allVisibleComments, userId),
+			UserFollow = await dbContext.ThreadFollows.AnyAsync(f => f.ThreadId == thread.Id && f.PlayerId == userId),
 			HasMore = hasMore,
-			HasMoreId = hasMore ? nextId : 0,
+			HasMoreId = hasMore ? comments[^1].Id : 0,
 			Sort = sort,
 			TopLevelCount = topLevelCount,
 			Total = totalComments,
-			CommentableMeta = metaList
+			CommentableMeta = MetaList(meta, allVisibleComments)
 		};
+		
+		Comment ToApi(CommentDto c) => new(c, commentable, repliesCounts.GetValueOrDefault(c.Id));
 	}
 
-	public async Task<CommentsResponse> PostComment(
+	public async Task<CommentsResponse?> PostComment(
 		int userId,
-		int beatmapsetId,
+		Commentable commentable,
 		string message,
 		long? replyToId = null
 	) {
-		var thread = await dbContext.Threads
-			.FirstOrDefaultAsync(t => t.BeatmapsetId == beatmapsetId);
-		
+		if (await GetMeta(commentable) == null) return null;
+
+		var thread = await FindThread(commentable).FirstOrDefaultAsync();
 		if (thread == null)
 		{
-			thread = new ThreadDto { BeatmapsetId = beatmapsetId };
+			thread = commentable.Type == Commentable.BUILD
+				? new ThreadDto { BuildId = commentable.Id }
+				: new ThreadDto { BeatmapsetId = commentable.Id };
 			dbContext.Threads.Add(thread);
-			
+
 			await dbContext.SaveChangesAsync();
 		}
-		
-		if (replyToId.HasValue)
-		{
-			var parentExists = await dbContext.Comments
-				.AnyAsync(c => c.Id == replyToId.Value && c.ThreadId == thread.Id);
-            
-			if (!parentExists) 
-				throw new Exception("Parent comment not found or belongs to a different thread.");
-		}
-		
+
+		if (replyToId.HasValue && !await dbContext.Comments.AnyAsync(c => c.Id == replyToId.Value && c.ThreadId == thread.Id))
+			return null;
+
 		var newComment = new CommentDto
 		{
 			ThreadId = thread.Id,
 			AuthorId = userId,
 			ReplyToId = replyToId,
 			Message = message,
-        
-			// Note: osu! API uses markdown. You'd typically run your markdown parser here.
-			// e.g., MessageHtml = MarkdownHelper.ToHtml(message), 
-			MessageHtml = $"<div class='osu-md osu-md--comment'><p>{message}</p></div>", 
-        
+
+			// osu! API uses markdown.
+			MessageHtml = $"<div class='osu-md osu-md--comment'><p>{WebUtility.HtmlEncode(message)}</p></div>",
+
 			CreatedAt = DateTimeOffset.UtcNow,
 			VotesCount = 0,
 			Pinned = false
@@ -182,7 +131,7 @@ public class CommentsRepository(BanchoDbContext dbContext) : ICommentsRepository
 
 		dbContext.Comments.Add(newComment);
 		await dbContext.SaveChangesAsync();
-		
+
 		return await GetTargetedComment(newComment.Id, userId);
 	}
 
@@ -192,25 +141,25 @@ public class CommentsRepository(BanchoDbContext dbContext) : ICommentsRepository
 	) {
 		var comment = await dbContext.Comments.FirstOrDefaultAsync(c => c.Id == commentId);
 		if (comment == null) return new CommentsResponse();
-		
+
 		var existingVote = await dbContext.CommentVotes
 			.AnyAsync(v => v.CommentId == commentId && v.PlayerId == userId);
 
 		if (!existingVote)
 		{
-			dbContext.CommentVotes.Add(new CommentVote 
-			{ 
-				CommentId = commentId, 
-				PlayerId = userId 
+			dbContext.CommentVotes.Add(new CommentVote
+			{
+				CommentId = commentId,
+				PlayerId = userId
 			});
-            
+
 			comment.VotesCount++;
 			await dbContext.SaveChangesAsync();
 		}
 
-		return await GetTargetedComment(commentId, userId);
+		return await GetTargetedComment(commentId, userId) ?? new CommentsResponse();
 	}
-	
+
 	public async Task<CommentsResponse> RemoveVote(
 		long commentId,
 		int userId
@@ -228,105 +177,133 @@ public class CommentsRepository(BanchoDbContext dbContext) : ICommentsRepository
 			await dbContext.SaveChangesAsync();
 		}
 
-		return await GetTargetedComment(commentId, userId);
+		return await GetTargetedComment(commentId, userId) ?? new CommentsResponse();
 	}
 
-	private async Task<CommentsResponse> GetTargetedComment(
+	/// <summary>
+	/// The single comment the client just posted or voted on.
+	/// </summary>
+	private async Task<CommentsResponse?> GetTargetedComment(
 		long targetCommentId,
 		int currentUserId
 	) {
 		var targetComment = await dbContext.Comments
-		    .Include(c => c.Author)
-		    .Include(c => c.Thread)
-				.ThenInclude(t => t.Beatmapset)
-		    .AsNoTracking()
-		    .FirstAsync(c => c.Id == targetCommentId);
+			.Include(c => c.Author)
+			.Include(c => c.Thread)
+			.AsNoTracking()
+			.FirstAsync(c => c.Id == targetCommentId);
+
+		var commentable = targetComment.Thread.BuildId is { } buildId
+			? new Commentable(Commentable.BUILD, buildId)
+			: new Commentable(Commentable.BEATMAPSET, targetComment.Thread.BeatmapsetId!.Value);
+
+		var meta = await GetMeta(commentable);
+		if (meta == null) return null;
 
 		var baseQuery = dbContext.Comments
-		    .AsNoTracking()
-		    .Where(c => c.ThreadId == targetComment.ThreadId);
-	    
-	    var totalComments = await baseQuery.CountAsync();
-	    var topLevelCount = await baseQuery.CountAsync(c => c.ReplyToId == null);
-	    
-	    var pinnedComments = await baseQuery
-	        .Include(c => c.Author)
-	        .Where(c => c.Pinned)
-	        .ToListAsync();
-	    
-	    var targetTopLevelIds = pinnedComments.Where(c => c.ReplyToId == null).Select(c => c.Id).ToList();
-	    
-	    if (targetComment.ReplyToId == null)
-	        targetTopLevelIds.Add(targetComment.Id);
-	    
-	    var distinctTopLevelIds = targetTopLevelIds.Distinct().ToList();
+			.AsNoTracking()
+			.Where(c => c.ThreadId == targetComment.ThreadId);
 
-	    var includedComments = new List<CommentDto>();
-	    if (distinctTopLevelIds.Count > 0)
-	    {
-	        includedComments = await baseQuery
-	            .Include(c => c.Author)
-	            .Where(c => c.ReplyToId != null && distinctTopLevelIds.Contains(c.ReplyToId.Value))
-	            .ToListAsync();
-	    }
-	    
-	    var allVisibleComments = new List<CommentDto> { targetComment };
-	    allVisibleComments.AddRange(pinnedComments);
-	    allVisibleComments.AddRange(includedComments);
-	    var visibleCommentIds = allVisibleComments.Select(c => c.Id).Distinct().ToList();
-	    
-	    var userVotes = await dbContext.CommentVotes
-	        .Where(v => v.PlayerId == currentUserId && visibleCommentIds.Contains(v.CommentId))
-	        .Select(v => v.CommentId)
-	        .ToListAsync();
+		var repliesCounts = await GetRepliesCounts(baseQuery, [targetComment]);
 
-	    var userFollows = await dbContext.ThreadFollows
-	        .AnyAsync(f => f.ThreadId == targetComment.ThreadId && f.PlayerId == currentUserId);
-
-	    var uniqueUsers = allVisibleComments
-		    .Select(c => c.Author)
-	        .GroupBy(a => a.Id)
-		    .Select(g => g.First())
-		    .Select(u => new BasicApiPlayer(u))
-		    .ToList();
-	    
-	    var metaList = GenerateMetaList(allVisibleComments, targetComment.Thread.Beatmapset);
-
-	    return new CommentsResponse
-	    {
-		    Comments = [new Comment(targetComment)],
-		    PinnedComments = pinnedComments.Select(c => new Comment(c)).ToList(),
-		    IncludedComments = [],
-		    Users = uniqueUsers,
-		    UserVotes = userVotes,
-		    UserFollow = userFollows,
-		    HasMore = false,
-		    HasMoreId = 0,
-		    Cursor = new Cursor { Id = targetComment.Id, CreatedAt = targetComment.CreatedAt },
-		    Total = totalComments,
-		    TopLevelCount = topLevelCount,
-		    CommentableMeta = metaList
-	    };
+		return new CommentsResponse
+		{
+			Comments = [new Comment(targetComment, commentable, repliesCounts.GetValueOrDefault(targetComment.Id))],
+			Users = UniqueUsers([targetComment]),
+			UserVotes = await GetUserVotes([targetComment], currentUserId),
+			UserFollow = await dbContext.ThreadFollows
+				.AnyAsync(f => f.ThreadId == targetComment.ThreadId && f.PlayerId == currentUserId),
+			Cursor = new Cursor { Id = targetComment.Id, CreatedAt = targetComment.CreatedAt },
+			Total = await baseQuery.CountAsync(),
+			TopLevelCount = await baseQuery.CountAsync(c => c.ReplyToId == null),
+			CommentableMeta = MetaList(meta, [targetComment])
+		};
 	}
 
-	private List<CommentMeta> GenerateMetaList(
-		List<CommentDto> visibleComments,
-		BeatmapsetDto beatmapset
+	private IQueryable<ThreadDto> FindThread(
+		Commentable commentable
+	) => commentable.Type == Commentable.BUILD
+		? dbContext.Threads.Where(t => t.BuildId == commentable.Id)
+		: dbContext.Threads.Where(t => t.BeatmapsetId == commentable.Id);
+	
+	private async Task<CommentableMeta?> GetMeta(
+		Commentable commentable
 	) {
-		List<CommentMeta> meta = [
-			new CommentBeatmapsetMeta
+		if (commentable.Type == Commentable.BUILD)
+		{
+			var build = LazerChangelog.FindBuild(await PublishedLazerReleases.List(), commentable.Id);
+			if (build == null) return null;
+
+			var parts = build.Version.Split('-');
+
+			return new CommentableMeta
 			{
-				Id = beatmapset.Id,
-				Title = beatmapset.Title,
-				Url = $"https://osu.{AppSettings.Domain}/beatmapsets/{beatmapset.Id}",
-				OwnerId = beatmapset.CreatorId,
-				Locked = false
-			}
-		];
+				Id = commentable.Id,
+				Type = Commentable.BUILD,
+				Title = LazerChangelog.DisplayName(build),
+				Url = $"https://osu.{AppSettings.Domain}/home/changelog/{parts[1]}/{parts[0]}"
+			};
+		}
+
+		var beatmapset = await dbContext.Beatmapsets
+			.AsNoTracking()
+			.FirstOrDefaultAsync(bs => bs.Id == commentable.Id);
+
+		return beatmapset == null ? null : new CommentableMeta
+		{
+			Id = beatmapset.Id,
+			Type = Commentable.BEATMAPSET,
+			Title = beatmapset.Title,
+			Url = $"https://osu.{AppSettings.Domain}/beatmapsets/{beatmapset.Id}",
+			OwnerId = beatmapset.CreatorId,
+			OwnerTitle = "MAPPER"
+		};
+	}
+	
+	private static async Task<Dictionary<long, int>> GetRepliesCounts(
+		IQueryable<CommentDto> threadComments,
+		List<CommentDto> comments
+	) {
+		var ids = comments.Select(c => c.Id).Distinct().ToList();
+		if (ids.Count == 0) return [];
+
+		return await threadComments
+			.Where(c => c.ReplyToId != null && ids.Contains(c.ReplyToId.Value))
+			.GroupBy(c => c.ReplyToId!.Value)
+			.Select(g => new { g.Key, Count = g.Count() })
+			.ToDictionaryAsync(g => g.Key, g => g.Count);
+	}
+
+	private async Task<List<long>> GetUserVotes(
+		List<CommentDto> comments,
+		int userId
+	) {
+		var ids = comments.Select(c => c.Id).Distinct().ToList();
+		if (ids.Count == 0) return [];
+
+		return await dbContext.CommentVotes
+			.Where(v => v.PlayerId == userId && ids.Contains(v.CommentId))
+			.Select(v => v.CommentId)
+			.ToListAsync();
+	}
+
+	private static List<BasicApiPlayer> UniqueUsers(
+		List<CommentDto> comments
+	) => comments
+		.Select(c => c.Author)
+		.DistinctBy(a => a.Id)
+		.Select(u => new BasicApiPlayer(u))
+		.ToList();
+
+	private static List<CommentMeta> MetaList(
+		CommentableMeta meta,
+		List<CommentDto> visibleComments
+	) {
+		List<CommentMeta> list = [meta];
 
 		if (visibleComments.Any(c => c.DeletedAt != null))
-			meta.Add(new CommentMeta { Title = "Deleted Item" });
+			list.Add(new CommentMeta { Title = "Deleted Item" });
 
-		return meta;
+		return list;
 	}
 }
