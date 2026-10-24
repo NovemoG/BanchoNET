@@ -119,12 +119,12 @@ public static class EnumExtensions
 	
 	public static bool HasPrivilegeOrHigher(this PlayerPrivileges value, PlayerPrivileges rank)
 	{
-		return (value & PlayerPrivileges.Staff).GetHighestPrivilege() >= rank;
+		return (value & PlayerPrivileges.Ranks).GetHighestPrivilege() >= rank;
 	}
 	
 	public static PlayerPrivileges GetStaffPrivilege(this PlayerPrivileges value)
 	{
-		return (value & PlayerPrivileges.Staff).GetHighestPrivilege();
+		return (value & PlayerPrivileges.Ranks).GetHighestPrivilege();
 	}
 
 	public static PlayerPrivileges GetLowestPrivilege(this PlayerPrivileges privilege)

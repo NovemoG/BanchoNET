@@ -311,6 +311,7 @@ public class BanchoDbContextFactory : IDesignTimeDbContextFactory<BanchoDbContex
 			$"Username=banchonet;" +
 			$"Password=banchonet;" +
 			$"Database=utopia;" +
+			"GSS Encryption Mode=Disable;" +
 			$"Include Error Detail=True;";
 		
 		optionsBuilder.UseNpgsql(postgresConnectionString);

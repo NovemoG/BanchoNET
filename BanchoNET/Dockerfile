@@ -28,10 +28,12 @@ WORKDIR /app
 
 USER root
 
-RUN mkdir -p /data/lazer \
-    && chown -R "$APP_UID:$APP_UID" /data/lazer
+RUN mkdir -p /data/lazer /data/protection-keys \
+    && chown -R "$APP_UID:$APP_UID" /data/lazer /data/protection-keys \
+    && chmod 700 /data/protection-keys
 
 ENV DOTNET_ROLL_FORWARD=Major
+ENV ASPNETCORE_HTTP_PORTS=""
 
 USER $APP_UID
 

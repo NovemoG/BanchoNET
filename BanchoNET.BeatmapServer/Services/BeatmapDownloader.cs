@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Utils;
@@ -14,7 +14,6 @@ public sealed class BeatmapDownloader(
     IMemoryCache memoryCache
 ) : IBeatmapDownloader
 {
-    private readonly HttpClient _cookieClient = httpClientFactory.CreateClient(nameof(BeatmapDownloader));
     private readonly Func<int, string> _getBeatmapsetPath = Storage.GetBeatmapsetPath;
     private readonly SlidingWindowThrottler _throttler = new(AppSettings.BeatmapDownloadsPerHour, TimeSpan.FromHours(1));
     private readonly ConcurrentDictionary<int, Lazy<Task<bool>>> _inFlightDownloads = new();
@@ -138,6 +137,13 @@ public sealed class BeatmapDownloader(
             _inFlightDownloads.TryRemove(beatmapsetId, out _);
         }
     }
+    
+    private async Task StoreRefreshedCookie() {
+        await using var scope = scopeFactory.CreateAsyncScope();
+
+        if (scope.ServiceProvider.GetService<OsuSessionCookieJar>() is { } jar)
+            await jar.StoreRefreshedCookie();
+    }
 
     private async Task<bool> DownloadBeatmapset(
         int beatmapsetId,
@@ -154,7 +160,11 @@ public sealed class BeatmapDownloader(
             using var request = new HttpRequestMessage(HttpMethod.Get, url);
             request.Headers.Referrer = new Uri($"https://osu.ppy.sh/beatmapsets/{beatmapsetId}");
             
-            using var response = await _cookieClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            var client = httpClientFactory.CreateClient(nameof(BeatmapDownloader));
+            using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+
+            if (url.StartsWith("https://osu.ppy.sh/", StringComparison.Ordinal))
+                await StoreRefreshedCookie();
             
             if (!response.IsSuccessStatusCode)
             {

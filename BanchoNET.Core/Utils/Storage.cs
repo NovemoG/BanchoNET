@@ -1,4 +1,4 @@
-﻿namespace BanchoNET.Core.Utils;
+namespace BanchoNET.Core.Utils;
 
 public static class Storage
 {
@@ -34,6 +34,9 @@ public static class Storage
 	public static string GetBeatmapPath(int beatmapId) => Path.Combine(BeatmapsPath, $"{beatmapId}.osu");
 	public static string GetBeatmapsetPath(int beatmapsetId) => Path.Combine(BeatmapsetsPath, $"{beatmapsetId}.osz");
 	public static string GetReplayPath(long scoreId) => Path.Combine(ReplaysPath, $"{scoreId}.osr");
+	
+	public const string ProtectionKeysPath = "/data/protection-keys";
+	public static string GetOsuSessionCookieFilePath() => Path.Combine(BasePath, "osu_session_cookie.dat");
 	public static string GetMajorOsuVersionFilePath() => Path.Combine(BasePath, "major_osu_versions.txt");
 	public static string GetLogFilePath(string filename) => Path.Combine(LogsPath, filename);
 

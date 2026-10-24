@@ -14,6 +14,8 @@ public sealed class NotifySocketManager : INotifySocketManager
     
     public void Add(int userId, WebSocket socket) => _sockets[userId] = socket;
 
+    public bool IsConnected(int userId) => _sockets.TryGetValue(userId, out var socket) && socket.State == WebSocketState.Open;
+
     public void Remove(
         int userId
     ) {

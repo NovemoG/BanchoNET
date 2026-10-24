@@ -12,7 +12,7 @@ public static class CommandHandlerMap
     public static readonly string CommandNotFound =
         $"Command not found. Please use '{AppSettings.CommandPrefix}help' to see all available commands.";
     
-    public static readonly string[] ValidPrivileges = ["nominator", "submitter", "moderator", "administrator", "developer"];
+    public static readonly string[] ValidPrivileges = ["nominator", "submitter", "moderator", "administrator", "developer", "staff"];
     public static readonly string[] ValidStatuses = ["love", "qualify", "approve", "rank", "unrank"];
     public static readonly string[] FreemodAliases = ["fm", "freemod", "freemods"];
     

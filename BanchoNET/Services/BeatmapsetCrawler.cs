@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using BanchoNET.BeatmapServer.Services;
 using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Models.Beatmaps;
@@ -11,7 +11,7 @@ public sealed class BeatmapsetCrawler(
     ILogger logger,
     IServiceScopeFactory scopeFactory,
     IConnectionMultiplexer redis
-) : BackgroundService
+) : BackgroundService, IBeatmapsetCrawler
 {
     private const string CursorKey = "bancho:beatmapset-crawler:cursor";
     private const int MaxAttempts = 3;
@@ -27,90 +27,108 @@ public sealed class BeatmapsetCrawler(
         TimeSpan.FromMinutes(1) / AppSettings.BeatmapsetCrawlerRequestsPerMinute
     );
 
+    private volatile BeatmapsetCrawlerStatus _status = new("disabled", 0);
+
+    public BeatmapsetCrawlerStatus Status => _status;
+
     protected override async Task ExecuteAsync(
         CancellationToken stoppingToken
     ) {
-        if (!AppSettings.BeatmapsetCrawlerEnabled) return;
-
-        logger.LogInfo("Starting beatmapset crawler...", caller: nameof(BeatmapsetCrawler));
-
-        while (!stoppingToken.IsCancellationRequested)
+        try
         {
-            TimeSpan delay;
+            var stored = await _redis.StringGetAsync(CursorKey);
+            _status = _status with { Cursor = stored.HasValue ? (int)stored : 0 };
 
-            try
+            while (!stoppingToken.IsCancellationRequested)
             {
-                await Crawl(stoppingToken);
-                delay = RunInterval;
-            }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-            {
-                return;
-            }
-            catch (Exception ex)
-            {
-                logger.LogError("Beatmapset crawl stopped, retrying later", ex, caller: nameof(BeatmapsetCrawler));
-                delay = FailedRunDelay;
-            }
+                if (!AppSettings.BeatmapsetCrawlerEnabled)
+                {
+                    _status = _status with { State = "disabled", NextRunAt = null };
+                    return;
+                }
 
-            try
-            {
+                TimeSpan delay;
+
+                try
+                {
+                    await Crawl(stoppingToken);
+                    delay = RunInterval;
+                    _status = _status with { State = "waiting" };
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError("Beatmapset crawl stopped, retrying later", ex, caller: nameof(BeatmapsetCrawler));
+                    delay = FailedRunDelay;
+                    _status = _status with { State = "retrying", LastError = ex.Message };
+                }
+
+                _status = _status with { NextRunAt = DateTimeOffset.UtcNow + delay };
                 await Task.Delay(delay, stoppingToken);
             }
-            catch (OperationCanceledException)
-            {
-                return;
-            }
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
         }
     }
 
     private async Task Crawl(
         CancellationToken cancellationToken
     ) {
+        _status = _status with { State = "crawling", NextRunAt = null, LastError = null };
+
         var newest = await GetNewestBeatmapsetId(cancellationToken)
                      ?? throw new InvalidOperationException("Unable to determine the newest official beatmapset");
 
         var stored = await _redis.StringGetAsync(CursorKey);
         var cursor = stored.HasValue ? (int)stored : 0;
 
+        _status = _status with
+        {
+            Cursor = cursor,
+            Newest = newest,
+            Imported = 0,
+            Unavailable = 0,
+            Skipped = 0,
+            RunStartedAt = DateTimeOffset.UtcNow,
+            RunFinishedAt = null,
+        };
+
         if (cursor >= newest)
         {
             logger.LogInfo($"Beatmapsets are up to date at {cursor}", caller: nameof(BeatmapsetCrawler));
+            _status = _status with { RunFinishedAt = DateTimeOffset.UtcNow };
             return;
         }
 
         logger.LogInfo($"Crawling beatmapsets {cursor + 1} to {newest}", caller: nameof(BeatmapsetCrawler));
 
-        int imported = 0, unavailable = 0, skipped = 0;
-
         while (cursor < newest)
         {
             var beatmapsetId = cursor + 1;
-
-            switch (await Import(beatmapsetId, cancellationToken))
-            {
-                case BeatmapsetImportResult.Imported:
-                    imported++;
-                    break;
-
-                case BeatmapsetImportResult.Unavailable:
-                    unavailable++;
-                    break;
-
-                default:
-                    skipped++;
-                    break;
-            }
+            var result = await Import(beatmapsetId, cancellationToken);
 
             cursor = beatmapsetId;
             await _redis.StringSetAsync(CursorKey, cursor);
+
+            _status = result switch
+            {
+                BeatmapsetImportResult.Imported => _status with { Cursor = cursor, Imported = _status.Imported + 1 },
+                BeatmapsetImportResult.Unavailable => _status with { Cursor = cursor, Unavailable = _status.Unavailable + 1 },
+                _ => _status with { Cursor = cursor, Skipped = _status.Skipped + 1 },
+            };
 
             if (cursor % ProgressLogInterval == 0)
                 logger.LogInfo($"Crawled beatmapsets up to {cursor} of {newest}", caller: nameof(BeatmapsetCrawler));
         }
 
+        _status = _status with { RunFinishedAt = DateTimeOffset.UtcNow };
+        
         logger.LogInfo(
-            $"Beatmapset crawl finished at {cursor}: {imported} imported, {unavailable} unavailable, {skipped} skipped",
+            $"Beatmapset crawl finished at {cursor}: {_status.Imported} imported, {_status.Unavailable} unavailable, {_status.Skipped} skipped",
             caller: nameof(BeatmapsetCrawler)
         );
     }

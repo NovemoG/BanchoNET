@@ -17,6 +17,12 @@ public enum PlayerPrivileges : short
 	Moderator = 1 << 7,
 	Administrator = 1 << 8,
 	Developer = 1 << 9,
+	Staff = 1 << 10,
+	[Description("Can view and change secrets in the admin panel.")]
+	Owner = 1 << 11,
 	
-	Staff = Nominator | Moderator | Administrator | Developer,
+	/// <summary>
+	/// Every rank used by "this rank or higher" checks, lowest to highest.
+	/// </summary>
+	Ranks = Nominator | Moderator | Administrator | Developer | Staff | Owner,
 }

@@ -4,6 +4,7 @@ using BanchoNET.Core.Abstractions.Services;
 using BanchoNET.Core.Models.Db;
 using BanchoNET.Core.Models.Privileges;
 using BanchoNET.Core.Packets;
+using System.Collections.Concurrent;
 using BanchoNET.Core.Utils;
 using Cronos;
 using Microsoft.EntityFrameworkCore;
@@ -34,6 +35,7 @@ public class BackgroundTasks(
         new("AppendPlayerHistory", "0 0 * * *", AppendPlayerHistory),              // every day at midnight
         new("MarkInactivePlayers", "0 0 * * *", MarkInactivePlayers),              // every day at midnight
         new("DeleteUnnecessaryScores", "0 0 */2 * *", DeleteUnnecessaryScores),    // every 2 days at midnight
+        new("RemindAboutOsuCookie", "*/15 * * * *", RemindOwnersAboutOsuCookie),   // every 15 minutes
         new("CleanupRefreshTokens", "0 0 * * *", CleanupRefreshTokens),            // every day at midnight
     ];
 
@@ -116,6 +118,55 @@ public class BackgroundTasks(
         var stats = scope.ServiceProvider.GetRequiredService<IServerStatsService>();
         
         await stats.SampleOnlineCount();
+    }
+    
+    private static readonly TimeSpan CookieReminderInterval = TimeSpan.FromDays(1);
+    private readonly ConcurrentDictionary<int, DateTimeOffset> _cookieRemindedAt = new();
+    
+    public async Task RemindOwnersAboutOsuCookie(CancellationToken ct)
+    {
+        var reminder = OsuSessionCookie.GetReminder();
+        if (reminder == null)
+        {
+            _cookieRemindedAt.Clear();
+            return;
+        }
+
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<BanchoDbContext>();
+        var notifications = scope.ServiceProvider.GetRequiredService<INotifySocketManager>();
+
+        const int owner = (int)PlayerPrivileges.Owner;
+        var ownerIds = await db.Players
+            .Where(p => (p.Privileges & owner) == owner)
+            .Select(p => p.Id)
+            .ToListAsync(ct);
+
+        var now = DateTimeOffset.UtcNow;
+
+        foreach (var ownerId in ownerIds)
+        {
+            if (_cookieRemindedAt.TryGetValue(ownerId, out var remindedAt) && now - remindedAt < CookieReminderInterval)
+                continue;
+
+            var delivered = false;
+
+            if (notifications.IsConnected(ownerId))
+            {
+                await notifications.SendAsync(ownerId, "novemo.server.notice", new { Message = reminder, Important = true }, ct);
+                delivered = true;
+            }
+
+            var stablePlayer = playerService.GetPlayer(ownerId);
+            if (stablePlayer is { IsOnlineOnStable: true })
+            {
+                stablePlayer.Enqueue(new ServerPackets().Notification(reminder).FinalizeAndGetContent());
+                delivered = true;
+            }
+
+            if (delivered)
+                _cookieRemindedAt[ownerId] = now;
+        }
     }
 
     public async Task CleanupRefreshTokens(CancellationToken ct)

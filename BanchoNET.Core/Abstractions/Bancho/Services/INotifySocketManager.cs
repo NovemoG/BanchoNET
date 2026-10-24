@@ -13,6 +13,11 @@ public interface INotifySocketManager
     
     void Remove(int userId);
 
+    /// <summary>
+    /// Whether the player has an open lazer notification socket.
+    /// </summary>
+    bool IsConnected(int userId);
+
     void JoinBroadcast(long channelId, int userId);
     void LeaveBroadcast(long channelId, int userId);
 

@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
@@ -23,6 +23,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\BanchoNET.Infrastructure\BanchoNET.Infrastructure.csproj" />
         <ProjectReference Include="..\BanchoNET.Core\BanchoNET.Core.csproj" />
         <ProjectReference Include="..\BanchoNET.BeatmapServer\BanchoNET.BeatmapServer.csproj" />
     </ItemGroup>

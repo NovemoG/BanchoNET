@@ -43,13 +43,33 @@ public static class PlayerGroups
         Colour = "#A347EB",
         HasListing = true,
     };
+    
+    public static readonly Group Staff = new()
+    {
+        Id = 1001,
+        Identifier = "staff",
+        Name = "Server Staff",
+        ShortName = "STAFF",
+        Colour = "#66CCFF",
+        HasListing = true,
+    };
+
+    public static readonly Group Owner = new()
+    {
+        Id = 1000,
+        Identifier = "owner",
+        Name = "Server Owner",
+        ShortName = "OWNER",
+        Colour = "#FFCC22",
+    };
 
     public static Group[] FromPrivileges(int privileges) => FromPrivileges((PlayerPrivileges)privileges);
     
     public static Group[] FromPrivileges(PlayerPrivileges privileges)
     {
-        var group = privileges.GetStaffPrivilege() switch
+        var staffGroup = (privileges & PlayerPrivileges.Ranks & ~PlayerPrivileges.Owner).GetHighestPrivilege() switch
         {
+            PlayerPrivileges.Staff => Staff,
             PlayerPrivileges.Developer => Developer,
             PlayerPrivileges.Administrator => Administrator,
             PlayerPrivileges.Moderator => Moderator,
@@ -57,6 +77,14 @@ public static class PlayerGroups
             _ => null,
         };
 
-        return group == null ? [] : [group];
+        var groups = new List<Group>();
+
+        if (privileges.HasPrivilege(PlayerPrivileges.Owner))
+            groups.Add(Owner);
+
+        if (staffGroup != null)
+            groups.Add(staffGroup);
+
+        return groups.ToArray();
     }
 }

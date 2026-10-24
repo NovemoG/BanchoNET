@@ -49,7 +49,7 @@ public static class ModsExtensions
     {
         var splitMods = mods.SplitToParts(2).ToArray();
         
-        return ParseMods(splitMods, mode);
+        return splitMods.ParseMods(mode);
     }
 
     /// <summary>

@@ -20,6 +20,6 @@ public partial class CommandProcessor
         var beatmap = await beatmapHandler.GetBeatmap(mapId: lobby.BeatmapId);
         return beatmap == null
             ? (false, BeatmapNotFound)
-            : (false, $"Current map: {BeatmapExtensions.Embed(beatmap)}");
+            : (false, $"Current map: {beatmap.Embed()}");
     }
 }

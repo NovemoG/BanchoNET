@@ -12,6 +12,8 @@ public static class PlayerExtensions
 		{ PlayerPrivileges.Moderator, ClientPrivileges.Moderator },
 		{ PlayerPrivileges.Administrator, ClientPrivileges.Developer },
 		{ PlayerPrivileges.Developer, ClientPrivileges.Owner },
+		{ PlayerPrivileges.Staff, ClientPrivileges.Owner },
+		{ PlayerPrivileges.Owner, ClientPrivileges.Owner },
 	};
 	
 	extension(
@@ -34,11 +36,11 @@ public static class PlayerExtensions
 		public bool CanUseCommand(
 			PlayerPrivileges requiredPrivileges
 		) {
-			var otherPrivileges = requiredPrivileges & ~PlayerPrivileges.Staff;
+			var otherPrivileges = requiredPrivileges & ~PlayerPrivileges.Ranks;
 			if (player.Privileges.HasAnyPrivilege(otherPrivileges))
 				return true;
 
-			var ranks = requiredPrivileges & PlayerPrivileges.Staff;
+			var ranks = requiredPrivileges & PlayerPrivileges.Ranks;
 			return ranks != 0 && player.Privileges.HasPrivilegeOrHigher(ranks.GetLowestPrivilege());
 		}
 

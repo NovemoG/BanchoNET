@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Net;
 using System.Reflection;
 using System.Text.Json.Serialization;
 using BanchoNET.BeatmapServer.Services;
@@ -29,6 +28,8 @@ using BanchoNET.Middlewares;
 using BanchoNET.Services;
 using BanchoNET.Services.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.DataProtection;
+using Npgsql;
 using Microsoft.Extensions.Logging;
 using Novelog.Config;
 using StackExchange.Redis;
@@ -135,7 +136,8 @@ public class Program
 			$"Port=5432;" +
 			$"Username={dbConnections.PostgresUser};" +
 			$"Password={dbConnections.PostgresPass};" +
-			$"Database={dbConnections.PostgresDb};";
+			$"Database={dbConnections.PostgresDb};" +
+			"GSS Encryption Mode=Disable;";
 
 		if (AppSettings.Debug)
 			postgresConnectionString += "Include Error Detail=True;";
@@ -187,6 +189,18 @@ public class Program
 		builder.Services.AddScoped<ISearchProjectionSyncService, SearchProjectionSyncService>();
 		builder.Services.AddScoped<IBeatmapSearchService, BeatmapSearchService>();
 		
+		var keys = Directory.CreateDirectory(Storage.ProtectionKeysPath);
+		if (!OperatingSystem.IsWindows())
+			File.SetUnixFileMode(keys.FullName, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+
+		builder.Services.AddDataProtection()
+			.SetApplicationName("BanchoNET")
+			.PersistKeysToFileSystem(keys);
+
+		builder.Services.AddSingleton<IOsuSessionCookieService>(sp =>
+			new OsuSessionCookieService(sp.GetRequiredService<IDataProtectionProvider>(), Storage.GetOsuSessionCookieFilePath())
+		);
+		
 		builder.Services
 			.AddSingleton<ScoreSubmissionQueue>()
 			.AddSingleton<IScoreSubmissionQueue>(sp => sp.GetRequiredService<ScoreSubmissionQueue>())
@@ -211,7 +225,10 @@ public class Program
 			.AddHostedService<BackgroundTasks>();
 
 		builder.Services.AddHostedService<LazerReleaseImportService>();
-		builder.Services.AddHostedService<BeatmapsetCrawler>();
+		builder.Services
+			.AddSingleton<BeatmapsetCrawler>()
+			.AddSingleton<IBeatmapsetCrawler>(sp => sp.GetRequiredService<BeatmapsetCrawler>())
+			.AddHostedService(sp => sp.GetRequiredService<BeatmapsetCrawler>());
 
 		builder.Services
 			.AddSingleton<OsuTokenProvider>()
@@ -224,30 +241,18 @@ public class Program
 			.AddHttpMessageHandler<OsuAuthHandler>();
 		
 		builder.Services
+			.AddSingleton<OsuSessionCookieJar>()
 			.AddSingleton<IBeatmapDownloader, BeatmapDownloader>()
 			.AddHttpClient(nameof(BeatmapDownloader), client =>
 			{
 				client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0");
 				client.Timeout = TimeSpan.FromSeconds(5);
 			})
-			.ConfigurePrimaryHttpMessageHandler(() =>
+			.ConfigurePrimaryHttpMessageHandler(sp => new HttpClientHandler
 			{
-				var container = new CookieContainer();
-				
-				var cookie = new Cookie("osu_session", AppSettings.OsuCookie, "/", ".ppy.sh")
-				{
-					Secure = true,
-					HttpOnly = true
-				};
-				
-				container.Add(cookie);
-
-				return new HttpClientHandler
-				{
-					CookieContainer = container,
-					UseCookies = true,
-					AllowAutoRedirect = true
-				};
+				CookieContainer = sp.GetRequiredService<OsuSessionCookieJar>().Container,
+				UseCookies = true,
+				AllowAutoRedirect = true
 			});
 		
 		Assembly[] assemblies = [
@@ -297,7 +302,13 @@ public class Program
 		if (!string.IsNullOrWhiteSpace(ppProvider))
 			Logger.Shared.LogDebug($"Using {ppProvider} pp provider");
 		
-		EnsureDatabaseExists(app.Services.CreateScope());
+		using (var scope = app.Services.CreateScope())
+		{
+			var cookies = scope.ServiceProvider.GetRequiredService<IOsuSessionCookieService>();
+			cookies.Load().GetAwaiter().GetResult();
+			
+			EnsureDatabaseExists(scope);
+		}
 
 		InitBanchoBot(app.Services.CreateScope());
 		InitChannels(app.Services.CreateScope());

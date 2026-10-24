@@ -1,4 +1,4 @@
-﻿services:
+services:
   banchonet:
     image: banchonet
     hostname: banchonet
@@ -16,6 +16,7 @@
       LAZER_RELEASE_INBOX: /release-inbox
     volumes:
       - banchonet-lazer-data:/data/lazer
+      - banchonet-protection-keys:/data/protection-keys
       - novemo-release-inbox:/release-inbox
       - ${DATA_PATH:-./data}:/app/files
     restart: unless-stopped
@@ -106,6 +107,8 @@ volumes:
   novemo-release-inbox:
     external: true
     name: novemo-release-inbox
+  banchonet-protection-keys:
+    driver: local
   banchonet-lazer-data:
     driver: local
   banchonet-db-data:

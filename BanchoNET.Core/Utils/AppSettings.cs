@@ -194,13 +194,6 @@ public static class AppSettings
             ? 300
             : int.Parse(crawlerRequests);
 
-        GithubToken = Environment.GetEnvironmentVariable("GITHUB_TOKEN");
-
-        var osuCookie = Environment.GetEnvironmentVariable("OSU_COOKIE");
-        OsuCookie = string.IsNullOrEmpty(osuCookie)
-            ? ""
-            : osuCookie;
-
         var clientId = Environment.GetEnvironmentVariable("CLIENT_ID");
         OsuClientId = string.IsNullOrEmpty(clientId)
             ? ""
@@ -285,12 +278,9 @@ public static class AppSettings
     public static readonly bool BeatmapsetCrawlerEnabled;
     public static readonly int BeatmapsetCrawlerRequestsPerMinute;
     public static readonly string CommandPrefix;
-    public static readonly string? GithubToken;
     public static readonly string OsuClientId;
     public static readonly string OsuClientSecret;
     public static readonly int BeatmapEvictDays;
     public static readonly string DiscordToken;
     public static readonly ulong DiscordDebugGuildId;
-    
-    public static readonly string OsuCookie;
 }

@@ -31,7 +31,7 @@ public partial class CommandProcessor
         if (player.IsBot)
             return "You can't silence a bot.";
         
-        if (EnumExtensions.GetHighestPrivilege(player.Privileges) >= EnumExtensions.GetHighestPrivilege(_playerCtx.Privileges))
+        if (player.Privileges.GetHighestPrivilege() >= _playerCtx.Privileges.GetHighestPrivilege())
             return "You can't silence an account that has higher or equal privileges than you.";
 
         var result = await players.SilencePlayer(player, duration, reason);

@@ -14,7 +14,7 @@ public partial class CommandProcessor
     {
         if (args.Length > 0
             && CommandsMap.TryGetValue(args[0], out var command)
-            && PlayerExtensions.CanUseCommand(_playerCtx, command.Attribute.Privileges))
+            && _playerCtx.CanUseCommand(command.Attribute.Privileges))
         {
             var description = command.Attribute.BriefDescription + command.Attribute.DetailedDescription;
             
@@ -29,7 +29,7 @@ public partial class CommandProcessor
         {
             return Task.FromResult(CommandsMap
                 .DistinctBy(c => c.Value.Method)
-                .Where(c => PlayerExtensions.CanUseCommand(_playerCtx, c.Value.Attribute.Privileges))
+                .Where(c => _playerCtx.CanUseCommand(c.Value.Attribute.Privileges))
                 .OrderBy(c => c.Key)
                 .Aggregate("Here is a list of available commands [name - description and usage]:\n",
                     (current, c) => current + $"{Prefix}{c.Key} - {c.Value.Attribute.BriefDescription}\n")[..^1]);

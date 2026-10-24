@@ -25,14 +25,14 @@ public partial class CommandProcessor
         var player = await players.GetPlayerOrOffline(username);
         if (player == null) return PlayerNotFound;
         
-        if (player.IsBot && !EnumExtensions.HasPrivilege(player.Privileges, PlayerPrivileges.Staff))
+        if (player.IsBot && !player.Privileges.HasPrivilege(PlayerPrivileges.Staff))
             return "You can't restrict a bot.";
 
-        if (!EnumExtensions.HasPrivilege(player.Privileges, PlayerPrivileges.Verified)
-            || !EnumExtensions.HasPrivilege(player.Privileges, PlayerPrivileges.Unrestricted))
+        if (!player.Privileges.HasPrivilege(PlayerPrivileges.Verified)
+            || !player.Privileges.HasPrivilege(PlayerPrivileges.Unrestricted))
             return "This player is already restricted.";
         
-        if (EnumExtensions.GetHighestPrivilege(player.Privileges) >= EnumExtensions.GetHighestPrivilege(_playerCtx.Privileges))
+        if (player.Privileges.GetHighestPrivilege() >= _playerCtx.Privileges.GetHighestPrivilege())
             return "You can't restrict an account that has higher or equal privileges than you.";
 
         var result = await players.RestrictPlayer(player, reason);
@@ -60,8 +60,8 @@ public partial class CommandProcessor
         var player = await players.GetPlayerOrOffline(username);
         if (player == null) return PlayerNotFound;
 
-        if (EnumExtensions.HasPrivilege(player.Privileges, PlayerPrivileges.Verified)
-            || EnumExtensions.HasPrivilege(player.Privileges, PlayerPrivileges.Unrestricted))
+        if (player.Privileges.HasPrivilege(PlayerPrivileges.Verified)
+            || player.Privileges.HasPrivilege(PlayerPrivileges.Unrestricted))
             return "This player is not restricted";
 
         var result = await players.UnrestrictPlayer(player, reason);

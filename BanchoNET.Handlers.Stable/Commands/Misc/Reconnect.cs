@@ -21,7 +21,7 @@ public partial class CommandProcessor
             return "";
         }
 
-        if (args.Length > 0 && !PlayerExtensions.CanUseCommand(_playerCtx, PlayerPrivileges.Administrator))
+        if (args.Length > 0 && !_playerCtx.CanUseCommand(PlayerPrivileges.Administrator))
             return "Not enough privileges to reconnect other players.";
 
         var targetPlayer = playerService.GetPlayer(args[0]);

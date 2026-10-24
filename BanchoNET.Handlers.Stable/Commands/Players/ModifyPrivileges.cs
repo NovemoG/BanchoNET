@@ -12,7 +12,7 @@ public partial class CommandProcessor
         "Adds given privilege to a player with given username. Syntax: addpriv <username> <privilege>",
         "\nYou can only add privileges that are lower in rank than yours. If player's username contains spaces" +
         "\nplease replace them with underscores." +
-        "\nAvailable privileges: nominator, submitter, moderator, administrator, developer.",
+        "\nAvailable privileges: nominator, submitter, moderator, administrator, developer, staff.",
         ["ap"])]
     private async Task<string> AddPrivileges(string[] args)
     {
@@ -28,7 +28,7 @@ public partial class CommandProcessor
         if (!ValidPrivileges.Contains(priv) || !Enum.TryParse(priv, true, out PlayerPrivileges privilege))
             return $"Invalid privilege provided. Available privileges: {string.Join(", ", ValidPrivileges)}.";
         
-        if (EnumExtensions.GetHighestPrivilege(_playerCtx.Privileges) < privilege)
+        if (_playerCtx.Privileges.GetHighestPrivilege() < privilege)
             return "You can't add a privilege that is higher in rank than yours.";
         
         var player = await players.GetPlayerOrOffline(username);
@@ -37,7 +37,7 @@ public partial class CommandProcessor
         if (player.IsBot)
             return "Dummy, you can't modify bot's privileges \ud83d\udc7c";
         
-        if (EnumExtensions.HasPrivilege(player.Privileges, privilege))
+        if (player.Privileges.HasPrivilege(privilege))
             return $"{player.Username} already has this privilege.";
             
         await players.UpdatePlayerPrivileges(player, privilege, false);
@@ -49,7 +49,7 @@ public partial class CommandProcessor
         "Removes given privilege from a player with given username. Syntax: rmpriv <username> <privilege>",
         "\nYou can only remove privileges that are lower in rank than yours. If player's username contains spaces" +
         "\nplease replace them with underscores." +
-        "\nAvailable privileges: nominator, submitter, moderator, administrator, developer.",
+        "\nAvailable privileges: nominator, submitter, moderator, administrator, developer, staff.",
         ["rp"])]
     private async Task<string> RemovePrivileges(string[] args)
     {
@@ -68,7 +68,7 @@ public partial class CommandProcessor
         if (!ValidPrivileges.Contains(priv) || !Enum.TryParse(priv, true, out PlayerPrivileges privilege))
             return $"Invalid privilege provided. Available privileges: {string.Join(", ", ValidPrivileges)}.";
         
-        if (EnumExtensions.GetHighestPrivilege(_playerCtx.Privileges) <= privilege)
+        if (_playerCtx.Privileges.GetHighestPrivilege() <= privilege)
             return "You can't remove a privilege that is higher or equal in rank.";
         
         var player = await players.GetPlayerOrOffline(username);
@@ -77,10 +77,10 @@ public partial class CommandProcessor
         if (player.IsBot)
             return "Dummy, you can't modify bot's privileges \ud83d\udc7c";
         
-        if (EnumExtensions.CompareHighestPrivileges(_playerCtx.Privileges, player.Privileges))
+        if (_playerCtx.Privileges.CompareHighestPrivileges(player.Privileges))
             return $"{player.Username} has a privilege that is higher or equal in rank.";
         
-        if (!EnumExtensions.HasPrivilege(player.Privileges, privilege))
+        if (!player.Privileges.HasPrivilege(privilege))
             return $"{player.Username} does not have that privilege.";
             
         await players.UpdatePlayerPrivileges(player, privilege, true);

@@ -62,7 +62,7 @@ public partial class CommandProcessor
         var modsString = score.Mods.ToShortString();
 
         return (false,
-            $"[{score.ModeToString()}] {player.Username}'s recent score on {BeatmapExtensions.Embed(beatmap)}{(modsString.Length > 0 ? $" +{modsString}" : "")}" +
+            $"[{score.ModeToString()}] {player.Username}'s recent score on {beatmap.Embed()}{(modsString.Length > 0 ? $" +{modsString}" : "")}" +
             $"\n                {completionString} | {score.PP:F2}pp{(fcPp > 0 ? $" (if fc: {fcPp:F2}pp)" : "")} | " +
             $"{score.Acc:F2}% | {score.TotalScore.SplitNumber()} | x{score.MaxCombo}/{beatmap.MaxCombo} | {notesHitString}");
     }
