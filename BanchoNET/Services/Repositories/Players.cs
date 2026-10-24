@@ -595,6 +595,16 @@ public class PlayersRepository : IPlayersRepository
 				p.SetProperty(u => u.PmFriendsOnly, pmFriendsOnly));
 	}
 
+	public async Task UpdatePlayerPresenceHidden(
+		int playerId,
+		bool hidden
+	) {
+		await _dbContext.Players
+			.Where(p => p.Id == playerId && p.HideOnlineActivity != hidden)
+			.ExecuteUpdateAsync(p =>
+				p.SetProperty(u => u.HideOnlineActivity, hidden));
+	}
+
 	public async Task UpdatePlayerPassword(
 		int playerId,
 		string passwordHash

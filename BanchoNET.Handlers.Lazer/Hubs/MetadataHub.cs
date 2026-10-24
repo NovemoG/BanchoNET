@@ -1,23 +1,26 @@
 ﻿using System.Collections.Concurrent;
+using BanchoNET.Core.Abstractions.Bancho.Services;
 using BanchoNET.Core.Abstractions.HubClients;
 using BanchoNET.Core.Abstractions.Repositories;
 using BanchoNET.Core.Abstractions.Services.Lazer;
 using BanchoNET.Core.Models.Lazer.Metadata;
 using BanchoNET.Core.Models.Players;
 using BanchoNET.Core.Utils;
+using Microsoft.AspNetCore.SignalR;
 
 namespace BanchoNET.Handlers.Lazer.Hubs;
 
 public class MetadataHub(
     ILogger logger,
     IPlayersRepository players,
+    IPlayerService stablePlayers,
     ILazerPlayerService playerService
 ) : BaseHub<IMetadataClient>(logger)
 {
     private const string PresenceWatchersGroup = "presence-watchers";
     private static string UserPresenceGroup(int userId) => $"presence:{userId}";
     
-    private static readonly ConcurrentDictionary<int, UserPresence> ConnectedUsers = new();
+    private static readonly ConcurrentDictionary<int, MetadataClientState> ConnectedUsers = new();
     private static readonly TimeSpan ActivityWriteInterval = TimeSpan.FromSeconds(AppSettings.LazerActivityWriteIntervalInSeconds);
     
     public async Task<BeatmapUpdates> GetChangesSince(
@@ -30,50 +33,66 @@ public class MetadataHub(
     public async Task UpdateActivity(
         UserActivity? activity
     ) {
-        if (!TryGetUserId(out var userId)) return;
-        ConnectedUsers.TryGetValue(userId, out var presence);
+        if (!TryGetOwnState(out var userId, out var state)) return;
 
-        if (presence.Activity == null && activity == null)
+        if (state.Activity == null && activity == null)
             return;
 
-        presence.Activity = activity;
-        ConnectedUsers[userId] = presence;
+        state.Activity = activity;
 
-        if (presence.Status != UserStatus.Offline)
+        if (state.IsVisible)
             await TouchActivity(userId);
 
         await Task.WhenAll(
-            presence.Status != UserStatus.Offline
-                ? BroadcastUserPresenceUpdate(userId, presence)
+            state.IsVisible
+                ? BroadcastUserPresenceUpdate(userId, state.ToUserPresence())
                 : Task.CompletedTask,
-            Clients.Caller.UserPresenceUpdated(userId, presence)
+            Clients.Caller.UserPresenceUpdated(userId, state.ToUserPresence())
         );
     }
 
     public async Task UpdateStatus(
         UserStatus? status
     ) {
-        if (!TryGetUserId(out var userId)) return;
-        ConnectedUsers.TryGetValue(userId, out var presence);
+        if (status != null && !Enum.IsDefined(status.Value))
+            throw new HubException($"Invalid user status: {status}");
 
-        if (presence.Status == status) return;
+        if (!TryGetOwnState(out var userId, out var state)) return;
+
+        if (state.Status == status) return;
         
-        presence.Status = status;
-        ConnectedUsers[userId] = presence;
+        var wasVisible = state.IsVisible;
+        state.Status = status;
 
-        var hidden = status == UserStatus.Offline;
-        await playerService.SetPresenceHidden(userId, hidden);
+        await playerService.SetPresenceHidden(userId, !state.IsVisible);
 
-        if (!hidden)
+        // mirrors osu-web's hide presence toggle, so /me reports a null last_visit
+        // and the client restores "appear offline" on the next login
+        if (status != null)
+        {
+            var hidden = status == UserStatus.Offline;
+            await players.UpdatePlayerPresenceHidden(userId, hidden);
+
+            var stablePlayer = stablePlayers.GetPlayer(userId);
+            stablePlayer?.AppearOffline = hidden;
+        }
+
+        if (state.IsVisible)
             await TouchActivity(userId);
-
-        await BroadcastUserPresenceUpdate(userId, hidden ? null : presence);
+        
+        await Task.WhenAll(
+            wasVisible || state.IsVisible
+                ? BroadcastUserPresenceUpdate(userId, state.ToUserPresence())
+                : Task.CompletedTask,
+            Clients.Caller.UserPresenceUpdated(userId, state.ToUserPresence())
+        );
     }
 
     public async Task BeginWatchingUserPresence() {
-        foreach (var (userId, presence) in ConnectedUsers)
+        foreach (var (userId, state) in ConnectedUsers)
         {
-            if (presence.Status == UserStatus.Offline) continue;
+            var presence = state.ToUserPresence();
+            if (presence == null) continue;
             
             await Clients.Caller.UserPresenceUpdated(userId, presence);
         }
@@ -98,31 +117,36 @@ public class MetadataHub(
     }
 
     public async Task RefreshFriends() {
-        if (!TryGetUserId(out var userId)) return;
-
-        var friendIds = (await playerService.GetPlayer(userId))?.Friends ?? [];
-        foreach (var friendId in friendIds)
-            await Groups.RemoveFromGroupAsync(Context.ConnectionId, UserPresenceGroup(friendId));
-
-        friendIds = (await players.GetPlayerFriends(userId))
-            .Select(f => f.TargetId)
-            .ToArray();
+        if (!TryGetOwnState(out var userId, out var state)) return;
         
-        foreach (var friendId in friendIds)
-        {
-            await Groups.AddToGroupAsync(Context.ConnectionId, UserPresenceGroup(friendId));
-            
-            if (ConnectedUsers.TryGetValue(friendId, out var presence) && presence.Status != UserStatus.Offline)
-                await Clients.Caller.FriendPresenceUpdated(friendId, presence);
-        }
-        
-        await playerService.AssignFriends(userId, friendIds);
+        await RefreshFriends(userId, state);
     }
 
     public override async Task OnConnectedAsync() {
         if (TryGetUserId(out var userId))
         {
-            ConnectedUsers.TryAdd(userId, new UserPresence());
+            var state = new MetadataClientState(Context.ConnectionId);
+            MetadataClientState? previous = null;
+
+            ConnectedUsers.AddOrUpdate(
+                userId,
+                state,
+                (_, existing) => {
+                    previous = existing;
+                    return state;
+                });
+
+            // a newer connection takes over the user's state
+            if (previous != null)
+            {
+                if (previous.IsVisible)
+                    await BroadcastUserPresenceUpdate(userId, null);
+
+                await Clients.Client(previous.ConnectionId).DisconnectRequested();
+            }
+
+            // hidden until the client reports its status
+            await playerService.SetPresenceHidden(userId, true);
 
             // if server has restarted but player is still logged in
             if (await playerService.GetPlayer(userId) == null)
@@ -132,8 +156,7 @@ public class MetadataHub(
                     await playerService.AddPlayer(apiPlayer);
             }
             
-            await RefreshFriends();
-            await TouchActivity(userId, true);
+            await RefreshFriends(userId, state);
         }
         
         await base.OnConnectedAsync();
@@ -142,22 +165,64 @@ public class MetadataHub(
     public override async Task OnDisconnectedAsync(
         Exception exception
     ) {
-        if (TryGetUserId(out var userId))
+        if (TryGetUserId(out var userId)
+            && ConnectedUsers.TryGetValue(userId, out var state)
+            && state.ConnectionId == Context.ConnectionId
+            && ConnectedUsers.TryRemove(new KeyValuePair<int, MetadataClientState>(userId, state)))
         {
-            ConnectedUsers.TryRemove(userId, out var presence);
-
-            if (presence.Status != UserStatus.Offline)
+            if (state.IsVisible)
                 await TouchActivity(userId, true);
 
             await playerService.RemovePlayer(userId);
             
-            if (presence.Status != UserStatus.Offline)
+            if (state.IsVisible)
                 await BroadcastUserPresenceUpdate(userId, null);
         }
         
         await base.OnDisconnectedAsync(exception);
     }
     
+    private bool TryGetOwnState(
+        out int userId,
+        out MetadataClientState state
+    ) {
+        state = null!;
+        if (!TryGetUserId(out userId)) return false;
+
+        if (ConnectedUsers.TryGetValue(userId, out var existing) && existing.ConnectionId == Context.ConnectionId)
+        {
+            state = existing;
+            return true;
+        }
+
+        Logger.LogWarning($"Ignored call from stale metadata connection of user: {userId}", caller: GetType().Name);
+        return false;
+    }
+
+    private async Task RefreshFriends(
+        int userId,
+        MetadataClientState state
+    ) {
+        foreach (var friendId in state.FriendIds)
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, UserPresenceGroup(friendId));
+
+        var friendIds = (await players.GetPlayerFriends(userId))
+            .Select(f => f.TargetId)
+            .Where(id => id != userId)
+            .ToArray();
+
+        foreach (var friendId in friendIds)
+        {
+            await Groups.AddToGroupAsync(Context.ConnectionId, UserPresenceGroup(friendId));
+
+            if (ConnectedUsers.TryGetValue(friendId, out var friend) && friend.ToUserPresence() is { } presence)
+                await Clients.Caller.FriendPresenceUpdated(friendId, presence);
+        }
+
+        state.FriendIds = friendIds;
+        await playerService.AssignFriends(userId, friendIds);
+    }
+
     private async Task TouchActivity(
         int userId,
         bool force = false
@@ -176,5 +241,20 @@ public class MetadataHub(
             Clients.Group(PresenceWatchersGroup).UserPresenceUpdated(userId, presence),
             Clients.Group(UserPresenceGroup(userId)).FriendPresenceUpdated(userId, presence)
         );
+    }
+
+    private sealed class MetadataClientState(
+        string connectionId
+    ) {
+        public string ConnectionId { get; } = connectionId;
+        public UserActivity? Activity { get; set; }
+        public UserStatus? Status { get; set; }
+        public int[] FriendIds { get; set; } = [];
+
+        public bool IsVisible => Status is UserStatus.Online or UserStatus.DoNotDisturb;
+        
+        public UserPresence? ToUserPresence() => IsVisible
+            ? new UserPresence { Activity = Activity, Status = Status }
+            : null;
     }
 }

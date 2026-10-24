@@ -5,4 +5,5 @@ public enum UserStatus
     Offline,
     DoNotDisturb,
     Online,
+    Afk,
 }

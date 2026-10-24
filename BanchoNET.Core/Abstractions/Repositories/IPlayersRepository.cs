@@ -48,6 +48,7 @@ public interface IPlayersRepository
     Task UpdateLatestActivity(int playerId, bool updateInactivity = false);
     Task UpdatePlayerCountry(Player player, string country);
     Task UpdatePlayerPmSetting(Player player, bool pmFriendsOnly);
+    Task UpdatePlayerPresenceHidden(int playerId, bool hidden);
     Task UpdatePlayerPassword(int playerId, string passwordHash);
     Task UpdatePlayerEmail(int playerId, string email);
 
