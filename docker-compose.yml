@@ -25,6 +25,7 @@ services:
         aliases:
           - osu.${DOMAIN}
           - notify.${DOMAIN}
+          - api.banchonet
     depends_on:
       postgres:
         condition: service_healthy
