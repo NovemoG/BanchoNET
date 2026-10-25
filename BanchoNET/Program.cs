@@ -106,8 +106,7 @@ public class Program
 			"REDIS_HOST",
 			"REDIS_PORT",
 			"CLIENT_ID",
-			"CLIENT_SECRET",
-			"GITHUB_TOKEN"
+			"CLIENT_SECRET"
 		};
 		
 		var missing = false;
