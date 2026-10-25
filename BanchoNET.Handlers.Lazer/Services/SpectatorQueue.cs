@@ -97,13 +97,11 @@ public sealed partial class ScoreSubmissionQueue
         CancellationToken stoppingToken
     ) {
         var spectatorState = await states.Get(scoreToken);
-        if (spectatorState?.Score?.User == null)
+        if (spectatorState?.Score?.User?.Id is not { } userId)
         {
             await states.ClearPending(scoreToken);
             return;
         }
-
-        var userId = spectatorState.Score.User.Id;
 
         var pendingScore = await tokens.Get(scoreToken);
         if (pendingScore == null)

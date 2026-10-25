@@ -13,7 +13,7 @@ public class ChatMessage
     public DateTimeOffset Timestamp { get; set; }
     public string Content { get; set; }
     public BasicApiPlayer Sender { get; set; }
-    public int SenderId
+    public int? SenderId
     {
         get => Sender.Id;
         set => Sender.Id = value;

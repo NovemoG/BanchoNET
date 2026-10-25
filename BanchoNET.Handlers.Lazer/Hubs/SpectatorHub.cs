@@ -70,7 +70,8 @@ public class SpectatorHub(
                 {
                     Id = userId,
                     Username = player.Player.Username
-                }
+                },
+                UserId = userId
             },
             BeatmapStatus = beatmap.Status
         };

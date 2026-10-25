@@ -147,7 +147,7 @@ public class PlayersRepository : IPlayersRepository
 		{
 			player.GlobalRank = new GlobalRank
 			{
-				Rank = await GetPlayerGlobalRank((GameMode)player.PreferredMode, player.Id),
+				Rank = await GetPlayerGlobalRank((GameMode)player.PreferredMode, player.Id!.Value),
 				RulesetId = player.PreferredMode
 			};
 		}
@@ -283,7 +283,7 @@ public class PlayersRepository : IPlayersRepository
 			AssignStatistics(
 				player.StatisticsRulesets,
 				mode,
-				await FetchModeStatistics(playerId, mode, player.CountryCode)
+				await FetchModeStatistics(playerId, mode, player.CountryCode!)
 			);
 		}
 		
@@ -477,16 +477,16 @@ public class PlayersRepository : IPlayersRepository
 	) where T : BasicApiPlayer {
 		if (players.Count == 0) return;
 
-		var ids = players.Select(p => p.Id).ToArray();
+		var ids = players.Select(p => p.Id!.Value).ToArray();
 		var online = await FilterOnline(ids);
 		var hidden = await FilterHidden(ids);
 
 		foreach (var player in players)
 		{
-			if (hidden.Contains(player.Id))
+			if (hidden.Contains(player.Id!.Value))
 				player.LastVisit = null;
 
-			player.IsOnline = player.LastVisit != null && online.Contains(player.Id);
+			player.IsOnline = player.LastVisit != null && online.Contains(player.Id!.Value);
 		}
 	}
 	

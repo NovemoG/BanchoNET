@@ -92,7 +92,7 @@ public static class ReplaySerializer
 				MaximumStatistics = score.MaximumStatistics.Where(kvp => kvp.Value != 0).ToDictionary(),
 				ClientVersion = "",
 				Rank = score.Rank,
-				UserID = score.User!.Id,
+				UserID = score.UserId,
 				TotalScoreWithoutMods = score.TotalScoreWithoutMods > 0 ? score.TotalScoreWithoutMods : null,
 				Pauses = score.Pauses
 			}, SnakeCaseNamingPolicy.ReplayOptions);

@@ -6,15 +6,15 @@ namespace BanchoNET.Core.Models.Api.Player;
 
 public class BasicApiPlayer
 {
-    public string AvatarUrl
+    public string? AvatarUrl
     {
-        get => field ?? ProfileAssetUrls.Avatar(Id, null);
+        get => field ?? (Id is { } id ? ProfileAssetUrls.Avatar(id, null) : null);
         set;
     }
 
-    public string CountryCode { get; set; } = "Unknown";
+    public string? CountryCode { get; set; } = "Unknown";
     public string DefaultGroup { get; set; } = "default"; //TODO
-    public int Id { get; set; }
+    public int? Id { get; set; }
     public bool IsActive { get; set; }
     public bool IsBot { get; set; }
     public bool IsDeleted { get; set; }

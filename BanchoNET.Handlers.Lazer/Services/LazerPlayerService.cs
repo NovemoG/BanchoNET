@@ -169,7 +169,7 @@ public sealed class LazerPlayerService(
     private async Task Save(
         LazerPlayer player
     ) {
-        var userId = player.Player.Id;
+        var userId = player.Player.Id ?? throw new InvalidOperationException("A local player's presence requires a user ID.");
 
         await _redis.StringSetAsync(PlayerKey(userId), JsonSerializer.Serialize(player), PlayerLifetime);
         cache.Set(LocalKey(userId), player, LocalLifetime);
