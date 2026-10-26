@@ -7,7 +7,6 @@ using BanchoNET.Core.Models.Api.Beatmaps;
 using BanchoNET.Core.Models.Api.Scores;
 using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Scores;
-using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
 using BanchoNET.Core.Utils.Scores;
 using BanchoNET.Handlers.Lazer.Hubs;
@@ -125,6 +124,7 @@ public sealed partial class ScoreSubmissionQueue(
         
         var service = scope.ServiceProvider.GetRequiredService<IScoreService>();
         var result = await service.Submit(ScoreSubmissionMapping.FromLazer(apiScore, beatmap));
+        if (result == null) return null;
         
         ScoreSubmissionMapping.Apply(result.Score, apiScore);
         

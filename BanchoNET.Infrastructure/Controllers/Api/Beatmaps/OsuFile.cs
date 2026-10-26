@@ -14,7 +14,7 @@ public partial class BeatmapsController
         var beatmap = await Beatmaps.GetBeatmap(beatmapId);
         if (beatmap == null) return NotFound();
         
-        if (!await Beatmaps.EnsureLocalBeatmapFile(beatmap))
+        if (!(await Beatmaps.EnsureLocalBeatmapFile(beatmap)).Available)
             return NotFound();
         
         var filePath = Storage.GetBeatmapPath(beatmapId);

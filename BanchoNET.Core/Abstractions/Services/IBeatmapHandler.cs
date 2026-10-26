@@ -6,7 +6,8 @@ namespace BanchoNET.Core.Abstractions.Services;
 public interface IBeatmapHandler
 {
     Task<bool> CheckIfMapExistsOnBanchoByFilename(string filename);
-    Task<bool> EnsureLocalBeatmapFile(Beatmap beatmap);
+    Task<BeatmapFileResult> EnsureLocalBeatmapFile(Beatmap beatmap);
+    Task<BeatmapFileResult> EnsureLocalBeatmapFile(int mapId, int setId, string checksum);
     
     Task FetchPlayerPlaycount(
         ApiBeatmapsetFull beatmapset,

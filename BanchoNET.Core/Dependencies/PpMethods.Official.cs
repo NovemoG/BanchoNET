@@ -18,6 +18,9 @@ public static partial class PpMethods
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.Never
     };
 
+    /// <inheritdoc cref="OfficialCalculator.CacheDifficulty"/>
+    public static IDisposable? CacheDifficulty() => OfficialCalculator.CacheDifficulty();
+
     public static float ComputeScorePp(
         int beatmapId,
         ScoreDto score,

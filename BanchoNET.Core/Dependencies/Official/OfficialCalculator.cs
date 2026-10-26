@@ -53,9 +53,20 @@ internal static class OfficialCalculator
         GameMode mode
     ) => RulesetFor((int)mode);
 
+    public static IDisposable CacheDifficulty()
+    {
+        var cache = new DifficultyCache();
+        CurrentCache.Value = cache;
+        return cache;
+    }
+
     public static BanchoWorkingBeatmap? LoadBeatmap(
         int beatmapId
     ) {
+        var cache = CurrentCache.Value;
+        if (cache != null && cache.Beatmaps.TryGetValue(beatmapId, out var cached))
+            return cached;
+
         var path = Storage.GetBeatmapPath(beatmapId);
 
         if (!File.Exists(path))
@@ -64,7 +75,10 @@ internal static class OfficialCalculator
             return null;
         }
 
-        return BanchoWorkingBeatmap.FromFile(path, beatmapId);
+        var beatmap = BanchoWorkingBeatmap.FromFile(path, beatmapId);
+        cache?.Beatmaps.Add(beatmapId, beatmap);
+
+        return beatmap;
     }
 
     public static Mod[] LegacyMods(
@@ -179,7 +193,7 @@ internal static class OfficialCalculator
         BanchoWorkingBeatmap beatmap,
         ScoreInfo score
     ) {
-        var attributes = ruleset.CreateDifficultyCalculator(beatmap).Calculate(score.Mods);
+        var attributes = CalculateDifficulty(ruleset, beatmap, score.Mods);
         var calculator = ruleset.CreatePerformanceCalculator();
 
         if (calculator == null)
@@ -188,6 +202,46 @@ internal static class OfficialCalculator
         var pp = calculator.Calculate(score, attributes).Total;
 
         return double.IsFinite(pp) ? (float)pp : 0f;
+    }
+
+    private static DifficultyAttributes CalculateDifficulty(
+        Ruleset ruleset,
+        BanchoWorkingBeatmap beatmap,
+        Mod[] mods
+    ) {
+        var cache = CurrentCache.Value;
+        if (cache == null)
+            return ruleset.CreateDifficultyCalculator(beatmap).Calculate(mods);
+
+        var key = (beatmap.BeatmapInfo.OnlineID, ruleset.RulesetInfo.OnlineID, ModsKey(mods));
+        if (!cache.Attributes.TryGetValue(key, out var attributes))
+        {
+            attributes = ruleset.CreateDifficultyCalculator(beatmap).Calculate(mods);
+            cache.Attributes.Add(key, attributes);
+        }
+
+        return attributes;
+    }
+
+    private static string ModsKey(
+        Mod[] mods
+    ) {
+        return string.Join(',', mods
+            .Select(mod => new APIMod(mod))
+            .OrderBy(mod => mod.Acronym)
+            .Select(mod => mod.Acronym + string.Concat(mod.Settings
+                .OrderBy(s => s.Key)
+                .Select(s => $";{s.Key}={s.Value}"))));
+    }
+
+    private static readonly AsyncLocal<DifficultyCache?> CurrentCache = new();
+
+    private sealed class DifficultyCache : IDisposable
+    {
+        public readonly Dictionary<int, BanchoWorkingBeatmap> Beatmaps = new();
+        public readonly Dictionary<(int Beatmap, int Ruleset, string Mods), DifficultyAttributes> Attributes = new();
+
+        public void Dispose() => CurrentCache.Value = null;
     }
 
     public static DifficultyGraph Graph(

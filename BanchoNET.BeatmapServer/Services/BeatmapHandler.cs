@@ -1,4 +1,6 @@
-﻿using System.Net;
+﻿using System.Collections.Concurrent;
+using System.Net;
+using System.Security.Cryptography;
 using System.Text.Json;
 using BanchoNET.Core.Abstractions.Bancho.Services;
 using BanchoNET.Core.Abstractions.Repositories;
@@ -19,6 +21,9 @@ public sealed class BeatmapHandler(
 	IHttpClientFactory httpClientFactory
 ) : IBeatmapHandler
 {
+	// Beatmaps the official server has no file for, so they're never requested again
+	private static readonly ConcurrentDictionary<int, byte> MissingFiles = new();
+
 	private readonly HttpClient _bearerClient = httpClientFactory.CreateClient(AppSettings.TokenClientName);
 	
 	public async Task<bool> CheckIfMapExistsOnBanchoByFilename(
@@ -28,38 +33,84 @@ public sealed class BeatmapHandler(
 		return response is { StatusCode: HttpStatusCode.OK, Content.Headers.ContentLength: > 0 };
 	}
 
-	public async Task<bool> EnsureLocalBeatmapFile(
+	public Task<BeatmapFileResult> EnsureLocalBeatmapFile(
 		Beatmap beatmap
 	) {
-		var beatmapPath = Storage.GetBeatmapPath(beatmap.Id);
-		
-		if (!File.Exists(beatmapPath)
-		    || !beatmapPath.CheckLocalBeatmapMD5(beatmap.Checksum))
-		{
-			try
-			{
-				var response = await httpClient.GetAsync($"https://old.ppy.sh/osu/{beatmap.Id}");
-				
-				response.EnsureSuccessStatusCode();
-				
-				if (response.Content.Headers.ContentLength == 0)
-					throw new Exception("Beatmap file doesn't exist");
-				
-				logger.LogInfo($"Caching {beatmap.Id}.osu beatmap file");
-		
-				await using var fileStream = new FileStream(beatmapPath, FileMode.Create, FileAccess.ReadWrite);
-				await response.Content.CopyToAsync(fileStream);
+		return EnsureLocalBeatmapFile(beatmap.Id, beatmap.BeatmapsetId, beatmap.Checksum);
+	}
 
-				return true;
-			}
-			catch (Exception ex)
-			{
-				logger.LogWarning($"Failed to download beatmap file for {beatmap.Id}", ex);
-				return false;
-			}
+	public async Task<BeatmapFileResult> EnsureLocalBeatmapFile(
+		int mapId,
+		int setId,
+		string checksum
+	) {
+		var beatmapPath = Storage.GetBeatmapPath(mapId);
+
+		if (File.Exists(beatmapPath) && beatmapPath.CheckLocalBeatmapMD5(checksum))
+			return new BeatmapFileResult(BeatmapFileStatus.Current, checksum);
+
+		var unavailable = new BeatmapFileResult(BeatmapFileStatus.Unavailable, checksum);
+		if (MissingFiles.ContainsKey(mapId))
+			return unavailable;
+
+		var (file, missing) = await DownloadBeatmapFile(mapId);
+		if (missing)
+			MissingFiles.TryAdd(mapId, 0);
+
+		if (file == null)
+			return unavailable;
+
+		var downloadedChecksum = Convert.ToHexStringLower(MD5.HashData(file));
+		if (downloadedChecksum.Equals(checksum, StringComparison.OrdinalIgnoreCase))
+		{
+			logger.LogInfo($"Caching {mapId}.osu beatmap file");
+			await File.WriteAllBytesAsync(beatmapPath, file);
+
+			return new BeatmapFileResult(BeatmapFileStatus.Downloaded, checksum);
+		}
+		
+		logger.LogInfo($"Beatmap {mapId} has a newer version ({checksum} -> {downloadedChecksum}), refreshing set {setId}");
+
+		var set = await GetBeatmapset(setId, mapId, recheckApi: true);
+		var refreshed = set?.Beatmaps.FirstOrDefault(b => b.Id == mapId);
+		
+		if (refreshed == null)
+		{
+			logger.LogWarning($"Couldn't refresh set {setId} after beatmap {mapId} was updated");
+			return unavailable;
 		}
 
-		return true;
+		await File.WriteAllBytesAsync(beatmapPath, file);
+
+		return new BeatmapFileResult(BeatmapFileStatus.Updated, refreshed.Checksum);
+	}
+	
+	private async Task<(byte[]? File, bool Missing)> DownloadBeatmapFile(
+		int mapId
+	) {
+		try
+		{
+			using var response = await httpClient.GetAsync($"https://old.ppy.sh/osu/{mapId}");
+
+			if (response.StatusCode == HttpStatusCode.NotFound)
+				return Missing();
+
+			response.EnsureSuccessStatusCode();
+			
+			var file = await response.Content.ReadAsByteArrayAsync();
+			return file.Length == 0 ? Missing() : (file, false);
+		}
+		catch (Exception ex)
+		{
+			logger.LogWarning($"Failed to download beatmap file for {mapId}", ex);
+			return (null, false);
+		}
+
+		(byte[]?, bool) Missing()
+		{
+			logger.LogWarning($"Beatmap file {mapId} doesn't exist on the official server, it won't be requested again");
+			return (null, true);
+		}
 	}
 
 	public async Task FetchPlayerPlaycount(

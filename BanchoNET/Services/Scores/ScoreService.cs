@@ -5,7 +5,6 @@ using BanchoNET.Core.Models.Beatmaps;
 using BanchoNET.Core.Models.Db;
 using BanchoNET.Core.Models.Dtos;
 using BanchoNET.Core.Models.Scores;
-using BanchoNET.Core.Utils;
 using BanchoNET.Core.Utils.Extensions;
 using BanchoNET.Core.Utils.Scores;
 using Microsoft.EntityFrameworkCore;
@@ -16,7 +15,8 @@ public sealed partial class ScoreService(
     BanchoDbContext db,
     IScoresRepository scores,
     IPlayersRepository players,
-    IBeatmapHandler beatmaps
+    IBeatmapHandler beatmaps,
+    ILogger logger
 ) : IScoreService
 {
     public Task<long> ReserveScoreId()
@@ -24,23 +24,24 @@ public sealed partial class ScoreService(
                """SELECT nextval(pg_get_serial_sequence('"Scores"', 'Id')::regclass) AS "Value" """
            ).SingleAsync();
 
-    public async Task<ScoreSubmissionResult> Submit(
+    public async Task<ScoreSubmissionResult?> Submit(
         ScoreSubmission submission
     ) {
         var score = submission.Score;
-        
+
         if (!Enum.IsDefined(score.Mode))
-            throw new ArgumentException("A submission requires one of the four official rulesets.", nameof(submission));
-        
+            return Rejected("it isn't on one of the four official rulesets");
+
         var legacy = score.LazerMods == null;
         if (legacy && string.IsNullOrWhiteSpace(score.OnlineChecksum))
-            throw new ArgumentException("A stable submission requires its online checksum.", nameof(submission));
-        
-        if (!legacy && score.Id <= 0)
-            throw new ArgumentException("A lazer submission requires its reserved score ID.", nameof(submission));
+            return Rejected("a stable submission requires its online checksum");
 
-        var beatmap = await beatmaps.GetBeatmap(score.MapId)
-            ?? throw new InvalidOperationException($"Beatmap {score.MapId} was not found.");
+        if (!legacy && score.Id <= 0)
+            return Rejected("a lazer submission requires its reserved score ID");
+
+        var beatmap = await beatmaps.GetBeatmap(score.MapId);
+        if (beatmap == null)
+            return Rejected($"beatmap {score.MapId} was not found");
 
         ScoreSubmissionResult result;
         var recordedBeatmapPlay = false;
@@ -65,7 +66,7 @@ public sealed partial class ScoreService(
                                      || existing.Mode != score.Mode
                                      || existing.LazerMods == null != legacy))
             {
-                throw new InvalidOperationException("The submission identity belongs to a different score.");
+                return Rejected($"its identity belongs to a different score ({existing.Id})");
             }
 
             var player = await db.Players.AsNoTracking().SingleAsync(p => p.Id == score.PlayerId);
@@ -83,8 +84,12 @@ public sealed partial class ScoreService(
 
             if (isNew)
             {
-                if (!await beatmaps.EnsureLocalBeatmapFile(beatmap))
-                    throw new InvalidOperationException($"Cannot process score: beatmap file {score.MapId} is unavailable.");
+                var file = await beatmaps.EnsureLocalBeatmapFile(beatmap);
+                if (!file.Available)
+                    return Rejected($"beatmap file {score.MapId} is unavailable");
+
+                if (file.Status == BeatmapFileStatus.Updated)
+                    beatmap = await beatmaps.GetBeatmap(score.MapId) ?? beatmap;
 
                 score.Processed = true;
                 score.PlayTimeRecorded = false;
@@ -158,6 +163,12 @@ public sealed partial class ScoreService(
         
         await RefreshRank(score.PlayerId, score.Mode);
         return result;
+        
+        ScoreSubmissionResult? Rejected(string reason)
+        {
+            logger.LogWarning($"Rejected score of player {submission.Score.PlayerId} on beatmap {submission.Score.MapId}: {reason}");
+            return null;
+        }
     }
 
     private async Task RefreshRank(

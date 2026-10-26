@@ -28,6 +28,8 @@ public partial class BeatmapsController
         if (!User.TryGetUserId(out var uid)) return Unauthorized();
 
         var response = await scoresQueue.SubmitScore(dto, scoreId, uid, beatmapId);
+        if (response == null)
+            return UnprocessableEntity(new { error = "The score couldn't be submitted." });
 
         return JsonSnake(response);
     }

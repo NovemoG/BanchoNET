@@ -20,6 +20,9 @@ namespace Pp;
 public static partial class PpMethods
 {
     const string __DllName = "libpp_cs";
+    
+    // rosu-pp computes the difficulty inside each native call, so there is nothing to cache here.
+    public static IDisposable? CacheDifficulty() => null;
 
     [DllImport(__DllName, EntryPoint = "compute_pp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     private static extern double ComputePp(

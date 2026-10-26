@@ -8,7 +8,8 @@ public interface IScoreService
     Task RemoveScore(long id);
     Task<bool> RecalculateScore(long id);
     Task RecalculateAllScores();
-    Task<ScoreSubmissionResult> Submit(ScoreSubmission submission);
+    
+    Task<ScoreSubmissionResult?> Submit(ScoreSubmission submission);
 
     Task<ScoreCompletionResult> Complete(
         long scoreId,

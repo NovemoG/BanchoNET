@@ -47,7 +47,7 @@ public partial class CommandProcessor
         
         var fcPp = 0.0f;
         if (score.Misses > 0 || beatmap.MaxCombo - score.MaxCombo > 15)
-            if (await beatmapHandler.EnsureLocalBeatmapFile(beatmap))
+            if ((await beatmapHandler.EnsureLocalBeatmapFile(beatmap)).Available)
                 fcPp = PpMethods.ComputeNoMissesScorePp(beatmap, score, beatmap.MaxCombo);
         
         var completionString = $"{score.Grade}";

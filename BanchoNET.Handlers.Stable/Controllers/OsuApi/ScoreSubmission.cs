@@ -118,6 +118,9 @@ public partial class OsuController
         score.Player = player;
         
         var submission = await scoreService.Submit(ScoreSubmissionMapping.FromLegacy(score, beatmap));
+        if (submission == null)
+            return Ok("error: no");
+
         var prevStats = submission.PreviousStatistics.ToModeStats(submission.PreviousRank);
         
         ScoreSubmissionMapping.Apply(submission.Score, score);
