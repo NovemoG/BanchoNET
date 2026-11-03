@@ -148,8 +148,10 @@ public class MetadataHub(
             // hidden until the client reports its status
             await playerService.SetPresenceHidden(userId, true);
 
-            // if server has restarted but player is still logged in
-            if (await playerService.GetPlayer(userId) == null)
+            var lazerPlayer = await playerService.GetPlayer(userId);
+            if (lazerPlayer != null)
+                await playerService.AddPlayer(lazerPlayer);
+            else
             {
                 var apiPlayer = await players.GetFullPlayerInfo(userId);
                 if (apiPlayer != null)
@@ -251,7 +253,7 @@ public class MetadataHub(
         public UserStatus? Status { get; set; }
         public int[] FriendIds { get; set; } = [];
 
-        public bool IsVisible => Status is UserStatus.Online or UserStatus.DoNotDisturb;
+        public bool IsVisible => Status is UserStatus.Online or UserStatus.DoNotDisturb or UserStatus.Afk;
         
         public UserPresence? ToUserPresence() => IsVisible
             ? new UserPresence { Activity = Activity, Status = Status }

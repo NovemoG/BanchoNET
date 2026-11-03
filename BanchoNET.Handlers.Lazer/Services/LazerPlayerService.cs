@@ -23,15 +23,32 @@ public sealed class LazerPlayerService(
     private static readonly TimeSpan PlayerLifetime = TimeSpan.FromHours(12);
     private static readonly TimeSpan LocalLifetime = TimeSpan.FromSeconds(10);
 
-    public async Task<bool> AddPlayer(
+    public Task<bool> AddPlayer(
         ApiPlayer player
     ) {
-        var added = await _redis.SetAddAsync(OnlineKey, player.Id);
+        return AddPlayer(new LazerPlayer { Player = player });
+    }
 
-        player.IsOnline = true;
-        await Save(new LazerPlayer { Player = player });
+    public async Task<bool> AddPlayer(
+        LazerPlayer player
+    ) {
+        var added = await _redis.SetAddAsync(OnlineKey, player.Player.Id);
+
+        player.Player.IsOnline = true;
+        await Save(player);
 
         return added;
+    }
+
+    public async Task CachePlayer(
+        ApiPlayer player
+    ) {
+        await Save(new LazerPlayer { Player = player });
+    }
+
+    public async Task ClearPresence()
+    {
+        await _redis.KeyDeleteAsync([OnlineKey, HiddenKey]);
     }
 
     public async Task AssignFriends(

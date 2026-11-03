@@ -541,6 +541,8 @@ public class Program
 		if (staleLeaderboards.Length > 0)
 			redisDb.KeyDelete(staleLeaderboards);
 
+		scope.ServiceProvider.GetRequiredService<ILazerPlayerService>().ClearPresence().GetAwaiter().GetResult();
+
 		foreach (var mode in ModeExtensions.TrackedModes)
 		{
 			var playersPpModeValues = db.Stats.Include(s => s.Player)

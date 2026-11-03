@@ -77,7 +77,7 @@ public sealed partial class ScoreSubmissionQueue(
             player = await playersRepository.GetFullPlayerInfo(userId);
             if (player == null) return null;
 
-            await lazerPlayers.AddPlayer(player);
+            await lazerPlayers.CachePlayer(player);
         }
 
         var beatmaps = scope.ServiceProvider.GetRequiredService<IBeatmapHandler>();

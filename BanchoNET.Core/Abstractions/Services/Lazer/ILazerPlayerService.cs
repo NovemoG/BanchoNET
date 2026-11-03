@@ -9,6 +9,16 @@ public interface ILazerPlayerService
         ApiPlayer player
     );
 
+    Task<bool> AddPlayer(
+        LazerPlayer player
+    );
+
+    Task CachePlayer(
+        ApiPlayer player
+    );
+
+    Task ClearPresence();
+
     Task AssignFriends(
         int userId,
         int[] friends
